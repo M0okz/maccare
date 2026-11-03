@@ -16,7 +16,11 @@ enum HelperClient {
             switch self {
             case .notEnabled: return "l’assistant système n’est pas activé"
             case .unavailable(let m): return "assistant indisponible : \(m)"
-            case .incompatible(let v): return "assistant d'une autre version (protocole \(v)) : réactivez-le"
+            case .incompatible(let v):
+                if v > HelperIdentity.protocolVersion {
+                    return "l’assistant utilise un protocole plus récent (\(v)) : mettez MacCare à jour"
+                }
+                return "l’assistant doit être mis à jour (protocole \(v), attendu \(HelperIdentity.protocolVersion))"
             }
         }
     }
@@ -30,40 +34,38 @@ enum HelperClient {
     static var status: SMAppService.Status { service.status }
 
     static func register() throws { try service.register() }
+    @MainActor private static let serviceUpdater = HelperServiceUpdater(client: SystemHelperServiceLifecycle())
+
+    /// Reads the loaded helper identity without restoring or replacing it.
+    @MainActor static func loadedProtocolVersion() async throws -> Int {
+        try await serviceUpdater.loadedProtocolVersion()
+    }
+
+    /// Performs one explicitly requested replacement, without activating protection.
+    @MainActor static func update() async throws -> HelperUpdateResult {
+        try await serviceUpdater.update()
+    }
+
+    /// Restores the old helper's charge state before explicitly removing its service.
+    @MainActor
     static func unregister() async throws {
-        if status == .enabled {
-            let (version, _): (Int, String) = try await call(timeout: 8) { helper, done in helper.version { done(($0, $1)) } }
-            if version == 4 || version == 5 {
-                try await LegacyBatteryHelper.restoreBeforeUnregister()
-            } else if version == 6 || version == 7 || version == 8 {
-                // Version 6 has the same UUID-bearing selector. Only stop/verify
-                // it; no activation or automatic replacement of a loaded service.
-                let json: String = try await call(timeout: 8) { helper, done in
-                    helper.battery(command: "status", sessionID: "", configurationJSON: "{}", withReply: done)
-                }
-                let current = try JSONDecoder().decode(BatteryProtectionStatus.self, from: Data(json.utf8))
-                if current.active || current.restoring {
-                    let result: String = try await call(timeout: 8) { helper, done in
-                        helper.battery(command: "disable", sessionID: UUID().uuidString, configurationJSON: "{}", withReply: done)
-                    }
-                    let stopped = try JSONDecoder().decode(BatteryProtectionStatus.self, from: Data(result.utf8))
-                    guard !stopped.active, !stopped.restoring, stopped.error == nil else {
-                        throw HelperError.unavailable(stopped.error ?? "restaurez la charge avant de désactiver l’ancien assistant")
-                    }
-                }
-            } else if version == HelperIdentity.protocolVersion {
-                let current = try await battery(.status)
-                if current.active || current.restoring {
-                    let stopped = try await battery(.disable, sessionID: UUID())
-                    guard !stopped.active, !stopped.restoring, stopped.error == nil else {
-                        throw HelperError.unavailable(stopped.error ?? "restaurez la charge avant de désactiver l’assistant")
-                    }
-                }
-            } else if version > 3 { throw HelperError.incompatible(version) }
-        }
-        try await service.unregister()
+        try await serviceUpdater.unregister()
     }
     static func openApproval() { SMAppService.openSystemSettingsLoginItems() }
+
+    /// This bypasses only the current-version guard for the closed restoration
+    /// commands whose UUID-bearing selector is shared by helper protocols 6–10.
+    fileprivate static func restorationReply(_ command: BatteryCommand, sessionID: UUID?) async throws -> String {
+        guard command == .status || command == .disable else { throw HelperError.unavailable("commande de restauration invalide") }
+        return try await call(timeout: 8) { helper, done in
+            helper.battery(command: command.rawValue, sessionID: sessionID?.uuidString ?? "", configurationJSON: "{}", withReply: done)
+        }
+    }
+
+    fileprivate static func queryLoadedProtocolVersion() async throws -> Int {
+        let (version, _): (Int, String) = try await call(timeout: 8) { helper, done in helper.version { done(($0, $1)) } }
+        return version
+    }
 
     private static func connection() -> NSXPCConnection {
         let c = NSXPCConnection(machServiceName: HelperIdentity.machService, options: .privileged)
@@ -158,6 +160,156 @@ enum HelperClient {
     static func journal(since: Date) async throws -> String {
         try await call { h, done in h.journal(since: since, withReply: done) }
     }
+}
+
+/// The registration result; `.ready` confirms the current protocol, not an active battery session.
+enum HelperUpdateResult: Equatable, Sendable {
+    case ready
+    case requiresApproval
+}
+
+/// The service and closed battery operations needed by an explicit helper replacement.
+@MainActor
+protocol HelperServiceLifecycle {
+    var status: SMAppService.Status { get }
+    func loadedProtocolVersion() async throws -> Int
+    func restorationReply(_ command: BatteryCommand, sessionID: UUID?) async throws -> String
+    func restoreLegacyBattery() async throws
+    func unregister() async throws
+    func register() throws
+}
+
+/// Serializes explicit lifecycle actions while keeping identity checks read-only.
+@MainActor
+final class HelperServiceUpdater {
+    private let client: any HelperServiceLifecycle
+    private var mutationInProgress = false
+
+    /// Creates a lifecycle coordinator with a service transport.
+    init(client: any HelperServiceLifecycle) { self.client = client }
+
+    /// Reads the loaded protocol without registering, removing, or stopping the service.
+    func loadedProtocolVersion() async throws -> Int {
+        guard client.status == .enabled else { throw HelperClient.HelperError.notEnabled }
+        return try await client.loadedProtocolVersion()
+    }
+
+    /// Restores and replaces an older helper once; the caller handles any required approval.
+    func update() async throws -> HelperUpdateResult {
+        try beginMutation()
+        defer { mutationInProgress = false }
+        try Task.checkCancellation()
+        if client.status == .requiresApproval { return .requiresApproval }
+        let version = try await loadedProtocolVersion()
+        if version == HelperIdentity.protocolVersion { return .ready }
+        try validateRestorableVersion(version)
+        try Task.checkCancellation()
+        try await restoreBattery(version: version)
+        if client.status == .requiresApproval { return .requiresApproval }
+        let confirmedVersion = try await loadedProtocolVersion()
+        guard confirmedVersion == version else {
+            throw HelperClient.HelperError.unavailable("l’assistant a changé pendant la préparation ; actualisez son état")
+        }
+        try Task.checkCancellation()
+        try await client.unregister()
+        guard client.status != .enabled else {
+            throw HelperClient.HelperError.unavailable("l’arrêt de l’ancien assistant n’est pas confirmé ; vérifiez son état dans Réglages Système")
+        }
+        // Finish the requested registration after a successful removal, even if
+        // the initiating view disappears. No detached task, sleep, or retry loop.
+        do { try client.register() }
+        catch {
+            guard registrationNeedsApproval(error) else { throw error }
+            return .requiresApproval
+        }
+        if client.status == .requiresApproval { return .requiresApproval }
+        guard client.status == .enabled else {
+            throw HelperClient.HelperError.unavailable("l’activation du nouvel assistant n’est pas confirmée ; vérifiez son état dans Réglages Système")
+        }
+        let replacementVersion = try await loadedProtocolVersion()
+        guard replacementVersion == HelperIdentity.protocolVersion else {
+            throw HelperClient.HelperError.incompatible(replacementVersion)
+        }
+        return .ready
+    }
+
+    /// Restores an enabled helper before a user-requested service deactivation.
+    func unregister() async throws {
+        try beginMutation()
+        defer { mutationInProgress = false }
+        try Task.checkCancellation()
+        if client.status == .enabled {
+            let version = try await loadedProtocolVersion()
+            try validateRestorableVersion(version)
+            try await restoreBattery(version: version)
+            guard try await loadedProtocolVersion() == version else {
+                throw HelperClient.HelperError.unavailable("l’assistant a changé pendant la préparation ; actualisez son état")
+            }
+        }
+        try Task.checkCancellation()
+        try await client.unregister()
+    }
+
+    private func beginMutation() throws {
+        guard !mutationInProgress else {
+            throw HelperClient.HelperError.unavailable("une modification de l’assistant est déjà en cours")
+        }
+        mutationInProgress = true
+    }
+
+    private func validateRestorableVersion(_ version: Int) throws {
+        guard (1...HelperIdentity.protocolVersion).contains(version) else {
+            throw HelperClient.HelperError.incompatible(version)
+        }
+    }
+
+    private func restoreBattery(version: Int) async throws {
+        if version == 4 || version == 5 {
+            try await client.restoreLegacyBattery()
+        } else if version >= 6 {
+            // Decode only the stable restoration fields, not a newer client's
+            // capability enum or recovery journal. Never enable an old helper.
+            let current = try decodeRestorationState(await client.restorationReply(.status, sessionID: nil))
+            try Task.checkCancellation()
+            if current.active || current.restoring || current.error != nil {
+                let stopped = try decodeRestorationState(await client.restorationReply(.disable, sessionID: UUID()))
+                guard !stopped.active, !stopped.restoring, stopped.error == nil else {
+                    throw HelperClient.HelperError.unavailable(stopped.error ?? "l’assistant n’a pas confirmé la restauration de la charge")
+                }
+            }
+        }
+    }
+
+    private func decodeRestorationState(_ reply: String) throws -> RestorationState {
+        try JSONDecoder().decode(RestorationState.self, from: Data(reply.utf8))
+    }
+
+    private func registrationNeedsApproval(_ error: any Error) -> Bool {
+        let failure = error as NSError
+        let serviceError = failure.domain == "SMAppServiceErrorDomain" || failure.domain == kSMErrorDomainFramework as String
+        let approvalError = failure.code == Int(kSMErrorLaunchDeniedByUser) ||
+            failure.code == Int(kSMErrorAlreadyRegistered) ||
+            (failure.domain == "SMAppServiceErrorDomain" && failure.code == 1)
+        return client.status == .requiresApproval && serviceError && approvalError
+    }
+
+    private struct RestorationState: Decodable {
+        let active: Bool
+        let restoring: Bool
+        let error: String?
+    }
+}
+
+@MainActor
+private struct SystemHelperServiceLifecycle: HelperServiceLifecycle {
+    var status: SMAppService.Status { HelperClient.status }
+    func loadedProtocolVersion() async throws -> Int { try await HelperClient.queryLoadedProtocolVersion() }
+    func restorationReply(_ command: BatteryCommand, sessionID: UUID?) async throws -> String {
+        try await HelperClient.restorationReply(command, sessionID: sessionID)
+    }
+    func restoreLegacyBattery() async throws { try await LegacyBatteryHelper.restoreBeforeUnregister() }
+    func unregister() async throws { try await HelperClient.service.unregister() }
+    func register() throws { try HelperClient.register() }
 }
 
 /// Garantit qu'une continuation n'est reprise qu'une fois (réponse ou erreur, pas les deux).
