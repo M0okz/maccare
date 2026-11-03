@@ -23,7 +23,7 @@ struct BatteryHistoryTests {
         defer { try? FileManager.default.removeItem(at: directory) }
         let store = BatteryHistoryStore(directory: directory)
         #expect(try await store.append(snapshot: .init()).isEmpty)
-        #expect(FileManager.default.fileExists(atPath: directory.path) == false)
+        #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("history.json").path) == false)
     }
     @Test func durableScheduleCheckpointPreventsReplay() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -37,6 +37,21 @@ struct BatteryHistoryTests {
         #expect(values.count == 1)
         #expect(values[0].claim(at: now) == .notDue)
         #expect(values[0].enabled == false)
+    }
+
+    @Test func concurrentInstancesCannotClaimTheSameCycleTwice() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let first = BatteryHistoryStore(directory: directory), second = BatteryHistoryStore(directory: directory)
+        let now = Date(), schedule = BatterySchedule(name: "Cycle", action: .calibrate, recurrence: .once, firstRun: .now)
+        try await first.saveSchedules([schedule])
+        async let a = first.claimSchedule(schedule.id, at: now.addingTimeInterval(1))
+        async let b = second.claimSchedule(schedule.id, at: now.addingTimeInterval(1))
+        let results = try await (a, b)
+        let runs = (results.0.claim == .run ? 1 : 0) + (results.1.claim == .run ? 1 : 0)
+        #expect(runs == 1)
+        _ = try await first.upsertSchedule(schedule)
+        #expect(try await second.claimSchedule(schedule.id, at: now.addingTimeInterval(2)).claim == .notDue)
     }
 
 }

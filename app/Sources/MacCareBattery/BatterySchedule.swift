@@ -29,7 +29,7 @@ public struct BatterySchedule: Codable, Equatable, Identifiable, Sendable {
             }
         }
     }
-    public enum Claim: Equatable { case notDue, run, missed }
+    public enum Claim: Equatable, Sendable { case notDue, run, missed }
     public var id: UUID
     public var name: String
     public var enabled: Bool
@@ -73,6 +73,15 @@ public struct BatterySchedule: Codable, Equatable, Identifiable, Sendable {
             return candidate
         }
         return nil
+    }
+    public mutating func preserveProgress(from existing: Self) {
+        guard existing.id == id, let last = existing.lastClaimed,
+              lastClaimed.map({ $0 < last }) != false else { return }
+        lastClaimed = last
+        if nextRun <= last {
+            nextRun = existing.nextRun
+            if recurrence == .once { enabled = false }
+        }
     }
     public mutating func claim(at now: Date, maximumDelay: TimeInterval = 600) -> Claim {
         guard enabled, isValid, now.timeIntervalSince1970.isFinite, maximumDelay.isFinite, maximumDelay >= 0,

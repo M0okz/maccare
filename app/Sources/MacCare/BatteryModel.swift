@@ -81,8 +81,8 @@ final class BatteryModel: ObservableObject {
         return protection?.message ?? "Vérification du contrôle de charge…"
     }
 
-    func refresh(force: Bool = false) async {
-        guard !busy, !isTerminating else { return }
+    func refresh(force: Bool = false, fromAutomation: Bool = false) async {
+        guard !busy, !isTerminating, !automating || fromAutomation else { return }
         busy = true
         defer { busy = false }
         helperEnabled = client.status == .enabled
@@ -214,22 +214,17 @@ extension BatteryModel {
         catch { self.error = error.localizedDescription }
     }
     func saveSchedule(_ schedule: BatterySchedule) async {
-        guard !controlsBusy, automationsLoaded, schedule.isValid, schedules.count < 100 else { error = "Vérifiez la programmation et attendez la fin de l’action en cours."; return }
+        guard !controlsBusy, automationsLoaded, schedule.isValid, schedules.count < 100 || schedules.contains(where: { $0.id == schedule.id }) else { error = "Vérifiez la programmation et attendez la fin de l’action en cours."; return }
         automating = true; defer { automating = false }
         do {
-            var next = schedules
-            if let index = next.firstIndex(where: { $0.id == schedule.id }) { next[index] = schedule }
-            else { next.append(schedule) }
-            try await historyStore.saveSchedules(next)
-            schedules = next
+            schedules = try await historyStore.upsertSchedule(schedule)
         } catch { self.error = error.localizedDescription }
     }
     func deleteSchedule(_ id: UUID) async {
         guard !controlsBusy else { return }
         automating = true; defer { automating = false }
         do {
-            let next = schedules.filter { $0.id != id }
-            try await historyStore.saveSchedules(next); schedules = next
+            schedules = try await historyStore.deleteSchedule(id)
         } catch { self.error = error.localizedDescription }
     }
     func toggleSchedule(_ schedule: BatterySchedule) async {
@@ -242,19 +237,20 @@ extension BatteryModel {
     }
     func processSchedules(now: Date = .now) async {
         guard automationsLoaded, !controlsBusy else { return }
+        do {
+            let latest = try await historyStore.loadSchedules()
+            guard !controlsBusy else { return }
+            if latest != schedules { schedules = latest }
+        } catch { historyError = error.localizedDescription; return }
         for id in schedules.map(\.id) {
-            guard !Task.isCancelled, !isTerminating, !controlsBusy,
-                  let index = schedules.firstIndex(where: { $0.id == id }) else { break }
-            var next = schedules
-            let claim = next[index].claim(at: now)
-            guard claim != .notDue else { continue }
-            let schedule = next[index]
+            guard !Task.isCancelled, !isTerminating, !controlsBusy else { break }
             automating = true
             do {
-                try await historyStore.saveSchedules(next)
-                schedules = next; automating = false
+                let result = try await historyStore.claimSchedule(id, at: now)
+                schedules = result.schedules; automating = false
+                guard result.claim != .notDue, let schedule = result.schedule else { continue }
                 guard !isTerminating, !Task.isCancelled else { return }
-                if claim == .missed { recordEvent("\(schedule.name) : tâche manquée, prochaine occurrence conservée.", at: now); continue }
+                if result.claim == .missed { recordEvent("\(schedule.name) : tâche manquée, prochaine occurrence conservée.", at: now); continue }
                 do {
                     try await executeAutomation(schedule.action)
                     recordEvent("\(schedule.name) : action exécutée.", at: now)
@@ -270,7 +266,7 @@ extension BatteryModel {
         guard !controlsBusy, action.isValid else { throw AutomationError("Une action est déjà en cours ou ses réglages sont invalides.") }
         automating = true; defer { automating = false }
         openSection?()
-        await refresh(force: true)
+        await refresh(force: true, fromAutomation: true)
         guard helperEnabled, recoveryReady, supported, !restoring else {
             throw AutomationError("Ouvrez Batterie et activez l’assistant système à jour avant d’utiliser cette action.")
         }
@@ -284,7 +280,16 @@ extension BatteryModel {
                 configuration = value
                 await perform(.enable, fromAutomation: true)
             } else {
+                guard snapshot?.onAC == true, cycle == nil else {
+                    throw AutomationError("Branchez le chargeur et annulez tout cycle en cours avant cette action.")
+                }
+                if action == .discharge {
+                    guard let percent = snapshot?.percent, percent > configuration.limit else {
+                        throw AutomationError("La batterie est déjà à la limite de décharge ou en dessous.")
+                    }
+                }
                 if action == .discharge || action == .calibrate {
+                    guard snapshot?.reliableTemperature == true else { throw AutomationError("La température est inconnue ; le cycle ne peut pas démarrer.") }
                     guard supportsDischarge else { throw AutomationError("Le contrôle de l’adaptateur n’est pas disponible sur ce Mac.") }
                 }
                 if !active { await perform(.enable, fromAutomation: true) }

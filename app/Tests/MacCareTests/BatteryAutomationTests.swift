@@ -11,15 +11,16 @@ struct BatteryAutomationTests {
         var status: SMAppService.Status = .enabled
         var commands: [BatteryCommand] = []
         var active = false
+        var plugged = true
         var owner = true
         var capabilities = BatteryControlCapabilities(backend: .chargeGate, adapterBackend: .modern)
         var configuration = BatteryConfiguration(thermalProtection: false)
-        func snapshot() async -> BatterySnapshot { .init(percent: 80, onAC: true, temperature: 28) }
+        func snapshot() async -> BatterySnapshot { .init(percent: 80, onAC: plugged, temperature: 28) }
         func request(_ command: BatteryCommand, configuration: BatteryConfiguration?, sessionID: UUID) async throws -> BatteryProtectionStatus {
             commands.append(command)
             if command == .enable { active = true; self.configuration = configuration ?? self.configuration }
             if command == .disable { active = false }
-            var value = BatteryProtectionStatus(snapshot: .init(percent: 80, onAC: true, temperature: 28), supported: true,
+            var value = BatteryProtectionStatus(snapshot: .init(percent: 80, onAC: plugged, temperature: 28), supported: true,
                 active: active, configuration: self.configuration, ownedByCaller: active && owner, capabilities: capabilities)
             value.recoveryReady = true
             return value
@@ -90,6 +91,14 @@ struct BatteryAutomationTests {
         intent.limit = 25
         await #expect(throws: (any Error).self) { try await intent.perform() }
         #expect(client.commands.filter { $0 == .enable }.count == 1)
+    }
+
+    @Test func anUnpluggedCalibrationCannotActivateProtectionAsASideEffect() async {
+        let prefs = Preferences(), client = Client(); client.plugged = false
+        let model = BatteryModel(defaults: prefs.defaults, monitor: false, client: client)
+        await #expect(throws: (any Error).self) { try await model.executeAutomation(.calibrate) }
+        #expect(client.commands.allSatisfy { $0 == .status })
+        #expect(client.active == false)
     }
 
 }

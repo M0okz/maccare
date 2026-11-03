@@ -24,6 +24,7 @@ struct SetBatteryLimitIntent: AppIntent {
     @Parameter(title: "Limite en pourcentage", default: 80) var limit: Int
     @MainActor func perform() async throws -> some IntentResult {
         let model = try BatteryIntentBridge.current()
+        await model.refresh(force: true)
         var value = model.configuration; value.limit = limit
         try await model.executeAutomation(.configure(value))
         return .result()

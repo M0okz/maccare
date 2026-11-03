@@ -42,6 +42,12 @@ public actor BatteryHistoryStore {
         return entries ?? []
     }
     @discardableResult public func append(snapshot: BatterySnapshot, at date: Date = .now) throws -> [BatteryHistoryEntry] {
+        try withFileLock("history.lock") {
+            entries = nil
+            return try appendLocked(snapshot: snapshot, at: date)
+        }
+    }
+    private func appendLocked(snapshot: BatterySnapshot, at date: Date) throws -> [BatteryHistoryEntry] {
         var values = try load(now: date)
         guard let entry = BatteryHistoryEntry(snapshot: snapshot, date: date) else { return values }
         if let last = values.last {
@@ -72,6 +78,47 @@ public actor BatteryHistoryStore {
         return values
     }
     public func saveSchedules(_ values: [BatterySchedule]) throws {
+        try withFileLock("schedules.lock") { try writeSchedules(values) }
+    }
+    public func upsertSchedule(_ schedule: BatterySchedule) throws -> [BatterySchedule] {
+        try withFileLock("schedules.lock") {
+            var values = try loadSchedules()
+            var incoming = schedule
+            if let index = values.firstIndex(where: { $0.id == schedule.id }) {
+                incoming.preserveProgress(from: values[index]); values[index] = incoming
+            } else { values.append(incoming) }
+            try writeSchedules(values)
+            return values
+        }
+    }
+    public func deleteSchedule(_ id: UUID) throws -> [BatterySchedule] {
+        try withFileLock("schedules.lock") {
+            let values = try loadSchedules().filter { $0.id != id }
+            try writeSchedules(values)
+            return values
+        }
+    }
+    public func claimSchedule(_ id: UUID, at now: Date) throws -> (schedules: [BatterySchedule], claim: BatterySchedule.Claim, schedule: BatterySchedule?) {
+        try withFileLock("schedules.lock") {
+            var values = try loadSchedules()
+            guard let index = values.firstIndex(where: { $0.id == id }) else { return (values, .notDue, nil) }
+            let claim = values[index].claim(at: now)
+            if claim != .notDue { try writeSchedules(values) }
+            return (values, claim, values[index])
+        }
+    }
+    private func withFileLock<T>(_ name: String, operation: () throws -> T) throws -> T {
+        let fm = FileManager.default
+        try fm.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        guard try fm.attributesOfItem(atPath: directory.path)[.type] as? FileAttributeType == .typeDirectory else { throw HistoryError() }
+        let fd = open(directory.appendingPathComponent(name).path, O_RDWR | O_CREAT | O_NOFOLLOW, 0o600)
+        guard fd >= 0 else { throw HistoryError() }
+        defer { close(fd) }
+        guard flock(fd, LOCK_EX) == 0 else { throw HistoryError() }
+        defer { flock(fd, LOCK_UN) }
+        return try operation()
+    }
+    private func writeSchedules(_ values: [BatterySchedule]) throws {
         guard values.count <= 100, values.allSatisfy({ $0.isValid }), Set(values.map(\.id)).count == values.count else { throw HistoryError() }
         let fm = FileManager.default
         try fm.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
