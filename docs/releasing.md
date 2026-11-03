@@ -70,6 +70,12 @@ Les notes sont prises dans `docs/release-notes/<version>.md` lorsqu’elles exis
 pour conserver les disponibilités et limites du matériel dans la release et le flux
 Sparkle. À défaut, le workflow génère les notes depuis GitHub.
 
+Le build et les tests sélectionnent explicitement `--build-system swiftbuild`,
+disponible avec Swift 6.2 et suivants. Le moteur SwiftPM natif de certains Xcode
+plus anciens n’émet pas les constantes App Intents nécessaires au packaging.
+Le choix explicite conserve les mêmes artefacts en local et sur le runner GitHub ;
+la cible d’exécution de l’app reste macOS 13.
+
 Le flux stable est
 `https://github.com/M0okz/maccare/releases/latest/download/appcast.xml`.
 Chaque flux contient la dernière version ; les DMG et signatures des anciennes
