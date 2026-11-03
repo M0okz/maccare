@@ -72,7 +72,7 @@ jobs:
       - name: Construire et tester
         run: |
           bash app/build.sh
-          swift test --package-path app --build-system swiftbuild --arch arm64 -Xlinker -L"$PWD/core/target/release"
+          swift test --package-path app --scratch-path build/swift-tests --build-system native --arch arm64 -Xlinker -L"$PWD/core/target/release"
           python3 -m unittest discover -s app/release/tests -v
           python3 app/release/test_signatures.py
       - name: Préparer les notes
