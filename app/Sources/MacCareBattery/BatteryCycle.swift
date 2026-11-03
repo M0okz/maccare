@@ -60,6 +60,6 @@ public struct BatteryCycle: Sendable {
         return .init(discharge: discharge, limit: status.phase == .returningToLimit ? status.target : 100, finished: false)
     }
     private struct CycleError: LocalizedError {
-        var errorDescription: String? { "Cycle interrompu : mesures, température ou durée à vérifier. L’alimentation est rétablie." }
+        var errorDescription: String? { "Cycle interrompu : mesures, température ou durée à vérifier. La restauration de l’alimentation est demandée." }
     }
 }

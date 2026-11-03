@@ -80,4 +80,21 @@ struct BatteryDischargeTests {
         #expect(throws: BatteryHardwareError.self) { try hardware.captureRecovery() }
         #expect(adapter.writes.isEmpty)
     }
+    @Test func expiredLeaseRestoresAnIsolatedAdapterWithoutAnotherHeartbeat() throws {
+        let events = Events(), adapter = Adapter(Events())
+        let hardware = RecoverableChargeHardware(base: Base(events), adapter: adapter, identity: { "fixture" })
+        var pending: BatteryRecoveryRecord?
+        let controller = BatteryProtectionController(hardware: hardware, markRecovery: { pending = $0 }, clearRecovery: { pending = nil })
+        let session = UUID(), snapshot = BatterySnapshot(percent: 80, onAC: true, temperature: 28)
+        _ = controller.execute(.enable, configuration: .init(limit: 70, thermalProtection: false), uid: 501, sessionID: session, snapshot: snapshot, now: 0)
+        _ = controller.execute(.discharge, configuration: nil, uid: 501, sessionID: session, snapshot: snapshot, now: 1)
+        #expect(adapter.disabled)
+        let expired = controller.tick(snapshot: .init(percent: 78, onAC: false, temperature: 28), now: 92)
+        #expect(expired.active == false)
+        #expect(expired.restoring == false)
+        #expect(adapter.disabled == false)
+        #expect(pending == nil)
+        #expect(expired.cycle == nil)
+    }
+
 }
