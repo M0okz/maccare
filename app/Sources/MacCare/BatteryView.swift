@@ -3,17 +3,30 @@ import MacCareBattery
 
 struct BatteryView: View {
     @ObservedObject var model: BatteryModel
+    @State private var tab = 0
     @State private var confirmingActivation = false
     @AccessibilityFocusState private var errorFocused: Bool
 
     var body: some View {
         ZStack {
-            CategoryBackground(section: .battery)
+            Theme.bg.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     header
                     if let snapshot = model.snapshot {
-                        if snapshot.present { telemetry(snapshot); protection(snapshot) }
+                        if snapshot.present {
+                            telemetry(snapshot)
+                            Picker("Rubrique Batterie", selection: $tab) {
+                                Text("Réglages").tag(0); Text("Cycles").tag(1)
+                                Text("Programmations").tag(2); Text("Historique").tag(3)
+                            }.pickerStyle(.segmented)
+                            switch tab {
+                            case 1: BatteryCyclesView(model: model)
+                            case 2: BatterySchedulesView(model: model)
+                            case 3: BatteryHistoryView(model: model)
+                            default: protection(snapshot); BatteryProfilesView(model: model)
+                            }
+                        }
                         else { unavailable }
                     } else {
                         ProgressView("Lecture de la batterie…").frame(maxWidth: .infinity).padding(32)
@@ -48,7 +61,7 @@ struct BatteryView: View {
             }
             Spacer()
             Button { Task { await model.refresh(force: true) } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
-                .buttonStyle(SecondaryActionButtonStyle()).disabled(model.busy)
+                .buttonStyle(.bordered).disabled(model.controlsBusy)
         }
     }
     private func telemetry(_ snapshot: BatterySnapshot) -> some View {
@@ -93,7 +106,7 @@ struct BatteryView: View {
                     .foregroundStyle(Theme.muted)
                 Button(model.requiresApproval ? "Autoriser dans Réglages Système…" : "Activer l’assistant système…") {
                     Task { await model.activateHelper() }
-                }.buttonStyle(.borderedProminent).disabled(model.busy)
+                }.buttonStyle(.borderedProminent).disabled(model.controlsBusy)
             } else if model.restoring {
                 Text("MacCare restaure l’état de charge d’origine. L’assistant continue les tentatives ; aucune nouvelle protection ne peut démarrer pendant cette opération.")
                     .foregroundStyle(Theme.warn)
@@ -125,6 +138,20 @@ struct BatteryView: View {
                          : "80 % convient à un usage fréquent sur secteur. La charge reprend après une baisse de 3 points. Abaisser la limite ne force pas la décharge.")
                         .font(.callout).foregroundStyle(Theme.muted)
                     }
+                    Toggle("Utiliser une plage de maintien (mode Voile)", isOn: Binding(
+                        get: { model.configuration.sailingWidth != nil },
+                        set: { model.configuration.sailingWidth = $0 ? 5 : nil }
+                    )).disabled(!model.supportsSailing || model.controlsBusy)
+                    if let width = model.configuration.sailingWidth {
+                        Stepper("Reprise à \(model.configuration.limit - width) % · limite \(model.configuration.limit) %", value: Binding(
+                            get: { model.configuration.sailingWidth ?? 5 }, set: { model.configuration.sailingWidth = $0 }
+                        ), in: 2...20)
+                        Text("La charge reste en pause dans cette plage et reprend à sa borne basse. Abaisser la limite ne lance pas une décharge volontaire.")
+                            .font(.callout).foregroundStyle(Theme.muted)
+                    } else if !model.supportsSailing {
+                        Text("La plage personnalisée nécessite un contrôleur matériel compatible. Avec la limite native, macOS choisit la reprise.")
+                            .font(.callout).foregroundStyle(Theme.muted)
+                    }
                     Toggle("Suspendre la charge si la batterie chauffe", isOn: $model.configuration.thermalProtection)
                         .toggleStyle(.switch).disabled(!model.supportsThermalProtection)
                     if model.nativeControl {
@@ -140,7 +167,7 @@ struct BatteryView: View {
                         Text("La charge reprend après une baisse de 2 °C. Une température manquante pendant la protection entraîne une pause de charge.")
                             .font(.callout).foregroundStyle(Theme.muted)
                     }
-                }.disabled(model.busy)
+                }.disabled(model.controlsBusy)
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 12) { actions }
                     VStack(alignment: .leading, spacing: 12) { actions }
@@ -166,11 +193,11 @@ struct BatteryView: View {
     @ViewBuilder private var actions: some View {
         if model.active {
             Button("Appliquer les réglages") { Task { await model.perform(.enable) } }
-                .disabled(model.busy || !model.pendingChanges || model.protection?.ownedByCaller != true).buttonStyle(.borderedProminent)
+                .disabled(model.busy || !model.pendingChanges || model.cycle != nil || model.protection?.ownedByCaller != true).buttonStyle(.borderedProminent)
             Button(model.protection?.topUp == true ? "Revenir à la limite" : "Recharger à 100 % une fois") {
                 Task { await model.perform(model.protection?.topUp == true ? .cancelTopUp : .topUp) }
             }.disabled(model.busy || model.snapshot?.onAC != true || model.protection?.ownedByCaller != true)
-            Button("Désactiver la protection") { Task { await model.perform(.disable) } }.disabled(model.busy)
+            Button("Désactiver la protection") { Task { await model.perform(.disable) } }.disabled(model.controlsBusy)
         } else {
             Button("Activer la protection") { confirmingActivation = true }
                 .buttonStyle(.borderedProminent).disabled(model.busy || !model.helperEnabled || !model.supported || !model.recoveryReady || model.restoring)
