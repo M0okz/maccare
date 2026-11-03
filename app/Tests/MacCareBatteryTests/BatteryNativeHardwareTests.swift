@@ -75,13 +75,17 @@ struct BatteryNativeHardwareTests {
         #expect(AppleSiliconChargeHardware.supportsNativeLimit(version))
     }
 
-    @Test func supportedSMCIsPreferredWithoutReadingNativeDriver() throws {
+    @Test func SMCDiscoveryIsReadOnlyAndCapturePreservesNativeCompanion() throws {
         let smc = SMC(), driver = Driver()
         let hardware = AppleSiliconChargeHardware(smc: smc, native: native(driver), nativeAvailable: true)
         #expect(try hardware.readSwitch() == 0)
         #expect(hardware.capabilities.backend == .legacyPair)
-        #expect(try hardware.captureRecovery().backend == .legacyPair)
         #expect(driver.reads == 0)
+        let record = try hardware.captureRecovery()
+        #expect(record.backend == .legacyPair)
+        #expect(record.nativeState == driver.reading.state)
+        #expect(record.version == 3)
+        #expect(driver.reads > 0)
         #expect(driver.limits.isEmpty)
     }
 

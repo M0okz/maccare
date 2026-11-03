@@ -7,6 +7,8 @@ public protocol ChargeHardware {
     var capabilities: BatteryControlCapabilities { get }
     func captureRecovery() throws -> BatteryRecoveryRecord
     func restore(_ record: BatteryRecoveryRecord) throws
+    func validateDischarge() throws
+    func setDischarging(_ disabled: Bool) throws
     func endSession()
     func setFirmwareLimit(_ limit: Int?) throws
     func prepareForControl() throws
@@ -34,6 +36,8 @@ public extension ChargeHardware {
                      firmwareUpper: firmwareManaged ? 100 : nil, firmwareLower: firmwareManaged ? 97 : nil)
     }
     func restore(_ record: BatteryRecoveryRecord) throws { if try readSwitch() != 0 { try writeSwitch(0) } }
+    func validateDischarge() throws {}
+    func setDischarging(_ disabled: Bool) throws { if disabled { throw BatteryHardwareError(code: -1) } }
     func endSession() {}
 }
 

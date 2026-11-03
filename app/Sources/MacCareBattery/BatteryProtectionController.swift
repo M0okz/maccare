@@ -17,6 +17,7 @@ public final class BatteryProtectionController {
     private var policy = BatteryProtectionPolicy()
     private var suspended = false
     private var topUp = false
+    private var cycle: BatteryCycle?
     private var sleeping = false
     private var awaitingHeartbeat = false
     private var restoring = false
@@ -55,6 +56,7 @@ public final class BatteryProtectionController {
             case .disable:
                 if recovery != nil { try stop() }
             case .enable:
+                guard cycle == nil else { throw ControlError("Annulez le cycle en cours avant de modifier les réglages.") }
                 guard !sleeping else { throw ControlError("Attendez la sortie de veille avant d’activer la protection.") }
                 guard snapshot.reliableForControl else { throw ControlError("Les mesures de batterie sont insuffisantes pour piloter la charge.") }
                 guard let newConfiguration, newConfiguration.isValid else { throw ControlError("Réglages de protection invalides.") }
@@ -89,11 +91,22 @@ public final class BatteryProtectionController {
                 configuration = newConfiguration; policy = .init(); topUp = false; failure = nil
                 awaitingHeartbeat = false; deadline = now + Self.leaseDuration
                 try update(snapshot, now: now)
-            case .heartbeat, .topUp, .cancelTopUp:
+            case .heartbeat, .topUp, .cancelTopUp, .discharge, .cancelCycle:
                 guard owner == uid, sessionID == callerSession, now < deadline else {
                     if recovery != nil { try stop() }
                     throw ControlError("La protection a expiré. Réactivez-la pour continuer.")
                 }
+                if command == .discharge {
+                    guard cycle == nil, let configuration, sessionCapabilities?.supportsDischarge == true,
+                          let percent = snapshot.percent, percent > configuration.limit, snapshot.onAC else {
+                        throw ControlError("Branchez le Mac au-dessus de sa limite et vérifiez la disponibilité de la décharge.")
+                    }
+                    try hardware.validateDischarge()
+                    cycle = BatteryCycle(target: configuration.limit, now: now)
+                    topUp = false
+                }
+                if command == .cancelCycle { try hardware.setDischarging(false); cycle = nil }
+                if command == .topUp && cycle != nil { throw ControlError("Annulez le cycle avant la recharge ponctuelle.") }
                 if command == .topUp && !snapshot.onAC { throw ControlError("Branchez le Mac pour lancer une recharge ponctuelle.") }
                 if command == .topUp { topUp = true }
                 if command == .cancelTopUp { topUp = false }
@@ -104,7 +117,7 @@ public final class BatteryProtectionController {
         } catch {
             let issue = error.localizedDescription
             if !(error is ControlError), recovery != nil {
-                restoring = true; topUp = false
+                restoring = true; topUp = false; cycle = nil
                 do { try finishRestoration() } catch { /* watchdog retries, never resumes policy */ }
             }
             failure = issue
@@ -126,7 +139,7 @@ public final class BatteryProtectionController {
         return status(snapshot, now: now, uid: nil, session: nil)
     }
     public func prepareForSleep() throws {
-        sleeping = true; topUp = false; awaitingHeartbeat = true
+        sleeping = true; topUp = false; cycle = nil; awaitingHeartbeat = true
         guard let recovery else { return }
         do { try hardware.restore(recovery); suspended = false }
         catch { restoring = true; failure = error.localizedDescription; throw error }
@@ -151,6 +164,19 @@ public final class BatteryProtectionController {
         guard snapshot.reliableForControl, let configuration else {
             try stop(); message = "Protection arrêtée · mesures indisponibles"; return
         }
+        if var running = cycle {
+            let action = try running.advance(snapshot: snapshot, now: now)
+            try hardware.setDischarging(action.discharge)
+            if !action.finished {
+                if sessionCapabilities?.managesChargeLimit == true { try hardware.setChargeLimit(action.limit) }
+                else if try hardware.readSwitch() != 0 { try hardware.writeSwitch(0) }
+            }
+            cycle = action.finished ? nil : running
+            topUp = false; suspended = false
+            message = action.finished ? "Cycle terminé · limite rétablie" : running.status.message
+            failure = nil
+            if !action.finished { return }
+        }
         if topUp && (!snapshot.onAC || snapshot.percent == 100) { topUp = false }
         if sessionCapabilities?.managesChargeLimit == true {
             if !topUp, configuration.sailingWidth != nil, sessionCapabilities?.backend == .firmware {
@@ -173,7 +199,7 @@ public final class BatteryProtectionController {
         failure = nil
     }
     private func stop() throws {
-        restoring = true; topUp = false
+        restoring = true; topUp = false; cycle = nil
         try finishRestoration()
     }
     private func finishRestoration() throws {
@@ -183,7 +209,7 @@ public final class BatteryProtectionController {
         try clearRecovery()
         self.recovery = nil; sessionCapabilities = nil; hardware.endSession()
         owner = nil; sessionID = nil; configuration = nil; topUp = false
-        policy = .init(); restoring = false; awaitingHeartbeat = false
+        policy = .init(); cycle = nil; restoring = false; awaitingHeartbeat = false
         message = "Protection désactivée"
     }
     private func status(_ snapshot: BatterySnapshot, now: TimeInterval, uid: UInt32?, session: UUID?) -> BatteryProtectionStatus {
@@ -200,12 +226,14 @@ public final class BatteryProtectionController {
             catch { supported = false; hardwareError = error.localizedDescription }
         } else { supported = false }
         let expired = recovery != nil && now >= deadline && !sleeping
-        return .init(snapshot: snapshot, firmwareManaged: recovery?.backend == .firmware || (recovery == nil && hardware.firmwareManaged),
+        var result = BatteryProtectionStatus(snapshot: snapshot, firmwareManaged: recovery?.backend == .firmware || (recovery == nil && hardware.firmwareManaged),
                      supported: supported, active: owner != nil && !restoring && !expired,
                      suspended: suspended, topUp: topUp, configuration: configuration,
                      message: expired ? "Protection expirée · restauration en attente" : message,
                      error: failure ?? (supported ? nil : hardwareError), restoring: restoring || expired,
                      ownedByCaller: owner != nil && owner == uid && sessionID == session, capabilities: capabilities)
+        result.cycle = cycle?.status
+        return result
     }
     private struct ControlError: LocalizedError {
         var message: String

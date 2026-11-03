@@ -254,3 +254,47 @@ int32_t maccare_firmware_limit_restore(uint32_t upper, uint32_t lower) {
     closeSMC(connection);
     return result;
 }
+
+// Two documented adapter gates. Never accepts a key supplied by an XPC caller.
+static int32_t adapterRead(io_connect_t connection, int32_t backend, SMCMessage *field) {
+    if (backend != 1 && backend != 2) return kIOReturnBadArgument;
+    int32_t result = readKey(connection, backend == 2 ? "CHIE" : "CH0J", field);
+    if (result) return result;
+    uint8_t inhibited = backend == 2 ? 8 : 32;
+    if (field->info.size != 1 || field->info.type != code(backend == 2 ? "hex_" : "ui8 ") ||
+        (field->bytes[0] != 0 && field->bytes[0] != inhibited)) return kIOReturnUnsupported;
+    return 0;
+}
+int32_t maccare_adapter_read(int32_t backend, uint8_t *disabled) {
+    if (!disabled) return kIOReturnBadArgument;
+    io_connect_t connection = 0; int32_t result = openSMC(&connection);
+    if (result) return result;
+    SMCMessage field = {0}; result = adapterRead(connection, backend, &field);
+    if (!result) *disabled = field.bytes[0] != 0;
+    closeSMC(connection); return result;
+}
+int32_t maccare_adapter_probe(int32_t *backend) {
+    if (!backend) return kIOReturnBadArgument;
+    *backend = 0; uint8_t disabled = 0;
+    int32_t result = maccare_adapter_read(2, &disabled);
+    if (!result) *backend = 2;
+    else if (missing(result)) { result = maccare_adapter_read(1, &disabled); if (!result) *backend = 1; }
+    return result;
+}
+int32_t maccare_adapter_write(int32_t backend, uint8_t disabled) {
+    if ((backend != 1 && backend != 2) || disabled > 1) return kIOReturnBadArgument;
+    io_connect_t connection = 0; int32_t result = openSMC(&connection);
+    if (result) return result;
+    SMCMessage field = {0}; result = adapterRead(connection, backend, &field);
+    if (!result) {
+        uint8_t desired[32] = {0}; desired[0] = disabled ? (backend == 2 ? 8 : 32) : 0;
+        if (field.bytes[0] != desired[0]) {
+            result = writeField(connection, backend == 2 ? "CHIE" : "CH0J", &field, desired);
+            if (result && disabled) {
+                uint8_t normal[32] = {0};
+                writeField(connection, backend == 2 ? "CHIE" : "CH0J", &field, normal);
+            }
+        }
+    }
+    closeSMC(connection); return result;
+}

@@ -120,6 +120,7 @@ public final class NativeChargeHardware: ChargeHardware {
         try driver.restore(original)
         guard try checkedReading().state == original else { throw NativeChargeError(code: -6) }
     }
+    public func validateDischarge() throws { guard try checkedReading().calibrationOverride == false else { throw NativeChargeError(code: -8) } }
     public func endSession() { pinned = nil }
     public func readSwitch() throws -> UInt8 { try checkedReading().state.enabled ? 2 : 0 }
     public func writeSwitch(_ value: UInt8) throws { throw NativeChargeError(code: -3) }
@@ -132,6 +133,7 @@ public final class AppleSiliconChargeHardware: ChargeHardware {
     private let native: any ChargeHardware
     private let nativeAvailable: Bool
     private var selected: (any ChargeHardware)?
+    private var companionNative: NativeChargeState?
     private var selectedBackend: BatteryControlBackend?
     public convenience init() {
         self.init(smc: SMCChargeHardware(), native: NativeChargeHardware(),
@@ -160,6 +162,12 @@ public final class AppleSiliconChargeHardware: ChargeHardware {
         let hardware = try discover()
         let record = try hardware.captureRecovery()
         selected = hardware; selectedBackend = record.backend
+        if record.backend != .nativeLimit && nativeAvailable {
+            do { companionNative = try native.captureRecovery().nativeState }
+            catch { hardware.endSession(); selected = nil; selectedBackend = nil; throw error }
+            return .init(backend: record.backend, machineID: record.machineID,
+                         firmwareUpper: record.firmwareUpper, firmwareLower: record.firmwareLower, nativeState: companionNative)
+        }
         return record
     }
     public func restore(_ record: BatteryRecoveryRecord) throws {
@@ -167,12 +175,25 @@ public final class AppleSiliconChargeHardware: ChargeHardware {
         let hardware = record.backend == .nativeLimit ? native : smc
         selected = hardware; selectedBackend = record.backend
         try hardware.restore(record)
+        if record.backend != .nativeLimit, let original = record.nativeState {
+            try native.restore(.init(backend: .nativeLimit, machineID: record.machineID, nativeState: original))
+        }
     }
-    public func prepareForControl() throws { guard let selected else { throw BatteryHardwareError(code: -3) }; try selected.prepareForControl() }
+    public func prepareForControl() throws {
+        guard let selected else { throw BatteryHardwareError(code: -3) }
+        if companionNative != nil { try native.prepareForControl(); try native.setChargeLimit(nil) }
+        try selected.prepareForControl()
+    }
+    public func validateDischarge() throws {
+        if nativeAvailable {
+            if selectedBackend == .nativeLimit { try native.validateDischarge() }
+            else if maccare_powerui_calibration_override() != 0 { throw NativeChargeError(code: -8) }
+        }
+    }
     public func setChargeLimit(_ limit: Int?) throws { guard let selected else { throw BatteryHardwareError(code: -3) }; try selected.setChargeLimit(limit) }
     public func setChargeBand(upper: Int, lower: Int) throws { guard let selected else { throw BatteryHardwareError(code: -3) }; try selected.setChargeBand(upper: upper, lower: lower) }
     public func setFirmwareLimit(_ limit: Int?) throws { try setChargeLimit(limit) }
     public func readSwitch() throws -> UInt8 { try current().readSwitch() }
     public func writeSwitch(_ value: UInt8) throws { guard let selected else { throw BatteryHardwareError(code: -3) }; try selected.writeSwitch(value) }
-    public func endSession() { selected?.endSession(); selected = nil; selectedBackend = nil }
+    public func endSession() { selected?.endSession(); native.endSession(); companionNative = nil; selected = nil; selectedBackend = nil }
 }

@@ -16,14 +16,16 @@ public struct BatteryConfiguration: Codable, Equatable, Sendable {
     public var resumeLimit: Int { limit - (sailingWidth ?? 3) }
 }
 
-public enum BatteryCommand: String, Codable, Sendable { case status, heartbeat, enable, disable, topUp, cancelTopUp }
+public enum BatteryCommand: String, Codable, Sendable { case status, heartbeat, enable, disable, topUp, cancelTopUp, discharge, cancelCycle }
 
 public struct BatteryControlCapabilities: Codable, Equatable, Sendable {
     public let backend: BatteryControlBackend
     public let supportedLimits: [Int]
+    public let adapterBackend: BatteryAdapterBackend?
+    public var supportsDischarge: Bool { adapterBackend != nil }
     public let supportsThermalProtection: Bool
-    public init(backend: BatteryControlBackend, supportedLimits: [Int]? = nil, supportsThermalProtection: Bool? = nil) {
-        self.backend = backend
+    public init(backend: BatteryControlBackend, supportedLimits: [Int]? = nil, supportsThermalProtection: Bool? = nil, adapterBackend: BatteryAdapterBackend? = nil) {
+        self.backend = backend; self.adapterBackend = adapterBackend
         self.supportedLimits = supportedLimits ?? Array(backend == .nativeLimit ? 80...100 : 50...100)
         self.supportsThermalProtection = supportsThermalProtection ?? (backend == .legacyPair || backend == .chargeGate)
     }
@@ -50,6 +52,7 @@ public struct BatteryProtectionStatus: Codable, Sendable {
     public var configuration: BatteryConfiguration?
     public var message: String
     public var error: String?
+    public var cycle: BatteryCycleStatus? = nil
     public var capabilities: BatteryControlCapabilities?
     public init(snapshot: BatterySnapshot, firmwareManaged: Bool = false, supported: Bool = false, active: Bool = false,
                 suspended: Bool = false, topUp: Bool = false, configuration: BatteryConfiguration? = nil,
