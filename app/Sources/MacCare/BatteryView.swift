@@ -118,9 +118,13 @@ struct BatteryView: View {
             } else if !model.helperEnabled {
                 Text("Le suivi fonctionne sans autorisation supplémentaire. Pour suspendre la charge, activez l’assistant système signé de MacCare, puis autorisez-le dans Réglages Système si macOS le demande.")
                     .foregroundStyle(Theme.muted)
-                Button(model.requiresApproval ? "Autoriser dans Réglages Système…" : "Activer l’assistant système…") {
+                Button(model.requiresApproval ? "Réessayer l’activation de l’assistant…" : "Activer l’assistant système…") {
                     Task { await model.activateHelper() }
                 }.buttonStyle(.borderedProminent).disabled(model.controlsBusy)
+                if model.requiresApproval {
+                    Text("MacCare retente l’enregistrement, puis ouvre les Réglages Système si votre accord est encore nécessaire.")
+                        .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+                }
             } else if model.restoring {
                 Text("MacCare restaure l’état de charge d’origine. L’assistant continue les tentatives ; aucune nouvelle protection ne peut démarrer pendant cette opération.")
                     .foregroundStyle(Theme.warn)

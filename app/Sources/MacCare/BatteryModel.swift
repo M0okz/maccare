@@ -148,10 +148,27 @@ final class BatteryModel: ObservableObject {
     }
     func activateHelper() async {
         guard !busy, !isTerminating else { return }
+        error = nil
+        if client.status == .enabled {
+            await refresh(force: true)
+            return
+        }
         do {
-            if client.status == .requiresApproval { client.openApproval() }
-            else { try client.register() }
-        } catch { self.error = error.localizedDescription }
+            try client.register()
+        } catch {
+            let failure = error as NSError
+            let serviceManagementError = failure.domain == "SMAppServiceErrorDomain" ||
+                failure.domain == kSMErrorDomainFramework as String
+            let approvalError = failure.code == Int(kSMErrorLaunchDeniedByUser) ||
+                failure.code == Int(kSMErrorAlreadyRegistered) ||
+                (failure.domain == "SMAppServiceErrorDomain" && failure.code == 1)
+            guard client.status == .requiresApproval, serviceManagementError, approvalError else {
+                self.error = error.localizedDescription
+                await refresh(force: true)
+                return
+            }
+        }
+        if client.status == .requiresApproval { client.openApproval() }
         await refresh(force: true)
     }
     func openBatterySettings() {
