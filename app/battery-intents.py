@@ -5,6 +5,7 @@ from pathlib import Path
 import platform
 import subprocess
 import tempfile
+from release.intent_metadata import constant_files
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('bundle', type=Path)
@@ -14,13 +15,11 @@ root = Path(__file__).resolve().parents[1]
 bundle = args.bundle.resolve()
 if not bundle.is_relative_to(root / 'build'):
     raise SystemExit('Bundle output must be inside build/.')
-const_files = list((root/'app/.build/out/Intermediates.noindex/MacCare.build'/args.configuration).glob('MacCare-p.build/Objects-normal/*/*.swiftconstvalues'))
-if not const_files:
-    raise SystemExit('Missing App Intents constant metadata. Build MacCare before packaging.')
-preferred = platform.machine()
-const_file = next((p for p in const_files if p.parent.name == preferred), const_files[0])
-arch = const_file.parent.name
-const_files = [p for p in const_files if p.parent.name == arch]
+arch = platform.machine()
+try:
+    const_files = constant_files(root, args.configuration, arch)
+except ValueError as error:
+    raise SystemExit(str(error)) from error
 sdk = subprocess.check_output(['xcrun','--sdk','macosx','--show-sdk-path'],text=True).strip()
 toolchain = Path(subprocess.check_output(['xcrun','--find','swiftc'],text=True).strip()).parents[2]
 xcode_version = subprocess.check_output(['xcodebuild','-version'],text=True).strip().splitlines()[-1].split()[-1]

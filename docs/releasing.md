@@ -89,6 +89,10 @@ ni contrôle de signature de l’application distribuée n’est modifié.
 Le packaging résout le dossier des produits avec `swift build --show-bin-path`
 et les mêmes paramètres de moteur, configuration et architecture. Il ne dépend
 pas du lien de commodité `.build/release`, absent sur certaines versions de SwiftPM.
+Les constantes App Intents sont sélectionnées depuis la carte de sortie du module
+MacCare, pour la configuration et l’architecture attendues. Les noms de dossiers
+internes des cibles changent entre Xcode ; les constantes manquantes ou plusieurs
+produits de module ambigus bloquent le packaging.
 
 Le flux stable est
 `https://github.com/M0okz/maccare/releases/latest/download/appcast.xml`.
