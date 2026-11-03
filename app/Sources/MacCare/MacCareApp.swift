@@ -1,4 +1,5 @@
 import SwiftUI
+import AppIntents
 
 @main
 struct MacCareApp: App {
@@ -8,6 +9,10 @@ struct MacCareApp: App {
     @StateObject private var app = AppState()
     @StateObject private var updater = AppUpdater()
     @AppStorage(MenuBarSetting.key) private var menuBarShown = MenuBarSetting.defaultValue
+
+    init() {
+        BatteryAppShortcuts.updateAppShortcutParameters()
+    }
 
     var body: some Scene {
         WindowGroup("MacCare", id: Self.mainWindowID) {

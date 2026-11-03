@@ -42,7 +42,7 @@ jobs:
       - name: Construire depuis les sources
         run: bash app/build.sh
       - name: Tests Swift
-        run: swift test --package-path app -Xlinker -L"$PWD/core/target/release"
+        run: swift test --package-path app --scratch-path build/swift-tests --build-system native --arch arm64 -Xlinker -L"$PWD/core/target/release"
       - name: Tester les outils de release et les signatures Sparkle
         run: |
           python3 -m unittest discover -s app/release/tests -v

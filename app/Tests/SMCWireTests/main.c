@@ -53,7 +53,7 @@ static kern_return_t fixtureMethod(mach_port_t c, uint32_t selector, const uint6
 }
 static kern_return_t fixtureCall(mach_port_t c, uint32_t selector, const void *input, size_t inputSize, void *output, size_t *outputSize) {
     assert(selector == 2 && inputSize == 80 && *outputSize == 80);
-    assert(clientOpen);
+    if (!clientOpen) return kIOReturnNotPrivileged;
     const SMCMessage *in = input; SMCMessage *out = output;
     memset(out, 0, sizeof(*out));
     Field *f = NULL;
@@ -75,6 +75,27 @@ static kern_return_t fixtureCall(mach_port_t c, uint32_t selector, const void *i
 }
 int main(void) {
     uint8_t value; int32_t backend;
+    MCKeyDiagnostic diagnostic;
+    reset(); add("CHIE", 1, "hex_", 0);
+    assert(maccare_key_diagnostic(8, 1, 1, &diagnostic) == 0 && diagnostic.type == code("hex_") && writes == 0);
+    assert(maccare_key_diagnostic(8, 0, 1, &diagnostic) == 0 && writes == 0);
+    assert(maccare_key_diagnostic(8, 0, 0, &diagnostic) != 0 && writes == 0);
+    assert(maccare_key_diagnostic(99, 1, 1, &diagnostic) == kIOReturnBadArgument && writes == 0);
+
+    reset(); add("CHIE", 1, "hex_", 0);
+    assert(maccare_adapter_probe(&backend) == 0 && backend == 2 && writes == 0);
+    assert(maccare_adapter_write(backend, 1) == 0 && get("CHIE")->bytes[0] == 8);
+    assert(maccare_adapter_read(backend, &value) == 0 && value == 1);
+    assert(maccare_adapter_write(backend, 0) == 0 && get("CHIE")->bytes[0] == 0);
+    reset(); add("CH0J", 1, "ui8 ", 0);
+    assert(maccare_adapter_probe(&backend) == 0 && backend == 1);
+    assert(maccare_adapter_write(backend, 1) == 0 && get("CH0J")->bytes[0] == 32);
+    assert(maccare_adapter_write(backend, 0) == 0);
+    assert(maccare_adapter_write(99, 1) != 0);
+    reset(); add("CHIE", 1, "hex_", 99);
+    assert(maccare_adapter_probe(&backend) != 0 && writes == 0);
+    reset(); add("CHIE", 1, "hex_", 0); wrongReadback = 1;
+    assert(maccare_adapter_write(2, 1) != 0 && get("CHIE")->bytes[0] == 0);
     legacy(); handshakeError = kIOReturnNotPrivileged;
     assert(maccare_charge_probe(&backend) == kIOReturnNotPrivileged && writes == 0 && clientOpen == 0);
     legacy();
@@ -115,6 +136,8 @@ int main(void) {
     assert(maccare_firmware_limit_set(80,77,2) == 0);
     assert(maccare_firmware_limit_read(&active,&upper,&lower) == 0 && active == 2 && upper == 80 && lower == 77);
     assert(writes == 4 && writeKeys[0] == code("bfF0") && writeKeys[1] == code("bfD0") && writeKeys[2] == code("bfE0") && writeKeys[3] == code("bfF0"));
+    assert(maccare_firmware_limit_set(80,60,2) == 0);
+    assert(maccare_firmware_limit_read(&active,&upper,&lower) == 0 && upper == 80 && lower == 60);
     assert(maccare_firmware_limit_restore(100,97) == 0);
     assert(maccare_firmware_limit_read(&active,&upper,&lower) == 0 && active == 0 && upper == 100 && lower == 97);
     before = writes;

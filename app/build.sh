@@ -107,9 +107,11 @@ echo "==> Synchronisation de l'en-tête C"
 cp core/include/maccare_core.h app/Sources/CMacCareCore/include/maccare_core.h
 
 echo "==> Build app SwiftUI"
-swift build --package-path app -c release \
+swift build --package-path app --build-system swiftbuild --arch "$(uname -m)" -c release \
     -Xlinker -L"$repo_root/core/target/release"
 
-bin="app/.build/release/MacCare"
+products="$(swift build --package-path app --build-system swiftbuild --arch "$(uname -m)" -c release --show-bin-path)"
+bin="$products/MacCare"
+test -x "$bin" && test -x "$products/MacCareHelper"
 echo "==> OK : $bin"
 echo "    Lancer avec : $bin"

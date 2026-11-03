@@ -14,8 +14,9 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$repo_root"
 
-bin="app/.build/release/MacCare"
-helper_bin="app/.build/release/MacCareHelper"
+products="$(swift build --package-path app --build-system swiftbuild --arch "$(uname -m)" -c release --show-bin-path)"
+bin="$products/MacCare"
+helper_bin="$products/MacCareHelper"
 if [ ! -x "$bin" ] || [ ! -x "$helper_bin" ]; then
     echo "Binaire introuvable : lancez d'abord app/build.sh" >&2
     exit 1
@@ -51,6 +52,7 @@ cp "$helper_bin" "$app/Contents/MacOS/MacCareHelper"
 cp app/Helper/org.maccare.helper.plist "$app/Contents/Library/LaunchDaemons/org.maccare.helper.plist"
 # Règles de nettoyage au format ouvert : lues par l'app au démarrage (voir CleaningCategory.swift).
 cp -R core/rules "$app/Contents/Resources/rules"
+python3 app/battery-intents.py "$app"
 
 # SwiftPM lie le framework, mais l’assemblage manuel doit l’embarquer et préserver ses liens.
 sparkle="app/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"

@@ -1,4 +1,5 @@
 import Foundation
+import IOKit
 import Testing
 @testable import MacCareBattery
 
@@ -32,6 +33,7 @@ struct BatteryNativeHardwareTests {
 
     private final class SMC: ChargeHardware {
         var failRead = false
+        var readError: (any Error)?
         var value: UInt8 = 0
         var reads = 0
         var captures = 0
@@ -39,6 +41,7 @@ struct BatteryNativeHardwareTests {
         var records: [BatteryRecoveryRecord] = []
         func readSwitch() throws -> UInt8 {
             reads += 1
+            if let readError { throw readError }
             if failRead { throw Failure.smcRead }
             return value
         }
@@ -53,6 +56,36 @@ struct BatteryNativeHardwareTests {
 
     private func native(_ driver: Driver, identity: String? = "host") -> NativeChargeHardware {
         .init(driver: driver, identity: { identity })
+    }
+
+    @Test func nativeFallbackReportsARealPermissionRefusalWithoutWriting() throws {
+        let smc = SMC(), driver = Driver()
+        smc.readError = BatteryHardwareError(code: kIOReturnNotPrivileged)
+        let hardware = AppleSiliconChargeHardware(smc: smc, native: native(driver), nativeAvailable: true)
+        #expect(hardware.capabilities.backend == .nativeLimit)
+        #expect(hardware.capabilities.limitation == .hardwareAccessDenied)
+        #expect(hardware.capabilities.supportedLimits == Array(80...100))
+        #expect(hardware.capabilities.supportsSailing == false)
+        #expect(driver.limits.isEmpty)
+        #expect(smc.writes.isEmpty)
+        smc.readError = nil
+        #expect(hardware.capabilities.backend == .legacyPair)
+        #expect(hardware.capabilities.limitation == nil)
+    }
+
+    @Test func aMissingSMCMethodIsNotReportedAsAPermissionRefusal() {
+        let smc = SMC(), driver = Driver(); smc.failRead = true
+        let hardware = AppleSiliconChargeHardware(smc: smc, native: native(driver), nativeAvailable: true)
+        #expect(hardware.capabilities.backend == .nativeLimit)
+        #expect(hardware.capabilities.limitation == nil)
+        #expect(driver.limits.isEmpty)
+    }
+
+    @Test func olderCapabilityMessagesDecodeWithoutAnInventedRestriction() throws {
+        let json = Data(#"{"backend":4,"supportedLimits":[80,100],"supportsThermalProtection":false}"#.utf8)
+        let capabilities = try JSONDecoder().decode(BatteryControlCapabilities.self, from: json)
+        #expect(capabilities.isValid)
+        #expect(capabilities.limitation == nil)
     }
 
     @Test(arguments: Array(13...25))
@@ -75,13 +108,17 @@ struct BatteryNativeHardwareTests {
         #expect(AppleSiliconChargeHardware.supportsNativeLimit(version))
     }
 
-    @Test func supportedSMCIsPreferredWithoutReadingNativeDriver() throws {
+    @Test func SMCDiscoveryIsReadOnlyAndCapturePreservesNativeCompanion() throws {
         let smc = SMC(), driver = Driver()
         let hardware = AppleSiliconChargeHardware(smc: smc, native: native(driver), nativeAvailable: true)
         #expect(try hardware.readSwitch() == 0)
         #expect(hardware.capabilities.backend == .legacyPair)
-        #expect(try hardware.captureRecovery().backend == .legacyPair)
         #expect(driver.reads == 0)
+        let record = try hardware.captureRecovery()
+        #expect(record.backend == .legacyPair)
+        #expect(record.nativeState == driver.reading.state)
+        #expect(record.version == 3)
+        #expect(driver.reads > 0)
         #expect(driver.limits.isEmpty)
     }
 

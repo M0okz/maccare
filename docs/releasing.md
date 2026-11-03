@@ -66,6 +66,34 @@ des opérations séparées. Ne jamais committer ni afficher sa valeur privée.
    flux `appcast.xml`. Le flux exige Apple Silicon et macOS 13.0.0 au minimum.
 7. Création d’une release brouillon, dépôt des seuls artefacts vérifiés, puis publication.
 
+Les notes sont prises dans `docs/release-notes/<version>.md` lorsqu’elles existent,
+pour conserver les disponibilités et limites du matériel dans la release et le flux
+Sparkle. À défaut, le workflow génère les notes depuis GitHub.
+
+Le build de l’application sélectionne explicitement `--build-system swiftbuild`,
+disponible avec Swift 6.2 et suivants. Le moteur SwiftPM natif de certains Xcode
+plus anciens n’émet pas les constantes App Intents nécessaires au packaging.
+Le choix explicite conserve les mêmes artefacts en local et sur le runner GitHub ;
+la cible d’exécution de l’app reste macOS 13. L’architecture est fixée explicitement
+à celle du moteur Rust (`--arch arm64` sur les runners de distribution), car
+Swift Build peut sinon tenter de lier un exécutable Intel avec la bibliothèque
+Rust Apple Silicon.
+
+Les tests utilisent le moteur `--build-system native` dans un dossier séparé
+(`--scratch-path build/swift-tests`). Le lanceur de tests de Swift Build livré avec
+Xcode 26 ne retrouve pas le framework binaire Sparkle dans cette configuration.
+Les suites restent complètes ; le dossier distinct préserve les produits Release
+et les constantes App Intents destinés au packaging. Aucun chemin de chargement
+ni contrôle de signature de l’application distribuée n’est modifié.
+
+Le packaging résout le dossier des produits avec `swift build --show-bin-path`
+et les mêmes paramètres de moteur, configuration et architecture. Il ne dépend
+pas du lien de commodité `.build/release`, absent sur certaines versions de SwiftPM.
+Les constantes App Intents sont sélectionnées depuis la carte de sortie du module
+MacCare, pour la configuration et l’architecture attendues. Les noms de dossiers
+internes des cibles changent entre Xcode ; les constantes manquantes ou plusieurs
+produits de module ambigus bloquent le packaging.
+
 Le flux stable est
 `https://github.com/M0okz/maccare/releases/latest/download/appcast.xml`.
 Chaque flux contient la dernière version ; les DMG et signatures des anciennes

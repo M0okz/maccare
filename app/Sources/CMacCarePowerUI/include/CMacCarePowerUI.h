@@ -34,4 +34,5 @@ int32_t maccare_powerui_set_limit(int32_t limit);
 // A failure can follow an executed mutation; callers retain recovery state.
 int32_t maccare_powerui_restore(int32_t enabled, int32_t limit);
 
+int32_t maccare_powerui_calibration_override(void);
 #endif

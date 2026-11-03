@@ -141,6 +141,7 @@ final class AppState: ObservableObject {
 
     init() {
         AppDelegate.stopBatteryBeforeTermination = { [weak battery] in await battery?.prepareForTermination() }
+        battery.openSection = { [weak self] in self?.show(.battery) }
         scheduler = ScanScheduler(smart: smartScan) { [weak self] in self?.show(.smartScan) }
         observeActivity()
     }

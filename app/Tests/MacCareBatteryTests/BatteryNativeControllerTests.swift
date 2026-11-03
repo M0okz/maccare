@@ -313,7 +313,7 @@ struct BatteryNativeControllerTests {
         #expect(BatteryRecoveryRecord(backend: .nativeLimit, nativeState: .init(enabled: true, limit: 101)).isValid == false)
         #expect(BatteryRecoveryRecord(backend: .nativeLimit, firmwareUpper: 100,
                                       nativeState: .init(enabled: true, limit: 80)).isValid == false)
-        #expect(BatteryRecoveryRecord(backend: .legacyPair, nativeState: .init(enabled: false, limit: 100)).isValid == false)
+        #expect(BatteryRecoveryRecord(backend: .legacyPair, nativeState: .init(enabled: false, limit: 100)).isValid)
     }
 
     @Test(arguments: [

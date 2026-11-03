@@ -15,6 +15,10 @@ les Mac Apple Silicon, à partir de macOS 13.
 - Contrôle facultatif de la charge sur les Mac et versions de macOS compatibles.
 - Mises à jour de MacCare avec Sparkle, distribuées par les releases GitHub.
 
+La rubrique Batterie avancée dépend des capacités du Mac et de son firmware.
+Ses fonctions, essais et limites de disponibilité sont décrits dans
+[la documentation Batterie avancée](docs/battery-advanced.md).
+
 MacCare est en développement. Les DMG de validation de la CI ne sont pas des
 releases notariées. Les versions de distribution passent par une chaîne séparée
 de signature Developer ID, notarisation Apple et signature Sparkle.
@@ -61,7 +65,7 @@ dans `/Applications` par ces scripts.
 
 ```sh
 cargo test --locked --manifest-path core/Cargo.toml
-swift test --package-path app -Xlinker -L"$PWD/core/target/release"
+swift test --package-path app --scratch-path build/swift-tests --build-system native --arch "$(uname -m)" -Xlinker -L"$PWD/core/target/release"
 python3 -m unittest discover -s app/release/tests -v
 python3 app/release/test_signatures.py
 ```

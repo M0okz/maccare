@@ -12,6 +12,15 @@ final class BatteryModel: ObservableObject {
     @Published private(set) var helperEnabled = false
     @Published private(set) var requiresApproval = false
     @Published var configuration: BatteryConfiguration
+    @Published private(set) var profiles = BatteryProfile.presets
+    @Published private(set) var schedules: [BatterySchedule] = []
+    @Published private(set) var history: [BatteryHistoryEntry] = []
+    @Published private(set) var automationEvents: [String] = []
+    @Published private(set) var automationsLoaded = false
+    @Published private(set) var automating = false
+    @Published private(set) var historyError: String?
+    var openSection: (() -> Void)?
+    private let historyStore: BatteryHistoryStore
     private let client: any BatteryClient
     private let defaults: UserDefaults
     private let sessionID = UUID()
@@ -25,19 +34,28 @@ final class BatteryModel: ObservableObject {
     private var monitoring: Task<Void, Never>?
     private static let preferencesKey = "battery.configuration"
 
-    init(defaults: UserDefaults = .standard, monitor: Bool = true, client: (any BatteryClient)? = nil) {
+    init(defaults: UserDefaults = .standard, monitor: Bool = true, client: (any BatteryClient)? = nil, historyStore: BatteryHistoryStore? = nil) {
+        self.historyStore = historyStore ?? BatteryHistoryStore()
         self.client = client ?? SystemBatteryClient()
         self.defaults = defaults
         if let data = defaults.data(forKey: Self.preferencesKey),
            let value = try? JSONDecoder().decode(BatteryConfiguration.self, from: data), value.isValid {
             configuration = value
         } else { configuration = .init() }
+        if let data = defaults.data(forKey: "battery.profiles.v1"),
+           let saved = try? JSONDecoder().decode([BatteryProfile].self, from: data), saved.count <= 50,
+           saved.allSatisfy({ $0.isValid }), Set(saved.map(\.id)).count == saved.count { profiles = saved }
+        automationEvents = Array((defaults.stringArray(forKey: "battery.events.v1") ?? []).prefix(100))
         if monitor {
+            BatteryIntentBridge.bind(self)
             wakeSubscription = NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)
                 .sink { [weak self] _ in Task { @MainActor in await self?.refresh(force: true) } }
             monitoring = Task { [weak self] in
+                await self?.loadAdvancedData()
                 while !Task.isCancelled {
                     await self?.refresh()
+                    await self?.recordHistory()
+                    await self?.processSchedules()
                     do { try await Task.sleep(for: .seconds(15)) } catch { break }
                 }
             }
@@ -63,8 +81,8 @@ final class BatteryModel: ObservableObject {
         return protection?.message ?? "Vérification du contrôle de charge…"
     }
 
-    func refresh(force: Bool = false) async {
-        guard !busy, !isTerminating else { return }
+    func refresh(force: Bool = false, fromAutomation: Bool = false) async {
+        guard !busy, !isTerminating, !automating || fromAutomation else { return }
         busy = true
         defer { busy = false }
         helperEnabled = client.status == .enabled
@@ -83,8 +101,8 @@ final class BatteryModel: ObservableObject {
         }
     }
 
-    func perform(_ command: BatteryCommand) async {
-        guard !busy, !isTerminating else { return }
+    func perform(_ command: BatteryCommand, fromAutomation: Bool = false) async {
+        guard !busy, !isTerminating, !automating || fromAutomation else { return }
         busy = true; error = nil; commandInFlight = true
         defer {
             commandInFlight = false
@@ -149,6 +167,7 @@ final class BatteryModel: ObservableObject {
            received.minutesRemaining == nil { received.minutesRemaining = snapshot?.minutesRemaining }
         snapshot = received; protection = status; error = status.error
         if !supportsThermalProtection { configuration.thermalProtection = false }
+        if protection?.capabilities?.supportsSailing != true { configuration.sailingWidth = nil }
         if !status.active, let capabilities = status.capabilities, capabilities.isValid,
            !capabilities.supportedLimits.contains(configuration.limit),
            let limit = capabilities.supportedLimits.min(by: { abs($0 - configuration.limit) < abs($1 - configuration.limit) }) {
@@ -156,5 +175,143 @@ final class BatteryModel: ObservableObject {
         }
         if !status.active || status.restoring || !status.ownedByCaller { ownsLease = false }
         if !status.active && !status.restoring { mayOwnLease = false }
+    }
+}
+
+extension BatteryModel {
+    var controlsBusy: Bool { busy || automating || isTerminating }
+    var supportsDischarge: Bool { protection?.capabilities?.supportsDischarge == true }
+    var supportsSailing: Bool { protection?.capabilities?.supportsSailing == true }
+    var cycle: BatteryCycleStatus? { protection?.cycle }
+
+    func loadAdvancedData() async {
+        guard !automationsLoaded else { return }
+        do { schedules = try await historyStore.loadSchedules() }
+        catch { historyError = error.localizedDescription }
+        do { history = try await historyStore.load() }
+        catch { historyError = error.localizedDescription }
+        automationsLoaded = true
+    }
+    private func recordHistory() async {
+        guard !isTerminating, let snapshot else { return }
+        do { history = try await historyStore.append(snapshot: snapshot) }
+        catch { historyError = error.localizedDescription }
+    }
+    func saveProfile(name: String) {
+        let profile = BatteryProfile(name: name.trimmingCharacters(in: .whitespacesAndNewlines), configuration: configuration)
+        guard profile.isValid, profiles.count < 50, !profiles.contains(where: { $0.name.localizedCaseInsensitiveCompare(profile.name) == .orderedSame }) else {
+            error = "Choisissez un nom unique de 1 à 60 caractères (50 profils maximum)."; return
+        }
+        profiles.append(profile); persistProfiles()
+    }
+    func deleteProfile(_ id: UUID) { profiles.removeAll { $0.id == id }; persistProfiles() }
+    private func persistProfiles() {
+        do { defaults.set(try JSONEncoder().encode(profiles), forKey: "battery.profiles.v1") }
+        catch { self.error = error.localizedDescription }
+    }
+    func applyProfile(_ profile: BatteryProfile) async {
+        do { try await executeAutomation(.configure(profile.configuration)) }
+        catch { self.error = error.localizedDescription }
+    }
+    func saveSchedule(_ schedule: BatterySchedule) async {
+        guard !controlsBusy, automationsLoaded, schedule.isValid, schedules.count < 100 || schedules.contains(where: { $0.id == schedule.id }) else { error = "Vérifiez la programmation et attendez la fin de l’action en cours."; return }
+        automating = true; defer { automating = false }
+        do {
+            schedules = try await historyStore.upsertSchedule(schedule)
+        } catch { self.error = error.localizedDescription }
+    }
+    func deleteSchedule(_ id: UUID) async {
+        guard !controlsBusy else { return }
+        automating = true; defer { automating = false }
+        do {
+            schedules = try await historyStore.deleteSchedule(id)
+        } catch { self.error = error.localizedDescription }
+    }
+    func toggleSchedule(_ schedule: BatterySchedule) async {
+        var next = schedule; next.enabled.toggle()
+        if next.enabled && next.nextRun < .now {
+            guard let date = next.occurrence(after: .now) else { error = "Cette tâche unique est terminée. Créez une nouvelle programmation."; return }
+            next.nextRun = date
+        }
+        await saveSchedule(next)
+    }
+    func processSchedules(now: Date = .now) async {
+        guard automationsLoaded, !controlsBusy else { return }
+        do {
+            let latest = try await historyStore.loadSchedules()
+            guard !controlsBusy else { return }
+            if latest != schedules { schedules = latest }
+        } catch { historyError = error.localizedDescription; return }
+        for id in schedules.map(\.id) {
+            guard !Task.isCancelled, !isTerminating, !controlsBusy else { break }
+            automating = true
+            do {
+                let result = try await historyStore.claimSchedule(id, at: now)
+                schedules = result.schedules; automating = false
+                guard result.claim != .notDue, let schedule = result.schedule else { continue }
+                guard !isTerminating, !Task.isCancelled else { return }
+                if result.claim == .missed { recordEvent("\(schedule.name) : tâche manquée, prochaine occurrence conservée.", at: now); continue }
+                do {
+                    try await executeAutomation(schedule.action)
+                    recordEvent("\(schedule.name) : action exécutée.", at: now)
+                } catch { recordEvent("\(schedule.name) : \(error.localizedDescription)", at: now) }
+            } catch {
+                automating = false
+                self.error = "Programmation suspendue : l’état n’a pas pu être enregistré. \(error.localizedDescription)"
+                return
+            }
+        }
+    }
+    func executeAutomation(_ action: BatteryAutomationAction) async throws {
+        guard !controlsBusy, action.isValid else { throw AutomationError("Une action est déjà en cours ou ses réglages sont invalides.") }
+        automating = true; defer { automating = false }
+        openSection?()
+        await refresh(force: true, fromAutomation: true)
+        guard helperEnabled, recoveryReady, supported, !restoring else {
+            throw AutomationError("Ouvrez Batterie et activez l’assistant système à jour avant d’utiliser cette action.")
+        }
+        if case .disable = action {
+            await perform(.disable, fromAutomation: true)
+        } else {
+            guard !active || protection?.ownedByCaller == true else { throw AutomationError("La protection appartient à une autre session de MacCare.") }
+            if case .configure(let value) = action {
+                let profile = BatteryProfile(name: "Automatisation", configuration: value)
+                if let reason = profile.unavailableReason(for: protection?.capabilities) { throw AutomationError(reason) }
+                configuration = value
+                await perform(.enable, fromAutomation: true)
+            } else {
+                guard snapshot?.onAC == true, cycle == nil else {
+                    throw AutomationError("Branchez le chargeur et annulez tout cycle en cours avant cette action.")
+                }
+                if action == .discharge {
+                    guard let percent = snapshot?.percent, percent > configuration.limit else {
+                        throw AutomationError("La batterie est déjà à la limite de décharge ou en dessous.")
+                    }
+                }
+                if action == .discharge || action == .calibrate {
+                    guard snapshot?.reliableTemperature == true else { throw AutomationError("La température est inconnue ; le cycle ne peut pas démarrer.") }
+                    guard supportsDischarge else { throw AutomationError("Le contrôle de l’adaptateur n’est pas disponible sur ce Mac.") }
+                }
+                if !active { await perform(.enable, fromAutomation: true) }
+                guard error == nil, active, !isTerminating else { throw AutomationError(error ?? "La protection n’a pas démarré.") }
+                switch action {
+                case .topUp: await perform(.topUp, fromAutomation: true)
+                case .discharge: await perform(.discharge, fromAutomation: true)
+                case .calibrate: await perform(.calibrate, fromAutomation: true)
+                default: break
+                }
+            }
+        }
+        if let error { throw AutomationError(error) }
+    }
+    private func recordEvent(_ message: String, at date: Date) {
+        automationEvents.insert("\(date.formatted(date: .abbreviated, time: .shortened)) · \(message)", at: 0)
+        automationEvents = Array(automationEvents.prefix(100))
+        defaults.set(automationEvents, forKey: "battery.events.v1")
+    }
+    private struct AutomationError: LocalizedError {
+        let message: String
+        init(_ message: String) { self.message = message }
+        var errorDescription: String? { message }
     }
 }

@@ -211,3 +211,5 @@ int32_t maccare_powerui_restore(int32_t enabled, int32_t limit) {
     if ((enabled != 0 && enabled != 1) || limit < 80 || limit > 100 || (enabled == 0 && limit != 100) || (enabled == 1 && limit == 100)) return MACCARE_POWERUI_INVALID_STATE;
     return setLimit(limit);
 }
+
+int32_t maccare_powerui_calibration_override(void) { return appleOverride(); }

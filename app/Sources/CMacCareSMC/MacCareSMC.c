@@ -213,7 +213,7 @@ int32_t maccare_firmware_limit_read(uint8_t *active, uint32_t *upper, uint32_t *
     return result;
 }
 int32_t maccare_firmware_limit_set(uint32_t upper, uint32_t lower, uint8_t active) {
-    if (upper > 100 || lower > 100 || (active != 0 && active != 2) || (active == 2 && (upper < 50 || lower < 47 || lower >= upper))) return kIOReturnBadArgument;
+    if (upper > 100 || lower > 100 || (active != 0 && active != 2) || (active == 2 && (upper < 50 || lower < 30 || lower >= upper))) return kIOReturnBadArgument;
     io_connect_t connection = 0;
     int32_t result = openSMC(&connection);
     if (result) return result;
@@ -252,5 +252,74 @@ int32_t maccare_firmware_limit_restore(uint32_t upper, uint32_t lower) {
         if (!result) result = firmwareWrite(connection, "bfE0", &fields[2], lower);
     }
     closeSMC(connection);
+    return result;
+}
+
+// Two documented adapter gates. Never accepts a key supplied by an XPC caller.
+static int32_t adapterRead(io_connect_t connection, int32_t backend, SMCMessage *field) {
+    if (backend != 1 && backend != 2) return kIOReturnBadArgument;
+    int32_t result = readKey(connection, backend == 2 ? "CHIE" : "CH0J", field);
+    if (result) return result;
+    uint8_t inhibited = backend == 2 ? 8 : 32;
+    if (field->info.size != 1 || field->info.type != code(backend == 2 ? "hex_" : "ui8 ") ||
+        (field->bytes[0] != 0 && field->bytes[0] != inhibited)) return kIOReturnUnsupported;
+    return 0;
+}
+int32_t maccare_adapter_read(int32_t backend, uint8_t *disabled) {
+    if (!disabled) return kIOReturnBadArgument;
+    io_connect_t connection = 0; int32_t result = openSMC(&connection);
+    if (result) return result;
+    SMCMessage field = {0}; result = adapterRead(connection, backend, &field);
+    if (!result) *disabled = field.bytes[0] != 0;
+    closeSMC(connection); return result;
+}
+int32_t maccare_adapter_probe(int32_t *backend) {
+    if (!backend) return kIOReturnBadArgument;
+    *backend = 0; uint8_t disabled = 0;
+    int32_t result = maccare_adapter_read(2, &disabled);
+    if (!result) *backend = 2;
+    else if (missing(result)) { result = maccare_adapter_read(1, &disabled); if (!result) *backend = 1; }
+    return result;
+}
+int32_t maccare_adapter_write(int32_t backend, uint8_t disabled) {
+    if ((backend != 1 && backend != 2) || disabled > 1) return kIOReturnBadArgument;
+    io_connect_t connection = 0; int32_t result = openSMC(&connection);
+    if (result) return result;
+    SMCMessage field = {0}; result = adapterRead(connection, backend, &field);
+    if (!result) {
+        uint8_t desired[32] = {0}; desired[0] = disabled ? (backend == 2 ? 8 : 32) : 0;
+        if (field.bytes[0] != desired[0]) {
+            result = writeField(connection, backend == 2 ? "CHIE" : "CH0J", &field, desired);
+            if (result && disabled) {
+                uint8_t normal[32] = {0};
+                writeField(connection, backend == 2 ? "CHIE" : "CH0J", &field, normal);
+            }
+        }
+    }
+    closeSMC(connection); return result;
+}
+
+// Explicit read-only support matrix. Closed key slots and closed transport values.
+int32_t maccare_key_diagnostic(int32_t slot, int32_t transport, int32_t handshake, MCKeyDiagnostic *output) {
+    const char *keys[] = {"bfF0", "bfD0", "bfE0", "CHTE", "CH0B", "CH0C", "CH0I", "CH0J", "CHIE"};
+    if (!output || slot < 0 || slot >= 9 || transport < 0 || transport > 1 || handshake < 0 || handshake > 1) return kIOReturnBadArgument;
+    memset(output, 0, sizeof(*output));
+    io_service_t service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSMC"));
+    if (!service) { output->result = kIOReturnNotFound; return output->result; }
+    io_connect_t connection = 0;
+    int32_t result = IOServiceOpen(service, mach_task_self(), (uint32_t)transport, &connection);
+    IOObjectRelease(service);
+    if (result) { output->result = result; return result; }
+    int opened = 0;
+    if (handshake) {
+        result = IOConnectCallMethod(connection, 0, NULL, 0, NULL, 0, NULL, NULL, NULL, NULL);
+        opened = result == 0;
+    }
+    SMCMessage field = {0};
+    if (!result) result = readKey(connection, keys[slot], &field);
+    output->result = result; output->size = field.info.size; output->type = field.info.type;
+    if (!result) memcpy(output->bytes, field.bytes, field.info.size < 4 ? field.info.size : 4);
+    if (opened) IOConnectCallMethod(connection, 1, NULL, 0, NULL, 0, NULL, NULL, NULL, NULL);
+    IOServiceClose(connection);
     return result;
 }
