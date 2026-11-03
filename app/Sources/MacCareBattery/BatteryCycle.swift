@@ -50,7 +50,7 @@ public struct BatteryCycle: Sendable {
             return .init(discharge: percent > status.target, limit: status.target, finished: percent <= status.target)
         case .chargingToFull, .rechargingToFull:
             guard snapshot.onAC || now - phaseStarted <= Self.powerReturnGrace else { throw CycleError() }
-            if percent >= 100 {
+            if percent >= 100 && !snapshot.charging {
                 status.phase = status.phase == .chargingToFull ? .dischargingForCalibration : .returningToLimit
                 phaseStarted = now
             }

@@ -46,4 +46,17 @@ struct BatteryCalibrationTests {
         var cycle = BatteryCycle.calibration(target: 80, now: 0)
         #expect(throws: (any Error).self) { try cycle.advance(snapshot: .init(percent: nil, onAC: true, temperature: 28), now: 1) }
     }
+    @Test func roundedFullPercentageDoesNotInterruptEitherChargingPhase() throws {
+        var cycle = BatteryCycle.calibration(target: 80, now: 0)
+        let stillCharging = BatterySnapshot(percent: 100, onAC: true, charging: true, temperature: 28)
+        let full = BatterySnapshot(percent: 100, onAC: true, charging: false, temperature: 28)
+        #expect(try cycle.advance(snapshot: stillCharging, now: 1).discharge == false)
+        #expect(cycle.status.phase == .chargingToFull)
+        _ = try cycle.advance(snapshot: full, now: 2)
+        _ = try cycle.advance(snapshot: .init(percent: 10, onAC: false, temperature: 28), now: 3)
+        #expect(try cycle.advance(snapshot: stillCharging, now: 4).discharge == false)
+        #expect(cycle.status.phase == .rechargingToFull)
+        #expect(try cycle.advance(snapshot: full, now: 5).discharge)
+        #expect(cycle.status.phase == .returningToLimit)
+    }
 }
