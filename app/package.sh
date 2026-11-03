@@ -50,6 +50,7 @@ cp "$assets/MacCare.icns" "$app/Contents/Resources/MacCare.icns"
 # est enregistré par SMAppService.daemon (voir docs/architecture.md). Il disparaît avec l'app.
 cp "$helper_bin" "$app/Contents/MacOS/MacCareHelper"
 cp app/Helper/org.maccare.helper.plist "$app/Contents/Library/LaunchDaemons/org.maccare.helper.plist"
+python3 app/release/configure_helper.py "$app"
 # Règles de nettoyage au format ouvert : lues par l'app au démarrage (voir CleaningCategory.swift).
 cp -R core/rules "$app/Contents/Resources/rules"
 python3 app/battery-intents.py "$app"

@@ -94,6 +94,13 @@ MacCare, pour la configuration et l’architecture attendues. Les noms de dossie
 internes des cibles changent entre Xcode ; les constantes manquantes ou plusieurs
 produits de module ambigus bloquent le packaging.
 
+Avant signature, `app/release/configure_helper.py` reporte les versions réellement
+injectées dans l’app et le canal de distribution dans le descripteur launchd de
+l’assistant. Cela change sa configuration avec un nouveau build ou un autre
+canal, en conservant les identifiants, la récupération et la politique de
+démarrage. Les tests de release vérifient ces invariants et l’absence de
+modification du descripteur source.
+
 Le flux stable est
 `https://github.com/M0okz/maccare/releases/latest/download/appcast.xml`.
 Chaque flux contient la dernière version ; les DMG et signatures des anciennes
