@@ -57,7 +57,10 @@ public struct BatteryCycle: Sendable {
         case .dischargingForCalibration:
             if percent <= 10 { status.phase = .rechargingToFull; phaseStarted = now }
         case .returningToLimit:
-            if percent <= status.target { return .init(discharge: false, limit: status.target, finished: true) }
+            break
+        }
+        if status.phase == .returningToLimit, percent <= status.target {
+            return .init(discharge: false, limit: status.target, finished: true)
         }
         let discharge = status.phase == .dischargingForCalibration || status.phase == .returningToLimit
         return .init(discharge: discharge, limit: status.phase == .returningToLimit ? status.target : 100, finished: false)
