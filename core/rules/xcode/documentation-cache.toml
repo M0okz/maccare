@@ -1,0 +1,17 @@
+# Cache de la documentation téléchargée par Xcode.
+
+id = "xcode.documentation-cache"
+category = "xcode-documentation-cache"
+version = 1
+root = "~/Library/Developer/Xcode/DocumentationCache"
+depth = "per-app"
+autoselect = false
+title = "Cache de documentation Xcode"
+description = "Documentation téléchargée par Xcode, retéléchargée à la demande."
+risk = "safe"
+audience = "developer"
+icon = "book.closed.fill"
+
+[[exclude]]
+kind = "name"
+equals = ".DS_Store"

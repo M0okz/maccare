@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Démon de l'assistant privilégié, enregistré par SMAppService.daemon depuis l'app.
+     Copié par package.sh dans MacCare.app/Contents/Library/LaunchDaemons/.
+     L'exécutable vit dans le paquet (BundleProgram) : il disparaît avec l'app. -->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>org.maccare.helper</string>
+    <key>BundleProgram</key>
+    <string>Contents/MacOS/MacCareHelper</string>
+    <!-- Recover an owned charge switch on login/boot and restart after an abnormal exit. -->
+    <key>RunAtLoad</key><true/>
+    <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
+    <key>EnvironmentVariables</key>
+    <dict><key>MACCARE_BATTERY_RECOVERY</key><string>1</string></dict>
+    <key>MachServices</key>
+    <dict>
+        <key>org.maccare.helper</key>
+        <true/>
+    </dict>
+    <key>AssociatedBundleIdentifiers</key>
+    <array>
+        <string>org.maccare.app</string>
+    </array>
+</dict>
+</plist>

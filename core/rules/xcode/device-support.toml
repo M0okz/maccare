@@ -1,0 +1,18 @@
+# Symboles d'appareils téléchargés par Xcode, un dossier par version d'iOS.
+# À revoir : retéléchargés à la prochaine connexion d'un appareil concerné (parfois long).
+
+id = "xcode.device-support"
+category = "xcode-devicesupport"
+version = 1
+root = "~/Library/Developer/Xcode/iOS DeviceSupport"
+depth = "per-app"
+autoselect = false
+title = "Supports d'appareils Xcode"
+description = "Symboles retéléchargés automatiquement à la prochaine connexion d'un appareil."
+risk = "review"
+audience = "developer"
+icon = "hammer.fill"
+
+[[exclude]]
+kind = "name"
+equals = ".DS_Store"

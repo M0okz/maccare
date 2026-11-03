@@ -1,0 +1,21 @@
+# Installateurs (.dmg, .pkg) restés dans le dossier Téléchargements après l'installation.
+# À revoir : on ne peut pas savoir si l'utilisateur veut les garder.
+
+id = "downloads.installers"
+category = "downloads-installers"
+version = 1
+root = "~/Downloads"
+depth = "per-app"
+autoselect = false
+title = "Installateurs téléchargés"
+description = "Images disque et paquets d'installation déjà utilisés. Retéléchargeables à la demande."
+risk = "review"
+icon = "shippingbox.fill"
+
+[[include]]
+kind = "name-suffix"
+ends_with = ".dmg"
+
+[[include]]
+kind = "name-suffix"
+ends_with = ".pkg"

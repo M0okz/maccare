@@ -1,0 +1,101 @@
+name: Release macOS
+
+on:
+  push:
+    tags: ['v[0-9]*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag existant, par exemple v0.1.0
+        required: true
+        type: string
+      publish:
+        description: Publier la release après tous les contrôles
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-macos
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-26
+    timeout-minutes: 90
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+      MACCARE_DISTRIBUTION: '1'
+      MACCARE_BUILD_NUMBER: ${{ github.run_number }}
+      MACCARE_UPDATE_FEED_URL: https://github.com/${{ github.repository }}/releases/latest/download/appcast.xml
+      MACCARE_SPARKLE_PUBLIC_KEY: ${{ vars.MACCARE_SPARKLE_PUBLIC_KEY }}
+      MACCARE_CERTIFICATE_P12: ${{ secrets.MACCARE_CERTIFICATE_P12 }}
+      MACCARE_CERTIFICATE_PASSWORD: ${{ secrets.MACCARE_CERTIFICATE_PASSWORD }}
+      MACCARE_NOTARY_KEY_P8: ${{ secrets.MACCARE_NOTARY_KEY_P8 }}
+      MACCARE_NOTARY_KEY_ID: ${{ secrets.MACCARE_NOTARY_KEY_ID }}
+      MACCARE_NOTARY_ISSUER_ID: ${{ secrets.MACCARE_NOTARY_ISSUER_ID }}
+      MACCARE_SPARKLE_PRIVATE_KEY: ${{ secrets.MACCARE_SPARKLE_PRIVATE_KEY }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Vérifier la version et la configuration
+        run: |
+          test "$(uname -m)" = arm64
+          python3 - <<'PY'
+          import os, plistlib, re
+          from pathlib import Path
+          tag = os.environ['RELEASE_TAG']
+          if not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+', tag):
+              raise SystemExit('Tag attendu : vMAJEUR.MINEUR.CORRECTIF')
+          version = tag[1:]
+          info = plistlib.loads(Path('app/Info.plist').read_bytes())
+          if info['CFBundleShortVersionString'] != version:
+              raise SystemExit('Le tag doit correspondre à la version dans app/Info.plist.')
+          with Path(os.environ['GITHUB_ENV']).open('a') as output:
+              output.write(f'MACCARE_VERSION={version}\n')
+          PY
+          python3 app/release/ci_signing.py
+      - name: Construire et tester
+        run: |
+          bash app/build.sh
+          swift test --package-path app -Xlinker -L"$PWD/core/target/release"
+          python3 -m unittest discover -s app/release/tests -v
+          python3 app/release/test_signatures.py
+      - name: Préparer les notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -f tag_name="$RELEASE_TAG" --jq .body > "$RUNNER_TEMP/maccare-release-notes.md"
+          echo "MACCARE_RELEASE_NOTES=$RUNNER_TEMP/maccare-release-notes.md" >> "$GITHUB_ENV"
+      - name: Signer, notarier et construire le flux Sparkle
+        run: python3 app/release/distribute.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: MacCare-${{ env.MACCARE_VERSION }}-arm64-release
+          path: |
+            build/release/*.dmg
+            build/release/*.sha256
+            build/release/appcast.xml
+            build/release/release.json
+          if-no-files-found: error
+      - name: Publier les seuls artefacts vérifiés
+        if: github.event_name == 'push' || inputs.publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$RELEASE_TAG" --verify-tag --draft --title "MacCare $MACCARE_VERSION" --notes-file "$MACCARE_RELEASE_NOTES"
+          gh release upload "$RELEASE_TAG" build/release/*.dmg build/release/*.sha256 build/release/appcast.xml build/release/release.json
+          gh release edit "$RELEASE_TAG" --draft=false --latest
+      - name: Nettoyer les clés et le trousseau du runner
+        if: always()
+        run: python3 app/release/ci_signing.py cleanup

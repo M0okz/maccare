@@ -1,0 +1,18 @@
+# Symboles d'appareils watchOS téléchargés par Xcode, un dossier par version.
+# À revoir : retéléchargés à la prochaine connexion d'un appareil concerné (parfois long).
+
+id = "xcode.device-support-watchos"
+category = "xcode-devicesupport-watchos"
+version = 1
+root = "~/Library/Developer/Xcode/watchOS DeviceSupport"
+depth = "per-app"
+autoselect = false
+title = "Supports d'appareils watchOS"
+description = "Symboles watchOS retéléchargés automatiquement à la prochaine connexion d'un appareil."
+risk = "review"
+audience = "developer"
+icon = "hammer.fill"
+
+[[exclude]]
+kind = "name"
+equals = ".DS_Store"

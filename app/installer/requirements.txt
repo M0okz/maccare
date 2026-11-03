@@ -1,0 +1,2 @@
+# Écriture du volume et des métadonnées Finder, sans automatiser l'interface.
+dmgbuild==1.6.7

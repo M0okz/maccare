@@ -1,0 +1,18 @@
+# Symboles d'appareils visionOS téléchargés par Xcode, un dossier par version.
+# À revoir : retéléchargés à la prochaine connexion d'un appareil concerné (parfois long).
+
+id = "xcode.device-support-visionos"
+category = "xcode-devicesupport-visionos"
+version = 1
+root = "~/Library/Developer/Xcode/visionOS DeviceSupport"
+depth = "per-app"
+autoselect = false
+title = "Supports d'appareils visionOS"
+description = "Symboles visionOS retéléchargés automatiquement à la prochaine connexion d'un appareil."
+risk = "review"
+audience = "developer"
+icon = "hammer.fill"
+
+[[exclude]]
+kind = "name"
+equals = ".DS_Store"

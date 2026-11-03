@@ -1,0 +1,24 @@
+[package]
+name = "maccare-core"
+version = "0.1.0"
+edition = "2021"
+description = "Moteur de scan et de nettoyage sûr pour une app de maintenance macOS open-source"
+license = "MIT"
+repository = "https://github.com/M0okz/maccare"
+
+[lib]
+name = "maccare_core"
+# `lib` pour les tests/consommateurs Rust ; `staticlib` pour la frontière C (Swift).
+crate-type = ["lib", "staticlib"]
+
+[dependencies]
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.138"
+toml = "0.8.19"
+uuid = { version = "1.12.1", features = ["v4"] }
+libc = "0.2.191"
+sha2 = "0.10.9"
+plist = { version = "1.8.0", default-features = false }
+
+[dev-dependencies]
+tempfile = "3.15.0"

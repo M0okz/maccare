@@ -1,0 +1,22 @@
+# Règle d'exemple : caches applicatifs génériques de l'utilisateur.
+# Format ouvert, versionné, auditable. Voir docs/architecture.md.
+
+id = "cache.generic"
+category = "user-cache"
+version = 1
+root = "~/Library/Caches"
+depth = "per-app"        # une entrée par application
+autoselect = false       # jamais coché d'office
+title = "Caches utilisateur"
+description = "Caches d'applications régénérables, hors caches Apple."
+risk = "safe"
+icon = "sparkle.magnifyingglass"
+
+[[exclude]]
+kind = "name"
+equals = ".DS_Store"
+
+# On ne touche pas aux caches système Apple (bundles com.apple.*) dans cette version.
+[[exclude]]
+kind = "name-prefix"
+starts_with = "com.apple."

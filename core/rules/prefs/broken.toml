@@ -1,0 +1,23 @@
+# Fichiers de préférences illisibles : leur contenu n'est plus un plist valide, l'app concernée ne
+# peut plus les lire et repart de zéro. À revoir : on ne les supprime jamais d'office.
+# Seule une erreur d'analyse compte ; un fichier illisible (droits), vide ou modifié il y a moins
+# d'une minute n'est jamais retenu. Le contenu est réanalysé au moment du retrait.
+
+id = "prefs.broken"
+category = "broken-preferences"
+version = 1
+root = "~/Library/Preferences"
+depth = "flat"
+autoselect = false
+title = "Préférences illisibles"
+description = "Fichiers de préférences corrompus, que les apps ne peuvent plus lire."
+risk = "review"
+icon = "gearshape.2.fill"
+
+[[include]]
+kind = "invalid-plist"
+
+# Préférences des apps Apple : gérées par le système, on n'y touche pas.
+[[exclude]]
+kind = "name-prefix"
+starts_with = "com.apple."

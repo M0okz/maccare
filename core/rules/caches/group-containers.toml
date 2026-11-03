@@ -1,0 +1,26 @@
+# Caches partagés entre une app et ses extensions (conteneurs de groupe).
+# Seul Library/Caches est proposé.
+
+id = "cache.group-containers"
+category = "group-container-cache"
+version = 1
+root = "~/Library/Group Containers"
+depth = "per-app"
+subpaths = ["Library/Caches"]
+autoselect = false
+title = "Caches partagés des apps"
+description = "Caches communs à une app et à ses extensions, hors apps Apple."
+risk = "safe"
+icon = "square.stack.3d.up.fill"
+
+[[exclude]]
+kind = "name-prefix"
+starts_with = "group.com.apple."
+
+[[exclude]]
+kind = "name-prefix"
+starts_with = "com.apple."
+
+[[exclude]]
+kind = "name"
+equals = ".DS_Store"

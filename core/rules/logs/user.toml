@@ -1,0 +1,18 @@
+# Logs de l'utilisateur.
+# Le seuil de taille minimale est réglable par l'utilisateur dans l'app (min_size_setting).
+
+id = "logs.user"
+category = "user-logs"
+version = 1
+root = "~/Library/Logs"
+depth = "per-app"
+autoselect = false
+title = "Logs utilisateur"
+description = "Journaux d'applications, régénérés à l'usage."
+risk = "safe"
+icon = "doc.text.fill"
+min_size_setting = true
+
+[[exclude]]
+kind = "name"
+equals = ".DS_Store"

@@ -1,0 +1,29 @@
+# Téléchargements interrompus restés dans le dossier Téléchargements.
+# À revoir : un téléchargement peut être en cours.
+
+id = "downloads.incomplete"
+category = "downloads-incomplete"
+version = 1
+root = "~/Downloads"
+depth = "per-app"
+autoselect = false
+title = "Téléchargements incomplets"
+description = "Fichiers de téléchargement interrompus. Vérifiez qu'aucun téléchargement n'est en cours."
+risk = "review"
+icon = "arrow.down.circle.fill"
+
+[[include]]
+kind = "name-suffix"
+ends_with = ".crdownload"
+
+[[include]]
+kind = "name-suffix"
+ends_with = ".download"
+
+[[include]]
+kind = "name-suffix"
+ends_with = ".part"
+
+[[include]]
+kind = "name-suffix"
+ends_with = ".partial"

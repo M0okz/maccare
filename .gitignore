@@ -1,0 +1,17 @@
+/build/
+/app/.build/
+/app/DerivedData/
+/core/target/
+.DS_Store
+__pycache__/
+*.pyc
+*.log
+.env
+.env.*
+*.p12
+*.p8
+*.pem
+*.key
+# Les recherches et données de développement privées restent hors du dépôt produit.
+/analysis/
+/design/

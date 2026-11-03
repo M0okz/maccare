@@ -1,0 +1,23 @@
+# Caches des apps sandboxées (App Store et apps signées avec bac à sable).
+# Seul Data/Library/Caches est proposé : jamais Documents ni Application Support du conteneur.
+
+id = "cache.containers"
+category = "container-cache"
+version = 1
+root = "~/Library/Containers"
+depth = "per-app"
+subpaths = ["Data/Library/Caches"]
+autoselect = false
+title = "Caches des apps sandboxées"
+description = "Caches régénérables rangés dans le conteneur de chaque app, hors apps Apple."
+risk = "safe"
+icon = "shippingbox.circle.fill"
+
+# Conteneurs des apps Apple : protégés par la confidentialité, on n'y touche pas.
+[[exclude]]
+kind = "name-prefix"
+starts_with = "com.apple."
+
+[[exclude]]
+kind = "name"
+equals = ".DS_Store"

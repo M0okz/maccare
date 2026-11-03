@@ -1,0 +1,4 @@
+module CMacCareCore {
+    header "maccare_core.h"
+    export *
+}

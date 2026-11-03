@@ -1,0 +1,18 @@
+# Archives de build Xcode (une par date). Nécessaires pour symboliser les plantages d'une version
+# publiée : à revoir, jamais cochées d'office.
+
+id = "xcode.archives"
+category = "xcode-archives"
+version = 1
+root = "~/Library/Developer/Xcode/Archives"
+depth = "per-app"
+autoselect = false
+title = "Archives Xcode"
+description = "Builds archivés. Gardez ceux des versions publiées pour analyser leurs plantages."
+risk = "review"
+audience = "developer"
+icon = "archivebox.fill"
+
+[[exclude]]
+kind = "name"
+equals = ".DS_Store"

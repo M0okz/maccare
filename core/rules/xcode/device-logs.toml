@@ -1,0 +1,17 @@
+# Journaux récupérés des appareils connectés par Xcode.
+
+id = "xcode.device-logs"
+category = "xcode-device-logs"
+version = 1
+root = "~/Library/Developer/Xcode/iOS Device Logs"
+depth = "per-app"
+autoselect = false
+title = "Journaux d'appareils Xcode"
+description = "Journaux d'appareils importés par Xcode, régénérés à la prochaine connexion."
+risk = "safe"
+audience = "developer"
+icon = "doc.text.magnifyingglass"
+
+[[exclude]]
+kind = "name"
+equals = ".DS_Store"

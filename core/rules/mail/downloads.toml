@@ -1,0 +1,17 @@
+# Copies locales des pièces jointes ouvertes depuis Mail.
+# Les originaux restent dans les messages ; À revoir par prudence.
+
+id = "mail.downloads"
+category = "mail-downloads"
+version = 1
+root = "~/Library/Containers/com.apple.mail/Data/Library/Mail Downloads"
+depth = "per-app"
+autoselect = false
+title = "Pièces jointes Mail ouvertes"
+description = "Copies locales des pièces jointes ouvertes depuis Mail. Les originaux restent dans vos messages."
+risk = "review"
+icon = "paperclip"
+
+[[exclude]]
+kind = "name"
+equals = ".DS_Store"

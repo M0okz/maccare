@@ -1,0 +1,17 @@
+# Sauvegardes d'iPhone / iPad faites depuis ce Mac.
+# À revoir : non régénérables si l'appareil a été remplacé ou réinitialisé.
+
+id = "ios.backups"
+category = "ios-backups"
+version = 1
+root = "~/Library/Application Support/MobileSync/Backup"
+depth = "per-app"
+autoselect = false
+title = "Sauvegardes d'appareils iOS"
+description = "Anciennes sauvegardes d'iPhone et d'iPad. Non régénérables si l'appareil a changé."
+risk = "review"
+icon = "iphone"
+
+[[exclude]]
+kind = "name"
+equals = ".DS_Store"

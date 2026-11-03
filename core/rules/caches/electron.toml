@@ -1,0 +1,21 @@
+# Caches des apps bâties sur Chromium/Electron (Slack, VS Code, Discord…).
+# Une app n'est retenue que si elle porte un dossier propre à Chromium (repère). Seuls les
+# caches HTTP, de code et graphiques sont proposés : jamais Local Storage, IndexedDB, Cookies ni
+# Preferences, qui contiennent sessions et données.
+
+id = "cache.electron"
+category = "electron-cache"
+version = 1
+root = "~/Library/Application Support"
+depth = "per-app"
+require_any = ["Code Cache", "GPUCache"]
+subpaths = ["Cache", "Code Cache", "GPUCache", "DawnGraphiteCache", "DawnWebGPUCache"]
+autoselect = false
+title = "Caches des apps Electron"
+description = "Caches web des apps de bureau bâties sur Chromium. Fermez l'app concernée pour un nettoyage complet."
+risk = "safe"
+icon = "globe"
+
+[[exclude]]
+kind = "name"
+equals = ".DS_Store"
