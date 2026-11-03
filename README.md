@@ -15,8 +15,8 @@ les Mac Apple Silicon, à partir de macOS 13.
 - Contrôle facultatif de la charge sur les Mac et versions de macOS compatibles.
 - Mises à jour de MacCare avec Sparkle, distribuées par les releases GitHub.
 
-La rubrique Batterie avancée de cette branche est en développement, non livrée.
-Ses fonctions, essais et limites matérielles sont décrits dans
+La rubrique Batterie avancée dépend des capacités du Mac et de son firmware.
+Ses fonctions, essais et limites de disponibilité sont décrits dans
 [la documentation Batterie avancée](docs/battery-advanced.md).
 
 MacCare est en développement. Les DMG de validation de la CI ne sont pas des

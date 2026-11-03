@@ -1,8 +1,10 @@
 # Batterie avancée — développement du 3 novembre 2026
 
-Branche locale `codex/battery-advanced` du dépôt produit `maccare`.
-Ces évolutions ne sont pas publiées ni installées dans `/Applications/MacCare.app`.
-Le paquet de développement est `build/MacCare.app` de ce dépôt.
+Fonctionnalités introduites dans la version 0.2.0 du dépôt produit `maccare`.
+Les disponibilités et limites de validation sont précisées ci-dessous ;
+la présence d’une fonction dans le code ne certifie pas son contrôle matériel.
+Le paquet de développement est `build/MacCare.app` ; la copie utilisateur
+`/Applications/MacCare.app` reçoit les distributions signées par Sparkle.
 
 ## Fonctions
 

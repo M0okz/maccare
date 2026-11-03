@@ -79,7 +79,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -f tag_name="$RELEASE_TAG" --jq .body > "$RUNNER_TEMP/maccare-release-notes.md"
+          if [ -f "docs/release-notes/$MACCARE_VERSION.md" ]; then
+            cp "docs/release-notes/$MACCARE_VERSION.md" "$RUNNER_TEMP/maccare-release-notes.md"
+          else
+            gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -f tag_name="$RELEASE_TAG" --jq .body > "$RUNNER_TEMP/maccare-release-notes.md"
+          fi
           echo "MACCARE_RELEASE_NOTES=$RUNNER_TEMP/maccare-release-notes.md" >> "$GITHUB_ENV"
       - name: Préparer le trousseau éphémère après les tests
         env:

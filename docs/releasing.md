@@ -66,6 +66,10 @@ des opérations séparées. Ne jamais committer ni afficher sa valeur privée.
    flux `appcast.xml`. Le flux exige Apple Silicon et macOS 13.0.0 au minimum.
 7. Création d’une release brouillon, dépôt des seuls artefacts vérifiés, puis publication.
 
+Les notes sont prises dans `docs/release-notes/<version>.md` lorsqu’elles existent,
+pour conserver les disponibilités et limites du matériel dans la release et le flux
+Sparkle. À défaut, le workflow génère les notes depuis GitHub.
+
 Le flux stable est
 `https://github.com/M0okz/maccare/releases/latest/download/appcast.xml`.
 Chaque flux contient la dernière version ; les DMG et signatures des anciennes
