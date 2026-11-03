@@ -47,7 +47,8 @@ si nécessaire, la limite native compagnon ; les anciens journaux restent lisibl
 L’étalonnage attend 100 % **et l’arrêt de la charge** avant chaque décharge.
 Chaque phase est bornée à 12 h, le cycle à 24 h. Mesures inconnues ou batterie
 à 45 °C : interruption et restauration. Le retour au secteur admet 180 secondes :
-le M1 de validation expose `PostDischargeWaitSeconds = 120`.
+le M1 de validation expose `PostDischargeWaitSeconds = 120`. Avec une cible
+finale de 100 %, le cycle termine sans isoler de nouveau l’adaptateur.
 
 Les programmations sont réclamées et synchronisées sur disque avant l’action.
 Des verrous interprocessus empêchent deux instances de rejouer la même occurrence.
@@ -77,7 +78,9 @@ n’a été réalisé pendant cette intervention.
 ## Validation
 
 - Build Release et contrôle du minimum macOS des objets Rust.
-- 252 tests Swift réussis : 167 XCTest et 85 Swift Testing. Les cycles complets,
+- Suite complète : 252 tests Swift réussis (167 XCTest et 85 Swift Testing),
+  puis 135 tests Batterie/navigation après le dernier correctif (49 XCTest et
+  86 Swift Testing). Les cycles complets,
   les erreurs, les transitions, les calendriers et la concurrence sont simulés.
 - Tests C SMC sous ASan/UBSan, y compris restauration, rollback et diagnostic sans écriture.
 - Tests Objective-C PowerUI simulés, sans appeler de setter système.
