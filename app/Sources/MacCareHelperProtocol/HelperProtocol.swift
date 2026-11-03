@@ -25,7 +25,7 @@ import Foundation
 public enum HelperIdentity {
     public static let machService = "org.maccare.helper"
     public static let daemonPlist = "org.maccare.helper.plist"
-    public static let protocolVersion = 8
+    public static let protocolVersion = 9
 
     /// Équipe de signature (Developer ID et certificats de développement de la même équipe).
     public static let teamID = "5FAF9ZA2X9"

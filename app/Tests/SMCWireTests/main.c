@@ -53,7 +53,7 @@ static kern_return_t fixtureMethod(mach_port_t c, uint32_t selector, const uint6
 }
 static kern_return_t fixtureCall(mach_port_t c, uint32_t selector, const void *input, size_t inputSize, void *output, size_t *outputSize) {
     assert(selector == 2 && inputSize == 80 && *outputSize == 80);
-    assert(clientOpen);
+    if (!clientOpen) return kIOReturnNotPrivileged;
     const SMCMessage *in = input; SMCMessage *out = output;
     memset(out, 0, sizeof(*out));
     Field *f = NULL;
@@ -75,6 +75,13 @@ static kern_return_t fixtureCall(mach_port_t c, uint32_t selector, const void *i
 }
 int main(void) {
     uint8_t value; int32_t backend;
+    MCKeyDiagnostic diagnostic;
+    reset(); add("CHIE", 1, "hex_", 0);
+    assert(maccare_key_diagnostic(8, 1, 1, &diagnostic) == 0 && diagnostic.type == code("hex_") && writes == 0);
+    assert(maccare_key_diagnostic(8, 0, 1, &diagnostic) == 0 && writes == 0);
+    assert(maccare_key_diagnostic(8, 0, 0, &diagnostic) != 0 && writes == 0);
+    assert(maccare_key_diagnostic(99, 1, 1, &diagnostic) == kIOReturnBadArgument && writes == 0);
+
     reset(); add("CHIE", 1, "hex_", 0);
     assert(maccare_adapter_probe(&backend) == 0 && backend == 2 && writes == 0);
     assert(maccare_adapter_write(backend, 1) == 0 && get("CHIE")->bytes[0] == 8);

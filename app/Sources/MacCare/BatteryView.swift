@@ -4,6 +4,8 @@ import MacCareBattery
 struct BatteryView: View {
     @ObservedObject var model: BatteryModel
     @State private var tab = 0
+    @State private var showingDiagnostics = false
+    @State private var diagnostics = "Lecture du diagnostic…"
     @State private var confirmingActivation = false
     @AccessibilityFocusState private var errorFocused: Bool
 
@@ -49,6 +51,14 @@ struct BatteryView: View {
             Text(model.nativeControl
                  ? "MacCare réglera la limite native de macOS à \(model.configuration.limit) %. Désactivez AlDente et tout autre contrôleur avant de continuer. Les protections de macOS restent actives ; un étalonnage Apple peut exceptionnellement charger à 100 %. À la désactivation, à la veille ou lorsque vous quittez MacCare, le réglage initial sera restauré. Après une interruption, l’assistant reprend cette restauration lorsque le Mac est éveillé."
                  : "MacCare pilotera la charge jusqu’à \(model.configuration.limit) %. Désactivez au préalable AlDente et tout autre contrôleur, et réglez la limite native de macOS sur 100 % avec la recharge optimisée désactivée. Le contrôle matériel est expérimental et n’a pas été validé sur toutes les générations de MacBook. À la mise en veille, la charge est rendue à macOS. Après fermeture ou interruption de MacCare, elle est rétablie sous environ 90 secondes lorsque le Mac est éveillé.")
+        }
+        .sheet(isPresented: $showingDiagnostics) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Diagnostic de compatibilité").font(.headline)
+                Text("Lecture seule des contrôles de batterie. Aucun réglage de charge n’est modifié.").font(.callout)
+                ScrollView { Text(diagnostics).font(.system(.body, design: .monospaced)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
+                Button("Fermer") { showingDiagnostics = false }.keyboardShortcut(.cancelAction)
+            }.padding(24).frame(width: 700, height: 480)
         }
         .onChange(of: model.error) { errorFocused = $0 != nil }
     }
@@ -186,6 +196,10 @@ struct BatteryView: View {
                  : "Utilisez un seul contrôleur de charge à la fois. Pour utiliser MacCare, désactivez AlDente et la recharge optimisée, puis réglez la limite native de macOS sur 100 %.")
                 .font(.callout).foregroundStyle(Theme.muted)
             }
+            Button("Afficher le diagnostic de compatibilité…") {
+                showingDiagnostics = true; diagnostics = "Lecture du diagnostic…"
+                Task { do { diagnostics = try await HelperClient.batteryHardwareDiagnostics() } catch { diagnostics = error.localizedDescription } }
+            }.disabled(!model.helperEnabled || model.controlsBusy)
             Button("Ouvrir les réglages Batterie de macOS…") { model.openBatterySettings() }
                 .buttonStyle(.borderedProminent)
         }.padding(24).background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: Radius.card))

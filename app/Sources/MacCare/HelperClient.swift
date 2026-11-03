@@ -35,7 +35,7 @@ enum HelperClient {
             let (version, _): (Int, String) = try await call(timeout: 8) { helper, done in helper.version { done(($0, $1)) } }
             if version == 4 || version == 5 {
                 try await LegacyBatteryHelper.restoreBeforeUnregister()
-            } else if version == 6 || version == 7 {
+            } else if version == 6 || version == 7 || version == 8 {
                 // Version 6 has the same UUID-bearing selector. Only stop/verify
                 // it; no activation or automatic replacement of a loaded service.
                 let json: String = try await call(timeout: 8) { helper, done in
@@ -124,6 +124,14 @@ enum HelperClient {
             helper.maintenance(task: task.rawValue, withReply: done)
         }
         return try JSONDecoder().decode(MaintenanceReport.self, from: Data(json.utf8))
+    }
+
+    static func batteryHardwareDiagnostics() async throws -> String {
+        let (version, _): (Int, String) = try await call(timeout: 8) { helper, done in helper.version { done(($0, $1)) } }
+        guard version == HelperIdentity.protocolVersion else { throw HelperError.incompatible(version) }
+        return try await call(timeout: 8) { helper, done in
+            helper.battery(command: "diagnostics", sessionID: "", configurationJSON: "{}", withReply: done)
+        }
     }
 
     static func prepareBatteryProtection() async throws {

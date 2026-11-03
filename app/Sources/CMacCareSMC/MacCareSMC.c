@@ -298,3 +298,28 @@ int32_t maccare_adapter_write(int32_t backend, uint8_t disabled) {
     }
     closeSMC(connection); return result;
 }
+
+// Explicit read-only support matrix. Closed key slots and closed transport values.
+int32_t maccare_key_diagnostic(int32_t slot, int32_t transport, int32_t handshake, MCKeyDiagnostic *output) {
+    const char *keys[] = {"bfF0", "bfD0", "bfE0", "CHTE", "CH0B", "CH0C", "CH0I", "CH0J", "CHIE"};
+    if (!output || slot < 0 || slot >= 9 || transport < 0 || transport > 1 || handshake < 0 || handshake > 1) return kIOReturnBadArgument;
+    memset(output, 0, sizeof(*output));
+    io_service_t service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSMC"));
+    if (!service) { output->result = kIOReturnNotFound; return output->result; }
+    io_connect_t connection = 0;
+    int32_t result = IOServiceOpen(service, mach_task_self(), (uint32_t)transport, &connection);
+    IOObjectRelease(service);
+    if (result) { output->result = result; return result; }
+    int opened = 0;
+    if (handshake) {
+        result = IOConnectCallMethod(connection, 0, NULL, 0, NULL, 0, NULL, NULL, NULL, NULL);
+        opened = result == 0;
+    }
+    SMCMessage field = {0};
+    if (!result) result = readKey(connection, keys[slot], &field);
+    output->result = result; output->size = field.info.size; output->type = field.info.type;
+    if (!result) memcpy(output->bytes, field.bytes, field.info.size < 4 ? field.info.size : 4);
+    if (opened) IOConnectCallMethod(connection, 1, NULL, 0, NULL, 0, NULL, NULL, NULL, NULL);
+    IOServiceClose(connection);
+    return result;
+}

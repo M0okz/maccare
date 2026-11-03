@@ -15,4 +15,6 @@ int32_t maccare_firmware_limit_restore(uint32_t upper, uint32_t lower);
 int32_t maccare_adapter_probe(int32_t *backend);
 int32_t maccare_adapter_read(int32_t backend, uint8_t *disabled);
 int32_t maccare_adapter_write(int32_t backend, uint8_t disabled);
+typedef struct { int32_t result; uint32_t size, type; uint8_t bytes[4]; } MCKeyDiagnostic;
+int32_t maccare_key_diagnostic(int32_t slot, int32_t transport, int32_t handshake, MCKeyDiagnostic *output);
 #endif
