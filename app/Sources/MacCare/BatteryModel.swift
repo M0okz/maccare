@@ -47,6 +47,7 @@ final class BatteryModel: ObservableObject {
            saved.allSatisfy({ $0.isValid }), Set(saved.map(\.id)).count == saved.count { profiles = saved }
         automationEvents = Array((defaults.stringArray(forKey: "battery.events.v1") ?? []).prefix(100))
         if monitor {
+            BatteryIntentBridge.bind(self)
             wakeSubscription = NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)
                 .sink { [weak self] _ in Task { @MainActor in await self?.refresh(force: true) } }
             monitoring = Task { [weak self] in

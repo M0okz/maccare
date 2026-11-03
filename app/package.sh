@@ -51,6 +51,7 @@ cp "$helper_bin" "$app/Contents/MacOS/MacCareHelper"
 cp app/Helper/org.maccare.helper.plist "$app/Contents/Library/LaunchDaemons/org.maccare.helper.plist"
 # Règles de nettoyage au format ouvert : lues par l'app au démarrage (voir CleaningCategory.swift).
 cp -R core/rules "$app/Contents/Resources/rules"
+python3 app/battery-intents.py "$app"
 
 # SwiftPM lie le framework, mais l’assemblage manuel doit l’embarquer et préserver ses liens.
 sparkle="app/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"

@@ -1,4 +1,5 @@
 import Foundation
+import AppIntents
 import ServiceManagement
 import Testing
 import MacCareBattery
@@ -77,6 +78,18 @@ struct BatteryAutomationTests {
         await model.processSchedules(now: .now)
         #expect(client.commands.isEmpty)
         #expect(model.automationEvents.first?.contains("manquée") == true)
+    }
+    @Test func shortcutIntentUsesTheSameValidationAsTheScreen() async throws {
+        let prefs = Preferences(), client = Client()
+        let model = BatteryModel(defaults: prefs.defaults, monitor: false, client: client)
+        BatteryIntentBridge.bind(model)
+        var intent = SetBatteryLimitIntent(); intent.limit = 70
+        _ = try await intent.perform()
+        #expect(client.configuration.limit == 70)
+        #expect(client.commands.filter { $0 == .enable }.count == 1)
+        intent.limit = 25
+        await #expect(throws: (any Error).self) { try await intent.perform() }
+        #expect(client.commands.filter { $0 == .enable }.count == 1)
     }
 
 }
