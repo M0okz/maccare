@@ -111,3 +111,22 @@ La documentation Outline distingue ce développement de la version utilisateur 0
 Le code historique public d’AlDente ne contient pas les fonctions Pro actuelles.
 Aucune bibliothèque ou exécutable propriétaire d’AlDente n’est embarqué.
 Les licences de la structure SMC déjà adaptée restent dans `THIRD_PARTY_NOTICES.md`.
+
+## Correction du fond de la rubrique
+
+Le fond violet provenait d’une régression de l’intégration des quatre onglets :
+`BatteryView` utilisait `Theme.bg` à la place de `CategoryBackground(section: .battery)`.
+La correction réutilise la palette verte existante pour tous les onglets. Le fond
+reste décoratif, masqué des technologies d’assistance et sans interception des clics.
+Aucune politique de charge ni définition de profil n’est modifiée.
+
+Les profils Sur secteur (70 %, plage 60–70 %) et Usage mixte (80 %, plage 75–80 %)
+restent indisponibles avec la voie native : le premier exige une limite sous 80 %,
+les deux exigent une plage Voile. Une limite 80 % sans Voile et le profil Déplacement
+100 % restent utilisables. Ces restrictions décrivent la méthode actuelle de MacCare.
+
+Contrôles de ce correctif : compilation Release réussie, signature stricte du paquet
+valide, fond vert constaté dans l’app lancée depuis `maccare/build/MacCare.app`,
+protection native active à 80 %. La copie quotidienne conserve son empreinte.
+Ce correctif visuel ne relance aucun cycle de batterie ; aucun nouveau test unitaire
+qui reproduirait la ligne d’interface n’a été ajouté. VoiceOver n’a pas été retesté.
