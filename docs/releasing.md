@@ -7,6 +7,10 @@ un DMG arm64 téléchargeable comme artefact `MacCare-arm64-ci`. Ce DMG de valid
 peut être signé ad hoc ; il ne doit pas être présenté comme une distribution notariée.
 Les pull requests n’ont accès à aucun secret de signature.
 
+Les deux jobs utilisent des runners macOS Apple Silicon. Les règles privilégiées
+du moteur utilisent notamment les flags de fichiers macOS ; leur validation ne
+doit pas être remplacée par un succès partiel sur un hôte Linux.
+
 `Release macOS` démarre sur un tag `vMAJEUR.MINEUR.CORRECTIF` ou manuellement avec un
 tag existant. L’exécution manuelle conserve les artefacts sans publier, sauf si
 `publish` est activé. Le tag doit correspondre à `CFBundleShortVersionString` dans
