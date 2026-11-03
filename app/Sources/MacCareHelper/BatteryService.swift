@@ -7,7 +7,7 @@ import MacCareBattery
 enum BatteryService {
     private static let queue = DispatchQueue(label: "org.maccare.helper.battery")
     private static let store = BatteryRecoveryStore(directory: Audit.directory)
-    private static let controller = BatteryProtectionController(hardware: AppleSiliconChargeHardware(),
+    private static let controller = BatteryProtectionController(hardware: RecoverableChargeHardware(),
         markRecovery: { try store.save($0) }, clearRecovery: { try store.clear() })
     // This value comes from the LOADED launchd job, not from the plist currently on disk.
     // An old registration cannot silently acquire crash-recovery promises after a bundle update.
