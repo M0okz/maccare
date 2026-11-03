@@ -31,7 +31,16 @@ struct BatteryCalibrationTests {
         _ = try cycle.advance(snapshot: .init(percent: 100, onAC: true, temperature: 28), now: 1)
         _ = try cycle.advance(snapshot: .init(percent: 10, onAC: false, temperature: 28), now: 2)
         _ = try cycle.advance(snapshot: .init(percent: 10, onAC: false, temperature: 28), now: 10)
-        #expect(throws: (any Error).self) { try cycle.advance(snapshot: .init(percent: 10, onAC: false, temperature: 28), now: 33) }
+        _ = try cycle.advance(snapshot: .init(percent: 10, onAC: false, temperature: 28), now: 122)
+        #expect(throws: (any Error).self) { try cycle.advance(snapshot: .init(percent: 10, onAC: false, temperature: 28), now: 183) }
+    }
+    @Test func systemPostDischargeDelayDoesNotAbortCalibrationBeforePowerReturns() throws {
+        var cycle = BatteryCycle.calibration(target: 80, now: 0)
+        _ = try cycle.advance(snapshot: .init(percent: 100, onAC: true, temperature: 28), now: 1)
+        _ = try cycle.advance(snapshot: .init(percent: 10, onAC: false, temperature: 28), now: 2)
+        #expect(try cycle.advance(snapshot: .init(percent: 10, onAC: false, temperature: 28), now: 121).discharge == false)
+        #expect(try cycle.advance(snapshot: .init(percent: 11, onAC: true, temperature: 28), now: 130).limit == 100)
+        #expect(cycle.status.phase == .rechargingToFull)
     }
     @Test func calibrationCannotContinueOnUnknownMeasurements() {
         var cycle = BatteryCycle.calibration(target: 80, now: 0)

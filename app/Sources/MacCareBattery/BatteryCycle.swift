@@ -19,6 +19,9 @@ public struct BatteryCycleStatus: Codable, Equatable, Sendable {
 
 /// Pure bounded state machine. No timers, hardware or wall clock are hidden here.
 public struct BatteryCycle: Sendable {
+    // The M1 validation host reports PostDischargeWaitSeconds = 120. Allow the
+    // system to reconnect external input before treating its absence as a fault.
+    public static let powerReturnGrace: TimeInterval = 180
     public struct Action: Equatable, Sendable {
         public let discharge: Bool
         public let limit: Int
@@ -46,7 +49,7 @@ public struct BatteryCycle: Sendable {
         case .dischargingToLimit:
             return .init(discharge: percent > status.target, limit: status.target, finished: percent <= status.target)
         case .chargingToFull, .rechargingToFull:
-            guard snapshot.onAC || now - phaseStarted <= 30 else { throw CycleError() }
+            guard snapshot.onAC || now - phaseStarted <= Self.powerReturnGrace else { throw CycleError() }
             if percent >= 100 {
                 status.phase = status.phase == .chargingToFull ? .dischargingForCalibration : .returningToLimit
                 phaseStarted = now
