@@ -31,10 +31,16 @@ strictement numérique et croissant. Un tag publié ne doit pas être réutilis�
 | `MACCARE_SPARKLE_PRIVATE_KEY` | Secret | Graine Ed25519 de 32 octets encodée en base64 |
 | `MACCARE_SPARKLE_PUBLIC_KEY` | Variable | Clé publique Ed25519 correspondante, encodée en base64 |
 
+La notarisation accepte aussi les secrets `MACCARE_APPLE_ID`, `MACCARE_APPLE_TEAM_ID`
+et `MACCARE_NOTARY_PASSWORD` (mot de passe spécifique d’application Apple) à la place
+des trois secrets de clé API. Une configuration API complète est prioritaire.
+
 Les secrets ne sont jamais intégrés à l’app, au flux ou aux artefacts. Le certificat
 est importé dans un trousseau temporaire du runner et retiré en fin d’exécution,
 y compris après échec. Les clés Sparkle publique et privée sont comparées avant
 signature. Aucun certificat ni clé n’est exporté ou envoyé à GitHub par les scripts locaux.
+Les étapes de build et de tests ne reçoivent pas les secrets de signature et sont
+terminées avant l’importation du certificat dans le trousseau du runner.
 
 Pour créer la clé Sparkle dans un trousseau de développement :
 

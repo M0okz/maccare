@@ -17,9 +17,16 @@ def run(*args, **kwargs):
 
 
 def notarize(path):
-    result = run('xcrun', 'notarytool', 'submit', str(path), '--key', os.environ['MACCARE_NOTARY_KEY_FILE'],
-                 '--key-id', os.environ['MACCARE_NOTARY_KEY_ID'], '--issuer', os.environ['MACCARE_NOTARY_ISSUER_ID'],
-                 '--wait', '--timeout', '30m', '--output-format', 'json', capture_output=True)
+    if os.environ.get('MACCARE_NOTARY_KEY_FILE'):
+        authentication = ['--key', os.environ['MACCARE_NOTARY_KEY_FILE'], '--key-id', os.environ['MACCARE_NOTARY_KEY_ID'],
+                          '--issuer', os.environ['MACCARE_NOTARY_ISSUER_ID']]
+    else:
+        authentication = ['--apple-id', os.environ['MACCARE_APPLE_ID'], '--team-id', os.environ['MACCARE_APPLE_TEAM_ID'],
+                          '--password', os.environ['MACCARE_NOTARY_PASSWORD']]
+    result = subprocess.run(['xcrun', 'notarytool', 'submit', str(path), *authentication,
+                             '--wait', '--timeout', '30m', '--output-format', 'json'], capture_output=True)
+    if result.returncode:
+        raise RuntimeError('Échec de notarisation Apple. Les arguments d’authentification ne sont pas journalisés.')
     status = json.loads(result.stdout)
     if status.get('status') != 'Accepted':
         raise RuntimeError(f'Notarisation refusée : {status.get("id")} ({status.get("status")}).')

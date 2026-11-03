@@ -3,9 +3,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
+from unittest.mock import patch
 
 from app.release.appcast import make_feed, SPARKLE
 from app.release.configure_bundle import configure
+from app.release import ci_signing
 
 
 class ReleaseTests(unittest.TestCase):
@@ -55,6 +59,25 @@ class ReleaseTests(unittest.TestCase):
             self.assertEqual(item.find('enclosure').get('url'),
                              'https://github.com/M0okz/maccare/releases/download/v0.1.0/MacCare-0.1.0-arm64.dmg')
             self.assertEqual(item.find('description').text, '<notes & details>')
+
+    def test_signing_preflight_accepts_either_complete_notary_route_without_importing_keys(self):
+        common = {name: 'isolated-test' for name in ci_signing.NAMES}
+        for names in [('MACCARE_APPLE_ID', 'MACCARE_APPLE_TEAM_ID', 'MACCARE_NOTARY_PASSWORD'),
+                      ('MACCARE_NOTARY_KEY_P8', 'MACCARE_NOTARY_KEY_ID', 'MACCARE_NOTARY_ISSUER_ID')]:
+            with tempfile.TemporaryDirectory() as directory:
+                environment = dict(common, RUNNER_TEMP=directory)
+                environment.update({name: 'isolated-test' for name in names})
+                with patch.dict('os.environ', environment, clear=True), patch('sys.argv', ['ci_signing.py', 'check']), redirect_stdout(StringIO()):
+                    ci_signing.main()
+                self.assertFalse((Path(directory) / 'maccare-signing').exists())
+
+    def test_signing_preflight_rejects_missing_notary_fields_without_showing_values(self):
+        environment = {name: 'isolated-test' for name in ci_signing.NAMES}
+        environment.update(RUNNER_TEMP='/tmp', MACCARE_APPLE_ID='isolated-test')
+        with patch.dict('os.environ', environment, clear=True), patch('sys.argv', ['ci_signing.py', 'check']):
+            with self.assertRaises(SystemExit) as error:
+                ci_signing.main()
+        self.assertNotIn('isolated-test', str(error.exception))
 
 
 if __name__ == '__main__':

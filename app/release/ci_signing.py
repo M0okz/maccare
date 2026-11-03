@@ -12,9 +12,6 @@ import sys
 NAMES = (
     'MACCARE_CERTIFICATE_P12',
     'MACCARE_CERTIFICATE_PASSWORD',
-    'MACCARE_NOTARY_KEY_P8',
-    'MACCARE_NOTARY_KEY_ID',
-    'MACCARE_NOTARY_ISSUER_ID',
     'MACCARE_SPARKLE_PRIVATE_KEY',
     'MACCARE_SPARKLE_PUBLIC_KEY',
 )
@@ -38,6 +35,14 @@ def main():
     missing = [name for name in NAMES if not os.environ.get(name)]
     if missing:
         raise SystemExit('Configuration de release manquante : ' + ', '.join(missing))
+    api_fields = ('MACCARE_NOTARY_KEY_P8', 'MACCARE_NOTARY_KEY_ID', 'MACCARE_NOTARY_ISSUER_ID')
+    apple_fields = ('MACCARE_APPLE_ID', 'MACCARE_APPLE_TEAM_ID', 'MACCARE_NOTARY_PASSWORD')
+    use_api = all(os.environ.get(name) for name in api_fields)
+    if not use_api and not all(os.environ.get(name) for name in apple_fields):
+        raise SystemExit('Notarisation non configurée : fournir une clé API Apple complète ou Apple ID, Team ID et mot de passe spécifique.')
+    if sys.argv[1:] == ['check']:
+        print('Paramètres de signature et de notarisation présents ; aucune clé importée.')
+        return
     run('swift', str(Path(__file__).with_name('validate-sparkle-key.swift')), os.environ['MACCARE_SPARKLE_PUBLIC_KEY'],
         input=os.environ['MACCARE_SPARKLE_PRIVATE_KEY'].encode())
     directory.mkdir(mode=0o700)
@@ -45,8 +50,9 @@ def main():
     notary = directory / 'AuthKey.p8'
     certificate.write_bytes(base64.b64decode(os.environ['MACCARE_CERTIFICATE_P12'], validate=True))
     certificate.chmod(0o600)
-    notary.write_text(os.environ['MACCARE_NOTARY_KEY_P8'])
-    notary.chmod(0o600)
+    if use_api:
+        notary.write_text(os.environ['MACCARE_NOTARY_KEY_P8'])
+        notary.chmod(0o600)
     password = secrets.token_urlsafe(32)
     keychain = directory / 'signing.keychain-db'
     run('security', 'create-keychain', '-p', password, str(keychain))
@@ -65,7 +71,9 @@ def main():
         raise SystemExit('Le certificat importé ne contient pas de Developer ID Application valide.')
     certificate.unlink()
     with Path(os.environ['GITHUB_ENV']).open('a') as env:
-        env.write(f'MACCARE_SIGN_IDENTITY={identity[1]}\nMACCARE_NOTARY_KEY_FILE={notary}\n')
+        env.write(f'MACCARE_SIGN_IDENTITY={identity[1]}\n')
+        if use_api:
+            env.write(f'MACCARE_NOTARY_KEY_FILE={notary}\n')
     print('Identité Developer ID et clé de notarisation disponibles pour ce runner uniquement.')
 
 
