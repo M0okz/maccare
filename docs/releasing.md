@@ -74,7 +74,10 @@ Le build et les tests sélectionnent explicitement `--build-system swiftbuild`,
 disponible avec Swift 6.2 et suivants. Le moteur SwiftPM natif de certains Xcode
 plus anciens n’émet pas les constantes App Intents nécessaires au packaging.
 Le choix explicite conserve les mêmes artefacts en local et sur le runner GitHub ;
-la cible d’exécution de l’app reste macOS 13.
+la cible d’exécution de l’app reste macOS 13. L’architecture est fixée explicitement
+à celle du moteur Rust (`--arch arm64` sur les runners de distribution), car
+Swift Build peut sinon tenter de lier un exécutable Intel avec la bibliothèque
+Rust Apple Silicon.
 
 Le flux stable est
 `https://github.com/M0okz/maccare/releases/latest/download/appcast.xml`.

@@ -65,7 +65,7 @@ dans `/Applications` par ces scripts.
 
 ```sh
 cargo test --locked --manifest-path core/Cargo.toml
-swift test --package-path app --build-system swiftbuild -Xlinker -L"$PWD/core/target/release"
+swift test --package-path app --build-system swiftbuild --arch "$(uname -m)" -Xlinker -L"$PWD/core/target/release"
 python3 -m unittest discover -s app/release/tests -v
 python3 app/release/test_signatures.py
 ```
