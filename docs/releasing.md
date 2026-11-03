@@ -86,6 +86,10 @@ Les suites restent complètes ; le dossier distinct préserve les produits Relea
 et les constantes App Intents destinés au packaging. Aucun chemin de chargement
 ni contrôle de signature de l’application distribuée n’est modifié.
 
+Le packaging résout le dossier des produits avec `swift build --show-bin-path`
+et les mêmes paramètres de moteur, configuration et architecture. Il ne dépend
+pas du lien de commodité `.build/release`, absent sur certaines versions de SwiftPM.
+
 Le flux stable est
 `https://github.com/M0okz/maccare/releases/latest/download/appcast.xml`.
 Chaque flux contient la dernière version ; les DMG et signatures des anciennes

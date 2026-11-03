@@ -14,8 +14,9 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$repo_root"
 
-bin="app/.build/release/MacCare"
-helper_bin="app/.build/release/MacCareHelper"
+products="$(swift build --package-path app --build-system swiftbuild --arch "$(uname -m)" -c release --show-bin-path)"
+bin="$products/MacCare"
+helper_bin="$products/MacCareHelper"
 if [ ! -x "$bin" ] || [ ! -x "$helper_bin" ]; then
     echo "Binaire introuvable : lancez d'abord app/build.sh" >&2
     exit 1
