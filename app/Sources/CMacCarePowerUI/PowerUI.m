@@ -6,6 +6,7 @@
 #include <math.h>
 #include <notify.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "CMacCarePowerUI.h"
 
@@ -20,6 +21,8 @@ typedef NSError *__autoreleasing *MacCareErrorPointer;
 - (unsigned long long)isMCLCurrentlyEnabled:(NSError **)error;
 - (NSArray *)availableChargeLimitsWithError:(NSError **)error;
 - (BOOL)setMCLLimit:(unsigned char)limit error:(NSError **)error;
+- (BOOL)enableMCL:(NSError **)error;
+- (BOOL)disableMCL:(NSError **)error;
 @end
 
 static void releaseClient(id client) {
@@ -213,3 +216,77 @@ int32_t maccare_powerui_restore(int32_t enabled, int32_t limit) {
 }
 
 int32_t maccare_powerui_calibration_override(void) { return appleOverride(); }
+
+static int32_t readEnabled(id<MacCarePowerUIClient> client, unsigned long long *enabled) {
+    NSError *error = nil;
+    unsigned long long first = [client isMCLCurrentlyEnabled:&error];
+    if (error != nil) return MACCARE_POWERUI_CALL_FAILED;
+    error = nil;
+    unsigned long long second = [client isMCLCurrentlyEnabled:&error];
+    if (error != nil) return MACCARE_POWERUI_CALL_FAILED;
+    if (first > 1 || first != second) return MACCARE_POWERUI_INVALID_STATE;
+    *enabled = first;
+    return MACCARE_POWERUI_SUCCESS;
+}
+
+static BOOL validPolicyInterface(Class cls) {
+    return hasMethod(cls, @selector(enableMCL:), @encode(BOOL), @encode(MacCareErrorPointer), NULL)
+        && hasMethod(cls, @selector(disableMCL:), @encode(BOOL), @encode(MacCareErrorPointer), NULL);
+}
+
+int32_t maccare_powerui_policy_is_available(void) {
+    @autoreleasepool {
+        id<MacCarePowerUIClient> client = nil;
+        @try {
+            int32_t result;
+            client = newClient(&result);
+            if (client == nil || !validPolicyInterface(object_getClass(client))) return 0;
+            return [client isMCLSupported] ? 1 : 0;
+        } @catch (NSException *exception) {
+            return 0;
+        } @finally {
+            releaseClient(client);
+        }
+    }
+}
+
+int32_t maccare_powerui_clear_limit(void) {
+    if (geteuid() != 0) return MACCARE_POWERUI_CALL_FAILED;
+    @autoreleasepool {
+        id<MacCarePowerUIClient> client = nil;
+        @try {
+            int32_t result;
+            client = newClient(&result);
+            if (client == nil) return result;
+            if (!validPolicyInterface(object_getClass(client))) return MACCARE_POWERUI_INVALID_ABI;
+            if (![client isMCLSupported]) return MACCARE_POWERUI_UNAVAILABLE;
+            if (appleOverride() != 0) return MACCARE_POWERUI_APPLE_OVERRIDE;
+            unsigned long long enabled;
+            result = readEnabled(client, &enabled);
+            if (result != MACCARE_POWERUI_SUCCESS) return result;
+            NSError *error = nil;
+            if (enabled == 0) {
+                if (![client enableMCL:&error] || error != nil) return MACCARE_POWERUI_CALL_FAILED;
+                result = readEnabled(client, &enabled);
+                if (result != MACCARE_POWERUI_SUCCESS || enabled != 1) return MACCARE_POWERUI_VERIFICATION_FAILED;
+            }
+            if (appleOverride() != 0) return MACCARE_POWERUI_APPLE_OVERRIDE;
+            error = nil;
+            if (![client disableMCL:&error] || error != nil) return MACCARE_POWERUI_CALL_FAILED;
+            result = readEnabled(client, &enabled);
+            if (result != MACCARE_POWERUI_SUCCESS || enabled != 0) return MACCARE_POWERUI_VERIFICATION_FAILED;
+            if (appleOverride() != 0) return MACCARE_POWERUI_APPLE_OVERRIDE;
+            return MACCARE_POWERUI_SUCCESS;
+        } @catch (NSException *exception) {
+            return MACCARE_POWERUI_EXCEPTION;
+        } @finally {
+            releaseClient(client);
+        }
+    }
+}
+
+int32_t maccare_powerui_policy_preferences_changed(void) {
+    if (geteuid() != 0) return MACCARE_POWERUI_CALL_FAILED;
+    return notify_post("com.apple.smartcharging.defaultschanged") == NOTIFY_STATUS_OK
+        ? MACCARE_POWERUI_SUCCESS : MACCARE_POWERUI_CALL_FAILED;
+}

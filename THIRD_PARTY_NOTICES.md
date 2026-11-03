@@ -62,3 +62,13 @@ Battery telemetry technical reference (IOPS internal battery selection,
 AppleSmartBatteryPack and temperature units):
 https://github.com/exelban/stats/blob/master/Modules/Battery/readers.swift
 Only interface/property semantics were consulted; no Stats implementation is bundled.
+
+## Native charge policy technical reference
+
+The root preference domain, its two manual charge-limit keys, the reload
+notification and the need to release the agent's registration were cross-checked
+against the MIT-licensed Ampere project, commit
+`843498d7beb711c0e1b18e48c8520debe67f6e3f`:
+https://github.com/az-code-lab/ampere
+https://github.com/az-code-lab/ampere/blob/843498d7beb711c0e1b18e48c8520debe67f6e3f/LICENSE
+MacCare's driver, typed recovery record and verification are independently implemented.
