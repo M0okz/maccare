@@ -18,6 +18,18 @@ Rust couvrent ces contrôles et les modifications concurrentes du système de fi
 `BundleProgram` relatif au paquet. SMAppService gère son enregistrement, sous
 approbation explicite de l’utilisateur. Le DMG n’enregistre rien dans le système.
 
+Le descripteur embarqué porte aussi la version, le build et le canal du paquet
+dans trois variables d’environnement informatives. Ces valeurs sont préparées
+avant signature ; elles distinguent la configuration d’un nouveau paquet de
+celle d’un build de développement. L’identité du service, les exigences de
+signature, la récupération batterie et les opérations XPC ne sont pas modifiées.
+
+Depuis Batterie, une reprise explicite retente l’enregistrement même lorsque le
+statut reste en attente d’approbation. Les refus normaux d’autorisation et le cas
+déjà enregistré conduisent aux Réglages Système si le statut le demande. Une
+erreur de signature demeure affichée. Un service déjà activé est seulement
+interrogé : cette reprise ne le désenregistre pas et n’active pas la protection.
+
 Le protocole XPC décrit des opérations fermées ; ce n’est pas une interface shell
 arbitraire. L’assistant contrôle la signature du client et applique les contrôles
 propres à chaque opération. Les opérations sensibles sont séparées de l’analyse
