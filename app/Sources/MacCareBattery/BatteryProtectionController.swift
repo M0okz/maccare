@@ -91,10 +91,19 @@ public final class BatteryProtectionController {
                 configuration = newConfiguration; policy = .init(); topUp = false; failure = nil
                 awaitingHeartbeat = false; deadline = now + Self.leaseDuration
                 try update(snapshot, now: now)
-            case .heartbeat, .topUp, .cancelTopUp, .discharge, .cancelCycle:
+            case .heartbeat, .topUp, .cancelTopUp, .discharge, .calibrate, .cancelCycle:
                 guard owner == uid, sessionID == callerSession, now < deadline else {
                     if recovery != nil { try stop() }
                     throw ControlError("La protection a expiré. Réactivez-la pour continuer.")
+                }
+                if command == .calibrate {
+                    guard cycle == nil, let configuration, sessionCapabilities?.supportsDischarge == true,
+                          sessionCapabilities?.supportedLimits.contains(100) == true, snapshot.onAC else {
+                        throw ControlError("L’étalonnage nécessite le secteur et le contrôle de l’adaptateur. Annulez d’abord tout autre cycle.")
+                    }
+                    try hardware.validateDischarge()
+                    cycle = .calibration(target: configuration.limit, now: now)
+                    topUp = false
                 }
                 if command == .discharge {
                     guard cycle == nil, let configuration, sessionCapabilities?.supportsDischarge == true,

@@ -16,7 +16,7 @@ public struct BatteryConfiguration: Codable, Equatable, Sendable {
     public var resumeLimit: Int { limit - (sailingWidth ?? 3) }
 }
 
-public enum BatteryCommand: String, Codable, Sendable { case status, heartbeat, enable, disable, topUp, cancelTopUp, discharge, cancelCycle }
+public enum BatteryCommand: String, Codable, Sendable { case status, heartbeat, enable, disable, topUp, cancelTopUp, discharge, calibrate, cancelCycle }
 
 public struct BatteryControlCapabilities: Codable, Equatable, Sendable {
     public let backend: BatteryControlBackend
