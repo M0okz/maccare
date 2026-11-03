@@ -18,14 +18,18 @@ public struct BatteryConfiguration: Codable, Equatable, Sendable {
 
 public enum BatteryCommand: String, Codable, Sendable { case status, heartbeat, enable, disable, topUp, cancelTopUp, discharge, calibrate, cancelCycle }
 
+public enum BatteryControlLimitation: String, Codable, Sendable { case hardwareAccessDenied }
+
 public struct BatteryControlCapabilities: Codable, Equatable, Sendable {
     public let backend: BatteryControlBackend
     public let supportedLimits: [Int]
     public let adapterBackend: BatteryAdapterBackend?
+    public let limitation: BatteryControlLimitation?
     public var supportsDischarge: Bool { adapterBackend != nil }
     public let supportsThermalProtection: Bool
-    public init(backend: BatteryControlBackend, supportedLimits: [Int]? = nil, supportsThermalProtection: Bool? = nil, adapterBackend: BatteryAdapterBackend? = nil) {
+    public init(backend: BatteryControlBackend, supportedLimits: [Int]? = nil, supportsThermalProtection: Bool? = nil, adapterBackend: BatteryAdapterBackend? = nil, limitation: BatteryControlLimitation? = nil) {
         self.backend = backend; self.adapterBackend = adapterBackend
+        self.limitation = limitation
         self.supportedLimits = supportedLimits ?? Array(backend == .nativeLimit ? 80...100 : 50...100)
         self.supportsThermalProtection = supportsThermalProtection ?? (backend == .legacyPair || backend == .chargeGate)
     }

@@ -47,7 +47,7 @@ public final class RecoverableChargeHardware: ChargeHardware {
         let value = base.capabilities
         return .init(backend: value.backend, supportedLimits: value.supportedLimits,
                      supportsThermalProtection: value.supportsThermalProtection,
-                     adapterBackend: captured ? pinnedAdapter : try? adapter.discover())
+                     adapterBackend: captured ? pinnedAdapter : try? adapter.discover(), limitation: value.limitation)
     }
     public var firmwareManaged: Bool { base.firmwareManaged }
     public func captureRecovery() throws -> BatteryRecoveryRecord {

@@ -80,6 +80,16 @@ struct BatteryDischargeTests {
         #expect(throws: BatteryHardwareError.self) { try hardware.captureRecovery() }
         #expect(adapter.writes.isEmpty)
     }
+    @Test func adapterSupportPreservesTheChargeControllerRestriction() {
+        let events = Events(), base = Base(Events())
+        base.capabilities = .init(backend: .nativeLimit, limitation: .hardwareAccessDenied)
+        let hardware = RecoverableChargeHardware(base: base, adapter: Adapter(events), identity: { "fixture" })
+        #expect(hardware.capabilities.limitation == .hardwareAccessDenied)
+        #expect(hardware.capabilities.supportsDischarge)
+        #expect(hardware.capabilities.supportsSailing == false)
+        #expect(hardware.capabilities.supportedLimits == Array(80...100))
+        #expect(events.values.isEmpty)
+    }
     @Test func expiredLeaseRestoresAnIsolatedAdapterWithoutAnotherHeartbeat() throws {
         let events = Events(), adapter = Adapter(Events())
         let hardware = RecoverableChargeHardware(base: Base(events), adapter: adapter, identity: { "fixture" })

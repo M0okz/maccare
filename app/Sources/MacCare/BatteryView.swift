@@ -109,6 +109,10 @@ struct BatteryView: View {
             Text("Protection de la batterie").font(.title2.weight(.semibold)).accessibilityAddTraits(.isHeader)
             Label(model.message, systemImage: model.active ? "checkmark.shield" : "shield")
                 .fixedSize(horizontal: false, vertical: true)
+            if model.protection?.capabilities?.limitation == .hardwareAccessDenied {
+                Label("macOS refuse l’accès aux contrôles matériels de charge sur ce Mac. La limite native reste disponible de 80 à 100 %. Les limites sous 80 % et le mode Voile ne peuvent pas être activés avec cette méthode.", systemImage: "info.circle")
+                    .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+            }
             if !snapshot.appleSilicon {
                 Text("Le suivi est disponible. Le contrôle de charge de MacCare nécessite un MacBook Apple Silicon.")
             } else if !model.helperEnabled {
