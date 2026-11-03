@@ -4,10 +4,16 @@ public struct BatteryConfiguration: Codable, Equatable, Sendable {
     public var limit: Int
     public var thermalProtection: Bool
     public var maximumTemperature: Int
-    public init(limit: Int = 80, thermalProtection: Bool = true, maximumTemperature: Int = 35) {
-        self.limit = limit; self.thermalProtection = thermalProtection; self.maximumTemperature = maximumTemperature
+    /// Nil retains the standard hysteresis. Otherwise pause within this band from activation.
+    public var sailingWidth: Int?
+    public init(limit: Int = 80, thermalProtection: Bool = true, maximumTemperature: Int = 35, sailingWidth: Int? = nil) {
+        self.limit = limit; self.thermalProtection = thermalProtection; self.maximumTemperature = maximumTemperature; self.sailingWidth = sailingWidth
     }
-    public var isValid: Bool { (50...100).contains(limit) && (30...45).contains(maximumTemperature) }
+    public var isValid: Bool {
+        (50...100).contains(limit) && (30...45).contains(maximumTemperature) &&
+        sailingWidth.map { (2...20).contains($0) && limit - $0 >= 30 } != false
+    }
+    public var resumeLimit: Int { limit - (sailingWidth ?? 3) }
 }
 
 public enum BatteryCommand: String, Codable, Sendable { case status, heartbeat, enable, disable, topUp, cancelTopUp }
@@ -21,6 +27,7 @@ public struct BatteryControlCapabilities: Codable, Equatable, Sendable {
         self.supportedLimits = supportedLimits ?? Array(backend == .nativeLimit ? 80...100 : 50...100)
         self.supportsThermalProtection = supportsThermalProtection ?? (backend == .legacyPair || backend == .chargeGate)
     }
+    public var supportsSailing: Bool { backend != .nativeLimit }
     public var managesChargeLimit: Bool { backend == .firmware || backend == .nativeLimit }
     public var isValid: Bool {
         let allowed = backend == .nativeLimit ? 80...100 : 50...100
@@ -59,6 +66,7 @@ public struct BatteryProtectionStatus: Codable, Sendable {
 public struct BatteryProtectionPolicy: Sendable {
     public private(set) var limitReached = false
     public private(set) var tooHot = false
+    private var initializedBand = false
     public init() {}
     public mutating func evaluate(_ snapshot: BatterySnapshot, configuration: BatteryConfiguration,
                                   topUp: Bool) -> (suspend: Bool, reason: String) {
@@ -66,7 +74,7 @@ public struct BatteryProtectionPolicy: Sendable {
             return (false, "Mesures de batterie indisponibles : charge rendue à macOS.")
         }
         guard snapshot.onAC else {
-            limitReached = false; tooHot = false
+            limitReached = false; tooHot = false; initializedBand = false
             return (false, "Sur batterie · protection en attente du secteur")
         }
         if configuration.thermalProtection {
@@ -77,8 +85,10 @@ public struct BatteryProtectionPolicy: Sendable {
             if temperature >= Double(configuration.maximumTemperature) { tooHot = true }
             if temperature <= Double(configuration.maximumTemperature - 2) { tooHot = false }
         } else { tooHot = false }
+        if !initializedBand, configuration.sailingWidth != nil { limitReached = percent > configuration.resumeLimit }
+        initializedBand = true
         if percent >= configuration.limit { limitReached = true }
-        if percent <= configuration.limit - 3 { limitReached = false }
+        if percent <= configuration.resumeLimit { limitReached = false }
         if tooHot { return (true, "Charge suspendue · protection thermique") }
         if topUp { return (false, configuration.thermalProtection
             ? "Recharge ponctuelle à 100 % · protection thermique conservée" : "Recharge ponctuelle à 100 %") }

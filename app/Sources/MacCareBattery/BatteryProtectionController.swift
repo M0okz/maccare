@@ -62,6 +62,9 @@ public final class BatteryProtectionController {
                 guard capabilities.isValid, capabilities.supportedLimits.contains(newConfiguration.limit) else {
                     throw ControlError("Cette limite de charge n’est pas disponible avec la méthode de contrôle actuelle.")
                 }
+                if newConfiguration.sailingWidth != nil && !capabilities.supportsSailing {
+                    throw ControlError("La plage de maintien personnalisée nécessite un contrôle matériel compatible.")
+                }
                 if !capabilities.supportsThermalProtection && newConfiguration.thermalProtection {
                     throw ControlError("Cette méthode permet une limite de charge, mais pas la pause thermique personnalisée.")
                 }
@@ -150,7 +153,9 @@ public final class BatteryProtectionController {
         }
         if topUp && (!snapshot.onAC || snapshot.percent == 100) { topUp = false }
         if sessionCapabilities?.managesChargeLimit == true {
-            try hardware.setChargeLimit(topUp ? nil : configuration.limit)
+            if !topUp, configuration.sailingWidth != nil, sessionCapabilities?.backend == .firmware {
+                try hardware.setChargeBand(upper: configuration.limit, lower: configuration.resumeLimit)
+            } else { try hardware.setChargeLimit(topUp ? nil : configuration.limit) }
             suspended = !topUp && snapshot.onAC && (snapshot.percent ?? 0) >= configuration.limit && !snapshot.charging
             if recovery?.backend == .nativeLimit {
                 message = topUp ? "Recharge ponctuelle à 100 % · limite native suspendue"

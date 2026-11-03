@@ -213,7 +213,7 @@ int32_t maccare_firmware_limit_read(uint8_t *active, uint32_t *upper, uint32_t *
     return result;
 }
 int32_t maccare_firmware_limit_set(uint32_t upper, uint32_t lower, uint8_t active) {
-    if (upper > 100 || lower > 100 || (active != 0 && active != 2) || (active == 2 && (upper < 50 || lower < 47 || lower >= upper))) return kIOReturnBadArgument;
+    if (upper > 100 || lower > 100 || (active != 0 && active != 2) || (active == 2 && (upper < 50 || lower < 30 || lower >= upper))) return kIOReturnBadArgument;
     io_connect_t connection = 0;
     int32_t result = openSMC(&connection);
     if (result) return result;

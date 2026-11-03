@@ -10,6 +10,7 @@ public protocol ChargeHardware {
     func endSession()
     func setFirmwareLimit(_ limit: Int?) throws
     func prepareForControl() throws
+    func setChargeBand(upper: Int, lower: Int) throws
     func setChargeLimit(_ limit: Int?) throws
     func readSwitch() throws -> UInt8
     func writeSwitch(_ value: UInt8) throws
@@ -21,6 +22,10 @@ public extension ChargeHardware {
         .init(backend: firmwareManaged ? .firmware : .legacyPair)
     }
     func prepareForControl() throws { try writeSwitch(0) }
+    func setChargeBand(upper: Int, lower: Int) throws {
+        guard lower == upper - 3 else { throw BatteryHardwareError(code: -1) }
+        try setChargeLimit(upper)
+    }
     func setChargeLimit(_ limit: Int?) throws { try setFirmwareLimit(limit) }
     func setFirmwareLimit(_ limit: Int?) throws { throw BatteryHardwareError(code: -1) }
     func captureRecovery() throws -> BatteryRecoveryRecord {
@@ -84,6 +89,15 @@ public final class SMCChargeHardware: ChargeHardware {
         guard try readSwitch() == 0 else { throw BatteryHardwareError(code: -1) }
     }
     public func endSession() { pinned = nil }
+    public func setChargeBand(upper: Int, lower: Int) throws {
+        guard pinned == .firmware, (50...100).contains(upper), (30..<upper).contains(lower) else { throw BatteryHardwareError(code: -1) }
+        var active: UInt8 = 0; var actualUpper: UInt32 = 0; var actualLower: UInt32 = 0
+        let read = maccare_firmware_limit_read(&active, &actualUpper, &actualLower)
+        guard read == 0 else { throw BatteryHardwareError(code: read) }
+        if active == 2 && actualUpper == upper && actualLower == lower { return }
+        let result = maccare_firmware_limit_set(UInt32(upper), UInt32(lower), 2)
+        guard result == 0 else { throw BatteryHardwareError(code: result) }
+    }
     public func setFirmwareLimit(_ limit: Int?) throws {
         guard pinned == .firmware else { throw BatteryHardwareError(code: -1) }
         if let limit, !(50...100).contains(limit) { throw BatteryHardwareError(code: -1) }

@@ -170,6 +170,7 @@ public final class AppleSiliconChargeHardware: ChargeHardware {
     }
     public func prepareForControl() throws { guard let selected else { throw BatteryHardwareError(code: -3) }; try selected.prepareForControl() }
     public func setChargeLimit(_ limit: Int?) throws { guard let selected else { throw BatteryHardwareError(code: -3) }; try selected.setChargeLimit(limit) }
+    public func setChargeBand(upper: Int, lower: Int) throws { guard let selected else { throw BatteryHardwareError(code: -3) }; try selected.setChargeBand(upper: upper, lower: lower) }
     public func setFirmwareLimit(_ limit: Int?) throws { try setChargeLimit(limit) }
     public func readSwitch() throws -> UInt8 { try current().readSwitch() }
     public func writeSwitch(_ value: UInt8) throws { guard let selected else { throw BatteryHardwareError(code: -3) }; try selected.writeSwitch(value) }

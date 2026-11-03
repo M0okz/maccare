@@ -115,6 +115,8 @@ int main(void) {
     assert(maccare_firmware_limit_set(80,77,2) == 0);
     assert(maccare_firmware_limit_read(&active,&upper,&lower) == 0 && active == 2 && upper == 80 && lower == 77);
     assert(writes == 4 && writeKeys[0] == code("bfF0") && writeKeys[1] == code("bfD0") && writeKeys[2] == code("bfE0") && writeKeys[3] == code("bfF0"));
+    assert(maccare_firmware_limit_set(80,60,2) == 0);
+    assert(maccare_firmware_limit_read(&active,&upper,&lower) == 0 && upper == 80 && lower == 60);
     assert(maccare_firmware_limit_restore(100,97) == 0);
     assert(maccare_firmware_limit_read(&active,&upper,&lower) == 0 && active == 0 && upper == 100 && lower == 97);
     before = writes;
