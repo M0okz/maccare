@@ -14,12 +14,13 @@ root = Path(__file__).resolve().parents[1]
 bundle = args.bundle.resolve()
 if not bundle.is_relative_to(root / 'build'):
     raise SystemExit('Bundle output must be inside build/.')
-const_files = list((root/'app/.build/out/Intermediates.noindex/MacCare.build'/args.configuration).glob('MacCare-p.build/Objects-normal/*/BatteryAppIntents.swiftconstvalues'))
+const_files = list((root/'app/.build/out/Intermediates.noindex/MacCare.build'/args.configuration).glob('MacCare-p.build/Objects-normal/*/*.swiftconstvalues'))
 if not const_files:
     raise SystemExit('Missing App Intents constant metadata. Build MacCare before packaging.')
 preferred = platform.machine()
 const_file = next((p for p in const_files if p.parent.name == preferred), const_files[0])
 arch = const_file.parent.name
+const_files = [p for p in const_files if p.parent.name == arch]
 sdk = subprocess.check_output(['xcrun','--sdk','macosx','--show-sdk-path'],text=True).strip()
 toolchain = Path(subprocess.check_output(['xcrun','--find','swiftc'],text=True).strip()).parents[2]
 xcode_version = subprocess.check_output(['xcodebuild','-version'],text=True).strip().splitlines()[-1].split()[-1]
@@ -29,7 +30,7 @@ with tempfile.TemporaryDirectory(prefix='maccare-intents-') as work:
     work = Path(work)
     sources = work/'sources.txt'; values = work/'constants.txt'
     sources.write_text('\n'.join(str(p) for p in (root/'app/Sources/MacCare').glob('*.swift'))+'\n')
-    values.write_text(str(const_file)+'\n')
+    values.write_text('\n'.join(str(p) for p in const_files)+'\n')
     subprocess.run(['xcrun','appintentsmetadataprocessor','--output',str(output),
                     '--toolchain-dir',str(toolchain),'--module-name','MacCare','--sdk-root',sdk,
                     '--xcode-version',xcode_version,'--platform-family','macOS','--deployment-target','13.0',
