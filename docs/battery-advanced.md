@@ -8,17 +8,24 @@ Le paquet de développement est `build/MacCare.app` ; la copie utilisateur
 
 ## Développement du 4 novembre : politique native distincte
 
+**Résultat des essais réels : candidat non validé, activation par défaut bloquée.**
+Le maintien à 31–32 % a interrompu la détection du secteur malgré le câble connecté.
+Une reconnexion a rétabli l'alimentation. La version utilisateur 0.2.1 a été restaurée
+à l'identique avec sa limite de 80 %. Aucun livrable public 0.2.2 n'est publié.
+Voir [le résultat détaillé et les restrictions du système](native-charge-policy.md).
+
 La branche `codex/battery-native-policy` ajoute une méthode distincte du curseur
 PowerUI limité à 80–100 %. Voir [la politique native et sa restauration](native-charge-policy.md).
 Les commits `b1119ed`, `3488fa6`, `e629265` et `49801ae` couvrent respectivement
 le pilote, la mise à jour du helper, les transitions et leur interface.
 Cette méthode n’est pas livrée dans la copie utilisateur 0.2.1.
 
-Lorsque l’interface Apple complète est détectée, le nouveau backend propose
+Dans les tests injectés, le nouveau backend propose
 50–100 %, les profils avec plage de maintien, la pause thermique et les cycles.
 Il conserve les préférences de recharge optimisée et ne commande pas l’isolement
 de l’adaptateur. Ces possibilités sont testées par simulation ; leur effet
-physique reste à vérifier sur le Mac branché avant toute certification matérielle.
+physique n'est pas validé. La découverte standard interdit ce candidat, même
+si l'interface est présente ; la récupération d'un ancien journal reste possible.
 Le pilote SMC et l’ancien pilote PowerUI gardent leurs propres restrictions.
 
 Le protocole passe à 10. Le bouton « Mettre à jour l’assistant… » restaure

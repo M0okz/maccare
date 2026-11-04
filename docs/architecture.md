@@ -55,6 +55,10 @@ et de la charge physique. Voir [le contrat de cette méthode](native-charge-poli
 Le protocole 10 impose une mise à jour explicite du helper : restauration
 confirmée de l’ancienne session, remplacement du service, puis contrôle du
 protocole chargé. Cette opération ne réactive pas la protection.
+Après l'échec du maintien sur le M1 de test le 4 novembre 2026, la découverte
+standard exclut le candidat natif ; seule sa récupération reste accessible.
+Les tests injectés peuvent sélectionner ce candidat sans ouvrir cette possibilité
+dans l'interface de production. La copie utilisateur est revenue à la 0.2.1.
 
 ## Distribution
 

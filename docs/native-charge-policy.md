@@ -4,6 +4,26 @@
 ne constituent pas une validation matérielle. La version utilisateur 0.2.1
 ne contient pas cette méthode.
 
+**Validation matérielle échouée le 4 novembre 2026.** Sur le M1 de test sous
+macOS 27.0.1, la cible 50 % a été enregistrée et la limite initiale 80 % a été
+restaurée. Mais l'entrée dans le maintien 30–50 % vers 31–32 % a été suivie
+d'une perte du secteur, câble resté connecté selon l'utilisateur. Le secteur
+n'est revenu qu'après sa reconnexion. Ce chemin ne valide donc ni le mode Voile
+ni la pause thermique. Son activation en découverte standard est désactivée ;
+le candidat reste disponible pour restaurer un journal existant. Les sélections
+injectées des tests ne constituent pas une option d'activation dans l'app.
+
+La copie utilisateur a été remise à sa version signée 0.2.1 d'origine et à sa
+configuration 80 %, sans mode Voile. Aucun tag ni release 0.2.2 n'est publié.
+Les paquets locaux 0.2.2 notariés utilisés pour l'essai ne sont pas des livraisons.
+
+L'analyse du système présent montre que le chemin MCL de PowerUI utilise le
+flag Drain. L'API permettant d'en choisir les flags exige un entitlement privé
+Apple ; root ne suffit pas. Le diagnostic en lecture seule du registre CHLS
+renvoie aussi `kIOReturnNotPrivileged` avec le helper UID 0, sur les deux transports,
+avec et sans ouverture explicite. Aucun accès en écriture à ce registre n'a été
+tenté. Une méthode de pause sans décharge accessible au helper reste à établir.
+
 ## Méthode distincte du curseur PowerUI
 
 Le pilote existant `NativeChargeDriver` conserve sa liste fournie par PowerUI,
@@ -67,6 +87,12 @@ relecture, libération et parsing des registrations. Ils n’appellent aucune
 préférence root ni aucun matériel réel. Les tests du contrôleur couvrent le
 journal avant mutation, les transitions, la veille et les délais ; les essais
 matériels et les versions macOS vérifiées doivent être consignés séparément.
+
+Le contrôle réel a aussi révélé deux défauts corrigés : une attente normale de
+restauration ne devient plus une erreur persistante, et un maintien à l'intérieur
+de la plage ne prétend plus que sa borne haute est atteinte. Une régression
+vérifie que le candidat ayant échoué ne peut plus être sélectionné par défaut,
+tout en restant disponible pour la récupération de son ancien journal.
 
 `bash app/Tests/PowerUIBridgeTests/run.sh`, à exécuter sans sudo, contrôle aussi
 l’ABI des méthodes de libération, les lectures doubles incohérentes et le refus
