@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import MacCareBattery
+import MacCareHelperProtocol
 import ServiceManagement
 
 @MainActor
@@ -11,6 +12,7 @@ final class BatteryModel: ObservableObject {
     @Published private(set) var error: String?
     @Published private(set) var helperEnabled = false
     @Published private(set) var requiresApproval = false
+    @Published private(set) var loadedHelperProtocol: Int?
     @Published var configuration: BatteryConfiguration
     @Published private(set) var profiles = BatteryProfile.presets
     @Published private(set) var schedules: [BatterySchedule] = []
@@ -69,6 +71,11 @@ final class BatteryModel: ObservableObject {
     var recoveryReady: Bool { protection?.recoveryReady == true }
     var pendingChanges: Bool { active && protection?.configuration != configuration }
     var nativeControl: Bool { protection?.capabilities?.backend == .nativeLimit }
+    var nativePolicyControl: Bool { protection?.capabilities?.backend == .nativePolicy }
+    var usesAppleChargeControl: Bool { nativeControl || nativePolicyControl }
+    var helperUpdateRequired: Bool {
+        helperEnabled && loadedHelperProtocol.map { $0 != HelperIdentity.protocolVersion } == true
+    }
     var supportsThermalProtection: Bool {
         protection?.capabilities?.supportsThermalProtection ?? (protection?.firmwareManaged != true)
     }
@@ -78,6 +85,7 @@ final class BatteryModel: ObservableObject {
     }
     var message: String {
         if !helperEnabled { return "Suivi de la batterie · assistant requis pour la protection" }
+        if helperUpdateRequired { return "Assistant système à mettre à jour" }
         return protection?.message ?? "Vérification du contrôle de charge…"
     }
 
@@ -88,11 +96,20 @@ final class BatteryModel: ObservableObject {
         helperEnabled = client.status == .enabled
         requiresApproval = client.status == .requiresApproval
         snapshot = await client.snapshot()
-        guard helperEnabled else { protection = nil; ownsLease = false; return }
+        guard !isTerminating else { return }
+        guard helperEnabled else { protection = nil; ownsLease = false; loadedHelperProtocol = nil; return }
         guard force || ownsLease || protection == nil || Date() >= nextHelperStatus else { return }
         nextHelperStatus = Date().addingTimeInterval(60)
         do {
+            loadedHelperProtocol = try await client.loadedHelperProtocolVersion()
+            guard !isTerminating else { return }
+            if helperUpdateRequired {
+                protection = nil; ownsLease = false
+                error = "La version chargée de l’assistant doit être mise à jour avant le contrôle de la batterie."
+                return
+            }
             let result = try await client.request(ownsLease ? .heartbeat : .status, configuration: nil, sessionID: sessionID)
+            guard !isTerminating else { return }
             accept(result)
         } catch {
             self.error = error.localizedDescription
@@ -169,6 +186,20 @@ final class BatteryModel: ObservableObject {
             }
         }
         if client.status == .requiresApproval { client.openApproval() }
+        await refresh(force: true)
+    }
+    /// A distinct user action replaces the loaded helper only after its old battery state is restored.
+    func updateHelper() async {
+        guard !busy, !isTerminating else { return }
+        busy = true; error = nil
+        var issue: String?
+        do {
+            let result = try await client.updateHelper()
+            if !isTerminating, result == .requiresApproval { client.openApproval() }
+        } catch { issue = error.localizedDescription }
+        busy = false
+        guard !isTerminating else { return }
+        if let issue { error = issue; return }
         await refresh(force: true)
     }
     func openBatterySettings() {
