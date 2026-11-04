@@ -6,6 +6,38 @@ la présence d’une fonction dans le code ne certifie pas son contrôle matéri
 Le paquet de développement est `build/MacCare.app` ; la copie utilisateur
 `/Applications/MacCare.app` reçoit les distributions signées par Sparkle.
 
+## Développement du 4 novembre : politique native distincte
+
+La branche `codex/battery-native-policy` ajoute une méthode distincte du curseur
+PowerUI limité à 80–100 %. Voir [la politique native et sa restauration](native-charge-policy.md).
+Les commits `b1119ed`, `3488fa6`, `e629265` et `49801ae` couvrent respectivement
+le pilote, la mise à jour du helper, les transitions et leur interface.
+Cette méthode n’est pas livrée dans la copie utilisateur 0.2.1.
+
+Lorsque l’interface Apple complète est détectée, le nouveau backend propose
+50–100 %, les profils avec plage de maintien, la pause thermique et les cycles.
+Il conserve les préférences de recharge optimisée et ne commande pas l’isolement
+de l’adaptateur. Ces possibilités sont testées par simulation ; leur effet
+physique reste à vérifier sur le Mac branché avant toute certification matérielle.
+Le pilote SMC et l’ancien pilote PowerUI gardent leurs propres restrictions.
+
+Le protocole passe à 10. Le bouton « Mettre à jour l’assistant… » restaure
+l’ancienne session avant de remplacer le service, confirme le protocole chargé
+et ne réactive pas la protection. Le journal v4 mémorise exactement la présence
+et le type des deux préférences possédées par ce backend. Une cible demandée,
+une cible enregistrée par macOS et l’arrêt physique de la charge sont affichés
+comme des états distincts. Chaque étape de propagation est bornée à 150 secondes.
+
+Vérifications du développement : suite complète de 337 tests réussis, puis
+quatre nouveaux tests d’intégration de sélection/récupération réussis ; build
+Release arm64 et paquet Developer ID 0.2.2 (3), notarié, agrafé et accepté par
+Gatekeeper. Ce paquet de test local n’est pas
+une release publique. VoiceOver, le parcours complet Raccourcis, un cycle réel
+d’étalonnage et les Mac M2 à M6 ne sont pas déclarés validés.
+
+Les sections suivantes conservent les constats antérieurs ; leurs restrictions
+matérielles décrivent les méthodes de la version 0.2.1, pas la nouvelle politique.
+
 ## Fonctions
 
 | Fonction | Comportement | Disponibilité |
