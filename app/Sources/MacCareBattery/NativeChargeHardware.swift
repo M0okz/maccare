@@ -144,7 +144,7 @@ public final class AppleSiliconChargeHardware: ChargeHardware {
                   nativeAvailable: Self.supportsNativeLimit(ProcessInfo.processInfo.operatingSystemVersion),
                   nativePolicyActivationAllowed: Self.nativePolicyValidated(model: BatteryMachine.model))
     }
-    /// Models allowed to run this backend for hardware validation. Others keep Apple's 80–100 % limit.
+    /// Only models with a hold, resume and restoration observed on hardware. Others keep Apple's 80–100 % limit.
     public static func nativePolicyValidated(model: String?) -> Bool { model == "MacBookPro17,1" }
     init(smc: any ChargeHardware, native: any ChargeHardware, nativePolicy: (any ChargeHardware)? = nil,
          nativeAvailable: Bool, nativePolicyActivationAllowed: Bool = false) {
