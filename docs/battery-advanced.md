@@ -13,7 +13,8 @@ d'origine. Tant que l'utilisateur n'a pas désactivé la protection, l'app la re
 prochaine ouverture, avec les derniers réglages appliqués. Elle attend la fin d'une session
 orpheline et un assistant à jour. La désactivation de la protection ou de l'assistant, ainsi
 qu'une session terminée sur une erreur, annulent cette reprise. Après un redémarrage, elle suppose
-l'ouverture de MacCare à la connexion, désactivée par défaut.
+l'ouverture de MacCare à la connexion, proposée à l'accueil et dans Batterie et désactivée par
+défaut. Ce démarrage se fait dans la barre des menus, sans fenêtre principale.
 
 ## Version 0.2.2 : politique native distincte
 
