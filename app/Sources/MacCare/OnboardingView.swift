@@ -200,6 +200,9 @@ struct OnboardingView: View {
             Text(message).font(AppFont.secondary).foregroundStyle(Theme.warn)
                 .fixedSize(horizontal: false, vertical: true)
         }
+        Divider()
+        LoginLaunchToggle()
+        detail("Facultatif. MacCare démarre alors dans la barre des menus, et la protection de la batterie reprend après un redémarrage si vous l’utilisez.")
         Text("Vos fichiers restent sur ce Mac. Lancez ensuite votre première analyse depuis l’accueil.")
             .font(AppFont.secondary).foregroundStyle(Theme.muted)
     }

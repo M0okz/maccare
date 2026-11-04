@@ -1,4 +1,7 @@
 import AppKit
+import CoreServices
+import AppKit
+import CoreServices
 import IOKit.ps
 import ServiceManagement
 import UserNotifications
@@ -207,7 +210,23 @@ enum LoginLaunch {
     static var needsApproval: Bool { status == .requiresApproval }
 
     static func set(_ enabled: Bool) throws {
-        if enabled { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
+        if enabled {
+            guard !AppInstallLocation.isTemporary else { throw HelperClient.HelperError.temporaryLocation }
+            try SMAppService.mainApp.register()
+        } else { try SMAppService.mainApp.unregister() }
+    }
+
+    /// Read while the launch event is current, in `applicationWillFinishLaunching`.
+    @MainActor static func launchedAsLoginItem() -> Bool {
+        guard let event = NSAppleEventManager.shared().currentAppleEvent,
+              event.eventClass == kCoreEventClass, event.eventID == kAEOpenApplication,
+              let kind = event.paramDescriptor(forKeyword: keyAEPropData) else { return false }
+        return kind.enumCodeValue == keyAELaunchedAsLogInItem
+    }
+
+    /// Without the menu bar or a finished first run, a closed window would leave MacCare unreachable.
+    static func startsWithoutWindow(launchedAsLoginItem: Bool, menuBarEnabled: Bool, firstRunCompleted: Bool) -> Bool {
+        launchedAsLoginItem && menuBarEnabled && firstRunCompleted
     }
 }
 

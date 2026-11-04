@@ -13,6 +13,13 @@ final class FirstRunReadinessTests: XCTestCase {
             path: "/private/var/folders/ab/T/AppTranslocation/1234/d/MacCare.app", onReadOnlyVolume: false))
     }
 
+    func testOnlyALoginLaunchWithAReachableAppStartsWithoutWindow() {
+        XCTAssertTrue(LoginLaunch.startsWithoutWindow(launchedAsLoginItem: true, menuBarEnabled: true, firstRunCompleted: true))
+        XCTAssertFalse(LoginLaunch.startsWithoutWindow(launchedAsLoginItem: false, menuBarEnabled: true, firstRunCompleted: true))
+        XCTAssertFalse(LoginLaunch.startsWithoutWindow(launchedAsLoginItem: true, menuBarEnabled: false, firstRunCompleted: true))
+        XCTAssertFalse(LoginLaunch.startsWithoutWindow(launchedAsLoginItem: true, menuBarEnabled: true, firstRunCompleted: false))
+    }
+
     func testInfoPlistExplainsEveryFolderPrompt() throws {
         let plist = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()

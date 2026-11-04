@@ -14,8 +14,6 @@ struct SettingsView: View {
     @AppStorage(ScanScheduler.frequencyKey) private var frequency = ScanScheduler.defaultFrequency.rawValue
     @AppStorage(MenuBarSetting.key) private var menuBarShown = MenuBarSetting.defaultValue
     /// État lu auprès de macOS (jamais un booléen mémorisé par l'app).
-    @State private var loginStatus = LoginLaunch.status
-    @State private var loginError: String?
     @State private var notificationsDenied = false
     @State private var notificationStatus = "Vérification en cours…"
     @State private var clearExclusionsConfirmation = false
@@ -77,14 +75,7 @@ struct SettingsView: View {
                         }
                     }
                     groupCard("Démarrage") {
-                        Toggle("Ouvrir MacCare à la connexion", isOn: Binding(
-                            get: { loginStatus == .enabled || loginStatus == .requiresApproval },
-                            set: { on in
-                                do { try LoginLaunch.set(on); loginError = nil } catch { loginError = error.localizedDescription }
-                                loginStatus = LoginLaunch.status
-                            }
-                        )).disabled(loginStatus == .notFound)
-                        loginStatusText
+                        LoginLaunchToggle()
                     }
                     groupCard("Mises à jour de MacCare") {
                         AppUpdateSettingsView(updater: updater)
@@ -255,7 +246,6 @@ struct SettingsView: View {
 
     private func refreshStatus() {
         permissions.recheck()
-        loginStatus = LoginLaunch.status
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             DispatchQueue.main.async {
                 notificationsDenied = settings.authorizationStatus == .denied
@@ -292,27 +282,6 @@ struct SettingsView: View {
             }
             Spacer()
             Button("Ouvrir les réglages", action: action).accessibilityLabel("Ouvrir les réglages : \(title)")
-        }
-    }
-
-    /// État honnête de l'ouverture à la connexion, tel que macOS le rapporte.
-    @ViewBuilder
-    private var loginStatusText: some View {
-        switch loginStatus {
-            case .enabled:
-            Text("Activée.").font(AppFont.secondary).foregroundStyle(.secondary)
-            case .requiresApproval:
-            HStack(spacing: 6) {
-                Label("En attente de votre approbation dans les Réglages Système.", systemImage: "exclamationmark.circle")
-                .font(AppFont.secondary).foregroundStyle(.orange)
-                Button("Ouvrir") { SMAppService.openSystemSettingsLoginItems() }.buttonStyle(LinkStyle()).font(AppFont.secondary)
-            }
-            case .notFound:
-            Text("Indisponible depuis cet emplacement : placez MacCare dans le dossier Applications.")
-            .font(AppFont.secondary).foregroundStyle(.orange)
-            default:
-            Text(loginError.map { "Impossible : \($0)" } ?? "Désactivée.")
-            .font(AppFont.secondary).foregroundStyle(loginError == nil ? Color.secondary : Color.orange)
         }
     }
 

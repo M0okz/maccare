@@ -71,6 +71,23 @@ enum MenuBarSetting {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var tray: TrayPanelController?
     private var openSettingsAction: (() -> Void)?
+    private var startsWithoutWindow = false
+
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        startsWithoutWindow = LoginLaunch.startsWithoutWindow(
+            launchedAsLoginItem: LoginLaunch.launchedAsLoginItem(),
+            menuBarEnabled: MenuBarSetting.enabled,
+            firstRunCompleted: UserDefaults.standard.bool(forKey: PermissionsModel.Keys.firstRunCompleted))
+    }
+
+    /// SwiftUI opens the main window at launch on macOS 13 and 14; a login launch closes it once.
+    func closeWindowAfterLoginLaunch() {
+        guard startsWithoutWindow else { return }
+        startsWithoutWindow = false
+        DispatchQueue.main.async {
+            NSApp.windows.filter { $0.isVisible && $0.canBecomeMain }.forEach { $0.close() }
+        }
+    }
 
     func configureOpenSettings(_ action: @escaping () -> Void) {
         openSettingsAction = action
