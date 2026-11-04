@@ -13,6 +13,21 @@ final class FirstRunReadinessTests: XCTestCase {
             path: "/private/var/folders/ab/T/AppTranslocation/1234/d/MacCare.app", onReadOnlyVolume: false))
     }
 
+    func testOnlyALoginLaunchWithAReachableAppStartsWithoutWindow() {
+        XCTAssertTrue(LoginLaunch.startsWithoutWindow(launchedAtLogin: true, menuBarEnabled: true, firstRunCompleted: true))
+        XCTAssertFalse(LoginLaunch.startsWithoutWindow(launchedAtLogin: false, menuBarEnabled: true, firstRunCompleted: true))
+        XCTAssertFalse(LoginLaunch.startsWithoutWindow(launchedAtLogin: true, menuBarEnabled: false, firstRunCompleted: true))
+        XCTAssertFalse(LoginLaunch.startsWithoutWindow(launchedAtLogin: true, menuBarEnabled: true, firstRunCompleted: false))
+    }
+
+    func testLoginLaunchNeedsTheEnabledItemAndAnEventOrARecentSession() {
+        XCTAssertTrue(LoginLaunch.launchedAtLogin(itemEnabled: true, launchEvent: true, sessionAge: 9000))
+        XCTAssertTrue(LoginLaunch.launchedAtLogin(itemEnabled: true, launchEvent: false, sessionAge: 20))
+        XCTAssertFalse(LoginLaunch.launchedAtLogin(itemEnabled: true, launchEvent: false, sessionAge: 600))
+        XCTAssertFalse(LoginLaunch.launchedAtLogin(itemEnabled: true, launchEvent: false, sessionAge: nil))
+        XCTAssertFalse(LoginLaunch.launchedAtLogin(itemEnabled: false, launchEvent: true, sessionAge: 20))
+    }
+
     func testInfoPlistExplainsEveryFolderPrompt() throws {
         let plist = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()

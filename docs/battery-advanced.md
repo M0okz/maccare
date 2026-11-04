@@ -6,6 +6,16 @@ la présence d’une fonction dans le code ne certifie pas son contrôle matéri
 Le paquet de développement est `build/MacCare.app` ; la copie utilisateur
 `/Applications/MacCare.app` reçoit les distributions signées par Sparkle.
 
+## Reprise de la protection
+
+Quitter MacCare ou installer une mise à jour termine la session et rétablit l'état de charge
+d'origine. Tant que l'utilisateur n'a pas désactivé la protection, l'app la relance une fois à sa
+prochaine ouverture, avec les derniers réglages appliqués. Elle attend la fin d'une session
+orpheline et un assistant à jour. La désactivation de la protection ou de l'assistant, ainsi
+qu'une session terminée sur une erreur, annulent cette reprise. Après un redémarrage, elle suppose
+l'ouverture de MacCare à la connexion, proposée à l'accueil et dans Batterie et désactivée par
+défaut. Ce démarrage se fait dans la barre des menus, sans fenêtre principale.
+
 ## Version 0.2.2 : politique native distincte
 
 **Résultat des essais réels : d'abord en échec, puis validé sur le M1 de test.**
