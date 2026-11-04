@@ -4,6 +4,8 @@ MacCare est une application native de maintenance pour macOS, écrite en SwiftUI
 avec un moteur de scan et de nettoyage en Rust. La première distribution cible
 les Mac Apple Silicon, à partir de macOS 13.
 
+Site et téléchargement : <https://maccare.homeblack.fr/>, sources dans [site/](site/README.md).
+
 ## Fonctions
 
 - Analyse des caches, journaux et fichiers temporaires, avec revue avant suppression.
