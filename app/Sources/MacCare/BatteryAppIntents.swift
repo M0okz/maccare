@@ -60,7 +60,7 @@ enum BatteryCycleIntentAction: String, AppEnum {
 
 struct StartBatteryCycleIntent: AppIntent {
     static var title: LocalizedStringResource = "Démarrer un cycle de batterie"
-    static var description = IntentDescription("Décharge vers la limite ou lance un cycle complet d’étalonnage. Nécessite un adaptateur contrôlable.")
+    static var description = IntentDescription("Décharge vers la limite ou lance un cycle complet d’étalonnage. Nécessite une méthode de décharge compatible.")
     static var openAppWhenRun = true
     @Parameter(title: "Cycle", default: .discharge) var action: BatteryCycleIntentAction
     @MainActor func perform() async throws -> some IntentResult {
