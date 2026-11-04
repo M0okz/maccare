@@ -15,7 +15,7 @@ struct MacCareApp: App {
     }
 
     var body: some Scene {
-        WindowGroup("MacCare", id: Self.mainWindowID) {
+        WindowGroup(AppBuildIdentity.name, id: Self.mainWindowID) {
             Group {
                 #if DEBUG
                 if TrayMetricPreview.isOverviewRequested {

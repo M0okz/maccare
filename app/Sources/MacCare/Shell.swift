@@ -280,8 +280,8 @@ struct WindowConfigurator: NSViewRepresentable {
             }
             window.toolbarStyle = .unified
             window.titlebarAppearsTransparent = true
-            window.titleVisibility = .hidden
-            window.title = ""
+            window.titleVisibility = AppBuildIdentity.isDevelopment ? .visible : .hidden
+            window.title = AppBuildIdentity.name
             window.styleMask.insert(.fullSizeContentView)
             window.isMovableByWindowBackground = false
             window.backgroundColor = NSColor(Color(hex: "#160C2E"))
