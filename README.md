@@ -35,6 +35,23 @@ recherche manuelle. **Réglages → Général** permet de désactiver les recher
 automatiques. L’installation d’une mise à jour nécessite votre action. Aucun jeton
 GitHub n’est intégré dans l’app et aucun profilage Sparkle n’est activé.
 
+## Désinstallation
+
+MacCare ne se désinstalle pas depuis sa propre rubrique Applications. Dans cet ordre :
+
+1. **Batterie** : désactivez la protection et attendez la fin de la restauration. Si la batterie
+   est au-dessus de la limite d’origine, cette restauration attend qu’elle redescende.
+2. **Nettoyage système** : cliquez sur **Désactiver l’assistant**, s’il est activé.
+3. Quittez MacCare, puis placez `/Applications/MacCare.app` dans la Corbeille.
+
+MacCare conserve ensuite ces fichiers, que vous pouvez supprimer :
+
+- `~/Library/Application Support/MacCare` : historique et programmations de la batterie ;
+- `~/Library/Preferences/org.maccare.app.plist` : réglages ;
+- `~/Library/Caches/org.maccare.app` et `~/Library/HTTPStorages/org.maccare.app` : données de
+  recherche de mises à jour ;
+- `/Library/Application Support/MacCare Helper` : journal de l’assistant, lisible par root seulement.
+
 ## Architecture
 
 - `app/Sources/MacCare/` : interface SwiftUI et modèles de l’application.
