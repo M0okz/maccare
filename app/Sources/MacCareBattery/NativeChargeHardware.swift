@@ -142,13 +142,14 @@ public final class AppleSiliconChargeHardware: ChargeHardware {
     public convenience init() {
         self.init(smc: SMCChargeHardware(), native: NativeChargeHardware(), nativePolicy: NativeChargePolicyHardware(),
                   nativeAvailable: Self.supportsNativeLimit(ProcessInfo.processInfo.operatingSystemVersion),
-                  nativePolicyActivationAllowed: false)
+                  nativePolicyActivationAllowed: Self.nativePolicyValidated(model: BatteryMachine.model))
     }
+    /// Models allowed to run this backend for hardware validation. Others keep Apple's 80–100 % limit.
+    public static func nativePolicyValidated(model: String?) -> Bool { model == "MacBookPro17,1" }
     init(smc: any ChargeHardware, native: any ChargeHardware, nativePolicy: (any ChargeHardware)? = nil,
          nativeAvailable: Bool, nativePolicyActivationAllowed: Bool = false) {
         self.smc = smc; self.native = native; self.nativePolicy = nativePolicy; self.nativeAvailable = nativeAvailable
-        // The 2026-11-04 M1 test disconnected input during a hold. Keep this
-        // candidate available for exact recovery only, until a safe hold exists.
+        // Off by default: elsewhere this backend only serves the exact recovery of an existing journal.
         self.nativePolicyActivationAllowed = nativePolicyActivationAllowed
     }
     public static func supportsNativeLimit(_ version: OperatingSystemVersion) -> Bool {

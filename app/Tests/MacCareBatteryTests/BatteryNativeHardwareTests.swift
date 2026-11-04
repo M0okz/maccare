@@ -75,7 +75,13 @@ struct BatteryNativeHardwareTests {
         func restore(_ record: BatteryRecoveryRecord) throws { restores.append(record) }
     }
 
-    @Test func productionDiscoveryDoesNotActivateThePolicyThatFailedHardwareValidation() throws {
+    @Test func policyIsOnlyAllowedOnTheValidationModel() {
+        #expect(AppleSiliconChargeHardware.nativePolicyValidated(model: "MacBookPro17,1"))
+        for model: String? in ["MacBookAir10,1", "Mac16,12", "MacBookPro18,3", "", nil] {
+            #expect(!AppleSiliconChargeHardware.nativePolicyValidated(model: model))
+        }
+    }
+    @Test func discoveryDoesNotActivateThePolicyWithoutValidation() throws {
         let smc = SMC(), driver = Driver(), policy = Policy()
         smc.failRead = true
         let hardware = AppleSiliconChargeHardware(smc: smc, native: native(driver), nativePolicy: policy, nativeAvailable: true)
