@@ -158,17 +158,29 @@ public final class BatteryProtectionController {
         return status(snapshot, now: now, uid: nil, session: nil)
     }
     public func prepareForSleep() throws {
+        // A one-off target above the configured limit must not outlive the session's supervision.
+        let temporaryTarget = topUp || cycle != nil
         sleeping = true; topUp = false; cycle = nil; awaitingHeartbeat = true
         guard let recovery else { return }
-        do { try hardware.restore(recovery); suspended = false }
-        catch { restoring = true; failure = error.localizedDescription; throw error }
+        do {
+            if recovery.backend == .nativePolicy, !restoring, !temporaryTarget {
+                // macOS enforces a registered target during sleep. Restoring it here would let
+                // a Mac on AC refill past a limit under 80 % every night.
+                try hardware.setDischarging(false)
+                message = "En veille · limite conservée par macOS"
+                return
+            }
+            try hardware.restore(recovery); suspended = false
+        } catch { restoring = true; failure = error.localizedDescription; throw error }
         message = "En veille · charge rendue à macOS"
     }
     public func didWake(now: TimeInterval) {
         sleeping = false
         if recovery != nil && !restoring {
             awaitingHeartbeat = true; deadline = now + Self.wakeGrace
-            message = "Charge gérée par macOS · attente de MacCare après la veille"
+            message = sessionCapabilities?.backend == .nativePolicy
+                ? "Limite conservée · attente de MacCare après la veille"
+                : "Charge gérée par macOS · attente de MacCare après la veille"
         }
     }
     public func shutdown() throws { if recovery != nil { try stop() } }

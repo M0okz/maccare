@@ -355,22 +355,40 @@ struct BatteryNativePolicyControllerTests {
         #expect(f.run(.discharge, percent: 90, onAC: false, now: 1).cycle == nil)
         #expect(!f.adapter.disabled)
     }
-    @Test func twoSleepWakeCyclesRestoreEveryTimeAndRestartRegistrationGrace() throws {
+    @Test func sleepKeepsTheLimitAndAHeartbeatResumesWithoutRewriting() throws {
+        let f = Fixture(); try #require(f.run(.enable).active)
+        let active = f.driver.preferences, targets = f.driver.targets, pulses = f.adapter.writes
+        try f.controller.prepareForSleep()
+        #expect(f.driver.preferences == active && f.driver.registered == 70)
+        #expect(f.driver.clears == 0 && f.journal.pending != nil)
+        f.controller.didWake(now: 200)
+        #expect(f.run(.heartbeat, now: 201).active)
+        #expect(f.driver.targets == targets && f.adapter.writes == pulses)
+        _ = f.run(.disable, now: 202)
+        #expect(f.driver.clears == 1 && f.journal.pending == nil)
+    }
+    @Test func appNotReturningAfterWakeRestoresTheOriginalLimit() throws {
         let f = Fixture(); try #require(f.run(.enable).active)
         try f.controller.prepareForSleep()
-        #expect(f.driver.preferences == .init(featureState: .absent, limit: .absent))
-        #expect(f.journal.pending != nil)
-        f.driver.automaticallyRegister = false
         f.controller.didWake(now: 200)
-        let resumed = f.run(.heartbeat, now: 201)
-        #expect(resumed.active && resumed.chargeApplication?.elapsed == 0)
+        let expired = f.controller.tick(snapshot: .init(percent: 60, onAC: true, temperature: 30), now: 200 + BatteryProtectionController.wakeGrace)
+        #expect(!expired.active && f.journal.pending == nil)
+        #expect(f.driver.preferences == .init(featureState: .absent, limit: .absent))
+    }
+    @Test func sleepDuringDischargeReopensTheGateAndRestores() throws {
+        let f = Fixture(); try #require(f.run(.enable, percent: 90).active)
+        try #require(f.run(.discharge, percent: 90, now: 1).cycle != nil)
+        #expect(f.adapter.disabled)
+        try f.controller.prepareForSleep()
+        #expect(!f.adapter.disabled && f.driver.clears == 1)
+        #expect(f.driver.preferences == .init(featureState: .absent, limit: .absent))
+    }
+    @Test func sleepDuringTopUpDoesNotLeaveTheFullTargetInPlace() throws {
+        let f = Fixture(); try #require(f.run(.enable, percent: 60).active)
+        #expect(f.run(.topUp, percent: 60, now: 1).active)
+        #expect(f.driver.targets.last == 100)
         try f.controller.prepareForSleep()
         #expect(f.driver.preferences == .init(featureState: .absent, limit: .absent))
-        #expect(f.driver.clears == 2)
-        f.controller.didWake(now: 500)
-        #expect(f.run(.heartbeat, now: 501).active)
-        _ = f.run(.disable, now: 502)
-        #expect(f.driver.clears == 3 && f.journal.pending == nil)
     }
     @Test func journalClearFailureDoesNotClearRestoredOriginalAgain() throws {
         let original = NativeChargePolicyPreferences(featureState: .integer(1), limit: .integer(85))
