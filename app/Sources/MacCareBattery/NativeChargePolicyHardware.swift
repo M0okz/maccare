@@ -122,9 +122,10 @@ public final class NativeChargePolicyHardware: ChargeHardware {
             // Track natural declines too: a fixed ceiling would let firmware refill at its own lower threshold.
             // The request never asks for a ceiling below the just-observed battery level.
             target = percent
-            releaseBeforeRequest = wasDischarging
         case .discharge(let lower):
-            guard snapshot.onAC, (10...100).contains(lower) else { throw BatteryNativePolicyError.powerRequired }
+            // The closed gate makes the Mac report battery power, whether or not it is still plugged in.
+            guard snapshot.onAC || wasDischarging else { throw BatteryNativePolicyError.powerRequired }
+            guard (10...100).contains(lower) else { throw BatteryNativePolicyError.invalidState }
             target = lower
         }
         guard (1...100).contains(target) else { throw BatteryNativePolicyError.invalidState }
@@ -169,7 +170,8 @@ public final class NativeChargePolicyHardware: ChargeHardware {
             if application.registered || firstConfirmation {
                 verificationSince = now
             }
-            if snapshot.onAC, !application.registered, now - (verificationSince ?? now) >= Self.registrationGrace {
+            // Not while discharging: the Mac reports no external input and no registered target.
+            if snapshot.onAC, !wasDischarging, !application.registered, now - (verificationSince ?? now) >= Self.registrationGrace {
                 throw BatteryNativePolicyError.registrationFailed
             }
         }

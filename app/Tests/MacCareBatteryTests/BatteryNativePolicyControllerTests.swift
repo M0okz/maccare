@@ -289,23 +289,57 @@ struct BatteryNativePolicyControllerTests {
         #expect(!restored.restoring && restored.error == failed.error)
         #expect(f.journal.pending == nil)
     }
-    @Test func nativeCalibrationTargetsTenWithoutAdapterIsolation() throws {
+    @Test func calibrationDischargesThroughTheGateAndReopensItToRecharge() throws {
         let f = Fixture(); try #require(f.run(.enable, percent: 80).active)
         try #require(f.run(.calibrate, percent: 80, now: 1).cycle?.phase == .chargingToFull)
         let full = f.run(.heartbeat, percent: 100, now: 2)
         #expect(full.cycle?.phase == .dischargingForCalibration)
-        #expect(f.driver.targets.last == 10)
-        let low = f.run(.heartbeat, percent: 10, now: 3)
+        #expect(f.driver.targets.last == 10 && f.adapter.disabled)
+        let draining = f.run(.heartbeat, percent: 40, onAC: false, now: 3)
+        #expect(draining.active && f.adapter.disabled)
+        let low = f.run(.heartbeat, percent: 10, onAC: false, now: 4)
         #expect(low.cycle?.phase == .rechargingToFull)
-        #expect(f.driver.targets.last == 100)
+        #expect(f.driver.targets.last == 100 && !f.adapter.disabled)
     }
-    @Test func explicitDischargeUsesPolicyButUnpluggingInterruptsIt() throws {
+    @Test func explicitDischargeClosesGateFirstThenReopensItWithTargetInPlace() throws {
+        let f = Fixture(); try #require(f.run(.enable, percent: 90).active)
+        let before = f.driver.targets.count
+        var gateAtWrite: Bool?
+        f.driver.beforeMutation = { [unowned f] in gateAtWrite = f.adapter.disabled }
+        try #require(f.run(.discharge, percent: 90, now: 1).cycle != nil)
+        #expect(f.driver.targets.last == 70 && f.driver.targets.count == before + 1)
+        #expect(gateAtWrite == true, "A target under the charge level is never written with the gate open")
+        // The closed gate makes the Mac report battery power. That is not an unplugged Mac.
+        let draining = f.run(.heartbeat, percent: 85, onAC: false, now: 2)
+        #expect(draining.active && draining.error == nil && f.adapter.disabled)
+        #expect(f.driver.targets.last == 70 && f.driver.clears == 0)
+        let finished = f.run(.heartbeat, percent: 70, onAC: false, now: 3)
+        #expect(finished.active && finished.error == nil && finished.cycle == nil)
+        #expect(!f.adapter.disabled && f.driver.targets.last == 70)
+        #expect(f.driver.clears == 0, "Reaching the target does not release the limit it is held at")
+        let holding = f.run(.heartbeat, percent: 70, now: 4)
+        #expect(holding.active && holding.error == nil && f.driver.clears == 0 && f.driver.targets.last == 70)
+        #expect(f.journal.pending != nil)
+    }
+    @Test func cancellingDischargeReopensTheGate() throws {
         let f = Fixture(); try #require(f.run(.enable, percent: 90).active)
         try #require(f.run(.discharge, percent: 90, now: 1).cycle != nil)
-        #expect(f.driver.targets.last == 70)
-        let interrupted = f.run(.heartbeat, percent: 85, onAC: false, now: 2)
-        #expect(!interrupted.active && interrupted.error != nil)
-        #expect(f.journal.pending == nil)
+        let cancelled = f.run(.cancelCycle, percent: 85, onAC: false, now: 2)
+        #expect(cancelled.active && cancelled.cycle == nil && !f.adapter.disabled)
+    }
+    @Test func disablingDuringDischargeReopensTheGateBeforeRestoringThePolicy() throws {
+        let f = Fixture(); try #require(f.run(.enable, percent: 90).active)
+        try #require(f.run(.discharge, percent: 90, now: 1).cycle != nil)
+        var gateAtRestore: Bool?
+        f.driver.beforeMutation = { [unowned f] in gateAtRestore = f.adapter.disabled }
+        let off = f.run(.disable, percent: 85, onAC: false, now: 2)
+        #expect(!off.active && !f.adapter.disabled && f.journal.pending == nil)
+        #expect(gateAtRestore == false)
+    }
+    @Test func dischargeRefusedWithoutACAndWithoutAGate() throws {
+        let f = Fixture(); try #require(f.run(.enable, percent: 90).active)
+        #expect(f.run(.discharge, percent: 90, onAC: false, now: 1).cycle == nil)
+        #expect(!f.adapter.disabled)
     }
     @Test func twoSleepWakeCyclesRestoreEveryTimeAndRestartRegistrationGrace() throws {
         let f = Fixture(); try #require(f.run(.enable).active)

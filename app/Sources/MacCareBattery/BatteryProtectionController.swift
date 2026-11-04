@@ -186,10 +186,20 @@ public final class BatteryProtectionController {
         if var running = cycle {
             let action = try running.advance(snapshot: snapshot, now: now)
             if sessionCapabilities?.backend == .nativePolicy {
+                // The gate closes before a target under the charge level is written, and reopens
+                // with that target already in place, so no window leaves the policy to drain alone.
+                if action.discharge { try hardware.setDischarging(true) }
                 if !action.finished {
                     let lower = running.status.phase == .dischargingForCalibration ? 10 : action.limit
                     let intent: BatteryChargeIntent = action.discharge ? .discharge(to: lower) : .charge(to: action.limit)
                     try hardware.applyChargeIntent(intent, snapshot: snapshot, now: now)
+                }
+                if !action.discharge { try hardware.setDischarging(false) }
+                if action.finished {
+                    // External input only reappears after this reading. The next tick evaluates it.
+                    cycle = nil; topUp = false; suspended = false; failure = nil
+                    message = "Cycle terminé · limite rétablie"
+                    return
                 }
             } else {
                 try hardware.setDischarging(action.discharge)

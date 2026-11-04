@@ -25,7 +25,7 @@ public struct BatteryControlCapabilities: Codable, Equatable, Sendable {
     public let supportedLimits: [Int]
     public let adapterBackend: BatteryAdapterBackend?
     public let limitation: BatteryControlLimitation?
-    public var supportsDischarge: Bool { backend == .nativePolicy || adapterBackend != nil }
+    public var supportsDischarge: Bool { adapterBackend != nil }
     public let supportsThermalProtection: Bool
     public init(backend: BatteryControlBackend, supportedLimits: [Int]? = nil, supportsThermalProtection: Bool? = nil, adapterBackend: BatteryAdapterBackend? = nil, limitation: BatteryControlLimitation? = nil) {
         self.backend = backend; self.adapterBackend = adapterBackend
