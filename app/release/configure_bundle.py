@@ -18,6 +18,9 @@ def configure(info, environment):
     if not re.fullmatch(r'[1-9][0-9]*', build):
         raise ValueError('Le numéro interne doit être un entier strictement positif.')
     info.update(CFBundleShortVersionString=version, CFBundleVersion=build)
+    development = environment.get('MACCARE_DISTRIBUTION') != '1'
+    name = 'MacCare Dev' if development else 'MacCare'
+    info.update(MacCareDevelopmentBuild=development, CFBundleName=name, CFBundleDisplayName=name)
     feed = environment.get('MACCARE_UPDATE_FEED_URL', '')
     public_key = environment.get('MACCARE_SPARKLE_PUBLIC_KEY', '')
     if environment.get('MACCARE_DISTRIBUTION') == '1' and not (feed and public_key):
