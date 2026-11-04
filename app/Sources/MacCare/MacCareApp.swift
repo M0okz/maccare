@@ -75,7 +75,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         startsWithoutWindow = LoginLaunch.startsWithoutWindow(
-            launchedAsLoginItem: LoginLaunch.launchedAsLoginItem(),
+            launchedAtLogin: LoginLaunch.launchedAtLogin(),
             menuBarEnabled: MenuBarSetting.enabled,
             firstRunCompleted: UserDefaults.standard.bool(forKey: PermissionsModel.Keys.firstRunCompleted))
     }
@@ -85,7 +85,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard startsWithoutWindow else { return }
         startsWithoutWindow = false
         DispatchQueue.main.async {
-            NSApp.windows.filter { $0.isVisible && $0.canBecomeMain }.forEach { $0.close() }
+            NSApp.windows.filter(\.canBecomeMain).forEach { $0.close() }
         }
     }
 

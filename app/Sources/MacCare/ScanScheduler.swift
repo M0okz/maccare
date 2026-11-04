@@ -1,7 +1,5 @@
 import AppKit
 import CoreServices
-import AppKit
-import CoreServices
 import IOKit.ps
 import ServiceManagement
 import UserNotifications
@@ -217,16 +215,46 @@ enum LoginLaunch {
     }
 
     /// Read while the launch event is current, in `applicationWillFinishLaunching`.
-    @MainActor static func launchedAsLoginItem() -> Bool {
+    @MainActor private static func launchEventIsLoginItem() -> Bool {
         guard let event = NSAppleEventManager.shared().currentAppleEvent,
               event.eventClass == kCoreEventClass, event.eventID == kAEOpenApplication,
               let kind = event.paramDescriptor(forKeyword: keyAEPropData) else { return false }
         return kind.enumCodeValue == keyAELaunchedAsLogInItem
     }
 
+    /// Seconds since this user's console session began, from the system login records.
+    private static func sessionAge(now: Date = .now) -> TimeInterval? {
+        var latest: TimeInterval?
+        setutxent(); defer { endutxent() }
+        while let entry = getutxent() {
+            guard entry.pointee.ut_type == USER_PROCESS else { continue }
+            let (user, line) = withUnsafePointer(to: entry.pointee) { pointer in
+                (withUnsafeBytes(of: pointer.pointee.ut_user) { String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self) },
+                 withUnsafeBytes(of: pointer.pointee.ut_line) { String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self) })
+            }
+            guard user == NSUserName(), line == "console" else { continue }
+            let started = TimeInterval(entry.pointee.ut_tv.tv_sec)
+            latest = max(latest ?? started, started)
+        }
+        return latest.map { now.timeIntervalSince1970 - $0 }
+    }
+
+    @MainActor static func launchedAtLogin() -> Bool {
+        launchedAtLogin(itemEnabled: isEnabled, launchEvent: launchEventIsLoginItem(), sessionAge: sessionAge())
+    }
+
+    /// macOS does not always mark a login launch. With the item enabled, a launch just after the
+    /// session starts is that launch: an app opened later finds this one already running.
+    static func launchedAtLogin(itemEnabled: Bool, launchEvent: Bool, sessionAge: TimeInterval?) -> Bool {
+        guard itemEnabled else { return false }
+        if launchEvent { return true }
+        guard let sessionAge else { return false }
+        return (0...180).contains(sessionAge)
+    }
+
     /// Without the menu bar or a finished first run, a closed window would leave MacCare unreachable.
-    static func startsWithoutWindow(launchedAsLoginItem: Bool, menuBarEnabled: Bool, firstRunCompleted: Bool) -> Bool {
-        launchedAsLoginItem && menuBarEnabled && firstRunCompleted
+    static func startsWithoutWindow(launchedAtLogin: Bool, menuBarEnabled: Bool, firstRunCompleted: Bool) -> Bool {
+        launchedAtLogin && menuBarEnabled && firstRunCompleted
     }
 }
 

@@ -14,10 +14,18 @@ final class FirstRunReadinessTests: XCTestCase {
     }
 
     func testOnlyALoginLaunchWithAReachableAppStartsWithoutWindow() {
-        XCTAssertTrue(LoginLaunch.startsWithoutWindow(launchedAsLoginItem: true, menuBarEnabled: true, firstRunCompleted: true))
-        XCTAssertFalse(LoginLaunch.startsWithoutWindow(launchedAsLoginItem: false, menuBarEnabled: true, firstRunCompleted: true))
-        XCTAssertFalse(LoginLaunch.startsWithoutWindow(launchedAsLoginItem: true, menuBarEnabled: false, firstRunCompleted: true))
-        XCTAssertFalse(LoginLaunch.startsWithoutWindow(launchedAsLoginItem: true, menuBarEnabled: true, firstRunCompleted: false))
+        XCTAssertTrue(LoginLaunch.startsWithoutWindow(launchedAtLogin: true, menuBarEnabled: true, firstRunCompleted: true))
+        XCTAssertFalse(LoginLaunch.startsWithoutWindow(launchedAtLogin: false, menuBarEnabled: true, firstRunCompleted: true))
+        XCTAssertFalse(LoginLaunch.startsWithoutWindow(launchedAtLogin: true, menuBarEnabled: false, firstRunCompleted: true))
+        XCTAssertFalse(LoginLaunch.startsWithoutWindow(launchedAtLogin: true, menuBarEnabled: true, firstRunCompleted: false))
+    }
+
+    func testLoginLaunchNeedsTheEnabledItemAndAnEventOrARecentSession() {
+        XCTAssertTrue(LoginLaunch.launchedAtLogin(itemEnabled: true, launchEvent: true, sessionAge: 9000))
+        XCTAssertTrue(LoginLaunch.launchedAtLogin(itemEnabled: true, launchEvent: false, sessionAge: 20))
+        XCTAssertFalse(LoginLaunch.launchedAtLogin(itemEnabled: true, launchEvent: false, sessionAge: 600))
+        XCTAssertFalse(LoginLaunch.launchedAtLogin(itemEnabled: true, launchEvent: false, sessionAge: nil))
+        XCTAssertFalse(LoginLaunch.launchedAtLogin(itemEnabled: false, launchEvent: true, sessionAge: 20))
     }
 
     func testInfoPlistExplainsEveryFolderPrompt() throws {
