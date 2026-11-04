@@ -24,5 +24,15 @@
   <key>SUScheduledCheckInterval</key><integer>86400</integer>
   <key>NSAppleEventsUsageDescription</key>
   <string>MacCare lit la liste des éléments d'ouverture de session (via System Events) pour vous montrer ce qui se lance au démarrage. Rien n'est modifié.</string>
+  <key>NSDesktopFolderUsageDescription</key>
+  <string>MacCare analyse le Bureau pour repérer les gros fichiers et les doublons. Rien n'est supprimé sans votre confirmation.</string>
+  <key>NSDocumentsFolderUsageDescription</key>
+  <string>MacCare analyse le dossier Documents pour repérer les gros fichiers et les doublons. Rien n'est supprimé sans votre confirmation.</string>
+  <key>NSDownloadsFolderUsageDescription</key>
+  <string>MacCare analyse le dossier Téléchargements pour repérer les gros fichiers, les doublons et les installeurs. Rien n'est supprimé sans votre confirmation.</string>
+  <key>NSRemovableVolumesUsageDescription</key>
+  <string>MacCare analyse ce volume uniquement si vous le choisissez. Rien n'est supprimé sans votre confirmation.</string>
+  <key>NSNetworkVolumesUsageDescription</key>
+  <string>MacCare analyse ce volume uniquement si vous le choisissez. Rien n'est supprimé sans votre confirmation.</string>
 </dict>
 </plist>
