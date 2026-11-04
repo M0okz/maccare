@@ -134,16 +134,22 @@ public final class AppleSiliconChargeHardware: ChargeHardware {
     private let native: any ChargeHardware
     private let nativePolicy: (any ChargeHardware)?
     private let nativeAvailable: Bool
+    private let nativePolicyActivationAllowed: Bool
     private var selected: (any ChargeHardware)?
     private var companionNative: NativeChargeState?
     private var selectedBackend: BatteryControlBackend?
     private var discoveryLimitation: BatteryControlLimitation?
     public convenience init() {
         self.init(smc: SMCChargeHardware(), native: NativeChargeHardware(), nativePolicy: NativeChargePolicyHardware(),
-                  nativeAvailable: Self.supportsNativeLimit(ProcessInfo.processInfo.operatingSystemVersion))
+                  nativeAvailable: Self.supportsNativeLimit(ProcessInfo.processInfo.operatingSystemVersion),
+                  nativePolicyActivationAllowed: false)
     }
-    init(smc: any ChargeHardware, native: any ChargeHardware, nativePolicy: (any ChargeHardware)? = nil, nativeAvailable: Bool) {
+    init(smc: any ChargeHardware, native: any ChargeHardware, nativePolicy: (any ChargeHardware)? = nil,
+         nativeAvailable: Bool, nativePolicyActivationAllowed: Bool = false) {
         self.smc = smc; self.native = native; self.nativePolicy = nativePolicy; self.nativeAvailable = nativeAvailable
+        // The 2026-11-04 M1 test disconnected input during a hold. Keep this
+        // candidate available for exact recovery only, until a safe hold exists.
+        self.nativePolicyActivationAllowed = nativePolicyActivationAllowed
     }
     public static func supportsNativeLimit(_ version: OperatingSystemVersion) -> Bool {
         version.majorVersion > 26 || (version.majorVersion == 26 && version.minorVersion >= 4)
@@ -153,7 +159,7 @@ public final class AppleSiliconChargeHardware: ChargeHardware {
         catch {
             discoveryLimitation = (error as? BatteryHardwareError)?.code == kIOReturnNotPrivileged ? .hardwareAccessDenied : nil
             guard nativeAvailable else { throw error }
-            if let nativePolicy {
+            if nativePolicyActivationAllowed, let nativePolicy {
                 do {
                     _ = try nativePolicy.readSwitch()
                     discoveryLimitation = nil

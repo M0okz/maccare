@@ -75,10 +75,21 @@ struct BatteryNativeHardwareTests {
         func restore(_ record: BatteryRecoveryRecord) throws { restores.append(record) }
     }
 
+    @Test func productionDiscoveryDoesNotActivateThePolicyThatFailedHardwareValidation() throws {
+        let smc = SMC(), driver = Driver(), policy = Policy()
+        smc.failRead = true
+        let hardware = AppleSiliconChargeHardware(smc: smc, native: native(driver), nativePolicy: policy, nativeAvailable: true)
+        #expect(try hardware.captureRecovery().backend == .nativeLimit)
+        #expect(policy.reads == 0 && policy.restores.isEmpty)
+        #expect(hardware.capabilities.supportsSailing == false)
+        #expect(driver.limits.isEmpty && smc.writes.isEmpty)
+    }
+
     @Test func ambiguousPolicyNeverFallsBackToAnotherNativeMethod() {
         let smc = SMC(), driver = Driver(), policy = Policy()
         smc.failRead = true; policy.error = .invalidState
-        let hardware = AppleSiliconChargeHardware(smc: smc, native: native(driver), nativePolicy: policy, nativeAvailable: true)
+        let hardware = AppleSiliconChargeHardware(smc: smc, native: native(driver), nativePolicy: policy,
+            nativeAvailable: true, nativePolicyActivationAllowed: true)
         #expect(throws: BatteryNativePolicyError.self) { _ = try hardware.captureRecovery() }
         #expect(driver.reads == 0 && driver.limits.isEmpty)
         #expect(smc.writes.isEmpty)
@@ -90,7 +101,8 @@ struct BatteryNativeHardwareTests {
         let oldOS = AppleSiliconChargeHardware(smc: smc, native: native(driver), nativePolicy: policy, nativeAvailable: false)
         #expect(throws: Failure.smcRead) { _ = try oldOS.readSwitch() }
         #expect(policy.reads == 0 && driver.reads == 0)
-        let hardware = AppleSiliconChargeHardware(smc: smc, native: native(driver), nativePolicy: policy, nativeAvailable: true)
+        let hardware = AppleSiliconChargeHardware(smc: smc, native: native(driver), nativePolicy: policy,
+            nativeAvailable: true, nativePolicyActivationAllowed: true)
         #expect(try hardware.captureRecovery().backend == .nativeLimit)
         #expect(driver.limits.isEmpty && smc.writes.isEmpty)
     }
