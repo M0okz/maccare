@@ -201,11 +201,13 @@ struct BatteryNativePolicyControllerTests {
         f.driver.automaticallyRegister = false
         let pending = f.run(.disable, now: 10)
         #expect(!pending.active && pending.restoring)
+        #expect(pending.error == nil, "Expected propagation is progress, not a failure")
         #expect(f.journal.pending != nil && f.driver.preferences == original)
         #expect(f.driver.clears == 1)
         f.driver.registered = 85
         let restored = f.controller.tick(snapshot: .init(percent: 60, onAC: true, temperature: 30), now: 15)
         #expect(!restored.active && !restored.restoring)
+        #expect(restored.error == nil, "Completed restoration must not retain a stale progress error")
         #expect(f.journal.pending == nil && f.driver.clears == 1)
     }
     @Test func clearFailureRetainsRecoveryForWatchdog() throws {
@@ -215,6 +217,18 @@ struct BatteryNativePolicyControllerTests {
         #expect(f.journal.pending != nil)
         f.driver.failClear = false
         _ = f.controller.tick(snapshot: .init(percent: 60, onAC: true, temperature: 30), now: 15)
+        #expect(f.journal.pending == nil)
+    }
+    @Test func expectedRestorationDelayDoesNotEraseAnEarlierWriteFailure() {
+        let f = Fixture(original: .init(featureState: .integer(1), limit: .integer(85)))
+        f.driver.automaticallyRegister = false; f.driver.failWrite = true
+        let failed = f.run(.enable)
+        #expect(failed.restoring && failed.error != nil)
+        let pending = f.controller.tick(snapshot: .init(percent: 60, onAC: true, temperature: 30), now: 5)
+        #expect(pending.restoring && pending.error == failed.error)
+        f.driver.registered = 85
+        let restored = f.controller.tick(snapshot: .init(percent: 60, onAC: true, temperature: 30), now: 10)
+        #expect(!restored.restoring && restored.error == failed.error)
         #expect(f.journal.pending == nil)
     }
     @Test func nativeCalibrationTargetsTenWithoutAdapterIsolation() throws {

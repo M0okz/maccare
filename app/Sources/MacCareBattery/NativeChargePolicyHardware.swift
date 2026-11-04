@@ -209,7 +209,7 @@ public final class NativeChargePolicyHardware: ChargeHardware {
 }
 
 /// A failed request keeps the durable snapshot until restoration has been verified.
-public enum BatteryNativePolicyError: LocalizedError {
+public enum BatteryNativePolicyError: LocalizedError, Equatable {
     case unavailable, invalidState, powerRequired, registrationFailed, restorationPending, configurationSettling
     public var errorDescription: String? {
         switch self {

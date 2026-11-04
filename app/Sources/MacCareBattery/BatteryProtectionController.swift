@@ -129,8 +129,14 @@ public final class BatteryProtectionController {
                 restoring = true; topUp = false; cycle = nil
                 do { try finishRestoration() } catch { /* watchdog retries, never resumes policy */ }
             }
-            failure = issue
-            message = restoring ? "Restauration de la charge en cours" : "Protection à vérifier"
+            if (error as? BatteryNativePolicyError) == .restorationPending {
+                // Expected agent propagation is a progress state. Preserve any
+                // earlier real failure, but never turn this delay into an error.
+                message = restoring ? "Restauration de la charge en cours" : "Protection désactivée"
+            } else {
+                failure = issue
+                message = restoring ? "Restauration de la charge en cours" : "Protection à vérifier"
+            }
         }
         return status(snapshot, now: now, uid: uid, session: callerSession)
     }
@@ -142,8 +148,12 @@ public final class BatteryProtectionController {
             let issue = error.localizedDescription
             restoring = recovery != nil; topUp = false
             do { try finishRestoration() } catch { /* next tick retries the exact original state */ }
-            failure = issue
-            message = restoring ? "Restauration de la charge en cours" : "Protection interrompue"
+            if (error as? BatteryNativePolicyError) == .restorationPending {
+                message = restoring ? "Restauration de la charge en cours" : "Protection désactivée"
+            } else {
+                failure = issue
+                message = restoring ? "Restauration de la charge en cours" : "Protection interrompue"
+            }
         }
         return status(snapshot, now: now, uid: nil, session: nil)
     }
