@@ -8,10 +8,11 @@ Le paquet de développement est `build/MacCare.app` ; la copie utilisateur
 
 ## Développement du 4 novembre : politique native distincte
 
-**Résultat des essais réels : candidat non validé, activation par défaut bloquée.**
-Le maintien à 31–32 % a interrompu la détection du secteur malgré le câble connecté.
-Une reconnexion a rétabli l'alimentation. La version utilisateur 0.2.1 a été restaurée
-à l'identique avec sa limite de 80 %. Aucun livrable public 0.2.2 n'est publié.
+**Résultat des essais réels : d'abord en échec, puis validé sur le M1 de test, non livré.**
+Le maintien à 31–32 % a interrompu le secteur malgré le câble connecté. La cause établie
+est une limite enregistrée sous le niveau de charge. La méthode corrigée a tenu le secteur
+dans tous ses essais, sur le seul MacBookPro17,1, seul modèle autorisé. Aucun livrable
+public 0.2.2 n'est publié.
 Voir [le résultat détaillé et les restrictions du système](native-charge-policy.md).
 
 La branche `codex/battery-native-policy` ajoute une méthode distincte du curseur

@@ -49,8 +49,8 @@ et de la disponibilité des interfaces de charge. Les détails mesurés sur une
 machine ne constituent pas une validation matérielle de tous les modèles.
 
 Une méthode de politique native distincte est en développement pour les
-interfaces Apple récentes. Son journal v4 possède uniquement deux préférences
-typées ; la configuration demandée est suivie séparément de la cible enregistrée
+interfaces Apple récentes. Son journal v5 possède deux préférences typées et la
+coupure d'adaptateur ; la configuration demandée est suivie séparément de la cible enregistrée
 et de la charge physique. Voir [le contrat de cette méthode](native-charge-policy.md).
 Le protocole 10 impose une mise à jour explicite du helper : restauration
 confirmée de l’ancienne session, remplacement du service, puis contrôle du
