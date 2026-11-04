@@ -114,7 +114,9 @@ public struct BatteryProtectionPolicy: Sendable {
         if limitReached {
             return (true, configuration.sailingWidth != nil
                 ? "Charge en pause · maintien de \(configuration.resumeLimit) à \(configuration.limit) %"
-                : "Charge suspendue · limite de \(configuration.limit) % atteinte")
+                : percent > configuration.limit
+                    ? "Charge suspendue · batterie au-dessus de la limite de \(configuration.limit) %"
+                    : "Charge suspendue · limite de \(configuration.limit) % atteinte")
         }
         return (false, "Charge autorisée jusqu’à \(configuration.limit) %")
     }

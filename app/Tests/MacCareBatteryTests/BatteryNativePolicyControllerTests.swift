@@ -270,6 +270,14 @@ struct BatteryNativePolicyControllerTests {
         let unplugged = f.run(.heartbeat, percent: 60, onAC: false, now: NativeChargePolicyHardware.inputLossWindow + 1)
         #expect(unplugged.active && unplugged.error == nil)
     }
+    @Test func aHoldAboveTheLimitDoesNotClaimTheLimitWasReached() throws {
+        let f = Fixture(); f.level = 85
+        let above = f.run(.enable, limit: 80, percent: 85)
+        #expect(above.message == "Charge suspendue · batterie au-dessus de la limite de 80 %")
+        #expect(f.driver.targets == [85], "The level is held, never a target under it")
+        let reached = f.run(.heartbeat, limit: 80, percent: 80, now: 5)
+        #expect(reached.message == "Charge suspendue · limite de 80 % atteinte")
+    }
     @Test func persistenceFailurePreventsAllMutations() {
         let f = Fixture(); f.journal.failSave = true
         #expect(!f.run(.enable).active)
