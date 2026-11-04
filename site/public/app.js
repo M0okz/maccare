@@ -25,6 +25,12 @@ function setUpTour() {
     overlay.style.clipPath = `inset(4px ${right}px 4px ${tab.offsetLeft}px round 999px)`;
   };
 
+  // Sur téléphone, garde l'onglet actif visible dans la liste défilante.
+  const centerTab = (tab, behavior) => {
+    const left = tab.offsetLeft - (scroller.clientWidth - tab.offsetWidth) / 2;
+    scroller.scrollTo({ left, behavior });
+  };
+
   const select = (tab, { instant = false, focus = false } = {}) => {
     // Une action au clavier se répète : elle s'applique sans animation.
     for (const element of [list, stage, tour]) element.classList.toggle("is-instant", instant);
@@ -41,10 +47,8 @@ function setUpTour() {
     placeOverlay(tab);
     if (focus) tab.focus({ preventScroll: true });
 
-    // Sur téléphone, garde l'onglet actif visible dans la liste défilante.
-    const target = tab.offsetLeft - (scroller.clientWidth - tab.offsetWidth) / 2;
     const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    scroller.scrollTo({ left: target, behavior: instant || reduceMotion ? "auto" : "smooth" });
+    centerTab(tab, instant || reduceMotion ? "auto" : "smooth");
   };
 
   tabs.forEach((tab, index) => {
@@ -79,6 +83,8 @@ function setUpTour() {
   };
   settle();
   new ResizeObserver(settle).observe(list);
+  // Un changement de largeur, comme une rotation, ne doit pas laisser l'onglet actif hors champ.
+  new ResizeObserver(() => centerTab(current(), "auto")).observe(scroller);
   // Les polices système peuvent changer la largeur des onglets après le premier calcul.
   document.fonts?.ready.then(settle);
 }
