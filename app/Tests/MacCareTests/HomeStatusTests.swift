@@ -26,8 +26,12 @@ final class HomeStatusTests: XCTestCase {
         XCTAssertEqual(HomeBatteryPresentation.charge(nil), "—")
         XCTAssertEqual(HomeBatteryPresentation.charge(.init(present: false, percent: 90)), "—")
         XCTAssertEqual(HomeBatteryPresentation.charge(.init(percent: 130)), "—")
-        XCTAssertEqual(HomeBatteryPresentation.condition(.init(percent: 90)), "Indisponible")
+        XCTAssertEqual(HomeBatteryPresentation.condition(.init(percent: 90)), "Aucune alerte", "Never « Normal » without a value from macOS")
+        XCTAssertEqual(HomeBatteryPresentation.condition(.init(percent: 90, powerStateKnown: false)), "Indisponible")
         XCTAssertEqual(HomeBatteryPresentation.condition(.init(batteryFault: true)), "À vérifier")
+        var withoutHealth = powerSource()
+        withoutHealth[kIOPSBatteryHealthKey] = nil
+        XCTAssertEqual(HomeBatteryPresentation.condition(BatterySnapshot().applyingPowerSources([withoutHealth])), "Aucune alerte")
         var source = powerSource()
         source[kIOPSBatteryHealthConditionKey] = kIOPSCheckBatteryValue
         XCTAssertEqual(HomeBatteryPresentation.condition(BatterySnapshot().applyingPowerSources([source])), "À vérifier")

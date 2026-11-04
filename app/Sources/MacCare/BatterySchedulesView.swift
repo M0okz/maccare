@@ -36,7 +36,7 @@ struct BatterySchedulesView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(schedule.name).font(.headline)
                             Text(schedule.action.title)
-                            Text("\(schedule.recurrence.title) · \(schedule.enabled ? schedule.nextRun.formatted(date: .abbreviated, time: .shortened) : "En pause") · \(schedule.timeZoneID)")
+                            Text("\(schedule.recurrence.title) · \(schedule.enabled ? schedule.nextRun.formatted(date: .abbreviated, time: .shortened) : (schedule.recurrence == .once && schedule.lastClaimed != nil ? "Terminée" : "En pause")) · \(schedule.timeZoneID)")
                                 .font(.callout).foregroundStyle(.secondary)
                             HStack {
                                 Button(schedule.enabled ? "Mettre en pause" : "Réactiver") { Task { await model.toggleSchedule(schedule) } }

@@ -19,6 +19,8 @@ enum HomeBatteryPresentation {
         case "Good": return "Normal"
         case "Fair": return "Capacité réduite"
         case "Poor", "Check Battery", "Permanent Battery Failure": return "À vérifier"
+        // macOS 27 no longer gives a health value. Only the absence of a reported fault is known.
+        case nil where snapshot.powerStateKnown: return "Aucune alerte"
         default: return "Indisponible"
         }
     }
