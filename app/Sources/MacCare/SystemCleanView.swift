@@ -133,12 +133,12 @@ struct SystemCleanView: View {
             HStack(spacing: Space.m) {
                 ModuleIcon(symbol: "lock.shield.fill", color: ModuleColor.maint, size: 34)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Assistant de nettoyage système").font(AppFont.body.weight(.semibold))
+                    Text("Assistant système").font(AppFont.body.weight(.semibold))
                     Text(model.statusText).font(AppFont.secondary).foregroundStyle(model.phase == .unavailable ? Theme.warn : Theme.muted)
                 }
                 Spacer()
             }
-            Text("Ces journaux appartiennent au système : MacCare a besoin d'un petit assistant qui tourne avec des droits d'administrateur. Il ne connaît que trois règles fixes (journaux de /Library/Logs, rapports de plantage et archives de /private/var/log), ne reçoit jamais de chemin de MacCare, et note chacune de ses actions dans un journal. Vous pouvez le désactiver à tout moment.")
+            Text("Ces journaux appartiennent au système : MacCare a besoin d'un assistant qui tourne avec des droits d'administrateur. Pour le nettoyage, il ne connaît que trois règles fixes (journaux de /Library/Logs, rapports de plantage et archives de /private/var/log), ne reçoit jamais de chemin de MacCare, et note chacune de ses actions dans un journal. Le même assistant sert aussi à certaines tâches d'entretien et au contrôle de charge de la batterie. Vous pouvez le désactiver à tout moment : ces fonctions s'arrêtent alors aussi.")
                 .font(AppFont.secondary).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
             actions
             if let msg = model.statusMessage {
