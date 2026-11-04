@@ -68,6 +68,7 @@ final class BatteryModel: ObservableObject {
     var active: Bool { protection?.active == true }
     var supported: Bool { protection?.supported == true }
     var restoring: Bool { protection?.restoring == true }
+    var restorationDeferred: Bool { protection?.deferredRestorationTarget != nil }
     var recoveryReady: Bool { protection?.recoveryReady == true }
     var pendingChanges: Bool { active && protection?.configuration != configuration }
     var nativeControl: Bool { protection?.capabilities?.backend == .nativeLimit }

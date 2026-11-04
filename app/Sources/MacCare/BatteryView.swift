@@ -133,6 +133,9 @@ struct BatteryView: View {
                     .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
                 Button("Mettre à jour l’assistant…") { Task { await model.updateHelper() } }
                     .buttonStyle(.borderedProminent).disabled(model.controlsBusy)
+            } else if model.restorationDeferred {
+                Text(model.protection?.message ?? "")
+                    .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
             } else if model.restoring {
                 Text("MacCare restaure l’état de charge d’origine. L’assistant continue les tentatives ; aucune nouvelle protection ne peut démarrer pendant cette opération.")
                     .foregroundStyle(Theme.warn)
@@ -236,7 +239,7 @@ struct BatteryView: View {
             Button("Désactiver la protection") { Task { await model.perform(.disable) } }.disabled(model.controlsBusy)
         } else {
             Button("Activer la protection") { confirmingActivation = true }
-                .buttonStyle(.borderedProminent).disabled(model.busy || !model.helperEnabled || !model.supported || !model.recoveryReady || model.restoring)
+                .buttonStyle(.borderedProminent).disabled(model.busy || !model.helperEnabled || !model.supported || !model.recoveryReady || (model.restoring && !model.restorationDeferred))
         }
     }
     private var unavailable: some View {

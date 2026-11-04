@@ -98,6 +98,7 @@ struct BatteryNativePolicyControllerTests {
         let journal: Journal
         let adapter = Adapter()
         var pauses: [TimeInterval] = []
+        var level: Int?
         let hardware: RecoverableChargeHardware
         let controller: BatteryProtectionController
         let session = UUID()
@@ -106,14 +107,16 @@ struct BatteryNativePolicyControllerTests {
             self.driver = driver; self.journal = journal
             // An explicit fixed AC context keeps all tests independent of the host Mac.
             var recordPause: (TimeInterval) -> Void = { _ in }
+            var readLevel: () -> Int? = { nil }
             let policy = NativeChargePolicyHardware(driver: driver, identity: { "fixture-M1" }, onAC: { true },
-                                                    adapter: adapter, pause: { recordPause($0) })
+                                                    percent: { readLevel() }, adapter: adapter, pause: { recordPause($0) })
             let hardware = RecoverableChargeHardware(base: policy, adapter: adapter, identity: { "fixture-M1" })
             self.hardware = hardware
             adapter.journal = journal
             driver.beforeMutation = { #expect(journal.pending != nil, "The original policy must be durable before any write or release") }
             controller = .init(hardware: hardware, markRecovery: { try journal.save($0) }, clearRecovery: { try journal.clear() })
             recordPause = { [unowned self] in self.pauses.append($0) }
+            readLevel = { [unowned self] in self.level }
         }
         func run(_ command: BatteryCommand, limit: Int = 70, sailing: Int? = nil, thermal: Bool = false,
                  percent: Int = 60, temperature: Double = 30, charging: Bool = false, onAC: Bool = true,
@@ -173,6 +176,65 @@ struct BatteryNativePolicyControllerTests {
         f.journal.pending = record
         try f.controller.recover(record)
         #expect(f.adapter.writes.isEmpty && f.journal.pending == nil)
+    }
+    @Test func disablingAboveTheOriginalLimitNeverRegistersItUnderTheChargeLevel() throws {
+        let original = NativeChargePolicyPreferences(featureState: .integer(1), limit: .integer(80))
+        let f = Fixture(original: original); f.level = 85
+        try #require(f.run(.enable, limit: 85, percent: 85).active)
+        #expect(f.driver.registered == 85)
+        let off = f.run(.disable, percent: 85, now: 1)
+        #expect(!off.active && off.restoring && off.error == nil)
+        #expect(off.deferredRestorationTarget == 80 && off.message.contains("80 %"))
+        #expect(f.driver.registered == 85 && f.driver.clears == 0 && f.journal.pending != nil)
+        #expect(f.adapter.writes.count == 2, "Already holding at this level: no further write or pulse")
+        // Still waiting while plugged in, and following the level down once it starts to fall.
+        f.level = 84
+        _ = f.controller.tick(snapshot: .init(percent: 84, onAC: false, temperature: 30), now: 5)
+        #expect(f.driver.registered == 84 && f.journal.pending != nil)
+        // The original comes back only once it is no longer under the level.
+        f.level = 80
+        let restored = f.controller.tick(snapshot: .init(percent: 80, onAC: false, temperature: 30), now: 10)
+        #expect(!restored.restoring && restored.deferredRestorationTarget == nil && restored.error == nil)
+        #expect(f.driver.preferences == original && f.driver.registered == 80 && f.journal.pending == nil)
+    }
+    @Test func enablingAgainDuringADeferredRestorationKeepsTheTrueOriginal() throws {
+        let original = NativeChargePolicyPreferences(featureState: .integer(1), limit: .integer(80))
+        let f = Fixture(original: original); f.level = 85
+        try #require(f.run(.enable, limit: 85, percent: 85).active)
+        _ = f.run(.disable, percent: 85, now: 1)
+        let again = f.run(.enable, limit: 85, percent: 85, now: 2)
+        #expect(again.active && !again.restoring && again.deferredRestorationTarget == nil && again.ownedByCaller)
+        #expect(f.journal.pending?.nativePolicyPreferences == original, "The journal is never overwritten with the temporary hold")
+        f.level = 80
+        _ = f.run(.disable, percent: 80, now: 3)
+        #expect(f.driver.preferences == original && f.journal.pending == nil)
+    }
+    @Test func unknownLevelFallsBackToTheNormalRestoration() throws {
+        let original = NativeChargePolicyPreferences(featureState: .integer(1), limit: .integer(80))
+        let f = Fixture(original: original); f.level = nil
+        try #require(f.run(.enable, limit: 85, percent: 85).active)
+        let off = f.run(.disable, percent: 85, now: 1)
+        #expect(!off.restoring && f.driver.preferences == original && f.journal.pending == nil)
+    }
+    @Test func crashRecoveryAboveTheOriginalDefersWithoutReportingAFailure() throws {
+        let original = NativeChargePolicyPreferences(featureState: .integer(1), limit: .integer(80))
+        let f = Fixture(original: original); f.level = 85
+        let record = BatteryRecoveryRecord(backend: .nativePolicy, machineID: "fixture-M1", adapterBackend: .modern, nativePolicyPreferences: original)
+        f.journal.pending = record
+        try f.controller.recover(record)
+        #expect(f.driver.registered == 85 && f.journal.pending != nil)
+        let again = f.run(.enable, limit: 85, percent: 85, now: 1)
+        #expect(again.active && again.ownedByCaller && again.error == nil, "Recovery leaves the gate and policy usable by a new session")
+        #expect(again.capabilities?.supportsDischarge == true)
+    }
+    @Test func sleepDuringTopUpAboveTheOriginalDefersInsteadOfCuttingInput() throws {
+        let original = NativeChargePolicyPreferences(featureState: .integer(1), limit: .integer(80))
+        let f = Fixture(original: original); f.level = 90
+        try #require(f.run(.enable, limit: 85, percent: 85).active)
+        try #require(f.run(.topUp, percent: 90, now: 1).active)
+        try f.controller.prepareForSleep()
+        #expect(f.driver.registered == 90 && f.journal.pending != nil)
+        #expect(f.driver.preferences == .init(featureState: .integer(1), limit: .integer(90)))
     }
     @Test func inputLostRightAfterAChangeStopsInsteadOfWritingAgain() throws {
         let f = Fixture(); try #require(f.run(.enable, percent: 60).active)

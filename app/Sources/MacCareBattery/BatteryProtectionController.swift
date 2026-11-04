@@ -21,6 +21,7 @@ public final class BatteryProtectionController {
     private var sleeping = false
     private var awaitingHeartbeat = false
     private var restoring = false
+    private var deferredRestorationTarget: Int?
     private var failure: String?
     private var message = "Protection désactivée"
     public var requiresWatchdog: Bool { recovery != nil }
@@ -31,7 +32,7 @@ public final class BatteryProtectionController {
     }
     public func recover(_ record: BatteryRecoveryRecord) throws {
         guard record.isValid else { throw BatteryHardwareError(code: -3) }
-        recovery = record; sessionCapabilities = .init(backend: record.backend); restoring = true
+        recovery = record; sessionCapabilities = .init(backend: record.backend, adapterBackend: record.adapterBackend); restoring = true
         try finishRestoration()
     }
     public func execute(_ command: BatteryCommand, configuration newConfiguration: BatteryConfiguration?,
@@ -48,7 +49,7 @@ public final class BatteryProtectionController {
                     throw ControlError("La protection est gérée par une autre session de MacCare.")
                 }
             }
-            guard !restoring || command == .disable else {
+            guard !restoring || command == .disable || (command == .enable && deferredRestorationTarget != nil) else {
                 throw ControlError("Restauration de la charge en cours. Aucune protection ne sera relancée avant sa réussite.")
             }
             switch command {
@@ -72,6 +73,11 @@ public final class BatteryProtectionController {
                 }
                 if newConfiguration.thermalProtection && !snapshot.reliableTemperature {
                     throw ControlError("La température est indisponible. Désactivez la pause thermique pour utiliser uniquement la limite de charge.")
+                }
+                if deferredRestorationTarget != nil {
+                    // The journal still holds the true original, so the session resumes on top of it.
+                    deferredRestorationTarget = nil; restoring = false
+                    owner = uid; sessionID = callerSession; deadline = now + Self.leaseDuration
                 }
                 if recovery == nil {
                     let record = try hardware.captureRecovery()
@@ -171,6 +177,8 @@ public final class BatteryProtectionController {
                 return
             }
             try hardware.restore(recovery); suspended = false
+        } catch BatteryNativePolicyError.restorationDeferred(let target) {
+            deferRestoration(to: target); return
         } catch { restoring = true; failure = error.localizedDescription; throw error }
         message = "En veille · charge rendue à macOS"
     }
@@ -271,13 +279,20 @@ public final class BatteryProtectionController {
     }
     private func finishRestoration() throws {
         guard let recovery else { restoring = false; return }
-        try hardware.restore(recovery)
-        suspended = false
+        do { try hardware.restore(recovery) }
+        catch BatteryNativePolicyError.restorationDeferred(let target) { deferRestoration(to: target); return }
+        suspended = false; deferredRestorationTarget = nil
         try clearRecovery()
         self.recovery = nil; sessionCapabilities = nil; hardware.endSession()
         owner = nil; sessionID = nil; configuration = nil; topUp = false
         policy = .init(); cycle = nil; restoring = false; awaitingHeartbeat = false
         message = "Protection désactivée"
+    }
+    /// Not a failure: the session is over and only the journal's final step is waiting on the charge level.
+    private func deferRestoration(to target: Int) {
+        restoring = true; deferredRestorationTarget = target; suspended = false; topUp = false; cycle = nil
+        owner = nil; sessionID = nil; configuration = nil; policy = .init(); awaitingHeartbeat = false
+        message = BatteryNativePolicyError.restorationDeferred(target: target).errorDescription ?? ""
     }
     private func status(_ snapshot: BatterySnapshot, now: TimeInterval, uid: UInt32?, session: UUID?) -> BatteryProtectionStatus {
         var hardwareError: String?
@@ -301,11 +316,12 @@ public final class BatteryProtectionController {
         var result = BatteryProtectionStatus(snapshot: snapshot, firmwareManaged: recovery?.backend == .firmware || (recovery == nil && hardware.firmwareManaged),
                      supported: supported, active: owner != nil && !restoring && !expired && hardwareError == nil,
                      suspended: suspended, topUp: topUp, configuration: configuration,
-                     message: expired ? "Protection expirée · restauration en attente" : message,
+                     message: expired && deferredRestorationTarget == nil ? "Protection expirée · restauration en attente" : message,
                      error: failure ?? hardwareError, restoring: restoring || expired,
                      ownedByCaller: owner != nil && owner == uid && sessionID == session, capabilities: capabilities)
         result.cycle = cycle?.status
         result.chargeApplication = application
+        result.deferredRestorationTarget = deferredRestorationTarget
         return result
     }
     private struct ControlError: LocalizedError {

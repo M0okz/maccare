@@ -32,6 +32,7 @@ public final class NativeChargePolicyHardware: ChargeHardware {
     private let driver: any NativeChargePolicyDriver
     private let identity: () -> String?
     private let onAC: () -> Bool?
+    private let percent: () -> Int?
     private let adapter: (any PowerAdapterDriver)?
     private let pause: (TimeInterval) -> Void
     private var captured: NativeChargePolicyPreferences?
@@ -49,11 +50,13 @@ public final class NativeChargePolicyHardware: ChargeHardware {
         self.init(driver: SystemNativeChargePolicyDriver(), identity: { BatteryMachine.identity }, onAC: {
             let snapshot = BatterySnapshot.read()
             return snapshot.powerStateKnown ? snapshot.onAC : nil
-        }, adapter: SystemPowerAdapterDriver())
+        }, percent: { BatterySnapshot.read().percent }, adapter: SystemPowerAdapterDriver())
     }
     public init(driver: any NativeChargePolicyDriver, identity: @escaping () -> String?, onAC: @escaping () -> Bool?,
-                adapter: (any PowerAdapterDriver)? = nil, pause: @escaping (TimeInterval) -> Void = { Thread.sleep(forTimeInterval: $0) }) {
-        self.driver = driver; self.identity = identity; self.onAC = onAC; self.adapter = adapter; self.pause = pause
+                percent: @escaping () -> Int? = { nil }, adapter: (any PowerAdapterDriver)? = nil,
+                pause: @escaping (TimeInterval) -> Void = { Thread.sleep(forTimeInterval: $0) }) {
+        self.driver = driver; self.identity = identity; self.onAC = onAC; self.percent = percent
+        self.adapter = adapter; self.pause = pause
     }
     public var capabilities: BatteryControlCapabilities {
         let available = driver.isAvailable && (try? checkedPreferences()) != nil && driver.calibrationOverride() != nil
@@ -205,6 +208,17 @@ public final class NativeChargePolicyHardware: ChargeHardware {
     public func restore(_ record: BatteryRecoveryRecord) throws {
         guard record.isValid, record.backend == .nativePolicy, record.machineID == identity(),
               let original = record.nativePolicyPreferences else { throw BatteryNativePolicyError.invalidState }
+        // A target under the charge level cuts external input on the M1 host, with nothing to
+        // bring it back while plugged in. The original waits until the battery has come down to it.
+        if original.featureEnabled == true, case .integer(let target) = original.limit, let level = percent(), level > target {
+            captured = original; requested = nil; lastIntent = nil; verificationSince = nil
+            restoringCleared = false; restoredPreferences = false
+            if try driver.readPreferences() != .init(featureState: .integer(1), limit: .integer(level)) {
+                try driver.apply(limit: level)
+                if onAC() == true { try pulseInput() }
+            }
+            throw BatteryNativePolicyError.restorationDeferred(target: target)
+        }
         // Clearing via the agent is required: simply setting FeatureState=0 leaves a registered target behind.
         if !restoringCleared {
             try driver.clearRegisteredLimit()
@@ -246,6 +260,7 @@ public final class NativeChargePolicyHardware: ChargeHardware {
 /// A failed request keeps the durable snapshot until restoration has been verified.
 public enum BatteryNativePolicyError: LocalizedError, Equatable {
     case unavailable, invalidState, powerRequired, registrationFailed, restorationPending, configurationSettling, inputLost
+    case restorationDeferred(target: Int)
     public var errorDescription: String? {
         switch self {
         case .unavailable: return "La méthode de politique de charge Apple est indisponible sur ce Mac."
@@ -253,6 +268,7 @@ public enum BatteryNativePolicyError: LocalizedError, Equatable {
         case .powerRequired: return "Branchez le Mac pour lancer la décharge contrôlée."
         case .registrationFailed: return "macOS n’a pas enregistré la limite dans le délai prévu. La configuration initiale est restaurée."
         case .restorationPending: return "Restauration de la limite initiale en cours d’application par macOS."
+        case .restorationDeferred(let target): return "Protection arrêtée. macOS reviendra à sa limite de \(target) % lorsque la batterie y sera redescendue ; d’ici là, le niveau actuel est maintenu pour conserver le secteur."
         case .inputLost: return "Le secteur a disparu juste après l’application de la limite. La configuration initiale est rétablie. Si le Mac reste sur batterie alors qu’il est branché, reconnectez le câble."
         case .configurationSettling: return "Les réglages de charge existants ne sont pas encore cohérents avec macOS. Fermez les autres contrôleurs et attendez leur restauration avant d’activer MacCare."
         }

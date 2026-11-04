@@ -61,6 +61,8 @@ public struct BatteryProtectionStatus: Codable, Sendable {
     public var capabilities: BatteryControlCapabilities?
     /// The agent's registered target is distinct from both the saved request and physical charging.
     public var chargeApplication: BatteryChargeApplicationStatus? = nil
+    /// The session has ended, and the original limit waits for the charge level to come down to it.
+    public var deferredRestorationTarget: Int? = nil
     public init(snapshot: BatterySnapshot, firmwareManaged: Bool = false, supported: Bool = false, active: Bool = false,
                 suspended: Bool = false, topUp: Bool = false, configuration: BatteryConfiguration? = nil,
                 message: String = "Protection désactivée", error: String? = nil, restoring: Bool = false, ownedByCaller: Bool = false,

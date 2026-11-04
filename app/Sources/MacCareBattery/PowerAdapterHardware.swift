@@ -76,7 +76,12 @@ public final class RecoverableChargeHardware: ChargeHardware {
             if try adapter.read(backend) { try adapter.write(backend, disabled: false) }
             guard try adapter.read(backend) == false else { throw BatteryHardwareError(code: -1) }
         }
-        try base.restore(record)
+        do { try base.restore(record) }
+        catch BatteryNativePolicyError.restorationDeferred(let target) {
+            // Still in control of the gate until the deferred restoration completes.
+            pinnedAdapter = record.adapterBackend; captured = true
+            throw BatteryNativePolicyError.restorationDeferred(target: target)
+        }
     }
     public func setChargeBand(upper: Int, lower: Int) throws { try base.setChargeBand(upper: upper, lower: lower) }
     public func setChargeLimit(_ limit: Int?) throws { try base.setChargeLimit(limit) }
