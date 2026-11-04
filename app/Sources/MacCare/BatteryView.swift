@@ -49,7 +49,7 @@ struct BatteryView: View {
             Button("Annuler", role: .cancel) {}
         } message: {
             Text(model.nativePolicyControl
-                 ? "MacCare demandera à macOS une limite de \(model.configuration.limit) %. Chaque étape peut prendre jusqu’à 150 secondes ; la reprise après une pause peut donc nécessiter plusieurs minutes. Désactivez AlDente et tout autre contrôleur avant de continuer. MacCare conserve la recharge optimisée et restaure les réglages de charge initiaux à l’arrêt. La calibration de macOS peut temporairement imposer une recharge à 100 %."
+                 ? "MacCare demandera à macOS une limite de \(model.configuration.limit) %. Elle s’applique en général en quelques secondes, et la charge peut mettre environ une minute à réagir. Désactivez AlDente et tout autre contrôleur avant de continuer. MacCare conserve la recharge optimisée. À l’arrêt, il restaure les réglages de charge initiaux, dès que la batterie n’est plus au-dessus de la limite d’origine. La calibration de macOS peut temporairement imposer une recharge à 100 %."
                  : model.nativeControl
                  ? "MacCare réglera la limite native de macOS à \(model.configuration.limit) %. Désactivez AlDente et tout autre contrôleur avant de continuer. Les protections de macOS restent actives ; un étalonnage Apple peut exceptionnellement charger à 100 %. À la désactivation, à la veille ou lorsque vous quittez MacCare, le réglage initial sera restauré. Après une interruption, l’assistant reprend cette restauration lorsque le Mac est éveillé."
                  : "MacCare pilotera la charge jusqu’à \(model.configuration.limit) %. Désactivez au préalable AlDente et tout autre contrôleur, et réglez la limite native de macOS sur 100 % avec la recharge optimisée désactivée. Le contrôle matériel est expérimental et n’a pas été validé sur toutes les générations de MacBook. À la mise en veille, la charge est rendue à macOS. Après fermeture ou interruption de MacCare, elle est rétablie sous environ 90 secondes lorsque le Mac est éveillé.")
@@ -154,7 +154,7 @@ struct BatteryView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     if model.nativePolicyControl {
                         Stepper("Limite de charge : \(model.configuration.limit) %", value: $model.configuration.limit, in: 50...100)
-                        Text("macOS applique la limite et les pauses demandées. Chaque étape peut prendre jusqu’à 150 secondes ; une reprise peut donc nécessiter plusieurs minutes. Le statut distingue la demande de son enregistrement. La calibration de macOS peut temporairement imposer 100 %.")
+                        Text("macOS applique la limite et les pauses demandées, en général en quelques secondes ; la charge peut mettre environ une minute à réagir. Si la batterie est déjà au-dessus de la limite, son niveau est maintenu : utilisez l’onglet Cycles pour la faire descendre. La calibration de macOS peut temporairement imposer 100 %.")
                             .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
                     } else if model.nativeControl {
                         Picker("Limite de charge", selection: $model.configuration.limit) {
@@ -198,7 +198,7 @@ struct BatteryView: View {
                         Stepper("Température maximale : \(model.configuration.maximumTemperature) °C",
                                 value: $model.configuration.maximumTemperature, in: 30...45)
                         Text(model.nativePolicyControl
-                             ? "La reprise nécessite une baisse de 2 °C et au moins cinq minutes depuis le dernier dépassement. Une température manquante entraîne une demande de pause ; macOS peut mettre jusqu’à 150 secondes à l’appliquer."
+                             ? "La reprise nécessite une baisse de 2 °C et au moins cinq minutes depuis le dernier dépassement. Une température manquante entraîne une demande de pause."
                              : "La charge reprend après une baisse de 2 °C. Une température manquante pendant la protection entraîne une pause de charge.")
                             .font(.callout).foregroundStyle(Theme.muted)
                     }
