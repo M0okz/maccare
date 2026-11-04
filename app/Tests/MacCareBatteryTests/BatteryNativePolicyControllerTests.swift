@@ -72,6 +72,17 @@ struct BatteryNativePolicyControllerTests {
         }
         func consumeRelease() { registered = nil; releaseQueued = false; latched = false; charging = true }
     }
+    /// Keeps a registered target of 100 through a clear, as observed on the M1 host.
+    private final class FullTargetDriver: Driver {
+        var ignoredClears = 0
+        override func clearRegisteredLimit() throws {
+            if registered == 100 || ignoredClears > 0 {
+                clears += 1; ignoredClears = max(0, ignoredClears - 1)
+                return
+            }
+            try super.clearRegisteredLimit()
+        }
+    }
     private final class Adapter: PowerAdapterDriver {
         var disabled = false
         var writes: [Bool] = []
@@ -133,6 +144,39 @@ struct BatteryNativePolicyControllerTests {
         }
     }
 
+    @Test func restoringAfterARechargeReplacesTheFullTargetSoTheClearTakesEffect() throws {
+        let original = NativeChargePolicyPreferences(featureState: .integer(1), limit: .integer(80))
+        let driver = FullTargetDriver(original)
+        let f = Fixture(original: original, driver: driver)
+        f.level = 80
+        try #require(f.run(.enable, limit: 80, percent: 80).active)
+        #expect(f.run(.topUp, percent: 80, now: 5).topUp)
+        #expect(driver.registered == 100)
+
+        driver.automaticallyRegister = false
+        let clearsBefore = driver.clears
+        let stopping = f.run(.disable, percent: 80, now: 10)
+        #expect(stopping.restoring && driver.targets.last == 80, "The charge stops at the current level at once")
+        #expect(driver.clears == clearsBefore, "A clear would be ignored while 100 is still registered")
+        driver.registered = 80; driver.automaticallyRegister = true
+        let snapshot = BatterySnapshot(percent: 80, onAC: true, charging: false, temperature: 30)
+        let done = f.controller.tick(snapshot: snapshot, now: 15)
+        #expect(!done.restoring && !done.active && done.error == nil)
+        #expect(f.journal.pending == nil && driver.registered == 80 && driver.preferences == original)
+    }
+    @Test func aClearTheAgentIgnoresIsAskedAgain() throws {
+        let original = NativeChargePolicyPreferences(featureState: .integer(1), limit: .integer(80))
+        let driver = FullTargetDriver(original)
+        let f = Fixture(original: original, driver: driver)
+        f.level = 75
+        try #require(f.run(.enable, limit: 75, percent: 75).active)
+        driver.ignoredClears = 1
+        let snapshot = BatterySnapshot(percent: 75, onAC: true, charging: false, temperature: 30)
+        var status = f.run(.disable, percent: 75, now: 5)
+        #expect(status.restoring && driver.clears == 1)
+        for tick in 1...8 where status.restoring { status = f.controller.tick(snapshot: snapshot, now: 5 + Double(tick) * 5) }
+        #expect(driver.clears == 2 && !status.restoring && f.journal.pending == nil)
+    }
     @Test func capturesAbsentKeysInVersionFiveBeforeWritingBelowEighty() throws {
         let f = Fixture()
         let result = f.run(.enable)

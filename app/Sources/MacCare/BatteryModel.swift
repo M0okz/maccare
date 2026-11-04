@@ -32,6 +32,7 @@ final class BatteryModel: ObservableObject {
     private var commandWaiters: [CheckedContinuation<Void, Never>] = []
     private var mayOwnLease = false
     private var ownsLease = false
+    private var renewAfterLostReply = false
     private var nextHelperStatus = Date.distantPast
     private var monitoring: Task<Void, Never>?
     private static let preferencesKey = "battery.configuration"
@@ -123,6 +124,7 @@ final class BatteryModel: ObservableObject {
             if owned, !result.active, result.error != nil { defaults.removeObject(forKey: Self.resumeKey) }
         } catch {
             self.error = error.localizedDescription
+            if ownsLease { renewAfterLostReply = true }
             // Never display a cached "active" after losing the helper connection.
             protection = nil; ownsLease = false
         }
@@ -140,7 +142,7 @@ final class BatteryModel: ObservableObject {
             requiresApproval = client.status == .requiresApproval
         }
         let requestedConfiguration = configuration
-        if command == .disable { defaults.removeObject(forKey: Self.resumeKey) }
+        if command == .disable { defaults.removeObject(forKey: Self.resumeKey); renewAfterLostReply = false }
         do {
             if command == .enable {
                 try await client.prepareProtection()
@@ -243,6 +245,9 @@ final class BatteryModel: ObservableObject {
             configuration.limit = limit
         }
         if !status.active || status.restoring || !status.ownedByCaller { ownsLease = false }
+        // A lost heartbeat reply must not end a confirmed session the helper still gives to this app.
+        else if renewAfterLostReply { ownsLease = true }
+        if !status.active || status.restoring { renewAfterLostReply = false }
         if !status.active && !status.restoring { mayOwnLease = false }
     }
 }

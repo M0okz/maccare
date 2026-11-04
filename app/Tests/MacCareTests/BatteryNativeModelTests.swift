@@ -14,6 +14,7 @@ struct BatteryNativeModelTests {
         var restoring = false
         var failure: String?
         var enableFails = false
+        var requestFailures = 0
         var rootConfiguration: BatteryConfiguration?
         var rootSession: UUID?
         var calls: [BatteryCommand] = []
@@ -27,6 +28,7 @@ struct BatteryNativeModelTests {
         func snapshot() async -> BatterySnapshot { .init(percent: 80, onAC: true, temperature: 30) }
         func request(_ command: BatteryCommand, configuration: BatteryConfiguration?, sessionID: UUID) async throws -> BatteryProtectionStatus {
             calls.append(command)
+            if requestFailures > 0 { requestFailures -= 1; throw NSError(domain: "fixture", code: 3) }
             if command == .enable && enableFails { throw NSError(domain: "fixture", code: 2) }
             if command == .enable {
                 rootActive = true; rootSession = sessionID; rootConfiguration = configuration
@@ -167,6 +169,30 @@ struct BatteryNativeModelTests {
         await model.refresh(force: true)
         #expect(model.helperUpdateRequired && model.protection == nil)
         #expect(client.calls.isEmpty && client.updates == 0 && client.preparations == 0)
+    }
+    @Test func aLostReplyDoesNotStopRenewingTheSession() async throws {
+        let client = Client()
+        let (model, defaults, suite) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        await model.perform(.enable)
+        client.requestFailures = 1
+        await model.refresh()
+        #expect(client.calls.last == .heartbeat && model.protection == nil, "A cached active state is never shown")
+        await model.refresh()
+        #expect(client.calls.last == .status && model.active)
+        await model.refresh()
+        #expect(client.calls.last == .heartbeat, "The next pass renews the same session")
+    }
+    @Test func aLostDeactivationReplyDoesNotKeepRenewingTheSession() async throws {
+        let client = Client()
+        let (model, defaults, suite) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        await model.perform(.enable)
+        client.requestFailures = 1
+        await model.perform(.disable)
+        await model.refresh()
+        await model.refresh(force: true)
+        #expect(!client.calls.dropFirst(2).contains(.heartbeat))
     }
     @Test func quittingKeepsProtectionForTheNextLaunchWithItsSavedSettings() async throws {
         let client = Client(), settings = BatteryConfiguration(limit: 85, thermalProtection: false)

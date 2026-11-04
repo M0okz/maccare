@@ -44,6 +44,9 @@ public final class NativeChargePolicyHardware: ChargeHardware {
     private var resumeReleaseStarted: TimeInterval?
     private var restoringCleared = false
     private var restoredPreferences = false
+    private var clearPolls = 0
+    /// Polls without the agent acting on a clear before it is asked again.
+    private static let clearRetryPolls = 6
     private var lastOnAC: Bool?
     private var lastInputChange: TimeInterval?
 
@@ -229,12 +232,25 @@ public final class NativeChargePolicyHardware: ChargeHardware {
         }
         // Clearing via the agent is required: simply setting FeatureState=0 leaves a registered target behind.
         if !restoringCleared {
+            // On the M1 host a clear leaves a registered target of 100 in place: a one-off recharge
+            // would stay stuck there and keep charging. The current level replaces it first.
+            if try driver.registeredLimit() == 100, let level = percent(), level < 100 {
+                if try driver.readPreferences() != .init(featureState: .integer(1), limit: .integer(level)) {
+                    try driver.apply(limit: level)
+                    if onAC() == true { try pulseInput() }
+                }
+                throw BatteryNativePolicyError.restorationPending
+            }
             try driver.clearRegisteredLimit()
-            restoringCleared = true
+            restoringCleared = true; clearPolls = 0
         }
         // Do not put back an enabled original until our own registration has actually gone away.
         if !restoredPreferences {
-            guard try driver.registeredLimit() == nil else { throw BatteryNativePolicyError.restorationPending }
+            guard try driver.registeredLimit() == nil else {
+                clearPolls += 1
+                if clearPolls >= Self.clearRetryPolls { restoringCleared = false }
+                throw BatteryNativePolicyError.restorationPending
+            }
             try driver.restorePreferences(original)
             restoredPreferences = true
         }
