@@ -115,6 +115,7 @@ struct BatteryNativePolicyControllerTests {
         let adapter = Adapter()
         var pauses: [TimeInterval] = []
         var level: Int?
+        var charging = false
         let hardware: RecoverableChargeHardware
         let controller: BatteryProtectionController
         let session = UUID()
@@ -124,8 +125,10 @@ struct BatteryNativePolicyControllerTests {
             // An explicit fixed AC context keeps all tests independent of the host Mac.
             var recordPause: (TimeInterval) -> Void = { _ in }
             var readLevel: () -> Int? = { nil }
+            var readCharging: () -> Bool = { false }
             let policy = NativeChargePolicyHardware(driver: driver, identity: { "fixture-M1" }, onAC: { true },
-                                                    percent: { readLevel() }, adapter: adapter, pause: { recordPause($0) })
+                                                    percent: { readLevel() }, adapter: adapter,
+                                                    charging: { readCharging() }, pause: { recordPause($0) })
             let hardware = RecoverableChargeHardware(base: policy, adapter: adapter, identity: { "fixture-M1" })
             self.hardware = hardware
             adapter.journal = journal
@@ -133,6 +136,7 @@ struct BatteryNativePolicyControllerTests {
             controller = .init(hardware: hardware, markRecovery: { try journal.save($0) }, clearRecovery: { try journal.clear() })
             recordPause = { [unowned self] in self.pauses.append($0) }
             readLevel = { [unowned self] in self.level }
+            readCharging = { [unowned self] in self.charging }
         }
         func run(_ command: BatteryCommand, limit: Int = 70, sailing: Int? = nil, thermal: Bool = false,
                  percent: Int = 60, temperature: Double = 30, charging: Bool = false, onAC: Bool = true,
@@ -152,17 +156,34 @@ struct BatteryNativePolicyControllerTests {
         try #require(f.run(.enable, limit: 80, percent: 80).active)
         #expect(f.run(.topUp, percent: 80, now: 5).topUp)
         #expect(driver.registered == 100)
+        f.charging = true
 
-        driver.automaticallyRegister = false
         let clearsBefore = driver.clears
         let stopping = f.run(.disable, percent: 80, now: 10)
-        #expect(stopping.restoring && driver.targets.last == 80, "The charge stops at the current level at once")
+        #expect(stopping.deferredRestorationTarget == 80 && driver.registered == 83, "The target leaves a margin above the level")
         #expect(driver.clears == clearsBefore, "A clear would be ignored while 100 is still registered")
-        driver.registered = 80; driver.automaticallyRegister = true
         let snapshot = BatterySnapshot(percent: 80, onAC: true, charging: false, temperature: 30)
         let done = f.controller.tick(snapshot: snapshot, now: 15)
         #expect(!done.restoring && !done.active && done.error == nil)
         #expect(f.journal.pending == nil && driver.registered == 80 && driver.preferences == original)
+    }
+    @Test func aDeferredRestorationDoesNotFollowARisingLevel() throws {
+        let original = NativeChargePolicyPreferences(featureState: .integer(1), limit: .integer(80))
+        let f = Fixture(original: original)
+        f.level = 80
+        try #require(f.run(.enable, limit: 80, percent: 80).active)
+        #expect(f.run(.topUp, percent: 80, now: 5).topUp)
+        f.level = 81; f.charging = true
+        f.driver.automaticallyRegister = false
+        _ = f.run(.disable, percent: 81, charging: true, now: 10)
+        let written = f.driver.targets.count
+        #expect(f.driver.targets.last == 84)
+        f.level = 82
+        let snapshot = BatterySnapshot(percent: 82, onAC: true, charging: true, temperature: 30)
+        _ = f.controller.tick(snapshot: snapshot, now: 15)
+        f.level = 83
+        _ = f.controller.tick(snapshot: snapshot, now: 20)
+        #expect(f.driver.targets.count == written, "A late registration must not land under the level")
     }
     @Test func aClearTheAgentIgnoresIsAskedAgain() throws {
         let original = NativeChargePolicyPreferences(featureState: .integer(1), limit: .integer(80))
