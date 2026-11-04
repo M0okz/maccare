@@ -21,10 +21,19 @@ ce modèle ; les autres gardent la limite Apple de 80 à 100 %.
 | App tuée | Limite d'origine rétablie en 85 secondes, secteur tenu |
 | Désactivation à 81 %, limite d'origine 80 % | Restauration différée, secteur toujours présent après 90 secondes |
 | Réactivation pendant cette attente | Session reprise, limite maintenue |
+| Assistant relancé pendant cette attente | Attente reprise depuis le journal, sans erreur |
+| Mode Voile, batterie dans la plage | Pause à 81 % pour une plage 80–82 %, sans charge |
+| Mode Voile, batterie à la borne basse | Charge relancée, arrêt à la borne haute, secteur tenu |
+| Pause thermique, seuil dépassé en pleine charge | Charge arrêtée, limite ramenée au niveau courant, secteur tenu |
+| Reprise thermique | Automatique à 2 °C sous le seuil, après 30 minutes de pause |
+| Recharge ponctuelle, puis annulation | Limite 100 enregistrée en 90 secondes, annulation en moins d'une seconde |
+| Fichier de l'assistant remplacé pendant une attente | Nouvel assistant actif en 3 secondes, reprise depuis le journal |
 
-Non validés : fin réelle d'une restauration différée, cycle complet d'étalonnage, veille
-d'une nuit, autres modèles et firmwares. Les décharges et transitions ont été observées
-avec un chargeur annoncé à 65 W, les derniers essais à 30 W.
+Non validés : fin réelle d'une restauration différée, cycle complet d'étalonnage,
+programmations, veille d'une nuit, arrivée à 100 %, autres modèles et firmwares. La reprise du
+mode Voile a été provoquée en décalant la plage, pas après une vraie baisse sur batterie. Le
+dépassement thermique a été provoqué en abaissant le seuil, sans échauffement réel. Les
+décharges ont été observées avec un chargeur annoncé à 65 W, les essais suivants à 30 W.
 
 ## Limite sous le niveau de charge
 
@@ -129,6 +138,10 @@ Si la batterie dépasse la limite d'origine, la restauration est différée : le
 reste maintenu jusqu'à ce qu'elle y soit redescendue, en général sur batterie. Ce n'est pas
 une erreur, une nouvelle session peut démarrer sans remplacer l'original du journal, et la
 mise à jour de l'assistant attend la fin de cette restauration.
+
+Pendant cette attente, l'assistant reste actif. Si une mise à jour remplace son fichier, les
+clients ne peuvent plus le vérifier : il restaure donc ce qu'il possède puis se termine entre
+deux opérations, et launchd le relance depuis le nouveau paquet, qui reprend le journal.
 
 ## Vérifications
 
