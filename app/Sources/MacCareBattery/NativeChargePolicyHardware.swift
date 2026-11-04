@@ -1,4 +1,5 @@
 import Foundation
+import IOKit
 
 /// An explicit request to the charge-policy agent; holding never requests a deliberate discharge.
 public enum BatteryChargeIntent: Equatable, Sendable {
@@ -193,7 +194,14 @@ public final class NativeChargePolicyHardware: ChargeHardware {
     /// restores the gate before anything else, including after a crash during this pause.
     private func pulseInput() throws {
         guard let adapter else { return }
-        guard try adapter.discover() == .modern, try adapter.read(.modern) == false else { throw BatteryNativePolicyError.invalidState }
+        let closed: Bool
+        do { closed = try adapter.read(.modern) }
+        catch let error as BatteryHardwareError where error.code == kIOReturnUnsupported {
+            // The gate briefly reads as another value while input renegotiates. Input returning
+            // registers the target by itself, so this is no reason to end the session.
+            return
+        }
+        guard !closed else { throw BatteryNativePolicyError.invalidState }
         try adapter.write(.modern, disabled: true)
         pause(Self.inputPulseDuration)
         try adapter.write(.modern, disabled: false)

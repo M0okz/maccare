@@ -1,4 +1,5 @@
 import Foundation
+import IOKit
 import Testing
 @testable import MacCareBattery
 
@@ -75,9 +76,13 @@ struct BatteryNativePolicyControllerTests {
         var disabled = false
         var writes: [Bool] = []
         var failRelease = false
+        var renegotiating = false
         var journal: Journal?
         func discover() throws -> BatteryAdapterBackend { .modern }
-        func read(_ backend: BatteryAdapterBackend) throws -> Bool { disabled }
+        func read(_ backend: BatteryAdapterBackend) throws -> Bool {
+            if renegotiating { throw BatteryHardwareError(code: kIOReturnUnsupported) }
+            return disabled
+        }
         func write(_ backend: BatteryAdapterBackend, disabled value: Bool) throws {
             #expect(journal?.pending?.adapterBackend == .modern, "The gate must be restorable before it is touched")
             if !value && failRelease { failRelease = false; throw Failure.write }
@@ -167,6 +172,21 @@ struct BatteryNativePolicyControllerTests {
         #expect(!f.adapter.disabled, "Restoration must give the input back")
         #expect(f.driver.preferences == .init(featureState: .absent, limit: .absent))
         #expect(f.journal.pending == nil)
+    }
+    @Test func gateRenegotiatingAtReconnectSkipsThePulseWithoutEndingTheSession() throws {
+        let f = Fixture(); try #require(f.run(.enable, limit: 70, percent: 70, onAC: false).active)
+        f.adapter.renegotiating = true
+        let reconnected = f.run(.heartbeat, percent: 71, onAC: true, now: 5)
+        #expect(reconnected.active && reconnected.error == nil)
+        #expect(f.driver.targets.last == 71, "The target is still written, only the pulse is skipped")
+        #expect(f.adapter.writes.isEmpty)
+    }
+    @Test func aGateAlreadyClosedByAnotherControllerStillEndsTheSession() throws {
+        let f = Fixture(); try #require(f.run(.enable, limit: 70, percent: 70, onAC: false).active)
+        f.adapter.disabled = true
+        let result = f.run(.heartbeat, percent: 71, onAC: true, now: 5)
+        #expect(!result.active && result.error != nil)
+        #expect(!f.adapter.disabled, "Restoration gives the input back")
     }
     @Test func versionFourJournalStaysRestorableWithoutTouchingTheGate() throws {
         let original = NativeChargePolicyPreferences(featureState: .absent, limit: .absent)
