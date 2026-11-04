@@ -29,6 +29,11 @@ struct OnboardingView: View {
                         Text(step == .disk ? "VOTRE MAC, VOTRE CONTRÔLE" : "CONFIGURATION FACULTATIVE")
                             .font(AppFont.caption.weight(.semibold)).tracking(1.4)
                             .foregroundStyle(Theme.muted)
+                        if AppInstallLocation.isTemporary {
+                            Label(AppInstallLocation.instruction, systemImage: "exclamationmark.triangle.fill")
+                                .font(AppFont.secondary).foregroundStyle(Theme.warn)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                         content
                     }
                     .frame(maxWidth: 470, alignment: .leading)
