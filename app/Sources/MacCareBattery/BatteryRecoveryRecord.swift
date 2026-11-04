@@ -24,7 +24,7 @@ public struct BatteryRecoveryRecord: Codable, Equatable, Sendable {
     public init(backend: BatteryControlBackend, machineID: String = "fixture", firmwareUpper: UInt32? = nil,
                 firmwareLower: UInt32? = nil, nativeState: NativeChargeState? = nil, adapterBackend: BatteryAdapterBackend? = nil,
                 nativePolicyPreferences: NativeChargePolicyPreferences? = nil) {
-        version = backend == .nativePolicy ? 4 : (adapterBackend != nil || (backend != .nativeLimit && nativeState != nil) ? 3 : (backend == .nativeLimit ? 2 : 1))
+        version = backend == .nativePolicy ? (adapterBackend != nil ? 5 : 4) : (adapterBackend != nil || (backend != .nativeLimit && nativeState != nil) ? 3 : (backend == .nativeLimit ? 2 : 1))
         self.machineID = machineID; self.backend = backend
         self.firmwareUpper = firmwareUpper; self.firmwareLower = firmwareLower; self.nativeState = nativeState; self.adapterBackend = adapterBackend
         self.nativePolicyPreferences = nativePolicyPreferences
@@ -32,8 +32,10 @@ public struct BatteryRecoveryRecord: Codable, Equatable, Sendable {
     public var isValid: Bool {
         guard !machineID.isEmpty, machineID.utf8.count <= 128 else { return false }
         if backend == .nativePolicy {
-            return version == 4 && nativePolicyPreferences?.isValid == true && nativeState == nil
-                && firmwareUpper == nil && firmwareLower == nil && adapterBackend == nil
+            // Version 5 also owns the adapter gate. Version 4 journals never touched it and stay readable.
+            guard version == 5 ? adapterBackend != nil : version == 4 && adapterBackend == nil else { return false }
+            return nativePolicyPreferences?.isValid == true && nativeState == nil
+                && firmwareUpper == nil && firmwareLower == nil
         }
         guard nativePolicyPreferences == nil else { return false }
         if version == 3, adapterBackend == nil, (backend == .nativeLimit || nativeState == nil) { return false }

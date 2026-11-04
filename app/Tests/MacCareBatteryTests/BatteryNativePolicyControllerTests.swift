@@ -71,6 +71,19 @@ struct BatteryNativePolicyControllerTests {
         }
         func consumeRelease() { registered = nil; releaseQueued = false; latched = false; charging = true }
     }
+    private final class Adapter: PowerAdapterDriver {
+        var disabled = false
+        var writes: [Bool] = []
+        var failRelease = false
+        var journal: Journal?
+        func discover() throws -> BatteryAdapterBackend { .modern }
+        func read(_ backend: BatteryAdapterBackend) throws -> Bool { disabled }
+        func write(_ backend: BatteryAdapterBackend, disabled value: Bool) throws {
+            #expect(journal?.pending?.adapterBackend == .modern, "The gate must be restorable before it is touched")
+            if !value && failRelease { failRelease = false; throw Failure.write }
+            disabled = value; writes.append(value)
+        }
+    }
     private final class Journal {
         var pending: BatteryRecoveryRecord?
         var failSave = false
@@ -83,17 +96,24 @@ struct BatteryNativePolicyControllerTests {
     private final class Fixture {
         let driver: Driver
         let journal: Journal
-        let hardware: NativeChargePolicyHardware
+        let adapter = Adapter()
+        var pauses: [TimeInterval] = []
+        let hardware: RecoverableChargeHardware
         let controller: BatteryProtectionController
         let session = UUID()
         init(original: NativeChargePolicyPreferences = .init(featureState: .absent, limit: .absent), driver injected: Driver? = nil) {
             let driver = injected ?? Driver(original), journal = Journal()
             self.driver = driver; self.journal = journal
             // An explicit fixed AC context keeps all tests independent of the host Mac.
-            let hardware = NativeChargePolicyHardware(driver: driver, identity: { "fixture-M1" }, onAC: { true })
+            var recordPause: (TimeInterval) -> Void = { _ in }
+            let policy = NativeChargePolicyHardware(driver: driver, identity: { "fixture-M1" }, onAC: { true },
+                                                    adapter: adapter, pause: { recordPause($0) })
+            let hardware = RecoverableChargeHardware(base: policy, adapter: adapter, identity: { "fixture-M1" })
             self.hardware = hardware
+            adapter.journal = journal
             driver.beforeMutation = { #expect(journal.pending != nil, "The original policy must be durable before any write or release") }
             controller = .init(hardware: hardware, markRecovery: { try journal.save($0) }, clearRecovery: { try journal.clear() })
+            recordPause = { [unowned self] in self.pauses.append($0) }
         }
         func run(_ command: BatteryCommand, limit: Int = 70, sailing: Int? = nil, thermal: Bool = false,
                  percent: Int = 60, temperature: Double = 30, charging: Bool = false, onAC: Bool = true,
@@ -105,21 +125,59 @@ struct BatteryNativePolicyControllerTests {
         }
     }
 
-    @Test func capturesAbsentKeysInVersionFourBeforeWritingBelowEighty() throws {
+    @Test func capturesAbsentKeysInVersionFiveBeforeWritingBelowEighty() throws {
         let f = Fixture()
         let result = f.run(.enable)
         #expect(result.active)
         #expect(result.capabilities?.backend == .nativePolicy)
         #expect(f.driver.targets == [70])
         let record = try #require(f.journal.pending)
-        #expect(record.version == 4 && record.isValid)
+        #expect(record.version == 5 && record.isValid && record.adapterBackend == .modern)
         #expect(record.nativePolicyPreferences == .init(featureState: .absent, limit: .absent))
         #expect(try JSONDecoder().decode(BatteryRecoveryRecord.self, from: JSONEncoder().encode(record)) == record)
+    }
+    @Test func eachWrittenTargetPulsesTheInputOnceAndReleasesIt() throws {
+        let f = Fixture()
+        try #require(f.run(.enable, limit: 70, percent: 60).active)
+        #expect(f.adapter.writes == [true, false] && !f.adapter.disabled)
+        #expect(f.pauses == [NativeChargePolicyHardware.inputPulseDuration])
+        #expect(f.run(.heartbeat, limit: 70, percent: 60, now: 5).active)
+        #expect(f.adapter.writes == [true, false], "A heartbeat without a change must not touch the input")
+    }
+    @Test func reachingARegisteredTargetPulsesWithoutRewritingIt() throws {
+        let f = Fixture()
+        try #require(f.run(.enable, limit: 70, percent: 69, charging: true).active)
+        #expect(f.driver.targets == [70] && f.adapter.writes.count == 2)
+        #expect(f.run(.heartbeat, percent: 70, charging: true, now: 5).active)
+        #expect(f.driver.targets == [70], "The target is reached, not moved")
+        #expect(f.adapter.writes == [true, false, true, false])
+    }
+    @Test func noPulseWithoutExternalPower() throws {
+        let f = Fixture()
+        try #require(f.run(.enable, limit: 70, percent: 60, onAC: false).active)
+        #expect(f.driver.targets == [70] && f.adapter.writes.isEmpty)
+    }
+    @Test func failedPulseReleaseRestoresGateBeforeAnythingElse() throws {
+        let f = Fixture(); f.adapter.failRelease = true
+        let result = f.run(.enable, limit: 70, percent: 60)
+        #expect(!result.active && result.error != nil)
+        #expect(!f.adapter.disabled, "Restoration must give the input back")
+        #expect(f.driver.preferences == .init(featureState: .absent, limit: .absent))
+        #expect(f.journal.pending == nil)
+    }
+    @Test func versionFourJournalStaysRestorableWithoutTouchingTheGate() throws {
+        let original = NativeChargePolicyPreferences(featureState: .absent, limit: .absent)
+        let f = Fixture(original: original)
+        let record = BatteryRecoveryRecord(backend: .nativePolicy, machineID: "fixture-M1", nativePolicyPreferences: original)
+        #expect(record.version == 4 && record.isValid)
+        f.journal.pending = record
+        try f.controller.recover(record)
+        #expect(f.adapter.writes.isEmpty && f.journal.pending == nil)
     }
     @Test func persistenceFailurePreventsAllMutations() {
         let f = Fixture(); f.journal.failSave = true
         #expect(!f.run(.enable).active)
-        #expect(f.driver.targets.isEmpty && f.driver.clears == 0)
+        #expect(f.driver.targets.isEmpty && f.driver.clears == 0 && f.adapter.writes.isEmpty)
         #expect(!f.controller.requiresWatchdog)
     }
     @Test func loweringLimitHoldsAtObservedChargeAndFollowsNaturalDrift() {

@@ -24,9 +24,14 @@ public struct BatteryChargeApplicationStatus: Codable, Equatable, Sendable {
 /// All calls are confined to the helper battery queue; no delayed mutation survives restoration.
 public final class NativeChargePolicyHardware: ChargeHardware {
     public static let registrationGrace: TimeInterval = 150
+    /// Brief input transition after a target change. The 2026-11-04 M1 trace without it applied its
+    /// target late, then lost external input; the exact cause is not established.
+    public static let inputPulseDuration: TimeInterval = 0.5
     private let driver: any NativeChargePolicyDriver
     private let identity: () -> String?
     private let onAC: () -> Bool?
+    private let adapter: (any PowerAdapterDriver)?
+    private let pause: (TimeInterval) -> Void
     private var captured: NativeChargePolicyPreferences?
     private var requested: (limit: Int, since: TimeInterval)?
     private var lastIntent: BatteryChargeIntent?
@@ -41,10 +46,11 @@ public final class NativeChargePolicyHardware: ChargeHardware {
         self.init(driver: SystemNativeChargePolicyDriver(), identity: { BatteryMachine.identity }, onAC: {
             let snapshot = BatterySnapshot.read()
             return snapshot.powerStateKnown ? snapshot.onAC : nil
-        })
+        }, adapter: SystemPowerAdapterDriver())
     }
-    public init(driver: any NativeChargePolicyDriver, identity: @escaping () -> String?, onAC: @escaping () -> Bool?) {
-        self.driver = driver; self.identity = identity; self.onAC = onAC
+    public init(driver: any NativeChargePolicyDriver, identity: @escaping () -> String?, onAC: @escaping () -> Bool?,
+                adapter: (any PowerAdapterDriver)? = nil, pause: @escaping (TimeInterval) -> Void = { Thread.sleep(forTimeInterval: $0) }) {
+        self.driver = driver; self.identity = identity; self.onAC = onAC; self.adapter = adapter; self.pause = pause
     }
     public var capabilities: BatteryControlCapabilities {
         let available = driver.isAvailable && (try? checkedPreferences()) != nil && driver.calibrationOverride() != nil
@@ -128,6 +134,8 @@ public final class NativeChargePolicyHardware: ChargeHardware {
         let expected = NativeChargePolicyPreferences(featureState: .integer(1), limit: .integer(target))
         let current = try checkedPreferences()
         var releaseConsumed = false
+        let previousIntent = lastIntent
+        var pulseNeeded = false
         if releaseBeforeRequest, resumeReleaseStarted == nil {
             restoringCleared = false; restoredPreferences = false
             try driver.clearRegisteredLimit()
@@ -149,8 +157,13 @@ public final class NativeChargePolicyHardware: ChargeHardware {
             try driver.apply(limit: target)
             requested = (target, now)
             unconfirmedTargets.insert(target)
+            pulseNeeded = true
         }
         lastIntent = intent
+        // Reaching a target already registered is also a transition the system must see.
+        if intent == .hold, let previousIntent, case .charge = previousIntent { pulseNeeded = true }
+        if case .discharge = intent { pulseNeeded = false }
+        if pulseNeeded, snapshot.onAC { try pulseInput() }
         if let application = try chargeApplicationStatus(now: now) {
             let firstConfirmation = application.registeredLimit.map { unconfirmedTargets.remove($0) != nil } ?? false
             if application.registered || firstConfirmation {
@@ -160,6 +173,16 @@ public final class NativeChargePolicyHardware: ChargeHardware {
                 throw BatteryNativePolicyError.registrationFailed
             }
         }
+    }
+    /// Runs on the battery queue. A failed release is reported, and the durable journal then
+    /// restores the gate before anything else, including after a crash during this pause.
+    private func pulseInput() throws {
+        guard let adapter else { return }
+        guard try adapter.discover() == .modern, try adapter.read(.modern) == false else { throw BatteryNativePolicyError.invalidState }
+        try adapter.write(.modern, disabled: true)
+        pause(Self.inputPulseDuration)
+        try adapter.write(.modern, disabled: false)
+        guard try adapter.read(.modern) == false else { throw BatteryNativePolicyError.invalidState }
     }
     public func chargeApplicationStatus(now: TimeInterval) throws -> BatteryChargeApplicationStatus? {
         guard let requested else { return nil }

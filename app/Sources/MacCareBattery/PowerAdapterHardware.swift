@@ -45,7 +45,6 @@ public final class RecoverableChargeHardware: ChargeHardware {
     }
     public var capabilities: BatteryControlCapabilities {
         let value = base.capabilities
-        if value.backend == .nativePolicy { return value }
         return .init(backend: value.backend, supportedLimits: value.supportedLimits,
                      supportsThermalProtection: value.supportsThermalProtection,
                      adapterBackend: captured ? pinnedAdapter : try? adapter.discover(), limitation: value.limitation)
@@ -55,10 +54,12 @@ public final class RecoverableChargeHardware: ChargeHardware {
         let backend = capabilities.adapterBackend
         if let backend, try adapter.read(backend) { throw BatteryHardwareError(code: -2) }
         let record = try base.captureRecovery()
+        // The policy pulses this gate after each write, so it must be able to restore it.
+        if record.backend == .nativePolicy, backend == nil { base.endSession(); throw BatteryNativePolicyError.unavailable }
         pinnedAdapter = backend; captured = true
-        if record.backend == .nativePolicy { return record }
         return .init(backend: record.backend, machineID: record.machineID, firmwareUpper: record.firmwareUpper,
-                     firmwareLower: record.firmwareLower, nativeState: record.nativeState, adapterBackend: backend)
+                     firmwareLower: record.firmwareLower, nativeState: record.nativeState, adapterBackend: backend,
+                     nativePolicyPreferences: record.nativePolicyPreferences)
     }
     public func prepareForControl() throws { try base.prepareForControl() }
     public func validateDischarge() throws { try base.validateDischarge() }
