@@ -11,9 +11,10 @@ import ServiceManagement
 /// l'assistant : on ne parle qu'au vrai `MacCareHelper` de notre équipe.
 enum HelperClient {
     enum HelperError: Error, LocalizedError {
-        case notEnabled, unavailable(String), incompatible(Int)
+        case notEnabled, unavailable(String), incompatible(Int), temporaryLocation
         var errorDescription: String? {
             switch self {
+            case .temporaryLocation: return AppInstallLocation.instruction
             case .notEnabled: return "l’assistant système n’est pas activé"
             case .unavailable(let m): return "assistant indisponible : \(m)"
             case .incompatible(let v):
@@ -33,7 +34,10 @@ enum HelperClient {
     /// placée ». L'interface distingue ce cas en vérifiant la présence du plist dans le paquet.
     static var status: SMAppService.Status { service.status }
 
-    static func register() throws { try service.register() }
+    static func register() throws {
+        guard !AppInstallLocation.isTemporary else { throw HelperError.temporaryLocation }
+        try service.register()
+    }
     @MainActor private static let serviceUpdater = HelperServiceUpdater(client: SystemHelperServiceLifecycle())
 
     /// Reads the loaded helper identity without restoring or replacing it.

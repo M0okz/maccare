@@ -13,7 +13,7 @@ struct OnboardingView: View {
             switch self {
             case .disk: return "Accès au disque"
             case .automation: return "Éléments de démarrage"
-            case .helper: return "Nettoyage système"
+            case .helper: return "Assistant système"
             }
         }
     }
@@ -29,6 +29,11 @@ struct OnboardingView: View {
                         Text(step == .disk ? "VOTRE MAC, VOTRE CONTRÔLE" : "CONFIGURATION FACULTATIVE")
                             .font(AppFont.caption.weight(.semibold)).tracking(1.4)
                             .foregroundStyle(Theme.muted)
+                        if AppInstallLocation.isTemporary {
+                            Label(AppInstallLocation.instruction, systemImage: "exclamationmark.triangle.fill")
+                                .font(AppFont.secondary).foregroundStyle(Theme.warn)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                         content
                     }
                     .frame(maxWidth: 470, alignment: .leading)
@@ -178,7 +183,7 @@ struct OnboardingView: View {
 
     @ViewBuilder private var helperContent: some View {
         title(confirmed ? "MacCare est prêt." : "Un assistant, si vous en avez besoin.")
-        detail("Le nettoyage de certains journaux système nécessite un assistant avec des droits d’administrateur. Il reste limité à trois règles de nettoyage et ne supprime rien sans votre confirmation.")
+        detail("Trois fonctions ont besoin d’un assistant avec des droits d’administrateur : le nettoyage des journaux système, certaines tâches d’entretien et le contrôle de charge de la batterie. Il n’exécute que les opérations prévues par MacCare et ne supprime rien sans votre confirmation.")
         switch system.phase {
         case .on:
             Label("Assistant système activé", systemImage: "checkmark.circle.fill")
