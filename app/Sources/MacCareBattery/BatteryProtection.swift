@@ -109,7 +109,11 @@ public struct BatteryProtectionPolicy: Sendable {
         if tooHot { return (true, "Charge suspendue · protection thermique") }
         if topUp { return (false, configuration.thermalProtection
             ? "Recharge ponctuelle à 100 % · protection thermique conservée" : "Recharge ponctuelle à 100 %") }
-        if limitReached { return (true, "Charge suspendue · limite de \(configuration.limit) % atteinte") }
+        if limitReached {
+            return (true, configuration.sailingWidth != nil
+                ? "Charge en pause · maintien de \(configuration.resumeLimit) à \(configuration.limit) %"
+                : "Charge suspendue · limite de \(configuration.limit) % atteinte")
+        }
         return (false, "Charge autorisée jusqu’à \(configuration.limit) %")
     }
 }
