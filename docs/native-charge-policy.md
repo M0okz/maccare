@@ -67,3 +67,8 @@ relecture, libération et parsing des registrations. Ils n’appellent aucune
 préférence root ni aucun matériel réel. Les tests du contrôleur couvrent le
 journal avant mutation, les transitions, la veille et les délais ; les essais
 matériels et les versions macOS vérifiées doivent être consignés séparément.
+
+`bash app/Tests/PowerUIBridgeTests/run.sh`, à exécuter sans sudo, contrôle aussi
+l’ABI des méthodes de libération, les lectures doubles incohérentes et le refus
+des mutations hors du helper root. Ce test ASan/UBSan utilise des clients factices
+et n’appelle aucun setter natif.
