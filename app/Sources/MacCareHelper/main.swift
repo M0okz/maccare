@@ -78,6 +78,8 @@ enum Idle {
     private static var operations = 0
     private static var lastActivity = Date()
 
+    /// Requests and maintenance in progress, including the battery watchdog's own hold.
+    static var operationsInProgress: Int { lock.lock(); defer { lock.unlock() }; return operations }
     static func connectionOpened() { update { connections += 1 } }
     static func connectionClosed() { update { connections -= 1 } }
     static func begin() { update { operations += 1 } }
