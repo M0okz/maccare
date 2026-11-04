@@ -211,7 +211,9 @@ struct BatteryView: View {
             }
             Divider()
             if model.supported || model.active {
-            Text("La protection reste active quand vous fermez la fenêtre et que MacCare reste dans la barre des menus. Quitter l’app restaure l’état de charge d’origine ; en cas d’interruption, l’assistant reprend cette restauration. Après une veille, MacCare doit reprendre contact avant de relancer la protection. Pendant la veille, macOS peut dépasser votre limite.")
+            Text("La protection reste active quand vous fermez la fenêtre et que MacCare reste dans la barre des menus. Quitter l’app restaure l’état de charge d’origine ; en cas d’interruption, l’assistant reprend cette restauration. Après une veille, MacCare doit reprendre contact avant de relancer la protection. " + (model.nativePolicyControl
+                 ? "Pendant la veille, macOS conserve votre limite."
+                 : "Pendant la veille, macOS peut dépasser votre limite."))
                 .font(.callout).foregroundStyle(Theme.muted)
             Text(model.usesAppleChargeControl
                  ? "Utilisez un seul contrôleur de charge à la fois. Désactivez AlDente et les autres contrôleurs. MacCare conserve la recharge optimisée et restaure votre limite native initiale à l’arrêt."
