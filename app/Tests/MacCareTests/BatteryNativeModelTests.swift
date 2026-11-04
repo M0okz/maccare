@@ -12,6 +12,8 @@ struct BatteryNativeModelTests {
         var firmwareManaged = false
         var rootActive = false
         var restoring = false
+        var failure: String?
+        var enableFails = false
         var rootConfiguration: BatteryConfiguration?
         var rootSession: UUID?
         var calls: [BatteryCommand] = []
@@ -25,15 +27,18 @@ struct BatteryNativeModelTests {
         func snapshot() async -> BatterySnapshot { .init(percent: 80, onAC: true, temperature: 30) }
         func request(_ command: BatteryCommand, configuration: BatteryConfiguration?, sessionID: UUID) async throws -> BatteryProtectionStatus {
             calls.append(command)
+            if command == .enable && enableFails { throw NSError(domain: "fixture", code: 2) }
             if command == .enable {
                 rootActive = true; rootSession = sessionID; rootConfiguration = configuration
                 if let configuration { requestedConfigurations.append(configuration) }
             }
             if command == .disable { rootActive = false; restoring = false }
-            return .init(snapshot: await snapshot(), firmwareManaged: firmwareManaged, supported: true,
-                         active: rootActive && !restoring, configuration: rootConfiguration,
-                         error: restoring ? "Étalonnage de la batterie en cours" : nil,
+            var value = BatteryProtectionStatus(snapshot: await snapshot(), firmwareManaged: firmwareManaged, supported: true,
+                         active: rootActive && !restoring && failure == nil, configuration: rootConfiguration,
+                         error: failure ?? (restoring ? "Étalonnage de la batterie en cours" : nil),
                          restoring: restoring, ownedByCaller: rootSession == sessionID, capabilities: capabilities)
+            value.recoveryReady = true
+            return value
         }
         func prepareProtection() async throws { preparations += 1 }
         func register() throws {}
@@ -162,6 +167,86 @@ struct BatteryNativeModelTests {
         await model.refresh(force: true)
         #expect(model.helperUpdateRequired && model.protection == nil)
         #expect(client.calls.isEmpty && client.updates == 0 && client.preparations == 0)
+    }
+    @Test func quittingKeepsProtectionForTheNextLaunchWithItsSavedSettings() async throws {
+        let client = Client(), settings = BatteryConfiguration(limit: 85, thermalProtection: false)
+        let (first, defaults, suite) = try fixture(client, initial: settings)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        await first.refresh(force: true)
+        await first.perform(.enable)
+        await first.prepareForTermination()
+        #expect(client.calls.last == .disable && !client.rootActive)
+
+        let next = BatteryModel(defaults: defaults, monitor: false, client: client)
+        await next.refresh(force: true)
+        await next.resumeProtectionIfNeeded()
+        #expect(next.active && next.protection?.ownedByCaller == true)
+        #expect(client.requestedConfigurations == [settings, settings])
+    }
+    @Test func anExplicitDeactivationIsNotUndoneAtTheNextLaunch() async throws {
+        let client = Client()
+        let (first, defaults, suite) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        await first.perform(.enable)
+        await first.perform(.disable)
+
+        let next = BatteryModel(defaults: defaults, monitor: false, client: client)
+        await next.refresh(force: true)
+        await next.resumeProtectionIfNeeded()
+        #expect(!next.active && client.calls.filter { $0 == .enable }.count == 1)
+    }
+    @Test func aSessionEndedByAnErrorIsNotRestartedAtTheNextLaunch() async throws {
+        let client = Client()
+        let (first, defaults, suite) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        await first.perform(.enable)
+        client.failure = "Le secteur a disparu."
+        await first.refresh(force: true)
+        client.failure = nil; client.rootActive = false
+
+        let next = BatteryModel(defaults: defaults, monitor: false, client: client)
+        await next.refresh(force: true)
+        await next.resumeProtectionIfNeeded()
+        #expect(!next.active && client.calls.filter { $0 == .enable }.count == 1)
+    }
+    @Test func resumeWaitsForTheCurrentHelperAndAnOrphanSessionToEnd() async throws {
+        let client = Client(); client.loadedProtocol = 9; client.rootActive = true; client.rootSession = UUID()
+        let (model, defaults, suite) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(true, forKey: BatteryModel.resumeKey)
+        await model.refresh(force: true)
+        await model.resumeProtectionIfNeeded()
+        #expect(!client.calls.contains(.enable))
+
+        await model.updateHelper()
+        await model.resumeProtectionIfNeeded()
+        #expect(!client.calls.contains(.enable))
+
+        client.rootActive = false
+        await model.refresh(force: true)
+        await model.resumeProtectionIfNeeded()
+        #expect(client.calls.filter { $0 == .enable }.count == 1 && model.active)
+    }
+    @Test func aFailedResumeIsTriedOncePerLaunchAndKeepsTheIntent() async throws {
+        let client = Client(); client.enableFails = true
+        let (model, defaults, suite) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(true, forKey: BatteryModel.resumeKey)
+        await model.refresh(force: true)
+        await model.resumeProtectionIfNeeded()
+        #expect(model.error != nil)
+        await model.refresh(force: true)
+        await model.resumeProtectionIfNeeded()
+        #expect(client.calls.filter { $0 == .enable }.count == 1)
+        #expect(defaults.bool(forKey: BatteryModel.resumeKey))
+    }
+    @Test func protectionNeverStartsWithoutAPreviousActivation() async throws {
+        let client = Client()
+        let (model, defaults, suite) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        await model.refresh(force: true)
+        await model.resumeProtectionIfNeeded()
+        #expect(!client.calls.contains(.enable) && !model.active)
     }
     @Test func helperReplacementIsExplicitAndDoesNotActivateProtection() async throws {
         let client = Client(); client.loadedProtocol = 9

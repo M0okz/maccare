@@ -35,6 +35,10 @@ final class BatteryModel: ObservableObject {
     private var nextHelperStatus = Date.distantPast
     private var monitoring: Task<Void, Never>?
     private static let preferencesKey = "battery.configuration"
+    /// Set while the user wants protection on. It survives quitting, which only stops the session
+    /// for this run; an explicit deactivation or a safety stop removes it.
+    static let resumeKey = "battery.protection.resume"
+    private var resumeAttempted = false
 
     init(defaults: UserDefaults = .standard, monitor: Bool = true, client: (any BatteryClient)? = nil, historyStore: BatteryHistoryStore? = nil) {
         self.historyStore = historyStore ?? BatteryHistoryStore()
@@ -56,6 +60,7 @@ final class BatteryModel: ObservableObject {
                 await self?.loadAdvancedData()
                 while !Task.isCancelled {
                     await self?.refresh()
+                    await self?.resumeProtectionIfNeeded()
                     await self?.recordHistory()
                     await self?.processSchedules()
                     do { try await Task.sleep(for: .seconds(15)) } catch { break }
@@ -109,9 +114,13 @@ final class BatteryModel: ObservableObject {
                 error = "La version chargée de l’assistant doit être mise à jour avant le contrôle de la batterie."
                 return
             }
-            let result = try await client.request(ownsLease ? .heartbeat : .status, configuration: nil, sessionID: sessionID)
+            let owned = ownsLease
+            let result = try await client.request(owned ? .heartbeat : .status, configuration: nil, sessionID: sessionID)
             guard !isTerminating else { return }
             accept(result)
+            // A running session that ended on an error may be a safety stop, such as a lost
+            // power input: the next launch must not start it again without the user.
+            if owned, !result.active, result.error != nil { defaults.removeObject(forKey: Self.resumeKey) }
         } catch {
             self.error = error.localizedDescription
             // Never display a cached "active" after losing the helper connection.
@@ -131,6 +140,7 @@ final class BatteryModel: ObservableObject {
             requiresApproval = client.status == .requiresApproval
         }
         let requestedConfiguration = configuration
+        if command == .disable { defaults.removeObject(forKey: Self.resumeKey) }
         do {
             if command == .enable {
                 try await client.prepareProtection()
@@ -143,6 +153,7 @@ final class BatteryModel: ObservableObject {
                 if command == .enable {
                     ownsLease = result.active && result.ownedByCaller
                     defaults.set(try JSONEncoder().encode(requestedConfiguration), forKey: Self.preferencesKey)
+                    if result.active { defaults.set(true, forKey: Self.resumeKey); resumeAttempted = true }
                 }
                 if command == .disable { ownsLease = false }
             }
@@ -152,6 +163,15 @@ final class BatteryModel: ObservableObject {
             // and obtain a fresh status; do not keep an optimistic cached "active" state.
             protection = nil; ownsLease = false
         }
+    }
+    /// Restarts the protection the user left on, once per launch and only from a clean state.
+    /// A failed attempt keeps the intent for the next launch and shows its error.
+    func resumeProtectionIfNeeded() async {
+        guard defaults.bool(forKey: Self.resumeKey), !resumeAttempted, !controlsBusy, helperEnabled,
+              !helperUpdateRequired, let protection, protection.error == nil, supported, recoveryReady,
+              !active, !restoring || restorationDeferred else { return }
+        resumeAttempted = true
+        await perform(.enable)
     }
     func prepareForTermination() async {
         isTerminating = true

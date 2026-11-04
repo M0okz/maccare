@@ -129,7 +129,7 @@ struct BatteryView: View {
                         .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
                 }
             } else if model.helperUpdateRequired {
-                Text("Cette version de MacCare utilise un assistant plus récent. La mise à jour restaure d’abord les anciens réglages de charge et peut demander votre accord dans Réglages Système. Elle ne réactive pas la protection automatiquement.")
+                Text("Cette version de MacCare utilise un assistant plus récent. La mise à jour restaure d’abord les anciens réglages de charge et peut demander votre accord dans Réglages Système. La protection repart ensuite si elle était active.")
                     .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
                 Button("Mettre à jour l’assistant…") { Task { await model.updateHelper() } }
                     .buttonStyle(.borderedProminent).disabled(model.controlsBusy)
@@ -211,7 +211,7 @@ struct BatteryView: View {
             }
             Divider()
             if model.supported || model.active {
-            Text("La protection reste active quand vous fermez la fenêtre et que MacCare reste dans la barre des menus. Quitter l’app restaure l’état de charge d’origine ; en cas d’interruption, l’assistant reprend cette restauration. Après une veille, MacCare doit reprendre contact avant de relancer la protection. " + (model.nativePolicyControl
+            Text("La protection reste active quand vous fermez la fenêtre et que MacCare reste dans la barre des menus. Quitter l’app ou installer une mise à jour restaure l’état de charge d’origine ; en cas d’interruption, l’assistant reprend cette restauration. La protection repart à la prochaine ouverture de MacCare, sauf si vous l’avez désactivée ou si MacCare l’a arrêtée après une erreur. Pour qu’elle reprenne après un redémarrage, activez l’ouverture de MacCare à la connexion dans ses réglages. Après une veille, MacCare doit reprendre contact avant de relancer la protection. " + (model.nativePolicyControl
                  ? "Pendant la veille, macOS conserve votre limite."
                  : "Pendant la veille, macOS peut dépasser votre limite."))
                 .font(.callout).foregroundStyle(Theme.muted)

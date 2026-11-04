@@ -54,6 +54,7 @@ enum HelperClient {
     @MainActor
     static func unregister() async throws {
         try await serviceUpdater.unregister()
+        UserDefaults.standard.removeObject(forKey: BatteryModel.resumeKey)
     }
     static func openApproval() { SMAppService.openSystemSettingsLoginItems() }
 
