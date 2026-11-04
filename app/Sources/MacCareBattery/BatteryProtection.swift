@@ -25,21 +25,22 @@ public struct BatteryControlCapabilities: Codable, Equatable, Sendable {
     public let supportedLimits: [Int]
     public let adapterBackend: BatteryAdapterBackend?
     public let limitation: BatteryControlLimitation?
-    public var supportsDischarge: Bool { adapterBackend != nil }
+    public var supportsDischarge: Bool { backend == .nativePolicy || adapterBackend != nil }
     public let supportsThermalProtection: Bool
     public init(backend: BatteryControlBackend, supportedLimits: [Int]? = nil, supportsThermalProtection: Bool? = nil, adapterBackend: BatteryAdapterBackend? = nil, limitation: BatteryControlLimitation? = nil) {
         self.backend = backend; self.adapterBackend = adapterBackend
         self.limitation = limitation
         self.supportedLimits = supportedLimits ?? Array(backend == .nativeLimit ? 80...100 : 50...100)
-        self.supportsThermalProtection = supportsThermalProtection ?? (backend == .legacyPair || backend == .chargeGate)
+        self.supportsThermalProtection = supportsThermalProtection ?? (backend == .legacyPair || backend == .chargeGate || backend == .nativePolicy)
     }
-    public var supportsSailing: Bool { backend != .nativeLimit }
-    public var managesChargeLimit: Bool { backend == .firmware || backend == .nativeLimit }
+    public var supportsSailing: Bool { backend == .legacyPair || backend == .chargeGate || backend == .firmware || backend == .nativePolicy }
+    public var managesChargeLimit: Bool { backend == .firmware || backend == .nativeLimit || backend == .nativePolicy }
     public var isValid: Bool {
         let allowed = backend == .nativeLimit ? 80...100 : 50...100
         return !supportedLimits.isEmpty && supportedLimits.count <= 51
             && supportedLimits == supportedLimits.sorted() && Set(supportedLimits).count == supportedLimits.count
-            && supportedLimits.allSatisfy(allowed.contains) && (!managesChargeLimit || !supportsThermalProtection)
+            && supportedLimits.allSatisfy(allowed.contains)
+            && ((backend != .firmware && backend != .nativeLimit) || !supportsThermalProtection)
     }
 }
 
@@ -58,6 +59,8 @@ public struct BatteryProtectionStatus: Codable, Sendable {
     public var error: String?
     public var cycle: BatteryCycleStatus? = nil
     public var capabilities: BatteryControlCapabilities?
+    /// The agent's registered target is distinct from both the saved request and physical charging.
+    public var chargeApplication: BatteryChargeApplicationStatus? = nil
     public init(snapshot: BatterySnapshot, firmwareManaged: Bool = false, supported: Bool = false, active: Bool = false,
                 suspended: Bool = false, topUp: Bool = false, configuration: BatteryConfiguration? = nil,
                 message: String = "Protection désactivée", error: String? = nil, restoring: Bool = false, ownedByCaller: Bool = false,
@@ -74,14 +77,15 @@ public struct BatteryProtectionPolicy: Sendable {
     public private(set) var limitReached = false
     public private(set) var tooHot = false
     private var initializedBand = false
+    private var thermalResumeNotBefore: TimeInterval?
     public init() {}
     public mutating func evaluate(_ snapshot: BatterySnapshot, configuration: BatteryConfiguration,
-                                  topUp: Bool) -> (suspend: Bool, reason: String) {
+                                  topUp: Bool, now: TimeInterval? = nil) -> (suspend: Bool, reason: String) {
         guard snapshot.reliableForControl, let percent = snapshot.percent else {
             return (false, "Mesures de batterie indisponibles : charge rendue à macOS.")
         }
         guard snapshot.onAC else {
-            limitReached = false; tooHot = false; initializedBand = false
+            limitReached = false; tooHot = false; initializedBand = false; thermalResumeNotBefore = nil
             return (false, "Sur batterie · protection en attente du secteur")
         }
         if configuration.thermalProtection {
@@ -89,9 +93,15 @@ public struct BatteryProtectionPolicy: Sendable {
                 tooHot = true
                 return (true, "Charge suspendue · température indisponible")
             }
-            if temperature >= Double(configuration.maximumTemperature) { tooHot = true }
-            if temperature <= Double(configuration.maximumTemperature - 2) { tooHot = false }
-        } else { tooHot = false }
+            if temperature >= Double(configuration.maximumTemperature) {
+                tooHot = true
+                if let now, now.isFinite { thermalResumeNotBefore = now + 300 }
+            }
+            if temperature <= Double(configuration.maximumTemperature - 2),
+               thermalResumeNotBefore.map({ deadline in now.map { $0.isFinite && $0 >= deadline } == true }) ?? true {
+                tooHot = false; thermalResumeNotBefore = nil
+            }
+        } else { tooHot = false; thermalResumeNotBefore = nil }
         if !initializedBand, configuration.sailingWidth != nil { limitReached = percent > configuration.resumeLimit }
         initializedBand = true
         if percent >= configuration.limit { limitReached = true }

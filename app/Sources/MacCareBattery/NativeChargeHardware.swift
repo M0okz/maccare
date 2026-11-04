@@ -132,17 +132,18 @@ public final class NativeChargeHardware: ChargeHardware {
 public final class AppleSiliconChargeHardware: ChargeHardware {
     private let smc: any ChargeHardware
     private let native: any ChargeHardware
+    private let nativePolicy: (any ChargeHardware)?
     private let nativeAvailable: Bool
     private var selected: (any ChargeHardware)?
     private var companionNative: NativeChargeState?
     private var selectedBackend: BatteryControlBackend?
     private var discoveryLimitation: BatteryControlLimitation?
     public convenience init() {
-        self.init(smc: SMCChargeHardware(), native: NativeChargeHardware(),
+        self.init(smc: SMCChargeHardware(), native: NativeChargeHardware(), nativePolicy: NativeChargePolicyHardware(),
                   nativeAvailable: Self.supportsNativeLimit(ProcessInfo.processInfo.operatingSystemVersion))
     }
-    init(smc: any ChargeHardware, native: any ChargeHardware, nativeAvailable: Bool) {
-        self.smc = smc; self.native = native; self.nativeAvailable = nativeAvailable
+    init(smc: any ChargeHardware, native: any ChargeHardware, nativePolicy: (any ChargeHardware)? = nil, nativeAvailable: Bool) {
+        self.smc = smc; self.native = native; self.nativePolicy = nativePolicy; self.nativeAvailable = nativeAvailable
     }
     public static func supportsNativeLimit(_ version: OperatingSystemVersion) -> Bool {
         version.majorVersion > 26 || (version.majorVersion == 26 && version.minorVersion >= 4)
@@ -152,6 +153,15 @@ public final class AppleSiliconChargeHardware: ChargeHardware {
         catch {
             discoveryLimitation = (error as? BatteryHardwareError)?.code == kIOReturnNotPrivileged ? .hardwareAccessDenied : nil
             guard nativeAvailable else { throw error }
+            if let nativePolicy {
+                do {
+                    _ = try nativePolicy.readSwitch()
+                    discoveryLimitation = nil
+                    return nativePolicy
+                } catch BatteryNativePolicyError.unavailable {
+                    // Only an absent runtime interface permits fallback. Unknown preferences fail closed.
+                }
+            }
             _ = try native.readSwitch()
             return native
         }
@@ -170,7 +180,7 @@ public final class AppleSiliconChargeHardware: ChargeHardware {
         let hardware = try discover()
         let record = try hardware.captureRecovery()
         selected = hardware; selectedBackend = record.backend
-        if record.backend != .nativeLimit && nativeAvailable {
+        if record.backend != .nativeLimit && record.backend != .nativePolicy && nativeAvailable {
             do { companionNative = try native.captureRecovery().nativeState }
             catch { hardware.endSession(); selected = nil; selectedBackend = nil; throw error }
             return .init(backend: record.backend, machineID: record.machineID,
@@ -180,10 +190,17 @@ public final class AppleSiliconChargeHardware: ChargeHardware {
     }
     public func restore(_ record: BatteryRecoveryRecord) throws {
         guard record.isValid, selectedBackend == nil || selectedBackend == record.backend else { throw BatteryHardwareError(code: -3) }
-        let hardware = record.backend == .nativeLimit ? native : smc
+        let hardware: any ChargeHardware
+        switch record.backend {
+        case .nativeLimit: hardware = native
+        case .nativePolicy:
+            guard let nativePolicy else { throw BatteryNativePolicyError.unavailable }
+            hardware = nativePolicy
+        default: hardware = smc
+        }
         selected = hardware; selectedBackend = record.backend
         try hardware.restore(record)
-        if record.backend != .nativeLimit, let original = record.nativeState {
+        if record.backend != .nativeLimit, record.backend != .nativePolicy, let original = record.nativeState {
             try native.restore(.init(backend: .nativeLimit, machineID: record.machineID, nativeState: original))
         }
     }
@@ -203,5 +220,12 @@ public final class AppleSiliconChargeHardware: ChargeHardware {
     public func setFirmwareLimit(_ limit: Int?) throws { try setChargeLimit(limit) }
     public func readSwitch() throws -> UInt8 { try current().readSwitch() }
     public func writeSwitch(_ value: UInt8) throws { guard let selected else { throw BatteryHardwareError(code: -3) }; try selected.writeSwitch(value) }
-    public func endSession() { selected?.endSession(); native.endSession(); companionNative = nil; selected = nil; selectedBackend = nil; discoveryLimitation = nil }
+    public func applyChargeIntent(_ intent: BatteryChargeIntent, snapshot: BatterySnapshot, now: TimeInterval) throws {
+        guard let selected else { throw BatteryHardwareError(code: -3) }
+        try selected.applyChargeIntent(intent, snapshot: snapshot, now: now)
+    }
+    public func chargeApplicationStatus(now: TimeInterval) throws -> BatteryChargeApplicationStatus? {
+        try current().chargeApplicationStatus(now: now)
+    }
+    public func endSession() { selected?.endSession(); native.endSession(); nativePolicy?.endSession(); companionNative = nil; selected = nil; selectedBackend = nil; discoveryLimitation = nil }
 }

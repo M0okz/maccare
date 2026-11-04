@@ -99,7 +99,7 @@ public final class BatteryProtectionController {
                 if command == .calibrate {
                     guard cycle == nil, let configuration, sessionCapabilities?.supportsDischarge == true,
                           sessionCapabilities?.supportedLimits.contains(100) == true, snapshot.onAC else {
-                        throw ControlError("L’étalonnage nécessite le secteur et le contrôle de l’adaptateur. Annulez d’abord tout autre cycle.")
+                        throw ControlError("L’étalonnage nécessite le secteur et une méthode de décharge disponible. Annulez d’abord tout autre cycle.")
                     }
                     try hardware.validateDischarge()
                     cycle = .calibration(target: configuration.limit, now: now)
@@ -175,19 +175,45 @@ public final class BatteryProtectionController {
         }
         if var running = cycle {
             let action = try running.advance(snapshot: snapshot, now: now)
-            try hardware.setDischarging(action.discharge)
-            if !action.finished {
-                if sessionCapabilities?.managesChargeLimit == true { try hardware.setChargeLimit(action.limit) }
-                else if try hardware.readSwitch() != 0 { try hardware.writeSwitch(0) }
+            if sessionCapabilities?.backend == .nativePolicy {
+                if !action.finished {
+                    let lower = running.status.phase == .dischargingForCalibration ? 10 : action.limit
+                    let intent: BatteryChargeIntent = action.discharge ? .discharge(to: lower) : .charge(to: action.limit)
+                    try hardware.applyChargeIntent(intent, snapshot: snapshot, now: now)
+                }
+            } else {
+                try hardware.setDischarging(action.discharge)
+                if !action.finished {
+                    if sessionCapabilities?.managesChargeLimit == true { try hardware.setChargeLimit(action.limit) }
+                    else if try hardware.readSwitch() != 0 { try hardware.writeSwitch(0) }
+                }
             }
             cycle = action.finished ? nil : running
             topUp = false; suspended = false
             message = action.finished ? "Cycle terminé · limite rétablie" : running.status.message
             failure = nil
-            if !action.finished { return }
+            if !action.finished {
+                if let application = try hardware.chargeApplicationStatus(now: now), !application.registered {
+                    message += " · application par macOS en cours"
+                }
+                return
+            }
         }
         if topUp && (!snapshot.onAC || snapshot.percent == 100) { topUp = false }
-        if sessionCapabilities?.managesChargeLimit == true {
+        if sessionCapabilities?.backend == .nativePolicy {
+            let decision = policy.evaluate(snapshot, configuration: configuration, topUp: topUp, now: now)
+            try hardware.applyChargeIntent(decision.suspend ? .hold : .charge(to: topUp ? 100 : configuration.limit),
+                                           snapshot: snapshot, now: now)
+            let application = try hardware.chargeApplicationStatus(now: now)
+            suspended = decision.suspend && application?.registered == true && snapshot.onAC && !snapshot.charging
+            if application?.releasePending == true {
+                message = "Réarmement de la charge par macOS en cours"
+            } else if application?.registered != true {
+                message = "Application de la protection par macOS en cours · \(decision.reason)"
+            } else if decision.suspend && snapshot.onAC && snapshot.charging {
+                message = "Pause enregistrée par macOS · attente de l’arrêt de la charge"
+            } else { message = decision.reason }
+        } else if sessionCapabilities?.managesChargeLimit == true {
             if !topUp, configuration.sailingWidth != nil, sessionCapabilities?.backend == .firmware {
                 try hardware.setChargeBand(upper: configuration.limit, lower: configuration.resumeLimit)
             } else { try hardware.setChargeLimit(topUp ? nil : configuration.limit) }
@@ -235,13 +261,19 @@ public final class BatteryProtectionController {
             catch { supported = false; hardwareError = error.localizedDescription }
         } else { supported = false }
         let expired = recovery != nil && now >= deadline && !sleeping
+        var application: BatteryChargeApplicationStatus?
+        if owner != nil && sessionCapabilities?.backend == .nativePolicy && !restoring && !expired {
+            do { application = try hardware.chargeApplicationStatus(now: now) }
+            catch { hardwareError = error.localizedDescription }
+        }
         var result = BatteryProtectionStatus(snapshot: snapshot, firmwareManaged: recovery?.backend == .firmware || (recovery == nil && hardware.firmwareManaged),
-                     supported: supported, active: owner != nil && !restoring && !expired,
+                     supported: supported, active: owner != nil && !restoring && !expired && hardwareError == nil,
                      suspended: suspended, topUp: topUp, configuration: configuration,
                      message: expired ? "Protection expirée · restauration en attente" : message,
-                     error: failure ?? (supported ? nil : hardwareError), restoring: restoring || expired,
+                     error: failure ?? hardwareError, restoring: restoring || expired,
                      ownedByCaller: owner != nil && owner == uid && sessionID == session, capabilities: capabilities)
         result.cycle = cycle?.status
+        result.chargeApplication = application
         return result
     }
     private struct ControlError: LocalizedError {

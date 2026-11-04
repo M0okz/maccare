@@ -58,6 +58,72 @@ struct BatteryNativeHardwareTests {
         .init(driver: driver, identity: { identity })
     }
 
+    private final class Policy: ChargeHardware {
+        var error: BatteryNativePolicyError?
+        var reads = 0
+        var restores: [BatteryRecoveryRecord] = []
+        var capabilities: BatteryControlCapabilities { .init(backend: .nativePolicy) }
+        func readSwitch() throws -> UInt8 {
+            reads += 1
+            if let error { throw error }
+            return 0
+        }
+        func writeSwitch(_ value: UInt8) throws { throw Failure.mutation }
+        func captureRecovery() throws -> BatteryRecoveryRecord {
+            .init(backend: .nativePolicy, machineID: "host", nativePolicyPreferences: .init(featureState: .absent, limit: .absent))
+        }
+        func restore(_ record: BatteryRecoveryRecord) throws { restores.append(record) }
+    }
+
+    @Test func ambiguousPolicyNeverFallsBackToAnotherNativeMethod() {
+        let smc = SMC(), driver = Driver(), policy = Policy()
+        smc.failRead = true; policy.error = .invalidState
+        let hardware = AppleSiliconChargeHardware(smc: smc, native: native(driver), nativePolicy: policy, nativeAvailable: true)
+        #expect(throws: BatteryNativePolicyError.self) { _ = try hardware.captureRecovery() }
+        #expect(driver.reads == 0 && driver.limits.isEmpty)
+        #expect(smc.writes.isEmpty)
+    }
+
+    @Test func unavailablePolicyAllowsReadOnlyFallbackButOlderOSNeverProbesIt() throws {
+        let smc = SMC(), driver = Driver(), policy = Policy()
+        smc.failRead = true; policy.error = .unavailable
+        let oldOS = AppleSiliconChargeHardware(smc: smc, native: native(driver), nativePolicy: policy, nativeAvailable: false)
+        #expect(throws: Failure.smcRead) { _ = try oldOS.readSwitch() }
+        #expect(policy.reads == 0 && driver.reads == 0)
+        let hardware = AppleSiliconChargeHardware(smc: smc, native: native(driver), nativePolicy: policy, nativeAvailable: true)
+        #expect(try hardware.captureRecovery().backend == .nativeLimit)
+        #expect(driver.limits.isEmpty && smc.writes.isEmpty)
+    }
+
+    @Test func policyCrashRecoveryDoesNotRediscoverSMCOrReadSliderBackend() throws {
+        let smc = SMC(), driver = Driver(), policy = Policy()
+        let hardware = AppleSiliconChargeHardware(smc: smc, native: native(driver), nativePolicy: policy, nativeAvailable: true)
+        let record = try policy.captureRecovery()
+        try hardware.restore(record)
+        #expect(policy.restores == [record])
+        #expect(smc.reads == 0 && driver.reads == 0)
+        #expect(hardware.capabilities.backend == .nativePolicy)
+    }
+
+    @Test func malformedPolicyJournalNeverReachesAnyRestorationDriver() throws {
+        let smc = SMC(), driver = Driver(), policy = Policy()
+        let hardware = AppleSiliconChargeHardware(smc: smc, native: native(driver), nativePolicy: policy, nativeAvailable: true)
+        let valid = try policy.captureRecovery()
+        let encoded = try JSONEncoder().encode(valid)
+        var json = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        for key in ["version", "adapterBackend", "firmwareUpper"] {
+            var invalid = json
+            invalid[key] = key == "version" ? 3 : 1
+            let record = try JSONDecoder().decode(BatteryRecoveryRecord.self, from: JSONSerialization.data(withJSONObject: invalid))
+            #expect(!record.isValid)
+            #expect(throws: BatteryHardwareError.self) { try hardware.restore(record) }
+        }
+        json["nativePolicyPreferences"] = nil
+        let missing = try JSONDecoder().decode(BatteryRecoveryRecord.self, from: JSONSerialization.data(withJSONObject: json))
+        #expect(throws: BatteryHardwareError.self) { try hardware.restore(missing) }
+        #expect(policy.restores.isEmpty && smc.records.isEmpty && driver.restores.isEmpty)
+    }
+
     @Test func nativeFallbackReportsARealPermissionRefusalWithoutWriting() throws {
         let smc = SMC(), driver = Driver()
         smc.readError = BatteryHardwareError(code: kIOReturnNotPrivileged)

@@ -1,7 +1,7 @@
 import Foundation
 
 public enum BatteryControlBackend: Int32, Codable, Sendable {
-    case legacyPair = 1, chargeGate = 2, firmware = 3, nativeLimit = 4
+    case legacyPair = 1, chargeGate = 2, firmware = 3, nativeLimit = 4, nativePolicy = 5
 }
 
 public struct NativeChargeState: Codable, Equatable, Sendable {
@@ -20,14 +20,22 @@ public struct BatteryRecoveryRecord: Codable, Equatable, Sendable {
     public let firmwareLower: UInt32?
     public let adapterBackend: BatteryAdapterBackend?
     public let nativeState: NativeChargeState?
+    public let nativePolicyPreferences: NativeChargePolicyPreferences?
     public init(backend: BatteryControlBackend, machineID: String = "fixture", firmwareUpper: UInt32? = nil,
-                firmwareLower: UInt32? = nil, nativeState: NativeChargeState? = nil, adapterBackend: BatteryAdapterBackend? = nil) {
-        version = adapterBackend != nil || (backend != .nativeLimit && nativeState != nil) ? 3 : (backend == .nativeLimit ? 2 : 1)
+                firmwareLower: UInt32? = nil, nativeState: NativeChargeState? = nil, adapterBackend: BatteryAdapterBackend? = nil,
+                nativePolicyPreferences: NativeChargePolicyPreferences? = nil) {
+        version = backend == .nativePolicy ? 4 : (adapterBackend != nil || (backend != .nativeLimit && nativeState != nil) ? 3 : (backend == .nativeLimit ? 2 : 1))
         self.machineID = machineID; self.backend = backend
         self.firmwareUpper = firmwareUpper; self.firmwareLower = firmwareLower; self.nativeState = nativeState; self.adapterBackend = adapterBackend
+        self.nativePolicyPreferences = nativePolicyPreferences
     }
     public var isValid: Bool {
         guard !machineID.isEmpty, machineID.utf8.count <= 128 else { return false }
+        if backend == .nativePolicy {
+            return version == 4 && nativePolicyPreferences?.isValid == true && nativeState == nil
+                && firmwareUpper == nil && firmwareLower == nil && adapterBackend == nil
+        }
+        guard nativePolicyPreferences == nil else { return false }
         if version == 3, adapterBackend == nil, (backend == .nativeLimit || nativeState == nil) { return false }
         if version != 3 && adapterBackend != nil { return false }
         if let nativeState, !nativeState.isValid || nativeState.enabled != (nativeState.limit < 100) { return false }

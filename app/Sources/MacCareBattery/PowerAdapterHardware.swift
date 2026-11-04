@@ -45,6 +45,7 @@ public final class RecoverableChargeHardware: ChargeHardware {
     }
     public var capabilities: BatteryControlCapabilities {
         let value = base.capabilities
+        if value.backend == .nativePolicy { return value }
         return .init(backend: value.backend, supportedLimits: value.supportedLimits,
                      supportsThermalProtection: value.supportsThermalProtection,
                      adapterBackend: captured ? pinnedAdapter : try? adapter.discover(), limitation: value.limitation)
@@ -55,6 +56,7 @@ public final class RecoverableChargeHardware: ChargeHardware {
         if let backend, try adapter.read(backend) { throw BatteryHardwareError(code: -2) }
         let record = try base.captureRecovery()
         pinnedAdapter = backend; captured = true
+        if record.backend == .nativePolicy { return record }
         return .init(backend: record.backend, machineID: record.machineID, firmwareUpper: record.firmwareUpper,
                      firmwareLower: record.firmwareLower, nativeState: record.nativeState, adapterBackend: backend)
     }
@@ -79,5 +81,11 @@ public final class RecoverableChargeHardware: ChargeHardware {
     public func setChargeLimit(_ limit: Int?) throws { try base.setChargeLimit(limit) }
     public func readSwitch() throws -> UInt8 { try base.readSwitch() }
     public func writeSwitch(_ value: UInt8) throws { try base.writeSwitch(value) }
+    public func applyChargeIntent(_ intent: BatteryChargeIntent, snapshot: BatterySnapshot, now: TimeInterval) throws {
+        try base.applyChargeIntent(intent, snapshot: snapshot, now: now)
+    }
+    public func chargeApplicationStatus(now: TimeInterval) throws -> BatteryChargeApplicationStatus? {
+        try base.chargeApplicationStatus(now: now)
+    }
     public func endSession() { base.endSession(); pinnedAdapter = nil; captured = false }
 }

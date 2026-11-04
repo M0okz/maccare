@@ -16,6 +16,8 @@ public protocol ChargeHardware {
     func setChargeLimit(_ limit: Int?) throws
     func readSwitch() throws -> UInt8
     func writeSwitch(_ value: UInt8) throws
+    func applyChargeIntent(_ intent: BatteryChargeIntent, snapshot: BatterySnapshot, now: TimeInterval) throws
+    func chargeApplicationStatus(now: TimeInterval) throws -> BatteryChargeApplicationStatus?
 }
 
 public extension ChargeHardware {
@@ -39,6 +41,10 @@ public extension ChargeHardware {
     func validateDischarge() throws {}
     func setDischarging(_ disabled: Bool) throws { if disabled { throw BatteryHardwareError(code: -1) } }
     func endSession() {}
+    func applyChargeIntent(_ intent: BatteryChargeIntent, snapshot: BatterySnapshot, now: TimeInterval) throws {
+        throw BatteryHardwareError(code: -1)
+    }
+    func chargeApplicationStatus(now: TimeInterval) throws -> BatteryChargeApplicationStatus? { nil }
 }
 
 /// All accesses occur on the helper's battery queue. A backend is pinned before the
