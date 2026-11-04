@@ -301,8 +301,8 @@ int32_t maccare_adapter_write(int32_t backend, uint8_t disabled) {
 
 // Explicit read-only support matrix. Closed key slots and closed transport values.
 int32_t maccare_key_diagnostic(int32_t slot, int32_t transport, int32_t handshake, MCKeyDiagnostic *output) {
-    const char *keys[] = {"bfF0", "bfD0", "bfE0", "CHTE", "CH0B", "CH0C", "CH0I", "CH0J", "CHIE"};
-    if (!output || slot < 0 || slot >= 9 || transport < 0 || transport > 1 || handshake < 0 || handshake > 1) return kIOReturnBadArgument;
+    const char *keys[] = {"bfF0", "bfD0", "bfE0", "CHTE", "CH0B", "CH0C", "CH0I", "CH0J", "CHIE", "CHLS"};
+    if (!output || slot < 0 || slot >= (int32_t)(sizeof(keys) / sizeof(keys[0])) || transport < 0 || transport > 1 || handshake < 0 || handshake > 1) return kIOReturnBadArgument;
     memset(output, 0, sizeof(*output));
     io_service_t service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSMC"));
     if (!service) { output->result = kIOReturnNotFound; return output->result; }

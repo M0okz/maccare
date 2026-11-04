@@ -6,6 +6,31 @@ la présence d’une fonction dans le code ne certifie pas son contrôle matéri
 Le paquet de développement est `build/MacCare.app` ; la copie utilisateur
 `/Applications/MacCare.app` reçoit les distributions signées par Sparkle.
 
+## Version 0.2.2 : politique native distincte
+
+**Résultat des essais réels : d'abord en échec, puis validé sur le M1 de test.**
+Le maintien à 31–32 % a interrompu le secteur malgré le câble connecté. La cause établie
+est une limite enregistrée sous le niveau de charge. La méthode corrigée a tenu le secteur
+dans tous ses essais, sur le seul MacBookPro17,1, seul modèle autorisé, mode Voile et pause
+thermique compris. Elle n'est disponible qu'une fois la release 0.2.2 publiée.
+Voir [le résultat détaillé et les restrictions du système](native-charge-policy.md).
+
+Cette méthode est distincte du curseur PowerUI limité à 80–100 %. Sur ce modèle, elle propose
+50–100 %, les profils avec plage de maintien, la pause thermique et les cycles, en conservant
+les préférences de recharge optimisée. Le pilote SMC et l’ancien pilote PowerUI gardent
+leurs propres restrictions.
+
+Le protocole passe à 10. Le bouton « Mettre à jour l’assistant… » restaure
+l’ancienne session avant de remplacer le service, confirme le protocole chargé
+et ne réactive pas la protection. Une cible demandée, une cible enregistrée par macOS
+et l’arrêt physique de la charge sont affichés comme des états distincts.
+
+VoiceOver, le parcours complet Raccourcis, un cycle réel d’étalonnage et les Mac M2 à M6
+ne sont pas déclarés validés.
+
+Les sections suivantes conservent les constats antérieurs ; leurs restrictions
+matérielles décrivent les méthodes de la version 0.2.1, pas la nouvelle politique.
+
 ## Fonctions
 
 | Fonction | Comportement | Disponibilité |

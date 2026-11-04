@@ -14,6 +14,8 @@
 @property(nonatomic) BOOL tornRead;
 @property(nonatomic) NSUInteger limitReads;
 @property(nonatomic) NSUInteger setterCalls;
+@property(nonatomic) NSUInteger enabledReads;
+@property(nonatomic) BOOL tornEnabledRead;
 @end
 
 @implementation FakeNativeClient
@@ -24,13 +26,19 @@
     if (self.readError) *error = [NSError errorWithDomain:@"MacCareBoundaryTest" code:1 userInfo:nil];
     return self.tornRead && self.limitReads > 1 ? self.limit + 5 : self.limit;
 }
-- (unsigned long long)isMCLCurrentlyEnabled:(NSError **)error { (void)error; return self.enabled; }
+- (unsigned long long)isMCLCurrentlyEnabled:(NSError **)error {
+    self.enabledReads++;
+    if (self.readError) *error = [NSError errorWithDomain:@"MacCareBoundaryTest" code:2 userInfo:nil];
+    return self.tornEnabledRead && self.enabledReads > 1 ? !self.enabled : self.enabled;
+}
 - (NSArray *)availableChargeLimitsWithError:(NSError **)error { (void)error; return self.values; }
 - (BOOL)setMCLLimit:(unsigned char)limit error:(NSError **)error {
     (void)limit; (void)error;
     self.setterCalls++;
     return NO;
 }
+- (BOOL)enableMCL:(NSError **)error { (void)error; self.setterCalls++; self.enabled = 1; return YES; }
+- (BOOL)disableMCL:(NSError **)error { (void)error; self.setterCalls++; self.enabled = 0; return YES; }
 @end
 
 static FakeNativeClient *fake(void) {
@@ -59,6 +67,33 @@ int main(void) {
                               "B28@0:8Q16^@24"));
         objc_registerClassPair(wrongArgument);
         CHECK(!validInterface(wrongArgument));
+
+        CHECK(validPolicyInterface([FakeNativeClient class]));
+        Class wrongPolicy = objc_allocateClassPair([FakeNativeClient class], "MacCarePowerUIWrongPolicyABI", 0);
+        CHECK(wrongPolicy != Nil);
+        CHECK(class_addMethod(wrongPolicy, @selector(enableMCL:),
+                              class_getMethodImplementation([FakeNativeClient class], @selector(enableMCL:)),
+                              "Q24@0:8^@16"));
+        objc_registerClassPair(wrongPolicy);
+        CHECK(!validPolicyInterface(wrongPolicy));
+
+        unsigned long long enabled = 42;
+        FakeNativeClient *policyClient = fake();
+        CHECK(readEnabled(policyClient, &enabled) == MACCARE_POWERUI_SUCCESS && enabled == 0);
+        policyClient = fake(); policyClient.enabled = 1;
+        CHECK(readEnabled(policyClient, &enabled) == MACCARE_POWERUI_SUCCESS && enabled == 1);
+        policyClient = fake(); policyClient.enabled = 2;
+        CHECK(readEnabled(policyClient, &enabled) == MACCARE_POWERUI_INVALID_STATE);
+        policyClient = fake(); policyClient.tornEnabledRead = YES;
+        CHECK(readEnabled(policyClient, &enabled) == MACCARE_POWERUI_INVALID_STATE);
+        policyClient = fake(); policyClient.readError = YES;
+        CHECK(readEnabled(policyClient, &enabled) == MACCARE_POWERUI_CALL_FAILED);
+        CHECK(policyClient.setterCalls == 0);
+        // The public mutation entry points must reject this unprivileged test
+        // before constructing any real PowerUI client or posting a notification.
+        CHECK(geteuid() != 0);
+        CHECK(maccare_powerui_clear_limit() == MACCARE_POWERUI_CALL_FAILED);
+        CHECK(maccare_powerui_policy_preferences_changed() == MACCARE_POWERUI_CALL_FAILED);
 
         FakeNativeClient *client = fake();
         client.values = @[@100, @90, @80];

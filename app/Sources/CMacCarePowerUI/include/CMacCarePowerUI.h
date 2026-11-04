@@ -35,4 +35,14 @@ int32_t maccare_powerui_set_limit(int32_t limit);
 int32_t maccare_powerui_restore(int32_t enabled, int32_t limit);
 
 int32_t maccare_powerui_calibration_override(void);
+
+// Root-only, explicit release for the separate preference policy. The caller
+// must already own a durable recovery record. No limit-range change is made to
+// the slider-backed read/set/restore functions above.
+int32_t maccare_powerui_clear_limit(void);
+// Returns 1 only when the supported client and complete release ABI are present.
+// Read-only: no preference write, feature enable or limit registration.
+int32_t maccare_powerui_policy_is_available(void);
+// Posts only com.apple.smartcharging.defaultschanged and reports notify errors.
+int32_t maccare_powerui_policy_preferences_changed(void);
 #endif

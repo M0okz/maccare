@@ -17,6 +17,11 @@ struct BatteryNativeModelTests {
         var calls: [BatteryCommand] = []
         var requestedConfigurations: [BatteryConfiguration] = []
         var preparations = 0
+        var loadedProtocol: Int?
+        var updates = 0
+        var approvals = 0
+        var updateResult = HelperUpdateResult.ready
+        var updateFails = false
         func snapshot() async -> BatterySnapshot { .init(percent: 80, onAC: true, temperature: 30) }
         func request(_ command: BatteryCommand, configuration: BatteryConfiguration?, sessionID: UUID) async throws -> BatteryProtectionStatus {
             calls.append(command)
@@ -32,7 +37,15 @@ struct BatteryNativeModelTests {
         }
         func prepareProtection() async throws { preparations += 1 }
         func register() throws {}
-        func openApproval() {}
+        func openApproval() { approvals += 1 }
+        func loadedHelperProtocolVersion() async throws -> Int? { loadedProtocol }
+        func updateHelper() async throws -> HelperUpdateResult {
+            updates += 1
+            if updateFails { throw NSError(domain: "fixture", code: 1) }
+            if updateResult == .ready { loadedProtocol = 10 }
+            else { status = .requiresApproval }
+            return updateResult
+        }
     }
 
     private func fixture(_ client: Client, initial: BatteryConfiguration? = nil) throws -> (BatteryModel, UserDefaults, String) {
@@ -129,5 +142,53 @@ struct BatteryNativeModelTests {
         #expect(model.supportsThermalProtection == false)
         #expect(model.configuration.thermalProtection == false)
         #expect(model.availableLimits == Array(stride(from: 50, through: 100, by: 5)))
+    }
+    @Test func nativePolicyCapabilitiesPreserveLowerLimitAndSailingDraftWithoutActivation() async throws {
+        let client = Client(), initial = BatteryConfiguration(limit: 70, thermalProtection: true, sailingWidth: 5)
+        client.capabilities = .init(backend: .nativePolicy)
+        let (model, defaults, suite) = try fixture(client, initial: initial)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        await model.refresh(force: true)
+        #expect(model.nativePolicyControl && model.usesAppleChargeControl)
+        #expect(!model.nativeControl && model.supportsThermalProtection && model.supportsSailing)
+        #expect(model.availableLimits.contains(70) && model.configuration == initial)
+        #expect(client.calls == [.status] && client.preparations == 0 && !client.rootActive)
+        #expect(try JSONDecoder().decode(BatteryConfiguration.self, from: #require(defaults.data(forKey: "battery.configuration"))) == initial)
+    }
+    @Test func oldProtocolRefreshDoesNotReplaceOrActivateHelper() async throws {
+        let client = Client(); client.loadedProtocol = 9
+        let (model, defaults, suite) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        await model.refresh(force: true)
+        #expect(model.helperUpdateRequired && model.protection == nil)
+        #expect(client.calls.isEmpty && client.updates == 0 && client.preparations == 0)
+    }
+    @Test func helperReplacementIsExplicitAndDoesNotActivateProtection() async throws {
+        let client = Client(); client.loadedProtocol = 9
+        let (model, defaults, suite) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        await model.refresh(force: true)
+        await model.updateHelper()
+        #expect(client.updates == 1 && model.loadedHelperProtocol == 10)
+        #expect(!model.helperUpdateRequired && !model.active)
+        #expect(client.calls == [.status] && client.preparations == 0 && client.approvals == 0)
+    }
+    @Test func helperReplacementApprovalOpensSettingsWithoutStartingControl() async throws {
+        let client = Client(); client.loadedProtocol = 9; client.updateResult = .requiresApproval
+        let (model, defaults, suite) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        await model.refresh(force: true)
+        await model.updateHelper()
+        #expect(model.requiresApproval && !model.active && client.approvals == 1)
+        #expect(client.calls.isEmpty && client.preparations == 0)
+    }
+    @Test func helperReplacementFailureRemainsVisibleAndNeverActivates() async throws {
+        let client = Client(); client.loadedProtocol = 9; client.updateFails = true
+        let (model, defaults, suite) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        await model.refresh(force: true)
+        await model.updateHelper()
+        #expect(model.error != nil && !model.busy && model.helperUpdateRequired)
+        #expect(client.calls.isEmpty && client.preparations == 0)
     }
 }

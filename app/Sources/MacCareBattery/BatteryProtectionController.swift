@@ -21,6 +21,7 @@ public final class BatteryProtectionController {
     private var sleeping = false
     private var awaitingHeartbeat = false
     private var restoring = false
+    private var deferredRestorationTarget: Int?
     private var failure: String?
     private var message = "Protection désactivée"
     public var requiresWatchdog: Bool { recovery != nil }
@@ -31,7 +32,7 @@ public final class BatteryProtectionController {
     }
     public func recover(_ record: BatteryRecoveryRecord) throws {
         guard record.isValid else { throw BatteryHardwareError(code: -3) }
-        recovery = record; sessionCapabilities = .init(backend: record.backend); restoring = true
+        recovery = record; sessionCapabilities = .init(backend: record.backend, adapterBackend: record.adapterBackend); restoring = true
         try finishRestoration()
     }
     public func execute(_ command: BatteryCommand, configuration newConfiguration: BatteryConfiguration?,
@@ -48,7 +49,7 @@ public final class BatteryProtectionController {
                     throw ControlError("La protection est gérée par une autre session de MacCare.")
                 }
             }
-            guard !restoring || command == .disable else {
+            guard !restoring || command == .disable || (command == .enable && deferredRestorationTarget != nil) else {
                 throw ControlError("Restauration de la charge en cours. Aucune protection ne sera relancée avant sa réussite.")
             }
             switch command {
@@ -72,6 +73,11 @@ public final class BatteryProtectionController {
                 }
                 if newConfiguration.thermalProtection && !snapshot.reliableTemperature {
                     throw ControlError("La température est indisponible. Désactivez la pause thermique pour utiliser uniquement la limite de charge.")
+                }
+                if deferredRestorationTarget != nil {
+                    // The journal still holds the true original, so the session resumes on top of it.
+                    deferredRestorationTarget = nil; restoring = false
+                    owner = uid; sessionID = callerSession; deadline = now + Self.leaseDuration
                 }
                 if recovery == nil {
                     let record = try hardware.captureRecovery()
@@ -99,7 +105,7 @@ public final class BatteryProtectionController {
                 if command == .calibrate {
                     guard cycle == nil, let configuration, sessionCapabilities?.supportsDischarge == true,
                           sessionCapabilities?.supportedLimits.contains(100) == true, snapshot.onAC else {
-                        throw ControlError("L’étalonnage nécessite le secteur et le contrôle de l’adaptateur. Annulez d’abord tout autre cycle.")
+                        throw ControlError("L’étalonnage nécessite le secteur et une méthode de décharge disponible. Annulez d’abord tout autre cycle.")
                     }
                     try hardware.validateDischarge()
                     cycle = .calibration(target: configuration.limit, now: now)
@@ -129,8 +135,14 @@ public final class BatteryProtectionController {
                 restoring = true; topUp = false; cycle = nil
                 do { try finishRestoration() } catch { /* watchdog retries, never resumes policy */ }
             }
-            failure = issue
-            message = restoring ? "Restauration de la charge en cours" : "Protection à vérifier"
+            if (error as? BatteryNativePolicyError) == .restorationPending {
+                // Expected agent propagation is a progress state. Preserve any
+                // earlier real failure, but never turn this delay into an error.
+                message = restoring ? "Restauration de la charge en cours" : "Protection désactivée"
+            } else {
+                failure = issue
+                message = restoring ? "Restauration de la charge en cours" : "Protection à vérifier"
+            }
         }
         return status(snapshot, now: now, uid: uid, session: callerSession)
     }
@@ -142,23 +154,41 @@ public final class BatteryProtectionController {
             let issue = error.localizedDescription
             restoring = recovery != nil; topUp = false
             do { try finishRestoration() } catch { /* next tick retries the exact original state */ }
-            failure = issue
-            message = restoring ? "Restauration de la charge en cours" : "Protection interrompue"
+            if (error as? BatteryNativePolicyError) == .restorationPending {
+                message = restoring ? "Restauration de la charge en cours" : "Protection désactivée"
+            } else {
+                failure = issue
+                message = restoring ? "Restauration de la charge en cours" : "Protection interrompue"
+            }
         }
         return status(snapshot, now: now, uid: nil, session: nil)
     }
     public func prepareForSleep() throws {
+        // A one-off target above the configured limit must not outlive the session's supervision.
+        let temporaryTarget = topUp || cycle != nil
         sleeping = true; topUp = false; cycle = nil; awaitingHeartbeat = true
         guard let recovery else { return }
-        do { try hardware.restore(recovery); suspended = false }
-        catch { restoring = true; failure = error.localizedDescription; throw error }
+        do {
+            if recovery.backend == .nativePolicy, !restoring, !temporaryTarget {
+                // macOS enforces a registered target during sleep. Restoring it here would let
+                // a Mac on AC refill past a limit under 80 % every night.
+                try hardware.setDischarging(false)
+                message = "En veille · limite conservée par macOS"
+                return
+            }
+            try hardware.restore(recovery); suspended = false
+        } catch BatteryNativePolicyError.restorationDeferred(let target) {
+            deferRestoration(to: target); return
+        } catch { restoring = true; failure = error.localizedDescription; throw error }
         message = "En veille · charge rendue à macOS"
     }
     public func didWake(now: TimeInterval) {
         sleeping = false
         if recovery != nil && !restoring {
             awaitingHeartbeat = true; deadline = now + Self.wakeGrace
-            message = "Charge gérée par macOS · attente de MacCare après la veille"
+            message = sessionCapabilities?.backend == .nativePolicy
+                ? "Limite conservée · attente de MacCare après la veille"
+                : "Charge gérée par macOS · attente de MacCare après la veille"
         }
     }
     public func shutdown() throws { if recovery != nil { try stop() } }
@@ -175,19 +205,55 @@ public final class BatteryProtectionController {
         }
         if var running = cycle {
             let action = try running.advance(snapshot: snapshot, now: now)
-            try hardware.setDischarging(action.discharge)
-            if !action.finished {
-                if sessionCapabilities?.managesChargeLimit == true { try hardware.setChargeLimit(action.limit) }
-                else if try hardware.readSwitch() != 0 { try hardware.writeSwitch(0) }
+            if sessionCapabilities?.backend == .nativePolicy {
+                // The gate closes before a target under the charge level is written, and reopens
+                // with that target already in place, so no window leaves the policy to drain alone.
+                if action.discharge { try hardware.setDischarging(true) }
+                if !action.finished {
+                    let lower = running.status.phase == .dischargingForCalibration ? 10 : action.limit
+                    let intent: BatteryChargeIntent = action.discharge ? .discharge(to: lower) : .charge(to: action.limit)
+                    try hardware.applyChargeIntent(intent, snapshot: snapshot, now: now)
+                }
+                if !action.discharge { try hardware.setDischarging(false) }
+                if action.finished {
+                    // External input only reappears after this reading. The next tick evaluates it.
+                    cycle = nil; topUp = false; suspended = false; failure = nil
+                    message = "Cycle terminé · limite rétablie"
+                    return
+                }
+            } else {
+                try hardware.setDischarging(action.discharge)
+                if !action.finished {
+                    if sessionCapabilities?.managesChargeLimit == true { try hardware.setChargeLimit(action.limit) }
+                    else if try hardware.readSwitch() != 0 { try hardware.writeSwitch(0) }
+                }
             }
             cycle = action.finished ? nil : running
             topUp = false; suspended = false
             message = action.finished ? "Cycle terminé · limite rétablie" : running.status.message
             failure = nil
-            if !action.finished { return }
+            if !action.finished {
+                if let application = try hardware.chargeApplicationStatus(now: now), !application.registered {
+                    message += " · application par macOS en cours"
+                }
+                return
+            }
         }
         if topUp && (!snapshot.onAC || snapshot.percent == 100) { topUp = false }
-        if sessionCapabilities?.managesChargeLimit == true {
+        if sessionCapabilities?.backend == .nativePolicy {
+            let decision = policy.evaluate(snapshot, configuration: configuration, topUp: topUp, now: now)
+            try hardware.applyChargeIntent(decision.suspend ? .hold : .charge(to: topUp ? 100 : configuration.limit),
+                                           snapshot: snapshot, now: now)
+            let application = try hardware.chargeApplicationStatus(now: now)
+            suspended = decision.suspend && application?.registered == true && snapshot.onAC && !snapshot.charging
+            if application?.releasePending == true {
+                message = "Réarmement de la charge par macOS en cours"
+            } else if application?.registered != true {
+                message = "Application de la protection par macOS en cours · \(decision.reason)"
+            } else if decision.suspend && snapshot.onAC && snapshot.charging {
+                message = "Pause enregistrée par macOS · attente de l’arrêt de la charge"
+            } else { message = decision.reason }
+        } else if sessionCapabilities?.managesChargeLimit == true {
             if !topUp, configuration.sailingWidth != nil, sessionCapabilities?.backend == .firmware {
                 try hardware.setChargeBand(upper: configuration.limit, lower: configuration.resumeLimit)
             } else { try hardware.setChargeLimit(topUp ? nil : configuration.limit) }
@@ -213,13 +279,20 @@ public final class BatteryProtectionController {
     }
     private func finishRestoration() throws {
         guard let recovery else { restoring = false; return }
-        try hardware.restore(recovery)
-        suspended = false
+        do { try hardware.restore(recovery) }
+        catch BatteryNativePolicyError.restorationDeferred(let target) { deferRestoration(to: target); return }
+        suspended = false; deferredRestorationTarget = nil
         try clearRecovery()
         self.recovery = nil; sessionCapabilities = nil; hardware.endSession()
         owner = nil; sessionID = nil; configuration = nil; topUp = false
         policy = .init(); cycle = nil; restoring = false; awaitingHeartbeat = false
         message = "Protection désactivée"
+    }
+    /// Not a failure: the session is over and only the journal's final step is waiting on the charge level.
+    private func deferRestoration(to target: Int) {
+        restoring = true; deferredRestorationTarget = target; suspended = false; topUp = false; cycle = nil
+        owner = nil; sessionID = nil; configuration = nil; policy = .init(); awaitingHeartbeat = false
+        message = BatteryNativePolicyError.restorationDeferred(target: target).errorDescription ?? ""
     }
     private func status(_ snapshot: BatterySnapshot, now: TimeInterval, uid: UInt32?, session: UUID?) -> BatteryProtectionStatus {
         var hardwareError: String?
@@ -235,13 +308,20 @@ public final class BatteryProtectionController {
             catch { supported = false; hardwareError = error.localizedDescription }
         } else { supported = false }
         let expired = recovery != nil && now >= deadline && !sleeping
+        var application: BatteryChargeApplicationStatus?
+        if owner != nil && sessionCapabilities?.backend == .nativePolicy && !restoring && !expired {
+            do { application = try hardware.chargeApplicationStatus(now: now) }
+            catch { hardwareError = error.localizedDescription }
+        }
         var result = BatteryProtectionStatus(snapshot: snapshot, firmwareManaged: recovery?.backend == .firmware || (recovery == nil && hardware.firmwareManaged),
-                     supported: supported, active: owner != nil && !restoring && !expired,
+                     supported: supported, active: owner != nil && !restoring && !expired && hardwareError == nil,
                      suspended: suspended, topUp: topUp, configuration: configuration,
-                     message: expired ? "Protection expirée · restauration en attente" : message,
-                     error: failure ?? (supported ? nil : hardwareError), restoring: restoring || expired,
+                     message: expired && deferredRestorationTarget == nil ? "Protection expirée · restauration en attente" : message,
+                     error: failure ?? hardwareError, restoring: restoring || expired,
                      ownedByCaller: owner != nil && owner == uid && sessionID == session, capabilities: capabilities)
         result.cycle = cycle?.status
+        result.chargeApplication = application
+        result.deferredRestorationTarget = deferredRestorationTarget
         return result
     }
     private struct ControlError: LocalizedError {
