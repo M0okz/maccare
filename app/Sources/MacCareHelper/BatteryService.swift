@@ -77,7 +77,7 @@ enum BatteryService {
         queue.async {
             defer { Idle.end() }
             if raw == "diagnostics", configurationJSON == "{}", rawSession.isEmpty, uid >= 501 {
-                let keys = ["bfF0", "bfD0", "bfE0", "CHTE", "CH0B", "CH0C", "CH0I", "CH0J", "CHIE"]
+                let keys = ["bfF0", "bfD0", "bfE0", "CHTE", "CH0B", "CH0C", "CH0I", "CH0J", "CHIE", "CHLS"]
                 var rows: [[String: Any]] = []
                 for transport: Int32 in [0, 1] {
                     for handshake: Int32 in [0, 1] {
