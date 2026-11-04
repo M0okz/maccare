@@ -6,42 +6,27 @@ la présence d’une fonction dans le code ne certifie pas son contrôle matéri
 Le paquet de développement est `build/MacCare.app` ; la copie utilisateur
 `/Applications/MacCare.app` reçoit les distributions signées par Sparkle.
 
-## Développement du 4 novembre : politique native distincte
+## Version 0.2.2 : politique native distincte
 
-**Résultat des essais réels : d'abord en échec, puis validé sur le M1 de test, non livré.**
+**Résultat des essais réels : d'abord en échec, puis validé sur le M1 de test.**
 Le maintien à 31–32 % a interrompu le secteur malgré le câble connecté. La cause établie
 est une limite enregistrée sous le niveau de charge. La méthode corrigée a tenu le secteur
 dans tous ses essais, sur le seul MacBookPro17,1, seul modèle autorisé, mode Voile et pause
-thermique compris. Aucun livrable public 0.2.2 n'est publié.
+thermique compris. Elle n'est disponible qu'une fois la release 0.2.2 publiée.
 Voir [le résultat détaillé et les restrictions du système](native-charge-policy.md).
 
-La branche `codex/battery-native-policy` ajoute une méthode distincte du curseur
-PowerUI limité à 80–100 %. Voir [la politique native et sa restauration](native-charge-policy.md).
-Les commits `b1119ed`, `3488fa6`, `e629265` et `49801ae` couvrent respectivement
-le pilote, la mise à jour du helper, les transitions et leur interface.
-Cette méthode n’est pas livrée dans la copie utilisateur 0.2.1.
-
-Dans les tests injectés, le nouveau backend propose
-50–100 %, les profils avec plage de maintien, la pause thermique et les cycles.
-Il conserve les préférences de recharge optimisée et ne commande pas l’isolement
-de l’adaptateur. Ces possibilités sont testées par simulation ; leur effet
-physique n'est pas validé. La découverte standard interdit ce candidat, même
-si l'interface est présente ; la récupération d'un ancien journal reste possible.
-Le pilote SMC et l’ancien pilote PowerUI gardent leurs propres restrictions.
+Cette méthode est distincte du curseur PowerUI limité à 80–100 %. Sur ce modèle, elle propose
+50–100 %, les profils avec plage de maintien, la pause thermique et les cycles, en conservant
+les préférences de recharge optimisée. Le pilote SMC et l’ancien pilote PowerUI gardent
+leurs propres restrictions.
 
 Le protocole passe à 10. Le bouton « Mettre à jour l’assistant… » restaure
 l’ancienne session avant de remplacer le service, confirme le protocole chargé
-et ne réactive pas la protection. Le journal v4 mémorise exactement la présence
-et le type des deux préférences possédées par ce backend. Une cible demandée,
-une cible enregistrée par macOS et l’arrêt physique de la charge sont affichés
-comme des états distincts. Chaque étape de propagation est bornée à 150 secondes.
+et ne réactive pas la protection. Une cible demandée, une cible enregistrée par macOS
+et l’arrêt physique de la charge sont affichés comme des états distincts.
 
-Vérifications du développement : suite complète de 337 tests réussis, puis
-quatre nouveaux tests d’intégration de sélection/récupération réussis ; build
-Release arm64 et paquet Developer ID 0.2.2 (3), notarié, agrafé et accepté par
-Gatekeeper. Ce paquet de test local n’est pas
-une release publique. VoiceOver, le parcours complet Raccourcis, un cycle réel
-d’étalonnage et les Mac M2 à M6 ne sont pas déclarés validés.
+VoiceOver, le parcours complet Raccourcis, un cycle réel d’étalonnage et les Mac M2 à M6
+ne sont pas déclarés validés.
 
 Les sections suivantes conservent les constats antérieurs ; leurs restrictions
 matérielles décrivent les méthodes de la version 0.2.1, pas la nouvelle politique.

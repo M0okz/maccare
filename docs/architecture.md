@@ -48,17 +48,17 @@ initiale à l’arrêt, à la veille ou à la perte de contact. Le backend dépe
 et de la disponibilité des interfaces de charge. Les détails mesurés sur une
 machine ne constituent pas une validation matérielle de tous les modèles.
 
-Une méthode de politique native distincte est en développement pour les
+Une méthode de politique native distincte, préparée pour la version 0.2.2, s'adresse aux
 interfaces Apple récentes. Son journal v5 possède deux préférences typées et la
 coupure d'adaptateur ; la configuration demandée est suivie séparément de la cible enregistrée
 et de la charge physique. Voir [le contrat de cette méthode](native-charge-policy.md).
 Le protocole 10 impose une mise à jour explicite du helper : restauration
 confirmée de l’ancienne session, remplacement du service, puis contrôle du
 protocole chargé. Cette opération ne réactive pas la protection.
-Après l'échec du maintien sur le M1 de test le 4 novembre 2026, la découverte
-standard exclut le candidat natif ; seule sa récupération reste accessible.
-Les tests injectés peuvent sélectionner ce candidat sans ouvrir cette possibilité
-dans l'interface de production. La copie utilisateur est revenue à la 0.2.1.
+La découverte standard n'active cette méthode que sur le MacBookPro17,1, seul modèle
+essayé sur matériel ; les autres gardent les méthodes précédentes. Si le fichier du helper
+est remplacé pendant une restauration en attente, il se termine entre deux opérations et
+launchd le relance depuis le nouveau paquet, qui reprend le journal.
 
 ## Distribution
 

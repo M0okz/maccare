@@ -1,7 +1,7 @@
 # Politique de charge Apple sur les nouveaux firmwares
 
-État : en développement sur `codex/battery-native-policy`. La version utilisateur
-0.2.1 ne contient pas cette méthode. Aucun tag ni release 0.2.2 n'est publié.
+État : préparée pour la version 0.2.2, disponible seulement une fois sa release publiée.
+La version 0.2.1 ne contient pas cette méthode.
 
 ## Résultats sur matériel
 
