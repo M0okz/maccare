@@ -27,6 +27,8 @@ public final class NativeChargePolicyHardware: ChargeHardware {
     /// Brief input transition after a target change. The 2026-11-04 M1 trace without it applied its
     /// target late, then lost external input; the exact cause is not established.
     public static let inputPulseDuration: TimeInterval = 0.5
+    /// Longer than the helper's 5 s watchdog, so at least one reading falls inside it.
+    public static let inputLossWindow: TimeInterval = 15
     private let driver: any NativeChargePolicyDriver
     private let identity: () -> String?
     private let onAC: () -> Bool?
@@ -41,6 +43,7 @@ public final class NativeChargePolicyHardware: ChargeHardware {
     private var restoringCleared = false
     private var restoredPreferences = false
     private var lastOnAC: Bool?
+    private var lastInputChange: TimeInterval?
 
     public convenience init() {
         self.init(driver: SystemNativeChargePolicyDriver(), identity: { BatteryMachine.identity }, onAC: {
@@ -76,7 +79,7 @@ public final class NativeChargePolicyHardware: ChargeHardware {
         guard registered == originalTarget || (registered == nil && originalTarget != nil && onAC() == false) else {
             throw BatteryNativePolicyError.configurationSettling
         }
-        captured = original; requested = nil; lastIntent = nil; verificationSince = nil
+        captured = original; requested = nil; lastIntent = nil; verificationSince = nil; lastInputChange = nil
         unconfirmedTargets.removeAll(); resumeReleaseStarted = nil
         restoringCleared = false; restoredPreferences = false; lastOnAC = nil
         return .init(backend: .nativePolicy, machineID: machineID, nativePolicyPreferences: original)
@@ -101,6 +104,13 @@ public final class NativeChargePolicyHardware: ChargeHardware {
             throw BatteryNativePolicyError.invalidState
         }
         try requireNoCalibration()
+        var dischargeRequested = false
+        if case .discharge = intent { dischargeRequested = true }
+        if case .discharge = lastIntent { dischargeRequested = true }
+        // Stop rather than re-evaluate: a further write could only make this state worse.
+        if lastOnAC == true, !snapshot.onAC, !dischargeRequested, let change = lastInputChange, now - change <= Self.inputLossWindow {
+            throw BatteryNativePolicyError.inputLost
+        }
         if lastOnAC == false, snapshot.onAC, let previous = requested {
             requested = (previous.limit, now)
             verificationSince = now
@@ -164,7 +174,7 @@ public final class NativeChargePolicyHardware: ChargeHardware {
         // Reaching a target already registered is also a transition the system must see.
         if intent == .hold, let previousIntent, case .charge = previousIntent { pulseNeeded = true }
         if case .discharge = intent { pulseNeeded = false }
-        if pulseNeeded, snapshot.onAC { try pulseInput() }
+        if pulseNeeded, snapshot.onAC { try pulseInput(); lastInputChange = now }
         if let application = try chargeApplicationStatus(now: now) {
             let firstConfirmation = application.registeredLimit.map { unconfirmedTargets.remove($0) != nil } ?? false
             if application.registered || firstConfirmation {
@@ -223,19 +233,19 @@ public final class NativeChargePolicyHardware: ChargeHardware {
             guard onAC() == false, registered == nil else { throw BatteryNativePolicyError.restorationPending }
         }
         // A sleep restoration retains ownership, but its next heartbeat starts a fresh request and grace period.
-        requested = nil; lastIntent = nil; lastOnAC = nil; verificationSince = nil
+        requested = nil; lastIntent = nil; lastOnAC = nil; verificationSince = nil; lastInputChange = nil
         unconfirmedTargets.removeAll(); resumeReleaseStarted = nil
     }
     public func endSession() {
         captured = nil; requested = nil; lastIntent = nil; verificationSince = nil
         unconfirmedTargets.removeAll(); resumeReleaseStarted = nil
-        restoringCleared = false; restoredPreferences = false; lastOnAC = nil
+        restoringCleared = false; restoredPreferences = false; lastOnAC = nil; lastInputChange = nil
     }
 }
 
 /// A failed request keeps the durable snapshot until restoration has been verified.
 public enum BatteryNativePolicyError: LocalizedError, Equatable {
-    case unavailable, invalidState, powerRequired, registrationFailed, restorationPending, configurationSettling
+    case unavailable, invalidState, powerRequired, registrationFailed, restorationPending, configurationSettling, inputLost
     public var errorDescription: String? {
         switch self {
         case .unavailable: return "La méthode de politique de charge Apple est indisponible sur ce Mac."
@@ -243,6 +253,7 @@ public enum BatteryNativePolicyError: LocalizedError, Equatable {
         case .powerRequired: return "Branchez le Mac pour lancer la décharge contrôlée."
         case .registrationFailed: return "macOS n’a pas enregistré la limite dans le délai prévu. La configuration initiale est restaurée."
         case .restorationPending: return "Restauration de la limite initiale en cours d’application par macOS."
+        case .inputLost: return "Le secteur a disparu juste après l’application de la limite. La configuration initiale est rétablie. Si le Mac reste sur batterie alors qu’il est branché, reconnectez le câble."
         case .configurationSettling: return "Les réglages de charge existants ne sont pas encore cohérents avec macOS. Fermez les autres contrôleurs et attendez leur restauration avant d’activer MacCare."
         }
     }

@@ -174,6 +174,20 @@ struct BatteryNativePolicyControllerTests {
         try f.controller.recover(record)
         #expect(f.adapter.writes.isEmpty && f.journal.pending == nil)
     }
+    @Test func inputLostRightAfterAChangeStopsInsteadOfWritingAgain() throws {
+        let f = Fixture(); try #require(f.run(.enable, percent: 60).active)
+        let targets = f.driver.targets
+        let lost = f.run(.heartbeat, percent: 60, onAC: false, now: 5)
+        #expect(!lost.active && lost.error == BatteryNativePolicyError.inputLost.errorDescription)
+        #expect(f.driver.targets == targets, "No further target may be written after the loss")
+        #expect(!f.adapter.disabled && f.journal.pending == nil)
+        #expect(f.driver.preferences == .init(featureState: .absent, limit: .absent))
+    }
+    @Test func unpluggingLaterIsNotTreatedAsAFault() throws {
+        let f = Fixture(); try #require(f.run(.enable, percent: 60).active)
+        let unplugged = f.run(.heartbeat, percent: 60, onAC: false, now: NativeChargePolicyHardware.inputLossWindow + 1)
+        #expect(unplugged.active && unplugged.error == nil)
+    }
     @Test func persistenceFailurePreventsAllMutations() {
         let f = Fixture(); f.journal.failSave = true
         #expect(!f.run(.enable).active)
