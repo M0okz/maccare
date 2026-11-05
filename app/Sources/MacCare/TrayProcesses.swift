@@ -81,22 +81,41 @@ actor TrayProcessSampler {
 
 @MainActor
 final class TrayProcessController: ObservableObject {
+    struct Presentation {
+        let name: String
+        let icon: NSImage?
+    }
     @Published private(set) var processes: [TrayProcess] = []
     @Published private(set) var pending: Set<TrayProcess.Identity> = []
     @Published private(set) var message: String?
     private let sampler = TrayProcessSampler()
+    private var presentations: [TrayProcess.Identity: Presentation] = [:]
 
     func monitor() async {
         while !Task.isCancelled {
             let snapshot = await sampler.sample()
             guard !Task.isCancelled else { return }
-            processes = snapshot
-            let alive = Set(snapshot.map(\.id))
-            let completed = pending.subtracting(alive)
-            if !completed.isEmpty { message = "Processus fermé." }
-            pending.formIntersection(alive)
+            record(snapshot)
             do { try await Task.sleep(for: .seconds(2)) } catch { return }
         }
+    }
+
+    func record(_ snapshot: [TrayProcess]) {
+        processes = snapshot
+        let alive = Set(snapshot.map(\.id))
+        let completed = pending.subtracting(alive)
+        if !completed.isEmpty { message = "Processus fermé." }
+        pending.formIntersection(alive)
+        presentations = presentations.filter { alive.contains($0.key) }
+    }
+
+    /// Icône et nom passent par des appels système synchrones : une seule lecture par processus.
+    func presentation(for process: TrayProcess) -> Presentation {
+        if let known = presentations[process.id] { return known }
+        let app = NSRunningApplication(processIdentifier: process.id.pid)
+        let presentation = Presentation(name: app?.localizedName ?? process.name, icon: app?.icon)
+        presentations[process.id] = presentation
+        return presentation
     }
 
     /// Revérifie l’identité (PID + date de démarrage) et le propriétaire avant toute action.

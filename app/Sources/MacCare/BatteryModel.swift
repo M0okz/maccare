@@ -104,8 +104,10 @@ final class BatteryModel: ObservableObject {
         guard !busy, !isTerminating, !automating || fromAutomation else { return }
         busy = true
         defer { busy = false }
-        helperEnabled = client.status == .enabled
-        requiresApproval = client.status == .requiresApproval
+        // `status` interroge macOS de façon synchrone sur le fil principal : une lecture suffit.
+        let helperStatus = client.status
+        helperEnabled = helperStatus == .enabled
+        requiresApproval = helperStatus == .requiresApproval
         snapshot = await client.snapshot()
         guard !isTerminating else { return }
         guard helperEnabled else { protection = nil; ownsLease = false; loadedHelperProtocol = nil; return }
