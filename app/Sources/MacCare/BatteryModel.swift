@@ -267,7 +267,7 @@ final class BatteryModel: ObservableObject {
 
 extension BatteryModel {
     var controlsBusy: Bool { busy || automating || isTerminating }
-    var supportsDischarge: Bool { BatteryCycle.enabledInThisRelease && protection?.capabilities?.supportsDischarge == true }
+    var supportsDischarge: Bool { BatteryCycle.dischargeAvailable && protection?.capabilities?.supportsDischarge == true }
     var supportsSailing: Bool { protection?.capabilities?.supportsSailing == true }
     var cycle: BatteryCycleStatus? { protection?.cycle }
 
@@ -367,8 +367,8 @@ extension BatteryModel {
                 configuration = value
                 await perform(.enable, fromAutomation: true)
             } else {
-                if action == .discharge || action == .calibrate, !BatteryCycle.enabledInThisRelease {
-                    throw AutomationError("La décharge et l’étalonnage ne sont plus disponibles dans cette version. Vous pouvez supprimer cette programmation.")
+                if action == .calibrate, !BatteryCycle.calibrationAvailable {
+                    throw AutomationError("L’étalonnage n’est plus disponible dans cette version. Vous pouvez supprimer cette programmation.")
                 }
                 guard snapshot?.onAC == true, cycle == nil else {
                     throw AutomationError("Branchez le chargeur et annulez tout cycle en cours avant cette action.")

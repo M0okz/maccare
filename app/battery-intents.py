@@ -40,7 +40,7 @@ if not metadata.is_dir() or not any(metadata.iterdir()):
     raise SystemExit('App Intents metadata was not produced.')
 print('App Intents metadata verified:',metadata)
 
-required = ('SetBatteryLimitIntent', 'TopUpBatteryIntent', 'StopBatteryProtectionIntent')
+required = ('SetBatteryLimitIntent', 'TopUpBatteryIntent', 'StopBatteryProtectionIntent', 'DischargeBatteryIntent')
 payload = b''.join(p.read_bytes() for p in metadata.iterdir() if p.is_file())
 if any(name.encode() not in payload for name in required):
     raise SystemExit('One or more battery actions are missing from App Intents metadata.')

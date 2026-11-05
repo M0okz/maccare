@@ -11,6 +11,7 @@ struct BatterySchedulesView: View {
     private var requestedAction: BatteryAutomationAction {
         switch action {
         case 1: return .topUp
+        case 2: return .discharge
         case 4: return .disable
         default:
             var value = model.configuration; value.limit = limit
@@ -50,6 +51,7 @@ struct BatterySchedulesView: View {
                     Picker("Action", selection: $action) {
                         Text("Appliquer une limite de charge").tag(0)
                         Text("Recharger à 100 % une fois").tag(1)
+                        Text("Décharger jusqu’à la limite").tag(2)
                         Text("Désactiver la protection").tag(4)
                     }
                     if action == 0 {
@@ -63,12 +65,12 @@ struct BatterySchedulesView: View {
                         ForEach(BatterySchedule.Recurrence.allCases, id: \.self) { Text($0.title).tag($0) }
                     }
                     Button("Enregistrer la programmation") { save() }
-                        .disabled(model.controlsBusy || !model.automationsLoaded || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || firstRun <= .now)
+                        .disabled(model.controlsBusy || !model.automationsLoaded || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || firstRun <= .now || (action == 2 && !model.supportsDischarge))
                 }
             }
             BatterySection(title: "Raccourcis et dernières exécutions") {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Dans Raccourcis, recherchez MacCare pour régler la limite, recharger à 100 % ou désactiver la protection.")
+                    Text("Dans Raccourcis, recherchez MacCare pour régler la limite, recharger à 100 %, décharger jusqu’à la limite ou désactiver la protection.")
                         .fixedSize(horizontal: false, vertical: true)
                     Button("Ouvrir Raccourcis") { if let url = URL(string: "shortcuts://") { NSWorkspace.shared.open(url) } }
                     if model.automationEvents.isEmpty { Text("Aucune exécution planifiée enregistrée.").foregroundStyle(.secondary) }
