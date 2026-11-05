@@ -61,6 +61,16 @@ struct BatteryAutomationTests {
         #expect(client.commands.allSatisfy { $0 == .status })
         #expect(client.active == false)
     }
+    @Test func aScheduleSavedByAnEarlierVersionCannotStartACycle() async {
+        let client = Client(), prefs = Preferences()
+        let model = BatteryModel(defaults: prefs.defaults, monitor: false, client: client)
+        #expect(!model.supportsDischarge)
+        for action in [BatteryAutomationAction.discharge, .calibrate] {
+            await #expect(throws: (any Error).self) { try await model.executeAutomation(action) }
+        }
+        #expect(!client.commands.contains(.discharge) && !client.commands.contains(.calibrate))
+        #expect(client.active == false)
+    }
     @Test func anotherSessionCannotBeReconfiguredByAnAutomation() async {
         let client = Client(); client.active = true; client.owner = false
         let prefs = Preferences()

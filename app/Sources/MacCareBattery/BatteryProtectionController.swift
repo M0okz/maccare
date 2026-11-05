@@ -18,17 +18,23 @@ public final class BatteryProtectionController {
     private var suspended = false
     private var topUp = false
     private var cycle: BatteryCycle?
+    /// After the adapter gate reopens: nothing is written until input returns or this time passes.
+    private var inputReturnDeadline: TimeInterval?
+    /// Input did not come back in time. Only reconnecting the cable has restored it on the M1 host.
+    private var inputReturnOverdue = false
     private var sleeping = false
     private var awaitingHeartbeat = false
     private var restoring = false
     private var deferredRestorationTarget: Int?
     private var failure: String?
     private var message = "Protection désactivée"
+    private let allowsCycles: Bool
     public var requiresWatchdog: Bool { recovery != nil }
 
     public init(hardware: any ChargeHardware, markRecovery: @escaping (BatteryRecoveryRecord) throws -> Void,
-                clearRecovery: @escaping () throws -> Void) {
+                clearRecovery: @escaping () throws -> Void, allowsCycles: Bool = true) {
         self.hardware = hardware; self.markRecovery = markRecovery; self.clearRecovery = clearRecovery
+        self.allowsCycles = allowsCycles
     }
     public func recover(_ record: BatteryRecoveryRecord) throws {
         guard record.isValid else { throw BatteryHardwareError(code: -3) }
@@ -40,6 +46,8 @@ public final class BatteryProtectionController {
                         snapshot: BatterySnapshot, now: TimeInterval) -> BatteryProtectionStatus {
         // A read-only call never runs the policy, renews a lease or writes hardware.
         if command == .status { return status(snapshot, now: now, uid: uid, session: callerSession) }
+        // A renewal that arrives after its session ended only learns the outcome: lateness is not a fault.
+        if command == .heartbeat, restoring { return status(snapshot, now: now, uid: uid, session: callerSession) }
         do {
             guard uid >= 501, let callerSession else { throw ControlError("Session de contrôle invalide.") }
             if let owner {
@@ -100,7 +108,11 @@ public final class BatteryProtectionController {
             case .heartbeat, .topUp, .cancelTopUp, .discharge, .calibrate, .cancelCycle:
                 guard owner == uid, sessionID == callerSession, now < deadline else {
                     if recovery != nil { try stop() }
+                    if command == .heartbeat { return status(snapshot, now: now, uid: uid, session: callerSession) }
                     throw ControlError("La protection a expiré. Réactivez-la pour continuer.")
+                }
+                if command == .calibrate || command == .discharge, !allowsCycles {
+                    throw ControlError("La décharge et l’étalonnage ne sont pas disponibles dans cette version.")
                 }
                 if command == .calibrate {
                     guard cycle == nil, let configuration, sessionCapabilities?.supportsDischarge == true,
@@ -120,7 +132,10 @@ public final class BatteryProtectionController {
                     cycle = BatteryCycle(target: configuration.limit, now: now)
                     topUp = false
                 }
-                if command == .cancelCycle { try hardware.setDischarging(false); cycle = nil }
+                if command == .cancelCycle {
+                    try hardware.setDischarging(false); cycle = nil
+                    if !snapshot.onAC { inputReturnDeadline = now + BatteryCycle.powerReturnGrace }
+                }
                 if command == .topUp && cycle != nil { throw ControlError("Annulez le cycle avant la recharge ponctuelle.") }
                 if command == .topUp && !snapshot.onAC { throw ControlError("Branchez le Mac pour lancer une recharge ponctuelle.") }
                 if command == .topUp { topUp = true }
@@ -218,6 +233,7 @@ public final class BatteryProtectionController {
                 if action.finished {
                     // External input only reappears after this reading. The next tick evaluates it.
                     cycle = nil; topUp = false; suspended = false; failure = nil
+                    if !snapshot.onAC { inputReturnDeadline = now + BatteryCycle.powerReturnGrace }
                     message = "Cycle terminé · limite rétablie"
                     return
                 }
@@ -240,6 +256,18 @@ public final class BatteryProtectionController {
             }
         }
         if topUp && (!snapshot.onAC || snapshot.percent == 100) { topUp = false }
+        if let returnDeadline = inputReturnDeadline {
+            // On the M1 host a clear sent in the same instant as the reopening left the Mac without
+            // external input (5 Nov. 2026). The limit in place must stay untouched until input is back.
+            if !snapshot.onAC, now < returnDeadline {
+                suspended = false; failure = nil
+                message = "Retour à l’alimentation secteur en cours"
+                return
+            }
+            inputReturnDeadline = nil
+            inputReturnOverdue = !snapshot.onAC
+        }
+        if snapshot.onAC { inputReturnOverdue = false }
         if sessionCapabilities?.backend == .nativePolicy {
             let decision = policy.evaluate(snapshot, configuration: configuration, topUp: topUp, now: now)
             try hardware.applyChargeIntent(decision.suspend ? .hold : .charge(to: topUp ? 100 : configuration.limit),
@@ -253,6 +281,7 @@ public final class BatteryProtectionController {
             } else if decision.suspend && snapshot.onAC && snapshot.charging {
                 message = "Pause enregistrée par macOS · attente de l’arrêt de la charge"
             } else { message = decision.reason }
+            if inputReturnOverdue { message = Self.reconnectMessage }
         } else if sessionCapabilities?.managesChargeLimit == true {
             if !topUp, configuration.sailingWidth != nil, sessionCapabilities?.backend == .firmware {
                 try hardware.setChargeBand(upper: configuration.limit, lower: configuration.resumeLimit)
@@ -285,7 +314,8 @@ public final class BatteryProtectionController {
         try clearRecovery()
         self.recovery = nil; sessionCapabilities = nil; hardware.endSession()
         owner = nil; sessionID = nil; configuration = nil; topUp = false
-        policy = .init(); cycle = nil; restoring = false; awaitingHeartbeat = false
+        policy = .init(); cycle = nil; inputReturnDeadline = nil; inputReturnOverdue = false
+        restoring = false; awaitingHeartbeat = false
         message = "Protection désactivée"
     }
     /// Not a failure: the session is over and only the journal's final step is waiting on the charge level.
@@ -324,6 +354,7 @@ public final class BatteryProtectionController {
         result.deferredRestorationTarget = deferredRestorationTarget
         return result
     }
+    private static let reconnectMessage = "Secteur non revenu · si le câble est branché, débranchez-le puis rebranchez-le"
     private struct ControlError: LocalizedError {
         var message: String
         init(_ message: String) { self.message = message }

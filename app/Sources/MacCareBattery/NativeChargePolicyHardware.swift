@@ -44,6 +44,11 @@ public final class NativeChargePolicyHardware: ChargeHardware {
     private var resumeReleaseStarted: TimeInterval?
     private var restoringCleared = false
     private var restoredPreferences = false
+    private var clearPolls = 0
+    private let charging: () -> Bool
+    /// Polls without the agent acting on a clear before it is asked again.
+    private static let clearRetryPolls = 6
+    private static let restorationMargin = 3
     private var lastOnAC: Bool?
     private var lastInputChange: TimeInterval?
 
@@ -51,12 +56,14 @@ public final class NativeChargePolicyHardware: ChargeHardware {
         self.init(driver: SystemNativeChargePolicyDriver(), identity: { BatteryMachine.identity }, onAC: {
             let snapshot = BatterySnapshot.read()
             return snapshot.powerStateKnown ? snapshot.onAC : nil
-        }, percent: { BatterySnapshot.read().percent }, adapter: SystemPowerAdapterDriver())
+        }, percent: { BatterySnapshot.read().percent }, adapter: SystemPowerAdapterDriver(),
+           charging: { BatterySnapshot.read().charging })
     }
     public init(driver: any NativeChargePolicyDriver, identity: @escaping () -> String?, onAC: @escaping () -> Bool?,
                 percent: @escaping () -> Int? = { nil }, adapter: (any PowerAdapterDriver)? = nil,
+                charging: @escaping () -> Bool = { false },
                 pause: @escaping (TimeInterval) -> Void = { Thread.sleep(forTimeInterval: $0) }) {
-        self.driver = driver; self.identity = identity; self.onAC = onAC; self.percent = percent
+        self.driver = driver; self.identity = identity; self.onAC = onAC; self.percent = percent; self.charging = charging
         self.adapter = adapter; self.pause = pause
     }
     public var capabilities: BatteryControlCapabilities {
@@ -135,7 +142,7 @@ public final class NativeChargePolicyHardware: ChargeHardware {
         case .hold:
             // Track natural declines too: a fixed ceiling would let firmware refill at its own lower threshold.
             // The request never asks for a ceiling below the just-observed battery level.
-            target = percent
+            target = snapshot.charging ? try holdTargetWhileCharging(level: percent) : percent
         case .discharge(let lower):
             // The closed gate makes the Mac report battery power, whether or not it is still plugged in.
             guard snapshot.onAC || wasDischarging else { throw BatteryNativePolicyError.powerRequired }
@@ -213,28 +220,65 @@ public final class NativeChargePolicyHardware: ChargeHardware {
         return .init(requestedLimit: requested.limit, registeredLimit: try driver.registeredLimit(),
                      elapsed: now - requested.since, releasePending: resumeReleaseStarted != nil)
     }
+    /// A hold requested during a charge can register a minute later, once the level has moved past
+    /// it, which cut external input on the M1 host (5 Nov. 2026, limit lowered at 55 %, registered at
+    /// 56 %). The charge may run up to the margin; a target already registered stops it at that level.
+    private func holdTargetWhileCharging(level: Int) throws -> Int {
+        if let written = requested?.limit, written >= level, written <= level + Self.restorationMargin {
+            if written > level { return written }
+            if try driver.registeredLimit() == written { return written }
+        }
+        return level >= 99 ? 100 : min(99, level + Self.restorationMargin)
+    }
+    /// A target can take minutes to register while the battery charges. Following the rising level
+    /// would register one under it, which cut external input on the M1 host (5 Nov. 2026): during a
+    /// charge the target leaves a margin and is written once, unless it is 100 or under the level.
+    private func replaceTargetAbove(_ level: Int) throws {
+        let current = try driver.readPreferences()
+        let target: Int
+        if charging() {
+            if current.featureEnabled == true, case .integer(let written) = current.limit, written >= level, written < 100 { return }
+            target = min(100, level + Self.restorationMargin)
+        } else {
+            // Not charging: the level can only fall, and a fixed ceiling would let firmware refill.
+            if current == .init(featureState: .integer(1), limit: .integer(level)) { return }
+            target = level
+        }
+        try driver.apply(limit: target)
+        if onAC() == true { try pulseInput() }
+    }
     public func restore(_ record: BatteryRecoveryRecord) throws {
         guard record.isValid, record.backend == .nativePolicy, record.machineID == identity(),
               let original = record.nativePolicyPreferences else { throw BatteryNativePolicyError.invalidState }
         // A target under the charge level cuts external input on the M1 host, with nothing to
         // bring it back while plugged in. The original waits until the battery has come down to it.
-        if original.featureEnabled == true, case .integer(let target) = original.limit, let level = percent(), level > target {
-            captured = original; requested = nil; lastIntent = nil; verificationSince = nil
-            restoringCleared = false; restoredPreferences = false
-            if try driver.readPreferences() != .init(featureState: .integer(1), limit: .integer(level)) {
-                try driver.apply(limit: level)
-                if onAC() == true { try pulseInput() }
+        if original.featureEnabled == true, case .integer(let target) = original.limit, target < 100, let level = percent() {
+            let registered = try driver.registeredLimit()
+            if level > target || (level < 100 && registered == 100) {
+                captured = original; requested = nil; lastIntent = nil; verificationSince = nil
+                restoringCleared = false; restoredPreferences = false
+                try replaceTargetAbove(level)
+                throw BatteryNativePolicyError.restorationDeferred(target: target)
             }
-            throw BatteryNativePolicyError.restorationDeferred(target: target)
         }
         // Clearing via the agent is required: simply setting FeatureState=0 leaves a registered target behind.
         if !restoringCleared {
+            // On the M1 host a clear leaves a registered target of 100 in place: a one-off recharge
+            // would stay stuck there and keep charging. The current level replaces it first.
+            if try driver.registeredLimit() == 100, let level = percent(), level < 100 {
+                try replaceTargetAbove(level)
+                throw BatteryNativePolicyError.restorationPending
+            }
             try driver.clearRegisteredLimit()
-            restoringCleared = true
+            restoringCleared = true; clearPolls = 0
         }
         // Do not put back an enabled original until our own registration has actually gone away.
         if !restoredPreferences {
-            guard try driver.registeredLimit() == nil else { throw BatteryNativePolicyError.restorationPending }
+            guard try driver.registeredLimit() == nil else {
+                clearPolls += 1
+                if clearPolls >= Self.clearRetryPolls { restoringCleared = false }
+                throw BatteryNativePolicyError.restorationPending
+            }
             try driver.restorePreferences(original)
             restoredPreferences = true
         }

@@ -13,7 +13,9 @@ struct BatteryNativeModelTests {
         var rootActive = false
         var restoring = false
         var failure: String?
+        var cycle: BatteryCycleStatus?
         var enableFails = false
+        var requestFailures = 0
         var rootConfiguration: BatteryConfiguration?
         var rootSession: UUID?
         var calls: [BatteryCommand] = []
@@ -27,6 +29,7 @@ struct BatteryNativeModelTests {
         func snapshot() async -> BatterySnapshot { .init(percent: 80, onAC: true, temperature: 30) }
         func request(_ command: BatteryCommand, configuration: BatteryConfiguration?, sessionID: UUID) async throws -> BatteryProtectionStatus {
             calls.append(command)
+            if requestFailures > 0 { requestFailures -= 1; throw NSError(domain: "fixture", code: 3) }
             if command == .enable && enableFails { throw NSError(domain: "fixture", code: 2) }
             if command == .enable {
                 rootActive = true; rootSession = sessionID; rootConfiguration = configuration
@@ -38,6 +41,7 @@ struct BatteryNativeModelTests {
                          error: failure ?? (restoring ? "Étalonnage de la batterie en cours" : nil),
                          restoring: restoring, ownedByCaller: rootSession == sessionID, capabilities: capabilities)
             value.recoveryReady = true
+            value.cycle = cycle
             return value
         }
         func prepareProtection() async throws { preparations += 1 }
@@ -168,6 +172,49 @@ struct BatteryNativeModelTests {
         #expect(model.helperUpdateRequired && model.protection == nil)
         #expect(client.calls.isEmpty && client.updates == 0 && client.preparations == 0)
     }
+    @Test func aLostReplyDoesNotStopRenewingTheSession() async throws {
+        let client = Client()
+        let (model, defaults, suite) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        await model.perform(.enable)
+        client.requestFailures = 1
+        await model.refresh()
+        #expect(client.calls.last == .heartbeat && model.protection == nil, "A cached active state is never shown")
+        await model.refresh()
+        #expect(client.calls.last == .heartbeat && model.active, "The session may still be alive: it is renewed at once")
+        await model.refresh()
+        #expect(client.calls.last == .heartbeat, "The next pass renews the same session")
+    }
+    @Test func aRestorationInProgressIsNamedAsSuch() async throws {
+        let client = Client()
+        let (model, defaults, suite) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        client.restoring = true
+        await model.refresh(force: true)
+        #expect(model.message == "Restauration de la charge en cours")
+    }
+    @Test func aRenewalThatKeepsFailingIsStillSent() async throws {
+        let client = Client()
+        let (model, defaults, suite) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        await model.perform(.enable)
+        client.requestFailures = 3
+        for _ in 0..<3 { await model.refresh() }
+        #expect(client.calls.suffix(3) == [.heartbeat, .heartbeat, .heartbeat])
+        await model.refresh()
+        #expect(client.calls.last == .heartbeat && model.active)
+    }
+    @Test func aLostDeactivationReplyDoesNotKeepRenewingTheSession() async throws {
+        let client = Client()
+        let (model, defaults, suite) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        await model.perform(.enable)
+        client.requestFailures = 1
+        await model.perform(.disable)
+        await model.refresh()
+        await model.refresh(force: true)
+        #expect(!client.calls.dropFirst(2).contains(.heartbeat))
+    }
     @Test func quittingKeepsProtectionForTheNextLaunchWithItsSavedSettings() async throws {
         let client = Client(), settings = BatteryConfiguration(limit: 85, thermalProtection: false)
         let (first, defaults, suite) = try fixture(client, initial: settings)
@@ -182,6 +229,19 @@ struct BatteryNativeModelTests {
         await next.resumeProtectionIfNeeded()
         #expect(next.active && next.protection?.ownedByCaller == true)
         #expect(client.requestedConfigurations == [settings, settings])
+    }
+    @Test func theMacStaysAwakeOnlyDuringACycle() async throws {
+        let client = Client()
+        let (model, defaults, suite) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        await model.perform(.enable)
+        #expect(!model.keepsMacAwake)
+        client.cycle = BatteryCycle.calibration(target: 80, now: 0).status
+        await model.refresh(force: true)
+        #expect(model.keepsMacAwake)
+        client.cycle = nil
+        await model.refresh(force: true)
+        #expect(!model.keepsMacAwake)
     }
     @Test func anExplicitDeactivationIsNotUndoneAtTheNextLaunch() async throws {
         let client = Client()

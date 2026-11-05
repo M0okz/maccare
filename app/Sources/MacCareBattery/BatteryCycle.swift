@@ -19,9 +19,16 @@ public struct BatteryCycleStatus: Codable, Equatable, Sendable {
 
 /// Pure bounded state machine. No timers, hardware or wall clock are hidden here.
 public struct BatteryCycle: Sendable {
+    /// Off in this release: on the M1 validation host external input did not return after a
+    /// deliberate discharge, at rest or under load, until the cable was reconnected (5 Nov. 2026).
+    public static let enabledInThisRelease = false
     // The M1 validation host reports PostDischargeWaitSeconds = 120. Allow the
     // system to reconnect external input before treating its absence as a fault.
     public static let powerReturnGrace: TimeInterval = 180
+    // At rest, a healthy battery drains about 5 % per hour: 100 to 10 % takes close to a day.
+    public static let chargePhaseLimit: TimeInterval = 12 * 3600
+    public static let dischargePhaseLimit: TimeInterval = 36 * 3600
+    public static let cycleLimit: TimeInterval = 72 * 3600
     public struct Action: Equatable, Sendable {
         public let discharge: Bool
         public let limit: Int
@@ -42,7 +49,8 @@ public struct BatteryCycle: Sendable {
         guard (50...100).contains(status.target), snapshot.reliableForControl,
               let percent = snapshot.percent, snapshot.reliableTemperature,
               let temperature = snapshot.temperature, temperature < 45,
-              now.isFinite, started.isFinite, now >= started, now - started < 24 * 3600, now - phaseStarted < 12 * 3600 else {
+              now.isFinite, started.isFinite, now >= started, now - started < Self.cycleLimit,
+              now - phaseStarted < phaseLimit else {
             throw CycleError()
         }
         switch status.phase {
@@ -64,6 +72,12 @@ public struct BatteryCycle: Sendable {
         }
         let discharge = status.phase == .dischargingForCalibration || status.phase == .returningToLimit
         return .init(discharge: discharge, limit: status.phase == .returningToLimit ? status.target : 100, finished: false)
+    }
+    private var phaseLimit: TimeInterval {
+        switch status.phase {
+        case .chargingToFull, .rechargingToFull: return Self.chargePhaseLimit
+        case .dischargingToLimit, .dischargingForCalibration, .returningToLimit: return Self.dischargePhaseLimit
+        }
     }
     private struct CycleError: LocalizedError {
         var errorDescription: String? { "Cycle interrompu : mesures, température ou durée à vérifier. La restauration de l’alimentation est demandée." }

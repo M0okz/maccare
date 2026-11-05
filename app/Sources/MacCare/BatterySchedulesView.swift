@@ -8,12 +8,9 @@ struct BatterySchedulesView: View {
     @State private var recurrence = BatterySchedule.Recurrence.daily
     @State private var action = 0
     @State private var limit = 80
-    @State private var confirmingCalibration = false
     private var requestedAction: BatteryAutomationAction {
         switch action {
         case 1: return .topUp
-        case 2: return .discharge
-        case 3: return .calibrate
         case 4: return .disable
         default:
             var value = model.configuration; value.limit = limit
@@ -36,7 +33,7 @@ struct BatterySchedulesView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(schedule.name).font(.headline)
                             Text(schedule.action.title)
-                            Text("\(schedule.recurrence.title) · \(schedule.enabled ? schedule.nextRun.formatted(date: .abbreviated, time: .shortened) : "En pause") · \(schedule.timeZoneID)")
+                            Text("\(schedule.recurrence.title) · \(schedule.enabled ? schedule.nextRun.formatted(date: .abbreviated, time: .shortened) : (schedule.recurrence == .once && schedule.lastClaimed != nil ? "Terminée" : "En pause")) · \(schedule.timeZoneID)")
                                 .font(.callout).foregroundStyle(.secondary)
                             HStack {
                                 Button(schedule.enabled ? "Mettre en pause" : "Réactiver") { Task { await model.toggleSchedule(schedule) } }
@@ -53,8 +50,6 @@ struct BatterySchedulesView: View {
                     Picker("Action", selection: $action) {
                         Text("Appliquer une limite de charge").tag(0)
                         Text("Recharger à 100 % une fois").tag(1)
-                        Text("Décharger jusqu’à la limite").tag(2)
-                        Text("Démarrer l’étalonnage").tag(3)
                         Text("Désactiver la protection").tag(4)
                     }
                     if action == 0 {
@@ -67,17 +62,13 @@ struct BatterySchedulesView: View {
                     Picker("Répétition", selection: $recurrence) {
                         ForEach(BatterySchedule.Recurrence.allCases, id: \.self) { Text($0.title).tag($0) }
                     }
-                    if action == 3 {
-                        Text("Chaque exécution lance un cycle long : 100 % → 10 % → 100 % → limite. Laissez le Mac et le chargeur disponibles.")
-                            .font(.callout).foregroundStyle(.secondary)
-                    }
-                    Button("Enregistrer la programmation") { if action == 3 { confirmingCalibration = true } else { save() } }
-                        .disabled(model.controlsBusy || !model.automationsLoaded || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || firstRun <= .now || ((action == 2 || action == 3) && !model.supportsDischarge))
+                    Button("Enregistrer la programmation") { save() }
+                        .disabled(model.controlsBusy || !model.automationsLoaded || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || firstRun <= .now)
                 }.padding(12)
             }
             GroupBox("Raccourcis et dernières exécutions") {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Dans Raccourcis, recherchez MacCare pour régler la limite, recharger à 100 %, désactiver la protection ou démarrer un cycle de batterie.")
+                    Text("Dans Raccourcis, recherchez MacCare pour régler la limite, recharger à 100 % ou désactiver la protection.")
                         .fixedSize(horizontal: false, vertical: true)
                     Button("Ouvrir Raccourcis") { if let url = URL(string: "shortcuts://") { NSWorkspace.shared.open(url) } }
                     if model.automationEvents.isEmpty { Text("Aucune exécution planifiée enregistrée.").foregroundStyle(.secondary) }
@@ -86,9 +77,5 @@ struct BatterySchedulesView: View {
             }
         }
         .onAppear { if !model.availableLimits.contains(limit), let first = model.availableLimits.first { limit = first } }
-        .confirmationDialog("Programmer cet étalonnage complet ?", isPresented: $confirmingCalibration, titleVisibility: .visible) {
-            Button("Enregistrer le cycle planifié") { save() }
-            Button("Annuler", role: .cancel) {}
-        } message: { Text("Cette programmation pourra lancer automatiquement une décharge vers 10 % aux horaires choisis, lorsque MacCare est ouvert et le chargeur branché.") }
     }
 }

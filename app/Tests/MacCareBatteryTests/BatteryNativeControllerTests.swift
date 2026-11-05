@@ -173,6 +173,18 @@ struct BatteryNativeControllerTests {
         #expect(fixture.controller.requiresWatchdog == false)
     }
 
+    @Test func aRenewalThatComesTooLateIsNotAFault() throws {
+        let late = Fixture()
+        try #require(late.execute(.enable).active)
+        let expired = late.execute(.heartbeat, now: BatteryProtectionController.leaseDuration + 1)
+        #expect(expired.active == false && expired.error == nil)
+        let restoring = Fixture()
+        try #require(restoring.execute(.enable).active)
+        restoring.hardware.failRestoration = true
+        _ = restoring.controller.tick(snapshot: .init(percent: 90), now: BatteryProtectionController.leaseDuration + 1)
+        restoring.hardware.failRestoration = false
+        #expect(restoring.execute(.heartbeat, now: BatteryProtectionController.leaseDuration + 2).active == false)
+    }
     @Test func failedRestorationNeverResumesTheNativePolicy() throws {
         let initial = NativeChargeState(enabled: false, limit: 100)
         let fixture = Fixture(initial: initial)

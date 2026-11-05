@@ -72,6 +72,17 @@ struct BatteryNativePolicyControllerTests {
         }
         func consumeRelease() { registered = nil; releaseQueued = false; latched = false; charging = true }
     }
+    /// Keeps a registered target of 100 through a clear, as observed on the M1 host.
+    private final class FullTargetDriver: Driver {
+        var ignoredClears = 0
+        override func clearRegisteredLimit() throws {
+            if registered == 100 || ignoredClears > 0 {
+                clears += 1; ignoredClears = max(0, ignoredClears - 1)
+                return
+            }
+            try super.clearRegisteredLimit()
+        }
+    }
     private final class Adapter: PowerAdapterDriver {
         var disabled = false
         var writes: [Bool] = []
@@ -104,6 +115,7 @@ struct BatteryNativePolicyControllerTests {
         let adapter = Adapter()
         var pauses: [TimeInterval] = []
         var level: Int?
+        var charging = false
         let hardware: RecoverableChargeHardware
         let controller: BatteryProtectionController
         let session = UUID()
@@ -113,8 +125,10 @@ struct BatteryNativePolicyControllerTests {
             // An explicit fixed AC context keeps all tests independent of the host Mac.
             var recordPause: (TimeInterval) -> Void = { _ in }
             var readLevel: () -> Int? = { nil }
+            var readCharging: () -> Bool = { false }
             let policy = NativeChargePolicyHardware(driver: driver, identity: { "fixture-M1" }, onAC: { true },
-                                                    percent: { readLevel() }, adapter: adapter, pause: { recordPause($0) })
+                                                    percent: { readLevel() }, adapter: adapter,
+                                                    charging: { readCharging() }, pause: { recordPause($0) })
             let hardware = RecoverableChargeHardware(base: policy, adapter: adapter, identity: { "fixture-M1" })
             self.hardware = hardware
             adapter.journal = journal
@@ -122,6 +136,7 @@ struct BatteryNativePolicyControllerTests {
             controller = .init(hardware: hardware, markRecovery: { try journal.save($0) }, clearRecovery: { try journal.clear() })
             recordPause = { [unowned self] in self.pauses.append($0) }
             readLevel = { [unowned self] in self.level }
+            readCharging = { [unowned self] in self.charging }
         }
         func run(_ command: BatteryCommand, limit: Int = 70, sailing: Int? = nil, thermal: Bool = false,
                  percent: Int = 60, temperature: Double = 30, charging: Bool = false, onAC: Bool = true,
@@ -133,6 +148,56 @@ struct BatteryNativePolicyControllerTests {
         }
     }
 
+    @Test func restoringAfterARechargeReplacesTheFullTargetSoTheClearTakesEffect() throws {
+        let original = NativeChargePolicyPreferences(featureState: .integer(1), limit: .integer(80))
+        let driver = FullTargetDriver(original)
+        let f = Fixture(original: original, driver: driver)
+        f.level = 80
+        try #require(f.run(.enable, limit: 80, percent: 80).active)
+        #expect(f.run(.topUp, percent: 80, now: 5).topUp)
+        #expect(driver.registered == 100)
+        f.charging = true
+
+        let clearsBefore = driver.clears
+        let stopping = f.run(.disable, percent: 80, now: 10)
+        #expect(stopping.deferredRestorationTarget == 80 && driver.registered == 83, "The target leaves a margin above the level")
+        #expect(driver.clears == clearsBefore, "A clear would be ignored while 100 is still registered")
+        let snapshot = BatterySnapshot(percent: 80, onAC: true, charging: false, temperature: 30)
+        let done = f.controller.tick(snapshot: snapshot, now: 15)
+        #expect(!done.restoring && !done.active && done.error == nil)
+        #expect(f.journal.pending == nil && driver.registered == 80 && driver.preferences == original)
+    }
+    @Test func aDeferredRestorationDoesNotFollowARisingLevel() throws {
+        let original = NativeChargePolicyPreferences(featureState: .integer(1), limit: .integer(80))
+        let f = Fixture(original: original)
+        f.level = 80
+        try #require(f.run(.enable, limit: 80, percent: 80).active)
+        #expect(f.run(.topUp, percent: 80, now: 5).topUp)
+        f.level = 81; f.charging = true
+        f.driver.automaticallyRegister = false
+        _ = f.run(.disable, percent: 81, charging: true, now: 10)
+        let written = f.driver.targets.count
+        #expect(f.driver.targets.last == 84)
+        f.level = 82
+        let snapshot = BatterySnapshot(percent: 82, onAC: true, charging: true, temperature: 30)
+        _ = f.controller.tick(snapshot: snapshot, now: 15)
+        f.level = 83
+        _ = f.controller.tick(snapshot: snapshot, now: 20)
+        #expect(f.driver.targets.count == written, "A late registration must not land under the level")
+    }
+    @Test func aClearTheAgentIgnoresIsAskedAgain() throws {
+        let original = NativeChargePolicyPreferences(featureState: .integer(1), limit: .integer(80))
+        let driver = FullTargetDriver(original)
+        let f = Fixture(original: original, driver: driver)
+        f.level = 75
+        try #require(f.run(.enable, limit: 75, percent: 75).active)
+        driver.ignoredClears = 1
+        let snapshot = BatterySnapshot(percent: 75, onAC: true, charging: false, temperature: 30)
+        var status = f.run(.disable, percent: 75, now: 5)
+        #expect(status.restoring && driver.clears == 1)
+        for tick in 1...8 where status.restoring { status = f.controller.tick(snapshot: snapshot, now: 5 + Double(tick) * 5) }
+        #expect(driver.clears == 2 && !status.restoring && f.journal.pending == nil)
+    }
     @Test func capturesAbsentKeysInVersionFiveBeforeWritingBelowEighty() throws {
         let f = Fixture()
         let result = f.run(.enable)
@@ -424,6 +489,83 @@ struct BatteryNativePolicyControllerTests {
         let holding = f.run(.heartbeat, percent: 70, now: 4)
         #expect(holding.active && holding.error == nil && f.driver.clears == 0 && f.driver.targets.last == 70)
         #expect(f.journal.pending != nil)
+    }
+    @Test func thisReleaseRefusesCyclesInTheHelper() throws {
+        #expect(!BatteryCycle.enabledInThisRelease)
+        let adapter = Adapter(), journal = Journal(), driver = Driver(.init(featureState: .absent, limit: .absent))
+        let policy = NativeChargePolicyHardware(driver: driver, identity: { "fixture-M1" }, onAC: { true },
+                                                percent: { 90 }, adapter: adapter, pause: { _ in })
+        adapter.journal = journal
+        let controller = BatteryProtectionController(hardware: RecoverableChargeHardware(base: policy, adapter: adapter, identity: { "fixture-M1" }),
+                                                     markRecovery: { try journal.save($0) }, clearRecovery: { try journal.clear() },
+                                                     allowsCycles: BatteryCycle.enabledInThisRelease)
+        let session = UUID(), snapshot = BatterySnapshot(percent: 90, onAC: true, temperature: 30)
+        let on = controller.execute(.enable, configuration: .init(limit: 70), uid: 501, sessionID: session, snapshot: snapshot, now: 0)
+        try #require(on.active)
+        for command in [BatteryCommand.discharge, .calibrate] {
+            let refused = controller.execute(command, configuration: nil, uid: 501, sessionID: session, snapshot: snapshot, now: 1)
+            #expect(refused.cycle == nil && refused.error?.contains("pas disponibles") == true)
+            #expect(!adapter.disabled, "The adapter stays connected")
+        }
+    }
+    @Test func nothingIsWrittenBetweenTheReopeningAndTheReturnOfInput() throws {
+        let f = Fixture(); try #require(f.run(.enable, limit: 85, percent: 87).active)
+        try #require(f.run(.discharge, percent: 87, now: 1).cycle != nil)
+        let written = f.driver.targets.count
+        #expect(f.run(.heartbeat, percent: 85, onAC: false, now: 2).cycle == nil)
+        let waiting = f.run(.heartbeat, percent: 85, onAC: false, now: 3)
+        #expect(waiting.active && waiting.error == nil && waiting.message == "Retour à l’alimentation secteur en cours")
+        #expect(f.driver.clears == 0 && f.driver.targets.count == written, "The limit stays in place until input is back")
+        #expect(f.adapter.writes.last == false)
+        let back = f.run(.heartbeat, percent: 85, now: 8)
+        #expect(back.active && back.message != waiting.message && f.driver.clears == 0)
+    }
+    @Test func inputThatNeverReturnsEndsTheWait() throws {
+        let f = Fixture(); try #require(f.run(.enable, limit: 85, percent: 87).active)
+        try #require(f.run(.discharge, percent: 87, now: 1).cycle != nil)
+        #expect(f.run(.heartbeat, percent: 85, onAC: false, now: 2).cycle == nil)
+        var waited = f.run(.heartbeat, percent: 84, onAC: false, now: 60)
+        #expect(waited.message == "Retour à l’alimentation secteur en cours")
+        waited = f.run(.heartbeat, percent: 84, onAC: false, now: 120)
+        #expect(waited.message == "Retour à l’alimentation secteur en cours")
+        waited = f.run(.heartbeat, percent: 84, onAC: false, now: 2 + BatteryCycle.powerReturnGrace)
+        #expect(waited.active && waited.message.contains("débranchez-le puis rebranchez-le"))
+        let back = f.run(.heartbeat, percent: 84, now: 190)
+        #expect(!back.message.contains("rebranchez-le"), "The advice ends when input returns")
+    }
+    @Test func aCancelledDischargeWaitsForInputToo() throws {
+        let f = Fixture(); try #require(f.run(.enable, limit: 70, percent: 90).active)
+        try #require(f.run(.discharge, percent: 90, now: 1).cycle != nil)
+        let cancelled = f.run(.cancelCycle, percent: 85, onAC: false, now: 2)
+        #expect(cancelled.message == "Retour à l’alimentation secteur en cours" && f.driver.clears == 0)
+    }
+    @Test func aHoldRequestedDuringAChargeNeverRegistersUnderTheLevel() throws {
+        let f = Fixture(); f.driver.automaticallyRegister = false
+        f.level = 55
+        try #require(f.run(.enable, limit: 85, percent: 55, charging: true).active)
+        // The limit is lowered under the level while the battery is charging.
+        try #require(f.run(.enable, limit: 54, percent: 55, charging: true, now: 5).active)
+        #expect(f.driver.targets.last == 58, "The charge may run up to the margin")
+        let written = f.driver.targets.count
+        // Registration takes a minute. The level moves meanwhile, inside the margin.
+        for (level, now) in [(56, 40.0), (57, 80.0), (58, 120.0)] {
+            f.level = level
+            #expect(f.run(.heartbeat, percent: level, charging: true, now: now).active)
+            if level < 58 { #expect(f.driver.targets.count == written, "No rewrite while the target is above the level") }
+            #expect(f.driver.targets.allSatisfy { $0 >= 55 })
+        }
+        #expect(f.driver.targets.last ?? 0 > 58 || f.driver.registered == 58, "An unconfirmed target equal to the level moves up")
+    }
+    @Test func aHoldAtARegisteredTargetStaysThereDuringTheLastCharge() throws {
+        let f = Fixture()
+        try #require(f.run(.enable, limit: 70, percent: 69, charging: true).active)
+        #expect(f.run(.heartbeat, percent: 70, charging: true, now: 5).active)
+        #expect(f.driver.targets == [70], "The firmware stops the charge at a target it has registered")
+    }
+    @Test func aHoldWithoutAChargeFollowsTheLevelExactly() throws {
+        let f = Fixture()
+        try #require(f.run(.enable, limit: 54, percent: 56).active)
+        #expect(f.driver.targets.last == 56)
     }
     @Test func cancellingDischargeReopensTheGate() throws {
         let f = Fixture(); try #require(f.run(.enable, percent: 90).active)

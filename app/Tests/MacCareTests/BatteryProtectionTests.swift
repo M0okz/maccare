@@ -102,7 +102,7 @@ final class BatteryProtectionTests: XCTestCase {
         _ = controller.execute(.enable, configuration: .init(), uid: 501, sessionID: Self.session, snapshot: snapshot(), now: 0)
         _ = controller.execute(.status, configuration: nil, uid: 501, sessionID: Self.session, snapshot: snapshot(), now: 89)
         let late = controller.execute(.heartbeat, configuration: nil, uid: 501, sessionID: Self.session, snapshot: snapshot(), now: 91)
-        XCTAssertFalse(late.active); XCTAssertNotNil(late.error); XCTAssertEqual(hardware.value, 0)
+        XCTAssertFalse(late.active); XCTAssertNil(late.error, "Lateness is not a fault"); XCTAssertEqual(hardware.value, 0)
     }
     func testHeartbeatRenewsOnlyForOwner() {
         let hardware = Hardware(), controller = controller(hardware)

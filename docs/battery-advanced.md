@@ -47,14 +47,14 @@ matérielles décrivent les méthodes de la version 0.2.1, pas la nouvelle polit
 | --- | --- | --- |
 | Limite de charge | SMC : 50–100 % ; native : valeurs lues auprès de macOS | Contrôleur et firmware reconnus |
 | Mode Voile | Plage de maintien configurable de 2 à 20 points | Contrôleur SMC compatible |
-| Décharge volontaire | Utilise la batterie, câble branché, jusqu’à la limite ; annulable | Adaptateur reconnu, secteur et température fiables |
-| Étalonnage | Pleine charge → 10 % → pleine charge → limite | Confirmation explicite ; aucune activation par défaut |
 | Programmations | Une fois, quotidien, jours ouvrés, hebdomadaire, mensuel ; fuseau conservé | MacCare ouvert ; occurrence manquée au-delà de 10 min de retard |
-| Raccourcis | Régler la limite, recharge ponctuelle, arrêt, décharge et étalonnage | Mêmes validations que l’interface ; confirmation de l’étalonnage |
+| Raccourcis | Régler la limite, recharge ponctuelle, arrêt | Mêmes validations que l’interface |
 | Profils | Préréglages et profils personnels, sans adaptation silencieuse | Profil refusé si ses réglages sont incompatibles |
 | Historique | Mesures locales réelles, 30 jours et 10 000 entrées maximum | Aucun envoi réseau ; intervalle minimal sauf changement d’état |
 
-Les quatre onglets sont Réglages, Cycles, Programmations et Historique.
+Les trois onglets sont Réglages, Programmations et Historique.
+
+**Décharge volontaire et étalonnage sont retirés depuis la version 0.2.5.** Sur le MacBookPro17,1 d’essai, le secteur ne revenait pas à la fin d’une décharge sans reconnecter le câble, au repos comme sous charge. L’assistant refuse ces commandes. Le code du cycle reste en place, et les passages ci-dessous qui les décrivent ne concernent que les versions précédentes.
 Les métadonnées App Intents sont extraites pour Debug et Release lors du packaging.
 Le fournisseur de raccourcis est enregistré au lancement via
 `updateAppShortcutParameters()`.
@@ -82,7 +82,8 @@ jamais la découverte d’un autre mécanisme. Le journal v3 ajoute l’adaptate
 si nécessaire, la limite native compagnon ; les anciens journaux restent lisibles.
 
 L’étalonnage attend 100 % **et l’arrêt de la charge** avant chaque décharge.
-Chaque phase est bornée à 12 h, le cycle à 24 h. Mesures inconnues ou batterie
+Chaque recharge est bornée à 12 h, chaque décharge à 36 h et le cycle à 72 h : au repos, la
+décharge de 100 à 10 % prend près d'une journée. Mesures inconnues ou batterie
 à 45 °C : interruption et restauration. Le retour au secteur admet 180 secondes :
 le M1 de validation expose `PostDischargeWaitSeconds = 120`. Avec une cible
 finale de 100 %, le cycle termine sans isoler de nouveau l’adaptateur.
