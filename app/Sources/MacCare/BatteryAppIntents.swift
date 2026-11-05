@@ -50,6 +50,16 @@ struct StopBatteryProtectionIntent: AppIntent {
     }
 }
 
+struct DischargeBatteryIntent: AppIntent {
+    static var title: LocalizedStringResource = "Décharger la batterie jusqu’à la limite"
+    static var description = IntentDescription("Le Mac utilise sa batterie tout en restant branché, puis reprend le secteur à la limite. Nécessite une méthode de décharge compatible.")
+    static var openAppWhenRun = true
+    @MainActor func perform() async throws -> some IntentResult {
+        try await BatteryIntentBridge.current().executeAutomation(.discharge)
+        return .result()
+    }
+}
+
 struct BatteryAppShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(intent: SetBatteryLimitIntent(), phrases: ["Limiter la charge avec \(.applicationName)"],

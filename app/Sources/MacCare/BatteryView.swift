@@ -19,10 +19,11 @@ struct BatteryView: View {
                         if snapshot.present {
                             telemetry(snapshot)
                             Picker("Rubrique Batterie", selection: $tab) {
-                                Text("Réglages").tag(0)
+                                Text("Réglages").tag(0); Text("Décharge").tag(1)
                                 Text("Programmations").tag(2); Text("Historique").tag(3)
                             }.pickerStyle(.segmented).labelsHidden()
                             switch tab {
+                            case 1: BatteryDischargeView(model: model)
                             case 2: BatterySchedulesView(model: model)
                             case 3: BatteryHistoryView(model: model)
                             default: protection(snapshot); BatteryProfilesView(model: model)
@@ -150,7 +151,7 @@ struct BatteryView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     if model.nativePolicyControl {
                         Stepper("Limite de charge : \(model.configuration.limit) %", value: $model.configuration.limit, in: 50...100)
-                        Text("macOS applique la limite et les pauses demandées, en général en quelques secondes ; la charge peut mettre environ une minute à réagir. Si la batterie est déjà au-dessus de la limite, son niveau est maintenu jusqu’à ce qu’elle redescende sur batterie. Si vous abaissez la limite pendant une recharge, la batterie peut encore gagner 3 points avant de s’arrêter. La calibration de macOS peut temporairement imposer 100 %.")
+                        Text("macOS applique la limite et les pauses demandées, en général en quelques secondes ; la charge peut mettre environ une minute à réagir. Si la batterie est déjà au-dessus de la limite, son niveau est maintenu : utilisez l’onglet Décharge pour la faire descendre. Si vous abaissez la limite pendant une recharge, la batterie peut encore gagner 3 points avant de s’arrêter. La calibration de macOS peut temporairement imposer 100 %.")
                             .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
                     } else if model.nativeControl {
                         Picker("Limite de charge", selection: $model.configuration.limit) {

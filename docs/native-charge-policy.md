@@ -113,13 +113,20 @@ La décharge volontaire ferme d'abord la coupure d'adaptateur, écrit la cible, 
 la coupure à l'arrivée, cible déjà en place. Le Mac se déclare alors sur batterie, ce qui
 n'interrompt pas le cycle.
 
-**Retirée depuis la version 0.2.5.** Essais du 5 novembre 2026 avec un chargeur 30 W : de 87 à
-85 % sous forte charge processeur, puis de 58 à 57 % au repos, sans aucune écriture après la
-réouverture. Le secteur n'est pas revenu sans reconnecter le câble ; il manquait encore 49 minutes
-après la seconde réouverture. Dans les deux cas, macOS a retiré la limite 300 secondes après la perte du
-secteur. Les décharges réussies du 4 novembre sont notées avec un chargeur 65 W, et le rôle du
-chargeur n'est pas isolé. Dans cet état, ni une impulsion sur la coupure ni une nouvelle limite
-n'ont rétabli le secteur.
+**Retirée en 0.2.5, de retour en 0.2.6 sans restriction de chargeur.** Essais du 5 novembre 2026
+sur ce Mac, avec la même séquence :
+
+| Décharge | Alimentation | Limite retirée par macOS à 300 s | Secteur |
+| --- | --- | --- | --- |
+| 87 → 85 %, sous forte charge | 30 W, 12 V | Oui | Pas revenu sans reconnecter le câble |
+| 58 → 57 %, au repos | 30 W, 12 V | Oui | Absent 49 minutes plus tard, sans reconnexion |
+| 54 → 53 %, au repos | 65 W, 20 V | Non, 4 min 23 s | Revenu seul |
+| 53 → 51 %, au repos | 65 W, 20 V | Oui | Revenu seul |
+
+Le retrait de la limite n'explique donc pas seul l'échec. Le rôle de l'alimentation est probable,
+mais l'échantillon est faible et la décharge sous forte charge sur 65 W n'a pas été essayée. Câble
+branché et secteur perdu, ni une impulsion sur la coupure ni une nouvelle limite n'ont rétabli
+le secteur. L'app demande alors de reconnecter le câble au bout de 3 minutes.
 
 ## Veille
 

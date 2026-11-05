@@ -28,13 +28,14 @@ public final class BatteryProtectionController {
     private var deferredRestorationTarget: Int?
     private var failure: String?
     private var message = "Protection désactivée"
-    private let allowsCycles: Bool
+    private let allowsDischarge: Bool
+    private let allowsCalibration: Bool
     public var requiresWatchdog: Bool { recovery != nil }
 
     public init(hardware: any ChargeHardware, markRecovery: @escaping (BatteryRecoveryRecord) throws -> Void,
-                clearRecovery: @escaping () throws -> Void, allowsCycles: Bool = true) {
+                clearRecovery: @escaping () throws -> Void, allowsDischarge: Bool = true, allowsCalibration: Bool = true) {
         self.hardware = hardware; self.markRecovery = markRecovery; self.clearRecovery = clearRecovery
-        self.allowsCycles = allowsCycles
+        self.allowsDischarge = allowsDischarge; self.allowsCalibration = allowsCalibration
     }
     public func recover(_ record: BatteryRecoveryRecord) throws {
         guard record.isValid else { throw BatteryHardwareError(code: -3) }
@@ -111,8 +112,11 @@ public final class BatteryProtectionController {
                     if command == .heartbeat { return status(snapshot, now: now, uid: uid, session: callerSession) }
                     throw ControlError("La protection a expiré. Réactivez-la pour continuer.")
                 }
-                if command == .calibrate || command == .discharge, !allowsCycles {
-                    throw ControlError("La décharge et l’étalonnage ne sont pas disponibles dans cette version.")
+                if command == .calibrate, !allowsCalibration {
+                    throw ControlError("L’étalonnage n’est pas disponible dans cette version.")
+                }
+                if command == .discharge, !allowsDischarge {
+                    throw ControlError("La décharge n’est pas disponible dans cette version.")
                 }
                 if command == .calibrate {
                     guard cycle == nil, let configuration, sessionCapabilities?.supportsDischarge == true,
