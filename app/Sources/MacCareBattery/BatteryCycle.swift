@@ -19,6 +19,9 @@ public struct BatteryCycleStatus: Codable, Equatable, Sendable {
 
 /// Pure bounded state machine. No timers, hardware or wall clock are hidden here.
 public struct BatteryCycle: Sendable {
+    /// Off in this release: on the M1 validation host external input did not return after a
+    /// deliberate discharge, at rest or under load, until the cable was reconnected (5 Nov. 2026).
+    public static let enabledInThisRelease = false
     // The M1 validation host reports PostDischargeWaitSeconds = 120. Allow the
     // system to reconnect external input before treating its absence as a fault.
     public static let powerReturnGrace: TimeInterval = 180

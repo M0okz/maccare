@@ -28,11 +28,13 @@ public final class BatteryProtectionController {
     private var deferredRestorationTarget: Int?
     private var failure: String?
     private var message = "Protection désactivée"
+    private let allowsCycles: Bool
     public var requiresWatchdog: Bool { recovery != nil }
 
     public init(hardware: any ChargeHardware, markRecovery: @escaping (BatteryRecoveryRecord) throws -> Void,
-                clearRecovery: @escaping () throws -> Void) {
+                clearRecovery: @escaping () throws -> Void, allowsCycles: Bool = true) {
         self.hardware = hardware; self.markRecovery = markRecovery; self.clearRecovery = clearRecovery
+        self.allowsCycles = allowsCycles
     }
     public func recover(_ record: BatteryRecoveryRecord) throws {
         guard record.isValid else { throw BatteryHardwareError(code: -3) }
@@ -108,6 +110,9 @@ public final class BatteryProtectionController {
                     if recovery != nil { try stop() }
                     if command == .heartbeat { return status(snapshot, now: now, uid: uid, session: callerSession) }
                     throw ControlError("La protection a expiré. Réactivez-la pour continuer.")
+                }
+                if command == .calibrate || command == .discharge, !allowsCycles {
+                    throw ControlError("La décharge et l’étalonnage ne sont pas disponibles dans cette version.")
                 }
                 if command == .calibrate {
                     guard cycle == nil, let configuration, sessionCapabilities?.supportsDischarge == true,

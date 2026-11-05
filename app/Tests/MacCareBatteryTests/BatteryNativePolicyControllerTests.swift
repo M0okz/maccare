@@ -490,6 +490,24 @@ struct BatteryNativePolicyControllerTests {
         #expect(holding.active && holding.error == nil && f.driver.clears == 0 && f.driver.targets.last == 70)
         #expect(f.journal.pending != nil)
     }
+    @Test func thisReleaseRefusesCyclesInTheHelper() throws {
+        #expect(!BatteryCycle.enabledInThisRelease)
+        let adapter = Adapter(), journal = Journal(), driver = Driver(.init(featureState: .absent, limit: .absent))
+        let policy = NativeChargePolicyHardware(driver: driver, identity: { "fixture-M1" }, onAC: { true },
+                                                percent: { 90 }, adapter: adapter, pause: { _ in })
+        adapter.journal = journal
+        let controller = BatteryProtectionController(hardware: RecoverableChargeHardware(base: policy, adapter: adapter, identity: { "fixture-M1" }),
+                                                     markRecovery: { try journal.save($0) }, clearRecovery: { try journal.clear() },
+                                                     allowsCycles: BatteryCycle.enabledInThisRelease)
+        let session = UUID(), snapshot = BatterySnapshot(percent: 90, onAC: true, temperature: 30)
+        let on = controller.execute(.enable, configuration: .init(limit: 70), uid: 501, sessionID: session, snapshot: snapshot, now: 0)
+        try #require(on.active)
+        for command in [BatteryCommand.discharge, .calibrate] {
+            let refused = controller.execute(command, configuration: nil, uid: 501, sessionID: session, snapshot: snapshot, now: 1)
+            #expect(refused.cycle == nil && refused.error?.contains("pas disponibles") == true)
+            #expect(!adapter.disabled, "The adapter stays connected")
+        }
+    }
     @Test func nothingIsWrittenBetweenTheReopeningAndTheReturnOfInput() throws {
         let f = Fixture(); try #require(f.run(.enable, limit: 85, percent: 87).active)
         try #require(f.run(.discharge, percent: 87, now: 1).cycle != nil)
