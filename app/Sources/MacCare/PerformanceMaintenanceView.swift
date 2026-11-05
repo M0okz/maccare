@@ -119,11 +119,16 @@ struct PerformanceMaintenanceView: View {
                             Label("Caches indisponibles : \(error). La réduction des instantanés reste disponible.", systemImage: "info.circle")
                                 .font(AppFont.secondary).foregroundStyle(Theme.muted)
                         }
-                        if model.preparing { ProgressView("Examen des caches…").font(AppFont.body) }
+                        if model.preparing {
+                            HStack(spacing: 10) {
+                                ProgressView().controlSize(.small)
+                                Text("Examen des caches…").font(AppFont.body)
+                            }
+                        }
                         else if let plan = model.cachePlan, !plan.items.isEmpty {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("\(humanSize(plan.bytes)) de caches examinés").font(AppFont.section).monospacedDigit().accessibilityAddTraits(.isHeader)
-                                DisclosureGroup("\(plan.items.count) application(s) concernée(s)") {
+                                DisclosureGroup("\(plan.items.count) \(pl(plan.items.count, "application")) \(pl(plan.items.count, "concernée"))") {
                                     ForEach(plan.items) { item in
                                         HStack {
                                             Text(URL(fileURLWithPath: item.path).lastPathComponent).lineLimit(1).truncationMode(.middle)
@@ -172,7 +177,7 @@ struct PerformanceMaintenanceView: View {
     private var footer: some View {
         AdaptiveActionRow {
             VStack(alignment: .leading, spacing: 5) {
-                Text(model.running.map { "En cours : \(PerformanceTaskPresentation.title($0))" } ?? (repairs.running != nil ? "Réparation en cours…" : (focusedRepair == nil ? "\(model.chosen.count) tâche(s) sélectionnée(s)" : "Réparation individuelle")))
+                Text(model.running.map { "En cours : \(PerformanceTaskPresentation.title($0))" } ?? (repairs.running != nil ? "Réparation en cours…" : (focusedRepair == nil ? "\(model.chosen.count) \(pl(model.chosen.count, "tâche")) \(pl(model.chosen.count, "sélectionnée"))" : "Réparation individuelle")))
                     .font(AppFont.body.weight(.semibold))
                 Text(focusedRepair == nil ? (model.lastSummary ?? "Les effets seront récapitulés avant toute exécution.") : "Cette action lance uniquement la réparation affichée.")
                     .font(AppFont.secondary).foregroundStyle(Theme.muted)
@@ -192,7 +197,7 @@ struct PerformanceMaintenanceView: View {
         let snapshots = request.includeLocalSnapshots && includeLocalSnapshots
         let removesSnapshots = snapshots && tasks.contains(.purgeable)
         return VStack(alignment: .leading, spacing: 18) {
-            Text("Exécuter \(tasks.count) tâche(s) ?").font(AppFont.section.weight(.semibold)).accessibilityAddTraits(.isHeader)
+            Text("Exécuter \(tasks.count) \(pl(tasks.count, "tâche")) ?").font(AppFont.section.weight(.semibold)).accessibilityAddTraits(.isHeader)
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     ForEach(tasks) { task in
@@ -200,7 +205,7 @@ struct PerformanceMaintenanceView: View {
                             Text(PerformanceTaskPresentation.title(task)).font(AppFont.emphasis)
                             Text(PerformanceTaskPresentation.effect(task, includeLocalSnapshots: snapshots)).font(AppFont.body).fixedSize(horizontal: false, vertical: true)
                             if task == .purgeable, let plan = model.cachePlan {
-                                Text("Suppression définitive de \(plan.items.count) dossier(s), soit \(humanSize(plan.bytes)) de caches recensés.")
+                                Text("Suppression définitive de \(plan.items.count) \(pl(plan.items.count, "dossier")), soit \(humanSize(plan.bytes)) de caches recensés.")
                                     .font(AppFont.body.weight(.semibold))
                             }
                         }

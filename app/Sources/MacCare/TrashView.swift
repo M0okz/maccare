@@ -18,7 +18,7 @@ struct TrashView: View {
                         .opacity(model.isLoading || model.isEmptying ? 0.5 : 1)
                     Spacer()
                     if model.hasLoaded && !model.bins.isEmpty {
-                        Text("\(model.bins.count) corbeille(s) · \(humanSize(model.totalSize))")
+                        Text("\(model.bins.count) \(pl(model.bins.count, "corbeille")) · \(humanSize(model.totalSize))")
                             .font(AppFont.secondary).foregroundStyle(Theme.muted)
                     }
                 }
@@ -94,7 +94,7 @@ struct TrashView: View {
             } else if b.items == 0 {
                 Text("Vide").font(AppFont.secondary).foregroundStyle(Theme.muted)
             } else {
-                Text("\(b.items) élément(s)").font(AppFont.secondary).foregroundStyle(Theme.muted)
+                Text("\(b.items) \(pl(b.items, "élément"))").font(AppFont.secondary).foregroundStyle(Theme.muted)
                 Text((b.measured ? "" : "≥ ") + humanSize(b.size_bytes))
                     .font(AppFont.body.weight(.bold)).monospacedDigit()
                     .frame(minWidth: 72, alignment: .trailing)
@@ -153,7 +153,7 @@ struct TrashView: View {
             } else if model.selectedBins.isEmpty {
                 Text("La corbeille sélectionnée a changé ou est désormais vide.").font(AppFont.body)
             } else {
-                Text("\(model.selectedItems) élément(s) · \(humanSize(model.selectedSize)) seront supprimés définitivement de : \(model.selectedBins.map(\.label).joined(separator: ", ")).")
+                Text("\(model.selectedItems) \(pl(model.selectedItems, "élément")) · \(humanSize(model.selectedSize)) seront supprimés définitivement de : \(model.selectedBins.map(\.label).joined(separator: ", ")).")
                     .font(AppFont.body)
                     .fixedSize(horizontal: false, vertical: true)
             }

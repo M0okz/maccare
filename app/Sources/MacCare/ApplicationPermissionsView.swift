@@ -173,7 +173,7 @@ struct ApplicationPermissionsView: View {
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 10) {
                     Image(systemName: model.chosen.isEmpty ? "lock.shield" : "checkmark.circle.fill").foregroundStyle(ModuleColor.privacy).accessibilityHidden(true)
-                    Text(model.chosen.isEmpty ? "Vous choisissez les accès à conserver" : "\(model.chosen.count) accès sélectionné(s)")
+                    Text(model.chosen.isEmpty ? "Vous choisissez les accès à conserver" : "\(model.chosen.count) accès \(pl(model.chosen.count, "sélectionné"))")
                         .font(AppFont.body.weight(.semibold))
                 }
                 if let message = model.message { Text(message).font(AppFont.secondary).foregroundStyle(Theme.muted) }

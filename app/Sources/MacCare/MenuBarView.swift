@@ -411,7 +411,8 @@ private struct TrayActionStyle: ButtonStyle {
                 RoundedRectangle(cornerRadius: 10).fill(LinearGradient(colors: prominent ? [Color(hex: "#AB64F4"), Color(hex: "#793BE0")] : [.white.opacity(hovered ? 0.16 : 0.10), .white.opacity(0.07)], startPoint: .top, endPoint: .bottom))
             }
             .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.white.opacity(prominent ? 0.25 : 0.17)))
-            .opacity(configuration.isPressed ? 0.75 : 1)
+            .opacity(configuration.isPressed ? 0.85 : 1)
+            .pressFeedback(configuration.isPressed && enabled)
             .onHover { hovered = $0 }
     }
 }
@@ -422,7 +423,8 @@ private struct TrayTileStyle: ButtonStyle {
         configuration.label
             .background(LinearGradient(colors: [.white.opacity(hovered ? 0.13 : 0.085), .white.opacity(0.04)], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 14))
             .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(.white.opacity(hovered ? 0.24 : 0.14)))
-            .opacity(configuration.isPressed ? 0.75 : 1)
+            .opacity(configuration.isPressed ? 0.85 : 1)
+            .pressFeedback(configuration.isPressed, scale: 0.985)
             .onHover { hovered = $0 }
     }
 }

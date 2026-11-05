@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Une action principale ample ; appui visible sans animation ni modification de la sémantique du bouton.
+/// Une action principale ample ; l'appui l'enfonce sans modifier la sémantique du bouton.
 struct OverviewPrimaryStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -13,6 +13,7 @@ struct OverviewPrimaryStyle: ButtonStyle {
                 in: Capsule()
             )
             .overlay(Capsule().strokeBorder(Color.white.opacity(0.25)))
-            .opacity(configuration.isPressed ? 0.75 : 1)
+            .opacity(configuration.isPressed ? 0.85 : 1)
+            .pressFeedback(configuration.isPressed)
     }
 }

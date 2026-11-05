@@ -32,7 +32,7 @@ struct PerformanceStartupManager: View {
         if model.isLoading { return "Lecture en cours…" }
         if login && permissions.automation != .granted { return "Accès nécessaire" }
         if login && (!model.loginItemsLoaded || model.loginItemsError != nil) { return "Liste indisponible" }
-        return "\(count) élément(s)"
+        return "\(count) \(pl(count, "élément"))"
     }
     private var busy: Bool { model.isLoading || model.busyPath != nil }
 

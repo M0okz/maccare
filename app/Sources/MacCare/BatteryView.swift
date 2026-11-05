@@ -21,7 +21,7 @@ struct BatteryView: View {
                             Picker("Rubrique Batterie", selection: $tab) {
                                 Text("Réglages").tag(0)
                                 Text("Programmations").tag(2); Text("Historique").tag(3)
-                            }.pickerStyle(.segmented)
+                            }.pickerStyle(.segmented).labelsHidden()
                             switch tab {
                             case 2: BatterySchedulesView(model: model)
                             case 3: BatteryHistoryView(model: model)
@@ -72,7 +72,7 @@ struct BatteryView: View {
             }
             Spacer()
             Button { Task { await model.refresh(force: true) } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
-                .buttonStyle(.bordered).disabled(model.controlsBusy)
+                .buttonStyle(SecondaryActionButtonStyle()).disabled(model.controlsBusy)
         }
     }
     private func telemetry(_ snapshot: BatterySnapshot) -> some View {
@@ -229,8 +229,10 @@ struct BatteryView: View {
                 Task { do { diagnostics = try await HelperClient.batteryHardwareDiagnostics() } catch { diagnostics = error.localizedDescription } }
             }.disabled(!model.helperEnabled || model.controlsBusy)
             Button("Ouvrir les réglages Batterie de macOS…") { model.openBatterySettings() }
-                .buttonStyle(.borderedProminent)
-        }.padding(24).background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: Radius.card))
+        }
+        .buttonStyle(SecondaryActionButtonStyle())
+        .padding(24).frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: Radius.card))
     }
     @ViewBuilder private var actions: some View {
         if model.active {

@@ -105,7 +105,7 @@ struct UpdatesView: View {
         switch s.state {
         case .notInstalled: return "non installé"
         case .checking: return "vérification…"
-        case .ok: return s.items.isEmpty ? "à jour" : "\(s.items.count) mise(s) à jour disponible(s)"
+        case .ok: return s.items.isEmpty ? "à jour" : "\(s.items.count) \(pl(s.items.count, "mise")) à jour \(pl(s.items.count, "disponible"))"
         case .error(let m): return "erreur : \(m)"
         }
     }

@@ -58,17 +58,12 @@ struct SpaceView: View {
                     }.padding(36).frame(maxWidth: .infinity, minHeight: geometry.size.height)
                 }
             }
-            VStack(spacing: 12) {
-                if let message = model.statusMessage {
-                    Text(message).font(AppFont.secondary).foregroundStyle(Theme.warn)
-                        .multilineTextAlignment(.center)
-                }
+            OverviewActionFooter(caption: "Mesure seule. Aucun élément n’est sélectionné pour suppression.",
+                                 message: model.statusMessage) {
                 Button("Explorer") { model.setRoot(model.root) }
                     .buttonStyle(CircularOverviewActionStyle(tint: ModuleColor.space))
                     .accessibilityLabel(model.isDiskRoot ? "Explorer ce disque" : "Explorer ce dossier")
-                Text("Mesure seule. Aucun élément n’est sélectionné pour suppression.")
-                    .font(AppFont.secondary).foregroundStyle(Theme.muted)
-            }.padding(.horizontal, 24).padding(.top, 12).padding(.bottom, 24)
+            }
         }
     }
 
@@ -191,7 +186,7 @@ struct SpaceView: View {
                     .font(.system(size: 28)).foregroundStyle(Theme.accentInk).accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 5) {
                     Text(model.crumbs.last?.name ?? model.root.name).font(AppFont.body.weight(.semibold)).lineLimit(2)
-                    Text("\(model.children.count) élément(s) · \(model.hasPartial ? "au moins " : "")\(humanSize(model.totalSize))")
+                    Text("\(model.children.count) \(pl(model.children.count, "élément")) · \(model.hasPartial ? "au moins " : "")\(humanSize(model.totalSize))")
                         .font(AppFont.secondary).monospacedDigit().foregroundStyle(Theme.muted)
                 }
             }.padding(.horizontal, 16).padding(.top, 16)

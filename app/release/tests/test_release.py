@@ -29,14 +29,21 @@ class ReleaseTests(unittest.TestCase):
         configured = configure(dict(self.info, SUFeedURL=self.feed, SUPublicEDKey=self.public_key), {})
         self.assertNotIn('SUFeedURL', configured)
         self.assertNotIn('SUPublicEDKey', configured)
+        self.assertTrue(configured['MacCareDevelopmentBuild'])
+        self.assertEqual(configured['CFBundleDisplayName'], 'MacCare Dev')
 
     def test_distribution_injects_public_fields_and_keeps_source_unchanged(self):
-        configured = configure(self.info, {'MACCARE_DISTRIBUTION': '1', 'MACCARE_VERSION': '0.2.0',
+        configured = configure(dict(self.info, MacCareDevelopmentBuild=True, CFBundleName='MacCare Dev',
+                                    CFBundleDisplayName='MacCare Dev'),
+                              {'MACCARE_DISTRIBUTION': '1', 'MACCARE_VERSION': '0.2.0',
                               'MACCARE_BUILD_NUMBER': '42', 'MACCARE_UPDATE_FEED_URL': self.feed,
                               'MACCARE_SPARKLE_PUBLIC_KEY': self.public_key})
         self.assertEqual(configured['CFBundleVersion'], '42')
         self.assertEqual(configured['CFBundleShortVersionString'], '0.2.0')
         self.assertEqual(configured['SUPublicEDKey'], self.public_key)
+        self.assertFalse(configured['MacCareDevelopmentBuild'])
+        self.assertEqual(configured['CFBundleName'], 'MacCare')
+        self.assertEqual(configured['CFBundleDisplayName'], 'MacCare')
         self.assertEqual(self.info['CFBundleVersion'], '1')
 
     def test_configuration_rejects_authentication_in_feed_url(self):

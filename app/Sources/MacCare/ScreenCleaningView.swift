@@ -47,7 +47,7 @@ struct ScreenCleaningView: View {
             Divider()
             ToolManagerFooter {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("Nettoyage pendant \(duration < 60 ? "30 secondes" : "\(duration / 60) minute(s)")").font(AppFont.body.weight(.semibold))
+                    Text("Nettoyage pendant \(duration < 60 ? "30 secondes" : "\(duration / 60) \(pl(duration / 60, "minute"))")").font(AppFont.body.weight(.semibold))
                     Text("Retour automatique ou ⌘ + Échap pour quitter.").font(AppFont.secondary).foregroundStyle(Theme.muted)
                 }
             } actions: {

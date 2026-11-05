@@ -47,5 +47,6 @@ private struct CircularOverviewActionSurface<Label: View>: View {
             .onHover { hovered = $0 }
             .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: emphasized)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: pressed)
+            .pressFeedback(pressed && enabled)
     }
 }

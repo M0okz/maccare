@@ -46,9 +46,9 @@ struct CleaningOverviewView: View {
                                 .font(.system(size: 18)).foregroundStyle(Theme.muted)
                                 .fixedSize(horizontal: false, vertical: true)
                             VStack(alignment: .leading, spacing: 20) {
-                                feature("sparkles", "Analyser les catégories de votre profil")
-                                feature("list.bullet.rectangle", "Examiner les résultats en détail")
-                                feature("checkmark.shield", "Garder le contrôle de chaque suppression")
+                                OverviewFeatureRow(symbol: "sparkles", title: "Analyser les catégories de votre profil", tint: Theme.accentInk)
+                                OverviewFeatureRow(symbol: "list.bullet.rectangle", title: "Examiner les résultats en détail", tint: Theme.accentInk)
+                                OverviewFeatureRow(symbol: "checkmark.shield", title: "Garder le contrôle de chaque suppression", tint: Theme.accentInk)
                             }.padding(.top, 10)
                         }
                         .frame(maxWidth: 450, alignment: .leading)
@@ -56,30 +56,18 @@ struct CleaningOverviewView: View {
                     .padding(36).frame(maxWidth: .infinity, minHeight: geometry.size.height)
                 }
             }
-            VStack(spacing: 12) {
-                if let message = smart.statusMessage {
-                    Text(message).font(AppFont.secondary).foregroundStyle(Theme.warn)
-                        .multilineTextAlignment(.center)
-                }
+            OverviewActionFooter(caption: "Profil \(CleaningProfile(rawValue: profile)?.title ?? "Recommandé") · aucune suppression pendant l’analyse.",
+                                 message: smart.statusMessage) {
                 Button("Analyser") { analyze() }
                     .buttonStyle(CircularOverviewActionStyle(tint: ModuleColor.clean))
                     .accessibilityLabel("Analyser les catégories de nettoyage")
-                Text("Profil \(CleaningProfile(rawValue: profile)?.title ?? "Recommandé") · aucune suppression pendant l’analyse.")
-                    .font(AppFont.secondary).foregroundStyle(Theme.muted)
+            } secondary: {
                 Button("Accéder directement aux outils") { app.cleaningToolsVisible = true }
                     .buttonStyle(SecondaryActionButtonStyle()).font(AppFont.secondary)
             }
-            .padding(.horizontal, 24).padding(.top, 12).padding(.bottom, 24)
         }
     }
 
-    private func feature(_ symbol: String, _ text: String) -> some View {
-        HStack(spacing: 14) {
-            Image(systemName: symbol).font(.system(size: 22))
-                .foregroundStyle(Theme.accentInk).frame(width: 30).accessibilityHidden(true)
-            Text(text).font(.system(size: 16, weight: .medium))
-        }
-    }
 
     private var artwork: some View {
         ZStack {

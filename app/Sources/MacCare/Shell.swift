@@ -281,7 +281,7 @@ struct WindowConfigurator: NSViewRepresentable {
             window.toolbarStyle = .unified
             window.titlebarAppearsTransparent = true
             window.titleVisibility = .hidden
-            window.title = ""
+            window.title = AppBuildIdentity.name
             window.styleMask.insert(.fullSizeContentView)
             window.isMovableByWindowBackground = false
             window.backgroundColor = NSColor(Color(hex: "#160C2E"))
@@ -349,7 +349,11 @@ struct Sidebar: View {
             if focusedExploration {
                 Button { expandedDuringExploration.toggle() } label: {
                     Image(systemName: compact ? "sidebar.left" : "sidebar.leading")
-                        .font(.system(size: 18)).frame(maxWidth: .infinity, minHeight: 40)
+                        .font(.system(size: 18))
+                        .frame(width: compact ? nil : 20)
+                        .padding(.leading, compact ? 0 : 12)
+                        .frame(maxWidth: .infinity, minHeight: 40, alignment: compact ? .center : .leading)
+                        .contentShape(Rectangle())
                 }.buttonStyle(.plain).foregroundStyle(Theme.muted)
                     .accessibilityLabel(compact ? "Développer la navigation" : "Réduire la navigation")
                     .help(compact ? "Développer la navigation" : "Réduire la navigation")
@@ -359,8 +363,15 @@ struct Sidebar: View {
         .padding(.top, 58)   // réserve la ligne des boutons natifs, sans bloc de marque
         .padding(.bottom, 20)
         .frame(width: compact ? 82 : 240)
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: compact)
+        .animation(reduceMotion ? nil : Motion.easeInOut(0.25), value: compact)
         .frame(maxHeight: .infinity, alignment: .top)
+        .overlay(alignment: .topLeading) {
+            if AppBuildIdentity.isDevelopment {
+                Text(compact ? "Dev" : AppBuildIdentity.name)
+                    .font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.warn)
+                    .padding(.leading, 20).padding(.top, 38).allowsHitTesting(false)
+            }
+        }
         .background(
             (app.module ?? .dashboard).section.palette.sidebar
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: (app.module ?? .dashboard).section)
@@ -376,7 +387,7 @@ struct Sidebar: View {
                     .accessibilityHidden(true)
                     .font(AppFont.emphasis)
                     .foregroundStyle(selected ? Color.white : Theme.muted)
-                    .frame(width: compact ? 24 : 20)
+                    .frame(width: compact ? 24 : 20, height: 20)
                 if !compact {
                     Text(m.title)
                         .font(AppFont.body.weight(.medium))
@@ -384,7 +395,8 @@ struct Sidebar: View {
                     Spacer(minLength: 0)
                 }
             }
-            .padding(.horizontal, 12).padding(.vertical, 12)
+            .padding(.horizontal, compact ? 0 : 12).padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: compact ? .center : .leading)
             .background(
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
                     .fill(selected ? Color.white.opacity(0.13) : Color.clear)
@@ -396,16 +408,19 @@ struct Sidebar: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(PressStyle())
-        .overlay(alignment: .topTrailing) {
-            if activity(m).busy {
-                ScanActivityRing(lineWidth: 2, color: .white).frame(width: 14, height: 14)
-                    .padding(3).background(Theme.window, in: Circle()).offset(x: 1, y: -2)
-                    .accessibilityHidden(true).allowsHitTesting(false)
-            } else if activity(m).available {
-                Image(systemName: "checkmark.circle.fill").font(.system(size: 14))
-                    .foregroundStyle(Theme.ok).background(Theme.window, in: Circle()).offset(x: 1, y: -2)
-                    .accessibilityHidden(true).allowsHitTesting(false)
+        .overlay(alignment: compact ? .topTrailing : .trailing) {
+            // Rail : pastille à l'angle de l'icône. Barre complète : en fin de ligne, dans son axe.
+            Group {
+                if activity(m).busy {
+                    ScanActivityRing(lineWidth: 2, color: .white).frame(width: 14, height: 14)
+                        .padding(3).background(Theme.window, in: Circle())
+                } else if activity(m).available {
+                    Image(systemName: "checkmark.circle.fill").font(.system(size: 14))
+                        .foregroundStyle(Theme.ok).background(Theme.window, in: Circle())
+                }
             }
+            .padding(.top, compact ? 4 : 0).padding(.trailing, compact ? 8 : 12)
+            .accessibilityHidden(true).allowsHitTesting(false)
         }
         .accessibilityLabel(m.title)
         .accessibilityValue(activity(m).busy ? "Analyse en cours" : (activity(m).available ? "Résultats disponibles" : ""))
@@ -472,12 +487,12 @@ struct DetailView: View {
                     }
                 }
                 .id(app.module)
-                .transition(filesManagerVisible ? filesPanelTransition : (reduceMotion ? .identity : .opacity))
+                .transition(filesManagerVisible ? filesPanelTransition : ManagerPanelMotion.page(reduceMotion: reduceMotion))
                 .zIndex(filesManagerVisible ? 1 : 0)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipped()
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: app.module)
+            .animation(reduceMotion ? nil : Motion.easeOut(0.2), value: app.module)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

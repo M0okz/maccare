@@ -170,6 +170,7 @@ private struct SpeedTestButtonStyle: ButtonStyle {
             .foregroundStyle(.white.opacity(enabled ? 1 : 0.4))
             .background(.white.opacity(configuration.isPressed ? 0.18 : hovered ? 0.12 : 0.07), in: Circle())
             .overlay(Circle().strokeBorder(.white.opacity(hovered ? 0.30 : 0.12), lineWidth: 2))
+            .pressFeedback(configuration.isPressed && enabled)
             .onHover { hovered = $0 }
     }
 }

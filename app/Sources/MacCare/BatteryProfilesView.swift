@@ -5,7 +5,7 @@ struct BatteryProfilesView: View {
     @ObservedObject var model: BatteryModel
     @State private var name = ""
     var body: some View {
-        GroupBox("Profils d’utilisation") {
+        BatterySection(title: "Profils d’utilisation") {
             VStack(alignment: .leading, spacing: 16) {
                 ForEach(model.profiles) { profile in
                     HStack(alignment: .top) {
@@ -32,7 +32,7 @@ struct BatteryProfilesView: View {
                 }.disabled(model.controlsBusy || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 Text("L’enregistrement conserve vos réglages de cet onglet. Le bouton Appliquer active le profil choisi.")
                     .font(.callout).foregroundStyle(.secondary)
-            }.padding(12)
+            }
         }
     }
 }

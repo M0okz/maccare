@@ -18,7 +18,7 @@ struct PerformanceOverviewView: View {
     private var writing: Bool { tasks.running != nil || repairs.running != nil || startup.busyPath != nil }
     private var summaryTitle: String {
         if startup.statusMessage != nil { return "Votre bilan du démarrage est partiel" }
-        return startup.loginItemsLoaded ? "\(startup.total) élément(s) à examiner" : "\(startup.agents.count) élément(s) d’arrière-plan"
+        return startup.loginItemsLoaded ? "\(startup.total) \(pl(startup.total, "élément")) à examiner" : "\(startup.agents.count) \(pl(startup.agents.count, "élément")) d’arrière-plan"
     }
     var body: some View {
         ZStack {
@@ -43,31 +43,31 @@ struct PerformanceOverviewView: View {
             GeometryReader { geometry in
                 ScrollView {
                     ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 48) { artwork; introductionText.frame(width: 420) }
+                        HStack(spacing: 48) { artwork.frame(width: 280, height: 300); introductionText.frame(width: 450) }
                         VStack(spacing: 24) { artwork; introductionText }
                     }.padding(36).frame(maxWidth: .infinity, minHeight: geometry.size.height)
                 }
             }
-            VStack(spacing: 12) {
+            OverviewActionFooter(caption: "Analyse seule. Vous choisissez ensuite les éléments à gérer.") {
                 Button("Analyser", action: analyze)
                     .buttonStyle(CircularOverviewActionStyle(tint: ModuleColor.startup))
                     .accessibilityLabel("Analyser les performances").disabled(writing)
-                Text("Analyse seule. Vous choisissez ensuite les éléments à gérer.").font(AppFont.secondary).foregroundStyle(Theme.muted)
+            } secondary: {
                 Button("Examiner une catégorie directement") { app.performanceDetail = .maintenance }
                     .buttonStyle(SecondaryActionButtonStyle()).font(AppFont.secondary).disabled(writing)
-            }.padding(.horizontal, 24).padding(.bottom, 28)
+            }
         }
     }
     private var introductionText: some View {
         VStack(alignment: .leading, spacing: 22) {
             Text("Performances").font(.system(size: headingSize)).accessibilityAddTraits(.isHeader)
             Text("Faites le point sur le démarrage de votre Mac et retrouvez les outils d’entretien adaptés à votre situation.")
-                .font(.title3).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
-            ForEach(PerformanceCategory.allCases) { category in
-                Label { Text(category.title).font(AppFont.body.weight(.medium)) } icon: {
-                    Image(systemName: category.symbol).foregroundStyle(ModuleColor.startup.shade(0.4)).frame(width: 30).accessibilityHidden(true)
+                .font(.system(size: 18)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 20) {
+                ForEach(PerformanceCategory.allCases) { category in
+                    OverviewFeatureRow(symbol: category.symbol, title: category.title, tint: ModuleColor.startup.shade(0.4))
                 }
-            }
+            }.padding(.top, 10)
         }
     }
     private var artwork: some View {
@@ -135,10 +135,10 @@ struct PerformanceOverviewView: View {
         case .login:
             guard permissions.automation == .granted else { return "Accès nécessaire pour lire les apps à la connexion." }
             guard startup.loginItemsError == nil, startup.statusMessage == nil else { return "Lecture incomplète · examinez les détails." }
-            return startup.loginItemsLoaded ? "\(startup.loginItems.count) application(s) à la connexion" : "Actualisez le bilan pour lire la liste."
+            return startup.loginItemsLoaded ? "\(startup.loginItems.count) \(pl(startup.loginItems.count, "application")) à la connexion" : "Actualisez le bilan pour lire la liste."
         case .background:
             guard startup.statusMessage == nil else { return "Inventaire indisponible · examinez les détails." }
-            return "\(startup.userAgents.count) agent(s) de session · \(startup.systemAgents.count) système · \(startup.disabledAgents.count) désactivé(s)"
+            return "\(startup.userAgents.count) \(pl(startup.userAgents.count, "agent")) de session · \(startup.systemAgents.count) système · \(startup.disabledAgents.count) \(pl(startup.disabledAgents.count, "désactivé"))"
         }
     }
     private func analyze() {
