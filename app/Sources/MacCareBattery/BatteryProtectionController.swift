@@ -40,6 +40,8 @@ public final class BatteryProtectionController {
                         snapshot: BatterySnapshot, now: TimeInterval) -> BatteryProtectionStatus {
         // A read-only call never runs the policy, renews a lease or writes hardware.
         if command == .status { return status(snapshot, now: now, uid: uid, session: callerSession) }
+        // A renewal that arrives after its session ended only learns the outcome: lateness is not a fault.
+        if command == .heartbeat, restoring { return status(snapshot, now: now, uid: uid, session: callerSession) }
         do {
             guard uid >= 501, let callerSession else { throw ControlError("Session de contrôle invalide.") }
             if let owner {
@@ -100,6 +102,7 @@ public final class BatteryProtectionController {
             case .heartbeat, .topUp, .cancelTopUp, .discharge, .calibrate, .cancelCycle:
                 guard owner == uid, sessionID == callerSession, now < deadline else {
                     if recovery != nil { try stop() }
+                    if command == .heartbeat { return status(snapshot, now: now, uid: uid, session: callerSession) }
                     throw ControlError("La protection a expiré. Réactivez-la pour continuer.")
                 }
                 if command == .calibrate {

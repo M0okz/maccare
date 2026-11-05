@@ -181,9 +181,28 @@ struct BatteryNativeModelTests {
         await model.refresh()
         #expect(client.calls.last == .heartbeat && model.protection == nil, "A cached active state is never shown")
         await model.refresh()
-        #expect(client.calls.last == .status && model.active)
+        #expect(client.calls.last == .heartbeat && model.active, "The session may still be alive: it is renewed at once")
         await model.refresh()
         #expect(client.calls.last == .heartbeat, "The next pass renews the same session")
+    }
+    @Test func aRestorationInProgressIsNamedAsSuch() async throws {
+        let client = Client()
+        let (model, defaults, suite) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        client.restoring = true
+        await model.refresh(force: true)
+        #expect(model.message == "Restauration de la charge en cours")
+    }
+    @Test func aRenewalThatKeepsFailingIsStillSent() async throws {
+        let client = Client()
+        let (model, defaults, suite) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        await model.perform(.enable)
+        client.requestFailures = 3
+        for _ in 0..<3 { await model.refresh() }
+        #expect(client.calls.suffix(3) == [.heartbeat, .heartbeat, .heartbeat])
+        await model.refresh()
+        #expect(client.calls.last == .heartbeat && model.active)
     }
     @Test func aLostDeactivationReplyDoesNotKeepRenewingTheSession() async throws {
         let client = Client()

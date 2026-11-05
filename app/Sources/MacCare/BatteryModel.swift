@@ -96,6 +96,7 @@ final class BatteryModel: ObservableObject {
     var message: String {
         if !helperEnabled { return "Suivi de la batterie · assistant requis pour la protection" }
         if helperUpdateRequired { return "Assistant système à mettre à jour" }
+        if restoring && !restorationDeferred { return "Restauration de la charge en cours" }
         return protection?.message ?? "Vérification du contrôle de charge…"
     }
 
@@ -111,15 +112,18 @@ final class BatteryModel: ObservableObject {
         guard force || ownsLease || protection == nil || Date() >= nextHelperStatus else { return }
         nextHelperStatus = Date().addingTimeInterval(60)
         do {
-            loadedHelperProtocol = try await client.loadedHelperProtocolVersion()
-            guard !isTerminating else { return }
-            if helperUpdateRequired {
-                protection = nil; ownsLease = false
-                error = "La version chargée de l’assistant doit être mise à jour avant le contrôle de la batterie."
-                return
+            let owned = ownsLease, renewing = owned || renewAfterLostReply
+            // Under heavy load any call may time out, so nothing may stand in front of a renewal.
+            if !renewing || loadedHelperProtocol == nil {
+                loadedHelperProtocol = try await client.loadedHelperProtocolVersion()
+                guard !isTerminating else { return }
+                if helperUpdateRequired {
+                    protection = nil; ownsLease = false
+                    error = "La version chargée de l’assistant doit être mise à jour avant le contrôle de la batterie."
+                    return
+                }
             }
-            let owned = ownsLease
-            let result = try await client.request(owned ? .heartbeat : .status, configuration: nil, sessionID: sessionID)
+            let result = try await client.request(renewing ? .heartbeat : .status, configuration: nil, sessionID: sessionID)
             guard !isTerminating else { return }
             accept(result)
             // A running session that ended on an error may be a safety stop, such as a lost
@@ -250,7 +254,7 @@ final class BatteryModel: ObservableObject {
         if !status.active || status.restoring || !status.ownedByCaller { ownsLease = false }
         // A lost heartbeat reply must not end a confirmed session the helper still gives to this app.
         else if renewAfterLostReply { ownsLease = true }
-        if !status.active || status.restoring { renewAfterLostReply = false }
+        renewAfterLostReply = false
         if !status.active && !status.restoring { mayOwnLease = false }
         if status.active, status.cycle != nil {
             if cycleActivity == nil { cycleActivity = PowerAssertion.beginUserActivity("Cycle de batterie en cours") }
