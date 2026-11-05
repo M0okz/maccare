@@ -11,13 +11,18 @@ struct StorageAlertView: View {
 
     private var free: UInt64 { volume.total - min(volume.used, volume.total) }
     private var usedFraction: Double { Double(min(volume.used, volume.total)) / Double(max(1, volume.total)) }
-    private var availableText: String {
+    private var availableText: String { Self.availableText(free: free) }
+
+    /// Reste court pour laisser au nom du volume la largeur de la ligne.
+    static func availableText(free: UInt64) -> String {
+        // Arrondir d'abord : l'accord suit la valeur affichée, 1,999 Go s'écrit « 2,00 Go libres ».
+        let gigabytes = (Double(free) / 10_000_000).rounded() / 100
         let formatter = NumberFormatter()
         formatter.locale = Locale(identifier: "fr_FR")
         formatter.minimumFractionDigits = 2
         formatter.maximumFractionDigits = 2
-        let gigabytes = formatter.string(from: NSNumber(value: Double(free) / 1_000_000_000)) ?? "—"
-        return "\(gigabytes) Go"
+        let number = formatter.string(from: NSNumber(value: gigabytes)) ?? "—"
+        return "\(number) Go \(pl(Int(gigabytes), "libre"))"
     }
 
     var body: some View {
@@ -36,7 +41,7 @@ struct StorageAlertView: View {
                         HStack(spacing: 12) {
                             Text(volume.name).lineLimit(1).truncationMode(.tail).help(volume.name)
                             Spacer(minLength: 0)
-                            Text("Disponible : \(availableText)").fixedSize().monospacedDigit()
+                            Text(availableText).fixedSize().monospacedDigit()
                         }
                         .font(.system(size: bodySize, weight: .semibold))
                         GeometryReader { geometry in
@@ -50,7 +55,7 @@ struct StorageAlertView: View {
                 }
                 .padding(.top, 16)
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(volume.name), disponible : \(availableText)")
+                .accessibilityLabel("\(volume.name), \(availableText)")
                 .accessibilityValue("\(Int(usedFraction * 100)) % utilisés")
             }.padding(24)
             Divider()

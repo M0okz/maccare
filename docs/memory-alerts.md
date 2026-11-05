@@ -41,7 +41,9 @@ arrière-plan sans interface régulière et toutes les copies MacCare sont exclu
 ses documents. « Tout forcer à quitter » demande une confirmation qui nomme
 les seules applications affichées et précise la perte possible des modifications
 non enregistrées. Il reste possible de forcer une fermeture déjà demandée
-normalement. Les refus et identités obsolètes sont signalés.
+normalement. Les refus et identités obsolètes sont signalés. « Quitter » est
+l’action visible de chaque ligne ; l’arrêt forcé, qui peut faire perdre du
+travail, reste au second plan et sans raccourci clavier.
 
 Avant chaque demande, le PID, la date de démarrage, l’utilisateur, le chemin
 exécutable, le bundle et le caractère graphique sont revérifiés. Le chemin

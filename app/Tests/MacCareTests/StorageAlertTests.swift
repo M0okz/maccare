@@ -17,6 +17,14 @@ final class StorageAlertTests: XCTestCase {
         XCTAssertFalse(StorageAlertPolicy.isLow(free: 10_000_000_000, total: 64_000_000_000))
     }
 
+    @MainActor
+    func testAvailableTextAgreesWithTheDisplayedValue() {
+        XCTAssertEqual(StorageAlertView.availableText(free: 43_170_000_000), "43,17 Go libres")
+        XCTAssertEqual(StorageAlertView.availableText(free: 1_500_000_000), "1,50 Go libre")
+        XCTAssertEqual(StorageAlertView.availableText(free: 1_999_000_000), "2,00 Go libres")
+        XCTAssertEqual(StorageAlertView.availableText(free: 0), "0,00 Go libre")
+    }
+
     func testInvalidSamplesCannotTriggerAlerts() {
         XCTAssertFalse(StorageAlertPolicy.isLow(free: 0, total: 0))
         XCTAssertFalse(StorageAlertPolicy.isLow(free: 101, total: 100))

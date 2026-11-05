@@ -23,12 +23,15 @@ struct MemoryAlertView: View {
                         HStack(spacing: 12) {
                             Image(nsImage: NSWorkspace.shared.icon(forFile: candidate.application.bundlePath))
                                 .resizable().frame(width: 32, height: 32).accessibilityHidden(true)
-                            Text(candidate.name).lineLimit(1).truncationMode(.tail).help(candidate.name)
+                            // Sur deux lignes : le bouton visible ne doit pas tronquer le nom.
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(candidate.name).lineLimit(1).truncationMode(.tail).help(candidate.name)
+                                Text(candidate.memoryText).monospacedDigit().fixedSize().foregroundStyle(.red)
+                                    .help("Empreinte physique du processus principal, mémoire compressée comprise.")
+                            }
                             Spacer(minLength: 0)
-                            Text(candidate.memoryText).monospacedDigit().fixedSize().foregroundStyle(.red)
-                                .help("Empreinte physique du processus principal, mémoire compressée comprise.")
                             Button(model.pending.contains(candidate.id) ? "Demandé" : "Quitter") { model.quit(candidate) }
-                                .buttonStyle(.plain).foregroundStyle(.secondary)
+                                .buttonStyle(SecondaryActionButtonStyle()).controlSize(.small).fixedSize()
                                 .disabled(model.pending.contains(candidate.id))
                                 .accessibilityLabel("Quitter \(candidate.name)")
                                 .help("Demander la fermeture de \(candidate.name), en proposant d’enregistrer les documents si l’application le permet.")
@@ -43,8 +46,9 @@ struct MemoryAlertView: View {
                     Button("Pendant une semaine") { snooze(7) }
                 }.fixedSize()
                 Spacer(minLength: 12)
+                // Au second plan : l'arrêt forcé peut faire perdre du travail.
                 Button("Tout forcer à quitter") { confirming = true }
-                    .buttonStyle(StorageAlertPrimaryButtonStyle())
+                    .buttonStyle(.plain).foregroundStyle(.secondary)
                     .disabled(!model.canForceQuit)
                     .alert("Forcer la fermeture des applications affichées ?", isPresented: $confirming) {
                         Button("Forcer à quitter", role: .destructive) { model.forceQuitDisplayed() }
