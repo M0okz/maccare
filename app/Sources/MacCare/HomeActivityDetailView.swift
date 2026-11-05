@@ -12,7 +12,6 @@ struct HomeActivityDetailView: View {
             Button("Fermer") { dismiss() }.keyboardShortcut(.cancelAction)
                 .buttonStyle(SecondaryActionButtonStyle()).padding(14)
         }.frame(width: 420).background(Theme.window).preferredColorScheme(.dark)
-            .onAppear { store.setMonitoring(for: .activityDetail(consumerID), enabled: true) }
-            .onDisappear { store.setMonitoring(for: .activityDetail(consumerID), enabled: false) }
+            .modifier(TrayMetricsConsumerModifier(store: store, consumer: .activityDetail(consumerID)))
     }
 }

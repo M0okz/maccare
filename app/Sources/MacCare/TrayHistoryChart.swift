@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Axe temporel fixe. Une seconde de recul révèle les segments au fil du temps,
-/// au lieu d'ajouter d'un coup une barre entière à chaque relevé.
+/// Axe temporel fixe, calé sur le dernier relevé. La courbe se redessine seulement quand
+/// un relevé arrive : un défilement image par image occuperait le CPU en continu.
 struct TrayHistoryChart: View {
     let points: [TrayHistoryPoint]
     var duration: TimeInterval = TrayCPUHistory.duration
@@ -11,19 +11,17 @@ struct TrayHistoryChart: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 24, paused: reduceMotion)) { _ in
-            let end = reduceMotion ? (points.last?.time ?? ProcessInfo.processInfo.systemUptime) : ProcessInfo.processInfo.systemUptime - 1
-            let plot = TrayHistoryPlot(points: points, end: end, duration: duration, maximum: maximum)
-            ZStack {
-                if filled {
-                    TrayHistoryPlot(points: points, end: end, duration: duration, maximum: maximum, filled: true)
-                        .fill(LinearGradient(colors: [color.opacity(0.25), color.opacity(0.01)], startPoint: .top, endPoint: .bottom))
-                }
-                plot.stroke(color, style: StrokeStyle(lineWidth: 1.7, lineCap: .round, lineJoin: .round))
+        let end = points.last?.time ?? 0
+        ZStack {
+            if filled {
+                TrayHistoryPlot(points: points, end: end, duration: duration, maximum: maximum, filled: true)
+                    .fill(LinearGradient(colors: [color.opacity(0.25), color.opacity(0.01)], startPoint: .top, endPoint: .bottom))
             }
-            .animation(reduceMotion ? nil : .easeInOut(duration: 0.8), value: maximum)
-            .clipped()
+            TrayHistoryPlot(points: points, end: end, duration: duration, maximum: maximum)
+                .stroke(color, style: StrokeStyle(lineWidth: 1.7, lineCap: .round, lineJoin: .round))
         }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.8), value: maximum)
+        .clipped()
     }
 }
 

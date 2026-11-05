@@ -65,6 +65,8 @@ des opérations séparées. Ne jamais committer ni afficher sa valeur privée.
 6. Calcul du SHA-256 et signature Ed25519 du DMG final ; génération et signature du
    flux `appcast.xml`. Le flux exige Apple Silicon et macOS 13.0.0 au minimum.
 7. Création d’une release brouillon, dépôt des seuls artefacts vérifiés, puis publication.
+8. Mise à jour et redéploiement du site, qui n’est pas automatique : voir « À chaque
+   release » dans [`site/README.md`](../site/README.md).
 
 Les notes sont prises dans `docs/release-notes/<version>.md` lorsqu’elles existent,
 pour conserver les disponibilités et limites du matériel dans la release et le flux

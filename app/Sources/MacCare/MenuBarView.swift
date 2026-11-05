@@ -172,13 +172,15 @@ struct MenuBarView: View {
         .accessibilityHint("Explorer le disque dans MacCare")
     }
 
+    private var memoryRingFraction: Double { TrayMemoryRingLayout.rounded(metrics.memory?.fraction ?? 0) }
+
     private var memoryCard: some View {
         Button { detail = .memory } label: {
             VStack(alignment: .leading, spacing: 10) {
                 Label("Mémoire", systemImage: "memorychip").font(.system(size: 12, weight: .medium))
                 HStack {
                     VStack(alignment: .leading, spacing: 6) {
-                        TrayRollingValue(text: memoryValue, value: (metrics.memory?.fraction ?? 0) * 100)
+                        Text(memoryValue).monospacedDigit()
                             .font(.system(size: 25, weight: .semibold, design: .rounded))
                             .frame(minWidth: 84, alignment: .leading)
                         Text("Utilisation estimée").font(.system(size: 11)).foregroundStyle(muted)
@@ -186,11 +188,10 @@ struct MenuBarView: View {
                     Spacer(minLength: 2)
                     ZStack {
                         Circle().stroke(.white.opacity(0.16), lineWidth: 6)
-                        Circle().trim(from: 0, to: min(1, max(0, metrics.memory?.fraction ?? 0)))
+                        Circle().trim(from: 0, to: memoryRingFraction)
                             .stroke(AngularGradient(colors: [Color(hex: "#7442BC"), Color(hex: "#C197FF")], center: .center), style: StrokeStyle(lineWidth: 6, lineCap: .round))
                             .rotationEffect(.degrees(-90))
                     }.frame(width: 45, height: 45).padding(3).accessibilityHidden(true)
-                        .animation(reduceMotion ? nil : .easeInOut(duration: 0.85), value: metrics.memory?.fraction)
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading).padding(14)
@@ -204,7 +205,7 @@ struct MenuBarView: View {
                 Label("Processeur", systemImage: "cpu").font(.system(size: 12, weight: .medium))
                 HStack(alignment: .center) {
                     VStack(alignment: .leading, spacing: 5) {
-                        TrayRollingValue(text: cpuValue, value: (metrics.cpu?.used ?? 0) * 100)
+                        Text(cpuValue).monospacedDigit()
                             .font(.system(size: 25, weight: .semibold, design: .rounded))
                             .frame(minWidth: 84, alignment: .leading)
                         Text("Charge du processeur").font(.system(size: 10)).foregroundStyle(muted)
@@ -229,10 +230,10 @@ struct MenuBarView: View {
                         if metrics.wifi?.connected == true {
                             HStack(spacing: 4) {
                                 Text("↓")
-                                TrayRollingValue(text: TrayMetricDetail.speed(networkRates?.received), value: networkRates?.received ?? 0, duration: 1.2)
+                                Text(TrayMetricDetail.speed(networkRates?.received)).monospacedDigit()
                                     .frame(width: 61, alignment: .leading)
                                 Text("↑")
-                                TrayRollingValue(text: TrayMetricDetail.speed(networkRates?.sent), value: networkRates?.sent ?? 0, duration: 1.2)
+                                Text(TrayMetricDetail.speed(networkRates?.sent)).monospacedDigit()
                                     .frame(width: 61, alignment: .leading)
                             }
                             .font(.system(size: 10)).foregroundStyle(muted).lineLimit(1).minimumScaleFactor(0.75)

@@ -10,7 +10,7 @@ enum BatteryService {
     private static let store = BatteryRecoveryStore(directory: Audit.directory)
     private static let controller = BatteryProtectionController(hardware: RecoverableChargeHardware(),
         markRecovery: { try store.save($0) }, clearRecovery: { try store.clear() },
-        allowsCycles: BatteryCycle.enabledInThisRelease)
+        allowsDischarge: BatteryCycle.dischargeAvailable, allowsCalibration: BatteryCycle.calibrationAvailable)
     // This value comes from the LOADED launchd job, not from the plist currently on disk.
     // An old registration cannot silently acquire crash-recovery promises after a bundle update.
     private static let recoveryReady = ProcessInfo.processInfo.environment["MACCARE_BATTERY_RECOVERY"] == "1"

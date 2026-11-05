@@ -27,7 +27,7 @@ final class BatteryModelSafetyTests: XCTestCase {
     }
     private struct Failure: Error {}
     private func fixture(_ client: Client) -> (BatteryModel, UserDefaults, String) {
-        let suite = "MacCareBatteryAudit.\(UUID())"
+        let suite = testPreferencesSuite("MacCareBatteryAudit")
         let defaults = UserDefaults(suiteName: suite)!
         return (.init(defaults: defaults, monitor: false, client: client), defaults, suite)
     }

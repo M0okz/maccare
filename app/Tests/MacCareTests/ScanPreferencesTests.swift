@@ -9,7 +9,7 @@ final class ScanPreferencesTests: XCTestCase {
     private var developer: CleaningCategory!
 
     override func setUp() {
-        suite = "MacCare.ScanPreferencesTests.\(UUID().uuidString)"
+        suite = testPreferencesSuite("MacCare.ScanPreferencesTests")
         defaults = UserDefaults(suiteName: suite)!
         safe = category("cache.test", risk: .safe)
         review = category("ios.test", risk: .review)
