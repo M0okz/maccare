@@ -8,30 +8,28 @@ struct SystemCleanView: View {
     @State private var confirming = false
 
     var body: some View {
-        VStack(spacing: 0) {
+        CleaningManagerLayout {
             VStack(alignment: .leading, spacing: Space.l) {
-                ScreenHeader(
-                    title: "Nettoyage système",
-                    subtitle: "Les journaux anciens de /Library/Logs et /private/var/log. Il faut un assistant que vous activez vous-même ; il ne supprime que des journaux de ces dossiers, jamais autre chose, et la suppression est définitive."
-                )
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Nettoyage système").font(AppFont.emphasis).accessibilityAddTraits(.isHeader)
+                    Text("Les journaux anciens de /Library/Logs et /private/var/log. Il faut un assistant que vous activez vous-même ; il ne supprime que des journaux de ces dossiers, jamais autre chose, et la suppression est définitive.").font(AppFont.secondary).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+                }
+
                 if model.isEnabled {
-                    HStack(spacing: Space.m) {
+                    VStack(alignment: .leading, spacing: Space.m) {
                         PrimaryButton(title: "Actualiser", systemImage: "arrow.clockwise", tint: ModuleColor.maint) { model.load() }
                             .disabled(model.isLoading || model.isRemoving)
                             .opacity(model.isLoading || model.isRemoving ? 0.5 : 1)
-                        Spacer()
                         if model.hasLoaded {
                             Text("\(model.allItems.count) \(pl(model.allItems.count, "fichier")) · \(humanSize(model.totalSize))")
-                                .font(AppFont.secondary).foregroundStyle(Theme.muted)
+                                .font(AppFont.secondary).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
                         }
                     }
                 }
             }
-            .padding(Space.xl)
-            .padding(.bottom, Space.s)
-
-            content
-
+        } detail: {
+            content.padding(.top, 24)
+        } footer: {
             if model.isEnabled && !model.allItems.isEmpty { footer }
         }
         .onAppear {
@@ -46,7 +44,7 @@ struct SystemCleanView: View {
     @ViewBuilder
     private var content: some View {
         if !model.isEnabled {
-            activationCard
+            ScrollView { activationCard.padding(.bottom, 24) }
         } else if model.isRemoving {
             VStack(spacing: Space.s) {
                 Spacer()

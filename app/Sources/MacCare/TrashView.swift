@@ -6,28 +6,26 @@ struct TrashView: View {
     @State private var confirming = false
 
     var body: some View {
-        VStack(spacing: 0) {
+        CleaningManagerLayout {
             VStack(alignment: .leading, spacing: Space.l) {
-                ScreenHeader(
-                    title: "Corbeilles",
-                    subtitle: "Sélectionnez les corbeilles à vider. Le vidage est définitif et demande confirmation."
-                )
-                HStack(spacing: Space.m) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Corbeilles").font(AppFont.emphasis).accessibilityAddTraits(.isHeader)
+                    Text("Sélectionnez les corbeilles à vider. Le vidage est définitif et demande confirmation.").font(AppFont.secondary).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+                }
+
+                VStack(alignment: .leading, spacing: Space.m) {
                     PrimaryButton(title: "Actualiser", systemImage: "arrow.clockwise", tint: ModuleColor.clean) { model.load() }
                         .disabled(model.isLoading || model.isEmptying)
                         .opacity(model.isLoading || model.isEmptying ? 0.5 : 1)
-                    Spacer()
                     if model.hasLoaded && !model.bins.isEmpty {
                         Text("\(model.bins.count) \(pl(model.bins.count, "corbeille")) · \(humanSize(model.totalSize))")
-                            .font(AppFont.secondary).foregroundStyle(Theme.muted)
+                            .font(AppFont.secondary).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
-            .padding(Space.xl)
-            .padding(.bottom, Space.s)
-
-            content
-
+        } detail: {
+            content.padding(.top, 24)
+        } footer: {
             if !model.bins.isEmpty { footer }
         }
         .onAppear { if !model.hasLoaded { model.load() } }

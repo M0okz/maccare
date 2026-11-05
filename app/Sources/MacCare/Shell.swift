@@ -451,16 +451,6 @@ struct DetailView: View {
                 }
                 .padding(.horizontal, Space.xl).padding(.top, Space.l)
             }
-            if app.module?.section == .cleaning && app.module != .cleaningOverview {
-                HStack {
-                    Button { app.module = .cleaningOverview } label: {
-                        Label(app.smartScan.hasRun || app.cleaningToolsVisible ? "Bilan du nettoyage" : "Nettoyage", systemImage: "chevron.left")
-                    }
-                    .buttonStyle(SecondaryActionButtonStyle()).font(AppFont.body)
-                    Spacer()
-                }
-                .padding(.horizontal, Space.xl).padding(.top, Space.l)
-            }
             SectionNavigationView(module: $app.module)
             ZStack {
                 Group {
@@ -472,16 +462,12 @@ struct DetailView: View {
                     case .filesOverview: FilesOverviewView(app: app)
                     case .toolsOverview: ToolsOverviewView(app: app)
                     case .performanceOverview: PerformanceOverviewView(app: app)
-                    case .smartScan: SmartScanView(model: app.smartScan)
-                    case .cleaning: CleaningView(model: app.review)
+                    case .smartScan, .cleaning, .trash, .systemClean, .simulators, .devJunk:
+                        CleaningDetailPanel(app: app, module: app.module ?? .cleaning)
                     case .space: SpaceView(model: app.space)
                     case .largeFiles: FilesManagerView(app: app, category: .large)
                     case .duplicates: FilesManagerView(app: app, category: .duplicates)
-                    case .trash: TrashView(model: app.trash, permissions: app.permissions)
-                    case .systemClean: SystemCleanView(model: app.systemClean)
-                    case .simulators: SimulatorsView(model: app.simulators)
                     case .uninstall: UninstallView(model: app.uninstall)
-                    case .devJunk: DevJunkView(model: app.devJunk)
                     case .updates: UpdatesView(model: app.updates)
                     case .startup, .privacy, .maintenance, .screenCleaning, .aiClutter, .applicationPermissions:
                         ToolsDetailPanel(app: app, module: app.module ?? .toolsOverview)

@@ -5,13 +5,14 @@ struct SimulatorsView: View {
     @State private var confirming = false
 
     var body: some View {
-        VStack(spacing: 0) {
+        CleaningManagerLayout {
             VStack(alignment: .leading, spacing: Space.l) {
-                ScreenHeader(
-                    title: "Simulateurs",
-                    subtitle: "Simulateurs et systèmes de simulation téléchargés par Xcode. Supprimer un simulateur efface ses apps et données de test ; MacCare passe par l'outil d'Apple et ne touche jamais un simulateur allumé."
-                )
-                HStack(spacing: Space.m) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Simulateurs").font(AppFont.emphasis).accessibilityAddTraits(.isHeader)
+                    Text("Simulateurs et systèmes de simulation téléchargés par Xcode. Supprimer un simulateur efface ses apps et données de test ; MacCare passe par l'outil d'Apple et ne touche jamais un simulateur allumé.").font(AppFont.secondary).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+                }
+
+                VStack(alignment: .leading, spacing: Space.m) {
                     PrimaryButton(title: "Actualiser", systemImage: "arrow.clockwise", tint: ModuleColor.maint) { model.load() }
                         .disabled(model.isLoading || model.isDeleting)
                         .opacity(model.isLoading || model.isDeleting ? 0.5 : 1)
@@ -19,18 +20,15 @@ struct SimulatorsView: View {
                         Button("Cocher les \(model.unavailableCount) \(pl(model.unavailableCount, "inutilisable"))") { model.selectUnavailable() }
                             .buttonStyle(LinkStyle())
                     }
-                    Spacer()
                     if model.hasLoaded && model.xcodeInstalled {
                         Text("\(model.simulators.count) \(pl(model.simulators.count, "simulateur")) · \(model.runtimes.count) \(pl(model.runtimes.count, "runtime")) · \(humanSize(model.totalSize))")
-                            .font(AppFont.secondary).foregroundStyle(Theme.muted)
+                            .font(AppFont.secondary).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
-            .padding(Space.xl)
-            .padding(.bottom, Space.s)
-
-            content
-
+        } detail: {
+            content.padding(.top, 24)
+        } footer: {
             if model.hasLoaded && model.xcodeInstalled && !(model.simulators.isEmpty && model.runtimes.isEmpty) { footer }
         }
         .onAppear { if !model.hasLoaded { model.load() } }

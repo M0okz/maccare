@@ -4,30 +4,28 @@ struct DevJunkView: View {
     @ObservedObject var model: DevJunkModel
 
     var body: some View {
-        VStack(spacing: 0) {
+        CleaningManagerLayout {
             VStack(alignment: .leading, spacing: Space.l) {
-                ScreenHeader(
-                    title: "Dev junk",
-                    subtitle: "Caches de développement régénérables (builds, dépendances re-téléchargées). Les états non régénérables (VM, dépôts source) sont volontairement exclus."
-                )
-                HStack(spacing: Space.m) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Caches de développement").font(AppFont.emphasis).accessibilityAddTraits(.isHeader)
+                    Text("Caches de développement régénérables (builds, dépendances re-téléchargées). Les états non régénérables (VM, dépôts source) sont volontairement exclus.").font(AppFont.secondary).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+                }
+
+                VStack(alignment: .leading, spacing: Space.m) {
                     PrimaryButton(title: "Rechercher", systemImage: "hammer", tint: ModuleColor.maint) {
                         model.scan()
                     }
                     .disabled(model.isScanning || model.isCleaning)
                     .opacity(model.isScanning || model.isCleaning ? 0.5 : 1)
-                    Spacer()
                     if !model.items.isEmpty {
                         Text("\(model.items.count) \(pl(model.items.count, "cache")) · \(humanSize(model.totalSize))")
-                            .font(AppFont.secondary).foregroundStyle(Theme.muted)
+                            .font(AppFont.secondary).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
-            .padding(Space.xl)
-            .padding(.bottom, Space.s)
-
-            content
-
+        } detail: {
+            content.padding(.top, 24)
+        } footer: {
             if !model.items.isEmpty { footer }
         }
     }
@@ -95,27 +93,34 @@ struct DevJunkView: View {
     }
 
     private var footer: some View {
-        HStack(spacing: Space.m) {
-            Button("Tout cocher") { model.selectAll() }.buttonStyle(LinkStyle())
-            Button("Tout décocher") { model.selectNone() }.buttonStyle(LinkStyle())
-            if let r = model.lastReport {
-                Text(reportSummary(r)).font(AppFont.secondary).foregroundStyle(r.needsAttention ? Theme.warn : Theme.muted)
+        AdaptiveActionRow {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("\(model.selectedItems.count) \(pl(model.selectedItems.count, "élément")) \(pl(model.selectedItems.count, "sélectionné"))").font(AppFont.body.weight(.semibold))
+                HStack(spacing: Space.m) {
+                    Button("Tout cocher") { model.selectAll() }.buttonStyle(LinkStyle())
+                    Button("Tout décocher") { model.selectNone() }.buttonStyle(LinkStyle())
+                }
+                if let r = model.lastReport {
+                    Text(reportSummary(r)).font(AppFont.secondary).foregroundStyle(r.needsAttention ? Theme.warn : Theme.muted)
+                }
+                if let msg = model.statusMessage {
+                    Label(msg, systemImage: "exclamationmark.triangle.fill")
+                        .font(AppFont.secondary).foregroundStyle(Theme.warn)
+                }
             }
-            if let msg = model.statusMessage {
-                Label(msg, systemImage: "exclamationmark.triangle.fill")
-                    .font(AppFont.secondary).foregroundStyle(Theme.warn)
+        } actions: {
+            HStack(spacing: Space.m) {
+                if !model.selectedItems.isEmpty {
+                    Text("Sélection : \(humanSize(model.selectedSize))").font(AppFont.secondary)
+                }
+                PrimaryButton(
+                    title: model.directDeleteEnabled ? "Supprimer définitivement" : "Déplacer vers la corbeille",
+                    systemImage: "trash",
+                    tint: model.directDeleteEnabled ? Theme.danger : ModuleColor.maint
+                ) { model.cleanSelected() }
+                .disabled(model.selectedItems.isEmpty || model.isCleaning)
+                .opacity(model.selectedItems.isEmpty || model.isCleaning ? 0.5 : 1)
             }
-            Spacer()
-            if !model.selectedItems.isEmpty {
-                Text("Sélection : \(humanSize(model.selectedSize))").font(AppFont.secondary)
-            }
-            PrimaryButton(
-                title: model.directDeleteEnabled ? "Supprimer définitivement" : "Déplacer vers la corbeille",
-                systemImage: "trash",
-                tint: model.directDeleteEnabled ? Theme.danger : ModuleColor.maint
-            ) { model.cleanSelected() }
-            .disabled(model.selectedItems.isEmpty || model.isCleaning)
-            .opacity(model.selectedItems.isEmpty || model.isCleaning ? 0.5 : 1)
         }
         .padding(Space.l)
         .background(Theme.sidebar)
