@@ -1,7 +1,7 @@
 # Alerte de mémoire — en développement
 
-Branche `codex/menu-bar-alerts`, issue de la version 0.2.1, sans installation
-dans `/Applications/MacCare.app` ni publication.
+Branche `codex/menu-bar-alerts`, à jour de `main` en version 0.2.5, sans
+installation dans `/Applications/MacCare.app` ni publication.
 
 L’alerte reprend le panneau de l’alerte disque : largeur de 340 points,
 pointe ancrée sous l’icône MacCare, un seul flou AppKit natif et un trait
@@ -82,6 +82,11 @@ Après report sur la base 0.2.1, le 4 novembre : suite Swift complète réussie
 (181 tests XCTest et 92 tests Swift Testing), 15 tests de release, build Release
 et paquet `build/development/MacCare.app` 0.2.1 à signature stricte valide. La QA
 visuelle en hôte isolé n’a pas été rejouée sur cette base.
+
+Après fusion de `main` en version 0.2.5, le 5 novembre : suite Swift complète
+réussie (186 tests XCTest et 226 tests Swift Testing), 15 tests de release, build
+Release et paquet 0.2.5 à signature stricte valide. La QA visuelle n’a pas non
+plus été rejouée sur cette base.
 
 Documentation Outline synchronisée et relue le 4 novembre : index et chapitres
 02, 03, 04, 06, 08 et 11, en conservant les descriptions des versions livrées.

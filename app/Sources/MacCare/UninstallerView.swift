@@ -181,7 +181,7 @@ struct UninstallView: View {
     @ViewBuilder
     private var content: some View {
         if model.selectedApp == nil {
-            placeholder("app", "Sélectionnez une application dans la liste pour examiner ses fichiers.")
+            placeholder("hand.point.left", "Sélectionnez une application dans la liste pour examiner ses fichiers.")
         } else if model.isScanning {
             Spacer(); ProgressView("Recherche de l’application et de ses données…"); Spacer()
         } else if model.residuals.isEmpty {
@@ -202,7 +202,7 @@ struct UninstallView: View {
         }
         return model.leftovers.isEmpty
             ? "Aucun reste détecté."
-            : "\(model.leftovers.count) élément(s) · \(humanSize(model.leftoverTotal))"
+            : "\(model.leftovers.count) \(pl(model.leftovers.count, "élément")) · \(humanSize(model.leftoverTotal))"
     }
 
     private var leftoversFooter: some View {
@@ -267,7 +267,7 @@ struct UninstallView: View {
                         HStack {
                             Text("Données associées").font(AppFont.emphasis).accessibilityAddTraits(.isHeader)
                             Spacer()
-                            Text("\(detail.associatedItems.count) élément(s)")
+                            Text("\(detail.associatedItems.count) \(pl(detail.associatedItems.count, "élément"))")
                                 .font(AppFont.secondary).foregroundStyle(Theme.muted)
                         }
                         Text("Préférences, caches et autres fichiers détectés. Cochez uniquement les données à retirer.")
@@ -312,7 +312,7 @@ struct UninstallView: View {
                 if let r = model.lastReport {
                     Text(reportSummary(r)).font(AppFont.secondary).foregroundStyle(r.needsAttention ? Theme.warn : Theme.muted)
                 } else {
-                    Text("\(model.residuals.count) élément(s) — \(humanSize(model.totalSize))")
+                    Text("\(model.residuals.count) \(pl(model.residuals.count, "élément")) — \(humanSize(model.totalSize))")
                         .font(AppFont.secondary).foregroundStyle(Theme.muted)
                 }
                 Spacer(minLength: Space.s)

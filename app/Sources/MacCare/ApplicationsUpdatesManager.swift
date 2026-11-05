@@ -71,7 +71,7 @@ struct ApplicationsUpdatesManager: View {
             Text("Retrouvez les nouvelles versions de vos applications et consultez leurs nouveautés.")
                 .font(AppFont.secondary).foregroundStyle(Theme.muted)
             HStack {
-                Text("\(entries.count) mise(s) à jour").font(AppFont.secondary).monospacedDigit()
+                Text("\(entries.count) \(pl(entries.count, "mise")) à jour").font(AppFont.secondary).monospacedDigit()
                 Spacer(minLength: 4)
                 Button { model.checkApplications() } label: { Image(systemName: "arrow.clockwise").frame(width: 32, height: 32) }
                     .buttonStyle(.plain).disabled(model.isChecking).accessibilityLabel("Actualiser les mises à jour")
@@ -199,7 +199,7 @@ struct ApplicationsUpdatesManager: View {
         switch source.state {
         case .notInstalled: return "Source non disponible sur ce Mac"
         case .checking: return "Vérification en cours…"
-        case .ok: return source.items.isEmpty ? "Aucune mise à jour détectée" : "\(source.items.count) mise(s) à jour détectée(s)"
+        case .ok: return source.items.isEmpty ? "Aucune mise à jour détectée" : "\(source.items.count) \(pl(source.items.count, "mise")) à jour \(pl(source.items.count, "détectée"))"
         case .error(let message): return "Vérification incomplète : \(message)"
         }
     }

@@ -13,6 +13,7 @@ struct TraySceneLifecycle: View {
             app.openMainWindow = open
             AppDelegate.openMainWindow = open
             delegate.configureTray(app: app, openMainWindow: open)
+            delegate.closeWindowAfterLoginLaunch()
         }
         .background {
             if #available(macOS 14, *) { TraySettingsSceneLifecycle(delegate: delegate) }

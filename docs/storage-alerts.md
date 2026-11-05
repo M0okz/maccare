@@ -1,7 +1,7 @@
 # Alerte d’espace disque — en développement
 
-Branche `codex/menu-bar-alerts`, issue de la version 0.2.1. Cette fonction n’est
-pas livrée dans `/Applications/MacCare.app`.
+Branche `codex/menu-bar-alerts`, à jour de `main` en version 0.2.5. Cette fonction
+n’est pas livrée dans `/Applications/MacCare.app`.
 
 Une bulle ancrée sous l’icône MacCare signale un espace disponible inférieur
 à 10 Go ou représentant au plus 10 % de la capacité du disque de démarrage.

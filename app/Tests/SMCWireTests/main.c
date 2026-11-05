@@ -81,6 +81,11 @@ int main(void) {
     assert(maccare_key_diagnostic(8, 0, 1, &diagnostic) == 0 && writes == 0);
     assert(maccare_key_diagnostic(8, 0, 0, &diagnostic) != 0 && writes == 0);
     assert(maccare_key_diagnostic(99, 1, 1, &diagnostic) == kIOReturnBadArgument && writes == 0);
+    reset(); add("CHLS", 2, "ui16", 0x0450);
+    assert(maccare_key_diagnostic(9, 1, 1, &diagnostic) == 0);
+    assert(diagnostic.size == 2 && diagnostic.type == code("ui16") && diagnostic.bytes[0] == 80 && diagnostic.bytes[1] == 4 && writes == 0);
+    assert(maccare_key_diagnostic(10, 1, 1, &diagnostic) == kIOReturnBadArgument && writes == 0);
+    assert(maccare_key_diagnostic(-1, 1, 1, &diagnostic) == kIOReturnBadArgument && writes == 0);
 
     reset(); add("CHIE", 1, "hex_", 0);
     assert(maccare_adapter_probe(&backend) == 0 && backend == 2 && writes == 0);

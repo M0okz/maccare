@@ -50,28 +50,6 @@ struct StopBatteryProtectionIntent: AppIntent {
     }
 }
 
-enum BatteryCycleIntentAction: String, AppEnum {
-    case discharge, calibrate
-    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Cycle de batterie"
-    static var caseDisplayRepresentations: [Self: DisplayRepresentation] = [
-        .discharge: "Décharger jusqu’à la limite", .calibrate: "Démarrer l’étalonnage"
-    ]
-}
-
-struct StartBatteryCycleIntent: AppIntent {
-    static var title: LocalizedStringResource = "Démarrer un cycle de batterie"
-    static var description = IntentDescription("Décharge vers la limite ou lance un cycle complet d’étalonnage. Nécessite un adaptateur contrôlable.")
-    static var openAppWhenRun = true
-    @Parameter(title: "Cycle", default: .discharge) var action: BatteryCycleIntentAction
-    @MainActor func perform() async throws -> some IntentResult {
-        if action == .calibrate {
-            try await requestConfirmation(result: .result(dialog: "L’étalonnage recharge à 100 %, décharge jusqu’à 10 %, recharge à 100 %, puis revient à votre limite. Le cycle peut durer plusieurs heures. Continuer ?"))
-        }
-        try await BatteryIntentBridge.current().executeAutomation(action == .discharge ? .discharge : .calibrate)
-        return .result()
-    }
-}
-
 struct BatteryAppShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(intent: SetBatteryLimitIntent(), phrases: ["Limiter la charge avec \(.applicationName)"],

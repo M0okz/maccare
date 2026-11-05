@@ -34,7 +34,7 @@ def make_feed(info, repository, archive, signature, notes, published):
     ET.SubElement(item, f'{{{SPARKLE}}}shortVersionString').text = version
     ET.SubElement(item, f'{{{SPARKLE}}}minimumSystemVersion').text = '13.0.0'
     ET.SubElement(item, f'{{{SPARKLE}}}hardwareRequirements').text = 'arm64'
-    ET.SubElement(item, 'description', {f'{{{SPARKLE}}}format': 'plain-text'}).text = notes
+    ET.SubElement(item, 'description', {f'{{{SPARKLE}}}format': 'markdown'}).text = notes
     ET.SubElement(item, 'enclosure', {
         'url': f'{base}/{quote(archive.name)}', 'length': str(archive.stat().st_size),
         'type': 'application/octet-stream', f'{{{SPARKLE}}}edSignature': signature,

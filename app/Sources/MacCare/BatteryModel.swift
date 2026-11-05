@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import MacCareBattery
+import MacCareHelperProtocol
 import ServiceManagement
 
 @MainActor
@@ -11,6 +12,7 @@ final class BatteryModel: ObservableObject {
     @Published private(set) var error: String?
     @Published private(set) var helperEnabled = false
     @Published private(set) var requiresApproval = false
+    @Published private(set) var loadedHelperProtocol: Int?
     @Published var configuration: BatteryConfiguration
     @Published private(set) var profiles = BatteryProfile.presets
     @Published private(set) var schedules: [BatterySchedule] = []
@@ -30,9 +32,17 @@ final class BatteryModel: ObservableObject {
     private var commandWaiters: [CheckedContinuation<Void, Never>] = []
     private var mayOwnLease = false
     private var ownsLease = false
+    private var renewAfterLostReply = false
+    private var cycleActivity: NSObjectProtocol?
+    /// A cycle lasts many hours and sleep ends it, so idle sleep waits for the cycle.
+    var keepsMacAwake: Bool { cycleActivity != nil }
     private var nextHelperStatus = Date.distantPast
     private var monitoring: Task<Void, Never>?
     private static let preferencesKey = "battery.configuration"
+    /// Set while the user wants protection on. It survives quitting, which only stops the session
+    /// for this run; an explicit deactivation or a safety stop removes it.
+    static let resumeKey = "battery.protection.resume"
+    private var resumeAttempted = false
 
     init(defaults: UserDefaults = .standard, monitor: Bool = true, client: (any BatteryClient)? = nil, historyStore: BatteryHistoryStore? = nil) {
         self.historyStore = historyStore ?? BatteryHistoryStore()
@@ -54,6 +64,7 @@ final class BatteryModel: ObservableObject {
                 await self?.loadAdvancedData()
                 while !Task.isCancelled {
                     await self?.refresh()
+                    await self?.resumeProtectionIfNeeded()
                     await self?.recordHistory()
                     await self?.processSchedules()
                     do { try await Task.sleep(for: .seconds(15)) } catch { break }
@@ -66,9 +77,15 @@ final class BatteryModel: ObservableObject {
     var active: Bool { protection?.active == true }
     var supported: Bool { protection?.supported == true }
     var restoring: Bool { protection?.restoring == true }
+    var restorationDeferred: Bool { protection?.deferredRestorationTarget != nil }
     var recoveryReady: Bool { protection?.recoveryReady == true }
     var pendingChanges: Bool { active && protection?.configuration != configuration }
     var nativeControl: Bool { protection?.capabilities?.backend == .nativeLimit }
+    var nativePolicyControl: Bool { protection?.capabilities?.backend == .nativePolicy }
+    var usesAppleChargeControl: Bool { nativeControl || nativePolicyControl }
+    var helperUpdateRequired: Bool {
+        helperEnabled && loadedHelperProtocol.map { $0 != HelperIdentity.protocolVersion } == true
+    }
     var supportsThermalProtection: Bool {
         protection?.capabilities?.supportsThermalProtection ?? (protection?.firmwareManaged != true)
     }
@@ -78,6 +95,8 @@ final class BatteryModel: ObservableObject {
     }
     var message: String {
         if !helperEnabled { return "Suivi de la batterie · assistant requis pour la protection" }
+        if helperUpdateRequired { return "Assistant système à mettre à jour" }
+        if restoring && !restorationDeferred { return "Restauration de la charge en cours" }
         return protection?.message ?? "Vérification du contrôle de charge…"
     }
 
@@ -88,14 +107,31 @@ final class BatteryModel: ObservableObject {
         helperEnabled = client.status == .enabled
         requiresApproval = client.status == .requiresApproval
         snapshot = await client.snapshot()
-        guard helperEnabled else { protection = nil; ownsLease = false; return }
+        guard !isTerminating else { return }
+        guard helperEnabled else { protection = nil; ownsLease = false; loadedHelperProtocol = nil; return }
         guard force || ownsLease || protection == nil || Date() >= nextHelperStatus else { return }
         nextHelperStatus = Date().addingTimeInterval(60)
         do {
-            let result = try await client.request(ownsLease ? .heartbeat : .status, configuration: nil, sessionID: sessionID)
+            let owned = ownsLease, renewing = owned || renewAfterLostReply
+            // Under heavy load any call may time out, so nothing may stand in front of a renewal.
+            if !renewing || loadedHelperProtocol == nil {
+                loadedHelperProtocol = try await client.loadedHelperProtocolVersion()
+                guard !isTerminating else { return }
+                if helperUpdateRequired {
+                    protection = nil; ownsLease = false
+                    error = "La version chargée de l’assistant doit être mise à jour avant le contrôle de la batterie."
+                    return
+                }
+            }
+            let result = try await client.request(renewing ? .heartbeat : .status, configuration: nil, sessionID: sessionID)
+            guard !isTerminating else { return }
             accept(result)
+            // A running session that ended on an error may be a safety stop, such as a lost
+            // power input: the next launch must not start it again without the user.
+            if owned, !result.active, result.error != nil { defaults.removeObject(forKey: Self.resumeKey) }
         } catch {
             self.error = error.localizedDescription
+            if ownsLease { renewAfterLostReply = true }
             // Never display a cached "active" after losing the helper connection.
             protection = nil; ownsLease = false
         }
@@ -113,6 +149,7 @@ final class BatteryModel: ObservableObject {
             requiresApproval = client.status == .requiresApproval
         }
         let requestedConfiguration = configuration
+        if command == .disable { defaults.removeObject(forKey: Self.resumeKey); renewAfterLostReply = false }
         do {
             if command == .enable {
                 try await client.prepareProtection()
@@ -125,6 +162,7 @@ final class BatteryModel: ObservableObject {
                 if command == .enable {
                     ownsLease = result.active && result.ownedByCaller
                     defaults.set(try JSONEncoder().encode(requestedConfiguration), forKey: Self.preferencesKey)
+                    if result.active { defaults.set(true, forKey: Self.resumeKey); resumeAttempted = true }
                 }
                 if command == .disable { ownsLease = false }
             }
@@ -134,6 +172,15 @@ final class BatteryModel: ObservableObject {
             // and obtain a fresh status; do not keep an optimistic cached "active" state.
             protection = nil; ownsLease = false
         }
+    }
+    /// Restarts the protection the user left on, once per launch and only from a clean state.
+    /// A failed attempt keeps the intent for the next launch and shows its error.
+    func resumeProtectionIfNeeded() async {
+        guard defaults.bool(forKey: Self.resumeKey), !resumeAttempted, !controlsBusy, helperEnabled,
+              !helperUpdateRequired, let protection, protection.error == nil, supported, recoveryReady,
+              !active, !restoring || restorationDeferred else { return }
+        resumeAttempted = true
+        await perform(.enable)
     }
     func prepareForTermination() async {
         isTerminating = true
@@ -171,6 +218,20 @@ final class BatteryModel: ObservableObject {
         if client.status == .requiresApproval { client.openApproval() }
         await refresh(force: true)
     }
+    /// A distinct user action replaces the loaded helper only after its old battery state is restored.
+    func updateHelper() async {
+        guard !busy, !isTerminating else { return }
+        busy = true; error = nil
+        var issue: String?
+        do {
+            let result = try await client.updateHelper()
+            if !isTerminating, result == .requiresApproval { client.openApproval() }
+        } catch { issue = error.localizedDescription }
+        busy = false
+        guard !isTerminating else { return }
+        if let issue { error = issue; return }
+        await refresh(force: true)
+    }
     func openBatterySettings() {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.battery") else { return }
         NSWorkspace.shared.open(url)
@@ -191,13 +252,22 @@ final class BatteryModel: ObservableObject {
             configuration.limit = limit
         }
         if !status.active || status.restoring || !status.ownedByCaller { ownsLease = false }
+        // A lost heartbeat reply must not end a confirmed session the helper still gives to this app.
+        else if renewAfterLostReply { ownsLease = true }
+        renewAfterLostReply = false
         if !status.active && !status.restoring { mayOwnLease = false }
+        if status.active, status.cycle != nil {
+            if cycleActivity == nil { cycleActivity = PowerAssertion.beginUserActivity("Cycle de batterie en cours") }
+        } else if let activity = cycleActivity {
+            PowerAssertion.end(activity)
+            cycleActivity = nil
+        }
     }
 }
 
 extension BatteryModel {
     var controlsBusy: Bool { busy || automating || isTerminating }
-    var supportsDischarge: Bool { protection?.capabilities?.supportsDischarge == true }
+    var supportsDischarge: Bool { BatteryCycle.enabledInThisRelease && protection?.capabilities?.supportsDischarge == true }
     var supportsSailing: Bool { protection?.capabilities?.supportsSailing == true }
     var cycle: BatteryCycleStatus? { protection?.cycle }
 
@@ -297,6 +367,9 @@ extension BatteryModel {
                 configuration = value
                 await perform(.enable, fromAutomation: true)
             } else {
+                if action == .discharge || action == .calibrate, !BatteryCycle.enabledInThisRelease {
+                    throw AutomationError("La décharge et l’étalonnage ne sont plus disponibles dans cette version. Vous pouvez supprimer cette programmation.")
+                }
                 guard snapshot?.onAC == true, cycle == nil else {
                     throw AutomationError("Branchez le chargeur et annulez tout cycle en cours avant cette action.")
                 }

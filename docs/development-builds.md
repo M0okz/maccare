@@ -2,7 +2,8 @@
 
 Les paquets assemblés par `app/package.sh` affichent **MacCare Dev** dans la
 fenêtre principale et comme nom d’application macOS. Ce repère reste visible
-pendant la navigation, y compris lorsque la barre latérale est réduite.
+pendant la navigation, sous les boutons de la fenêtre : « Dev » seul lorsque la
+barre latérale est réduite.
 
 Le packaging écrit le booléen `MacCareDevelopmentBuild` dans `Info.plist`, avant
 signature. Il est vrai par défaut et faux avec `MACCARE_DISTRIBUTION=1` : les

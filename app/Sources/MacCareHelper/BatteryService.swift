@@ -1,5 +1,6 @@
 import Foundation
 import CMacCareSMC
+import Darwin
 import IOKit.pwr_mgt
 import MacCareBattery
 
@@ -8,7 +9,8 @@ enum BatteryService {
     private static let queue = DispatchQueue(label: "org.maccare.helper.battery")
     private static let store = BatteryRecoveryStore(directory: Audit.directory)
     private static let controller = BatteryProtectionController(hardware: RecoverableChargeHardware(),
-        markRecovery: { try store.save($0) }, clearRecovery: { try store.clear() })
+        markRecovery: { try store.save($0) }, clearRecovery: { try store.clear() },
+        allowsCycles: BatteryCycle.enabledInThisRelease)
     // This value comes from the LOADED launchd job, not from the plist currently on disk.
     // An old registration cannot silently acquire crash-recovery promises after a bundle update.
     private static let recoveryReady = ProcessInfo.processInfo.environment["MACCARE_BATTERY_RECOVERY"] == "1"
@@ -22,6 +24,12 @@ enum BatteryService {
     private static var recoveryPending = true
     private static var recoveryFailure: String?
     private static var lastAuditError: String?
+    private static let executablePath: String? = {
+        var buffer = [CChar](repeating: 0, count: 4 * Int(MAXPATHLEN))
+        guard proc_pidpath(getpid(), &buffer, UInt32(buffer.count)) > 0 else { return nil }
+        return String(cString: buffer)
+    }()
+    private static let startedFrom = executablePath.flatMap(ExecutableIdentity.init(path:))
 
     static func start() {
         powerConnection = IORegisterForSystemPower(nil, &powerPort, batteryPowerCallback, &notifier)
@@ -77,7 +85,7 @@ enum BatteryService {
         queue.async {
             defer { Idle.end() }
             if raw == "diagnostics", configurationJSON == "{}", rawSession.isEmpty, uid >= 501 {
-                let keys = ["bfF0", "bfD0", "bfE0", "CHTE", "CH0B", "CH0C", "CH0I", "CH0J", "CHIE"]
+                let keys = ["bfF0", "bfD0", "bfE0", "CHTE", "CH0B", "CH0C", "CH0I", "CH0J", "CHIE", "CHLS"]
                 var rows: [[String: Any]] = []
                 for transport: Int32 in [0, 1] {
                     for handshake: Int32 in [0, 1] {
@@ -116,6 +124,7 @@ enum BatteryService {
         }
     }
     private static func poll() {
+        restartIfReplaced()
         if recoveryPending {
             do {
                 if let record = try store.load() { try controller.recover(record); audit("recovery", error: nil) }
@@ -130,6 +139,22 @@ enum BatteryService {
             lastAuditError = status.error
         }
         keepAlive()
+    }
+    /// An update replaced this process's file. Clients can no longer verify it, so the helper hands
+    /// over to the new one, never in the middle of an operation. launchd relaunches a failed exit,
+    /// and the journal carries a restoration that is still waiting.
+    private static func restartIfReplaced() {
+        guard let startedFrom, let executablePath, !recoveryPending,
+              ExecutableIdentity(path: executablePath) != startedFrom,
+              Idle.operationsInProgress <= (held ? 1 : 0) else { return }
+        audit("replaced", error: nil)
+        do {
+            try controller.shutdown()
+            exit(controller.requiresWatchdog ? 1 : 0)
+        } catch {
+            audit("replaced-restore", error: error.localizedDescription)
+            exit(1)
+        }
     }
     private static func keepAlive() {
         let needed = controller.requiresWatchdog || recoveryPending

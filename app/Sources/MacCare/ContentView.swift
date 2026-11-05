@@ -91,7 +91,7 @@ struct CleaningView: View {
             if let r = model.lastReport {
                 Text(reportSummary(r)).font(AppFont.secondary).foregroundStyle(r.needsAttention ? Theme.warn : Theme.muted)
             } else {
-                Text("\(model.items.count) élément(s) — \(humanSize(model.totalSize)) au total")
+                Text("\(model.items.count) \(pl(model.items.count, "élément")) — \(humanSize(model.totalSize)) au total")
                     .font(AppFont.secondary).foregroundStyle(Theme.muted)
             }
             Spacer()

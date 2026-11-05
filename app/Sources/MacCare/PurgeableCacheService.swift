@@ -58,7 +58,7 @@ enum PurgeableCacheService {
         }
         let incomplete = refused > 0 || !failures.isEmpty
         return .init(incomplete ? (removed > 0 ? .partial : .failed) : .completed,
-                     "\(removed) dossier(s) de cache supprimé(s)\(incomplete ? " · certains éléments n’ont pas été traités" : ""). Cette étape ne modifie pas les instantanés.",
-                     details: "\(refused) élément(s) refusé(s). L’espace physique libéré dépend du système de fichiers.\n" + failures.joined(separator: "\n"))
+                     "\(removed) \(pl(removed, "dossier")) de cache \(pl(removed, "supprimé"))\(incomplete ? " · certains éléments n’ont pas été traités" : ""). Cette étape ne modifie pas les instantanés.",
+                     details: "\(refused) \(pl(refused, "élément")) \(pl(refused, "refusé")). L’espace physique libéré dépend du système de fichiers.\n" + failures.joined(separator: "\n"))
     }
 }

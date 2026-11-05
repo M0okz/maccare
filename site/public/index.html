@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#140C29">
+<meta name="color-scheme" content="dark">
+<title>MacCare — Entretenez votre Mac. Gardez la main.</title>
+<meta name="description" content="MacCare repère ce qui encombre votre Mac, vous montre ce qu’il a trouvé et vous laisse décider. Une application native, gratuite et open source pour Mac Apple Silicon.">
+<meta property="og:title" content="MacCare — Entretenez votre Mac. Gardez la main.">
+<meta property="og:description" content="Nettoyage, espace disque, applications et batterie. Une application native, gratuite et open source : vous choisissez chaque suppression.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://maccare.homeblack.fr/">
+<meta property="og:image" content="https://maccare.homeblack.fr/assets/og.jpg">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://maccare.homeblack.fr/">
+<link rel="icon" href="assets/icon-64.png" type="image/png">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<link rel="stylesheet" href="styles.css">
+<script src="app.js"></script>
+</head>
+<body>
+<a class="skip" href="#contenu">Aller au contenu</a>
+
+<header class="site-header">
+  <div class="wrap header-row">
+    <a class="brand" href="./"><img src="assets/icon-64.png" width="28" height="28" alt="">MacCare</a>
+    <nav aria-label="Navigation principale">
+      <a class="nav-link" href="#visite">Visite</a>
+      <a class="nav-link" href="#surete">Sûreté</a>
+      <a class="nav-link" href="#questions">Questions</a>
+      <a class="button button-small" href="#telecharger">Télécharger</a>
+    </nav>
+  </div>
+</header>
+
+<main id="contenu">
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <h1 class="rise d1">Entretenez votre&nbsp;Mac.<br><span>Gardez la&nbsp;main.</span></h1>
+    <div class="hero-side">
+      <p class="lead rise d2">MacCare repère ce qui encombre votre Mac, vous montre ce qu’il a trouvé et vous laisse décider. Rien ne part sans votre accord.</p>
+      <div class="hero-actions rise d3">
+        <a class="button button-primary" href="https://github.com/M0okz/maccare/releases/download/v0.2.2/MacCare-0.2.2-arm64.dmg">
+          <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8.5M4.2 7 8 10.8 11.8 7M3 13.5h10"/></svg>
+          Télécharger pour Mac
+        </a>
+        <a class="button button-ghost" href="https://github.com/M0okz/maccare">Voir le code</a>
+      </div>
+      <p class="requirements rise d4">Gratuit · Version 0.2.2 · Apple Silicon · macOS 13 ou ultérieur</p>
+    </div>
+  </div>
+  <figure class="wrap-wide hero-figure">
+    <div class="hero-glow" aria-hidden="true"></div>
+    <div class="window rise-window">
+      <img src="assets/accueil.webp" srcset="assets/accueil-800.webp 800w, assets/accueil.webp 1291w" sizes="(min-width: 1320px) 1240px, calc(100vw - 32px)" width="1291" height="728" fetchpriority="high" alt="Accueil de MacCare : bilan du nettoyage, disque de démarrage, batterie et activité du Mac.">
+    </div>
+    <figcaption>Capture réelle de MacCare. Les mesures sont celles du Mac utilisé pour la prise de vue.</figcaption>
+  </figure>
+</section>
+
+<section class="facts" aria-label="MacCare en bref">
+  <ul class="wrap facts-list">
+    <li><strong>Native</strong><span>SwiftUI et moteur Rust</span></li>
+    <li><strong>Sans compte</strong><span>Aucune télémétrie</span></li>
+    <li><strong>Open source</strong><span>Licence MIT</span></li>
+    <li><strong>Notariée</strong><span>Developer ID et Apple</span></li>
+  </ul>
+</section>
+
+<section id="visite" class="tour" data-tour>
+  <div class="tour-ambient" aria-hidden="true">
+    <i data-glow="nettoyage" class="is-on"></i><i data-glow="performances"></i><i data-glow="batterie"></i><i data-glow="applications"></i><i data-glow="espace"></i><i data-glow="outils"></i>
+  </div>
+  <div class="wrap">
+    <h2>Tout l’entretien du Mac.<br>Au même endroit.</h2>
+    <p class="section-lead">Chaque rubrique commence par expliquer ce qu’elle va faire. Parcourez-les ici comme dans l’app.</p>
+
+    <div class="tabs-scroll">
+      <div class="tabs" role="tablist" aria-label="Rubriques de MacCare">
+        <button class="tab" role="tab" type="button" id="tab-nettoyage" aria-controls="panel-nettoyage" aria-selected="true" data-tab="nettoyage">Nettoyage</button>
+        <button class="tab" role="tab" type="button" id="tab-performances" aria-controls="panel-performances" aria-selected="false" data-tab="performances">Performances</button>
+        <button class="tab" role="tab" type="button" id="tab-batterie" aria-controls="panel-batterie" aria-selected="false" data-tab="batterie">Batterie</button>
+        <button class="tab" role="tab" type="button" id="tab-applications" aria-controls="panel-applications" aria-selected="false" data-tab="applications">Applications</button>
+        <button class="tab" role="tab" type="button" id="tab-espace" aria-controls="panel-espace" aria-selected="false" data-tab="espace">Espace disque</button>
+        <button class="tab" role="tab" type="button" id="tab-outils" aria-controls="panel-outils" aria-selected="false" data-tab="outils">Outils</button>
+        <div class="tabs-overlay" aria-hidden="true">
+          <span>Nettoyage</span><span>Performances</span><span>Batterie</span><span>Applications</span><span>Espace disque</span><span>Outils</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <article class="panel is-active" role="tabpanel" id="panel-nettoyage" aria-labelledby="tab-nettoyage" data-panel="nettoyage">
+        <div class="window"><img src="assets/nettoyage.webp" srcset="assets/nettoyage-800.webp 800w, assets/nettoyage.webp 1291w" sizes="(min-width: 1200px) 1120px, calc(100vw - 32px)" width="1291" height="728" loading="lazy" decoding="async" alt="Rubrique Nettoyage de MacCare, avant l’analyse."></div>
+        <div class="panel-copy">
+          <h3>Voyez ce qui peut partir, avant que ça parte.</h3>
+          <ul>
+            <li>Caches, journaux et fichiers temporaires, classés par catégorie.</li>
+            <li>Une revue détaillée des résultats avant toute suppression.</li>
+            <li>La corbeille est privilégiée quand l’action le permet.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="panel" role="tabpanel" id="panel-performances" aria-labelledby="tab-performances" data-panel="performances">
+        <div class="window"><img src="assets/performances.webp" srcset="assets/performances-800.webp 800w, assets/performances.webp 1291w" sizes="(min-width: 1200px) 1120px, calc(100vw - 32px)" width="1291" height="728" loading="lazy" decoding="async" alt="Rubrique Performances de MacCare : tâches d’entretien, éléments d’ouverture et d’arrière-plan."></div>
+        <div class="panel-copy">
+          <h3>Comprenez ce qui se lance et ce qui tourne.</h3>
+          <ul>
+            <li>Éléments d’ouverture et d’arrière-plan, au même endroit.</li>
+            <li>Entretien : Spotlight, index Mail, cache DNS.</li>
+            <li>Mémoire, processeur et Wi-Fi suivis depuis la barre des menus.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="panel" role="tabpanel" id="panel-batterie" aria-labelledby="tab-batterie" data-panel="batterie">
+        <div class="window"><img src="assets/batterie.webp" srcset="assets/batterie-800.webp 800w, assets/batterie.webp 1291w" sizes="(min-width: 1200px) 1120px, calc(100vw - 32px)" width="1291" height="728" loading="lazy" decoding="async" alt="Rubrique Batterie de MacCare : niveau de charge, capacité, cycles, température et limite de charge."></div>
+        <div class="panel-copy">
+          <h3>Choisissez comment il se recharge.</h3>
+          <ul>
+            <li>Capacité estimée, cycles et température, avec un historique local de 30 jours.</li>
+            <li>Limite de charge, programmations et profils d’utilisation.</li>
+            <li>Les réglages proposés dépendent du Mac et de macOS.</li>
+          </ul>
+          <p class="panel-note">Capture réalisée sur un MacBook Pro 13&nbsp;pouces M1, à ce jour le seul modèle à proposer la plage de maintien et la pause thermique. Les autres Mac peuvent afficher moins de réglages.</p>
+        </div>
+      </article>
+      <article class="panel" role="tabpanel" id="panel-applications" aria-labelledby="tab-applications" data-panel="applications">
+        <div class="window"><img src="assets/applications.webp" srcset="assets/applications-800.webp 800w, assets/applications.webp 1291w" sizes="(min-width: 1200px) 1120px, calc(100vw - 32px)" width="1291" height="728" loading="lazy" decoding="async" alt="Rubrique Applications de MacCare : applications installées, mises à jour et données oubliées."></div>
+        <div class="panel-copy">
+          <h3>Retirez une app et ce qu’elle laisse derrière elle.</h3>
+          <ul>
+            <li>Désinstallation avec ses résidus, passés en revue.</li>
+            <li>Données oubliées par des apps déjà supprimées.</li>
+            <li>Mises à jour disponibles et autorisations accordées.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="panel" role="tabpanel" id="panel-espace" aria-labelledby="tab-espace" data-panel="espace">
+        <div class="window"><img src="assets/espace.webp" srcset="assets/espace-800.webp 800w, assets/espace.webp 1291w" sizes="(min-width: 1200px) 1120px, calc(100vw - 32px)" width="1291" height="728" loading="lazy" decoding="async" alt="Rubrique Espace disque de MacCare, avec le choix du disque à explorer."></div>
+        <div class="panel-copy">
+          <h3>Sachez enfin ce qui remplit le disque.</h3>
+          <ul>
+            <li>Une carte et une liste, du plus volumineux au plus petit.</li>
+            <li>Recherche de gros fichiers et de doublons identiques.</li>
+            <li>L’exploration mesure seulement : rien n’est présélectionné.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="panel" role="tabpanel" id="panel-outils" aria-labelledby="tab-outils" data-panel="outils">
+        <div class="window"><img src="assets/outils.webp" srcset="assets/outils-800.webp 800w, assets/outils.webp 1291w" sizes="(min-width: 1200px) 1120px, calc(100vw - 32px)" width="1291" height="728" loading="lazy" decoding="async" alt="Rubrique Outils de MacCare : mode nettoyage d’écran, fichiers IA inutiles, autorisations et autres outils."></div>
+        <div class="panel-copy">
+          <h3>Un souci précis, un outil précis.</h3>
+          <ul>
+            <li>Mode nettoyage d’écran : saisies bloquées le temps de passer le chiffon.</li>
+            <li>Caches, historiques et modèles locaux de vos outils d’IA.</li>
+            <li>Réparer l’affichage, gérer le démarrage, examiner les caches des navigateurs.</li>
+          </ul>
+        </div>
+      </article>
+    </div>
+    <p class="tour-note">Captures réelles d’une préversion de la 0.2.2. Un seul écart connu&nbsp;: dans Batterie, la version publiée indique «&nbsp;batterie au-dessus de la limite&nbsp;» quand le niveau la dépasse.</p>
+  </div>
+</section>
+
+<section class="principle">
+  <div class="wrap">
+    <h2>Une analyse ne supprime rien.</h2>
+    <p class="section-lead">C’est la règle de toute l’app, y compris quand l’analyse est planifiée&nbsp;: elle vous prévient, puis elle attend.</p>
+    <ol class="steps">
+      <li class="reveal d1">
+        <span class="step-number">1</span>
+        <h3>MacCare analyse</h3>
+        <p>Il mesure et classe. Le résultat d’une analyse ne vaut jamais autorisation de supprimer.</p>
+      </li>
+      <li class="reveal d2">
+        <span class="step-number">2</span>
+        <h3>Vous examinez</h3>
+        <p>Vous parcourez les résultats en détail, par catégorie, et vous gardez ce que vous voulez.</p>
+      </li>
+      <li class="reveal d3">
+        <span class="step-number">3</span>
+        <h3>Vous décidez</h3>
+        <p>Vous lancez la suppression. Les actions irréversibles et les opérations système demandent une confirmation.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section id="surete" class="safety">
+  <div class="wrap safety-grid">
+    <div class="safety-intro">
+      <h2>Prudent par construction.</h2>
+      <p class="section-lead">Entre l’analyse et la suppression, un fichier peut changer. Le moteur le vérifie donc une seconde fois, juste avant d’agir.</p>
+      <a class="text-link" href="https://github.com/M0okz/maccare/tree/main/core">Lire le code du moteur <span aria-hidden="true">↗</span></a>
+    </div>
+    <div class="safety-lists">
+      <div>
+        <h3>Revérifié avant chaque suppression</h3>
+        <ul class="check-list">
+          <li class="reveal d1"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg>L’identité du fichier</li>
+          <li class="reveal d2"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg>Le chemin, confiné sous sa racine</li>
+          <li class="reveal d3"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg>Les liens symboliques, refusés</li>
+          <li class="reveal d4"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg>Les arbres protégés, refusés</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Vos données restent sur votre Mac</h3>
+        <ul class="check-list">
+          <li class="reveal d1"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg>Ni compte, ni télémétrie, ni profilage</li>
+          <li class="reveal d2"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg>Historique de batterie conservé en local</li>
+          <li class="reveal d3"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg>Test Internet lancé seulement à la demande</li>
+          <li class="reveal d4"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg>Assistant système facultatif, soumis à votre accord</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="questions" class="faq">
+  <div class="wrap faq-grid">
+    <h2>Avant d’installer.</h2>
+    <div class="faq-list">
+      <details>
+        <summary>Quels Mac sont compatibles&nbsp;?</summary>
+        <p>Les Mac Apple Silicon, à partir de macOS 13. Les Mac Intel ne sont pas pris en charge par cette distribution.</p>
+      </details>
+      <details>
+        <summary>MacCare est-il vraiment gratuit&nbsp;?</summary>
+        <p>Oui. Le téléchargement est gratuit, sans compte ni abonnement, et le code est publié sous licence MIT. Les composants tiers gardent leurs propres licences.</p>
+      </details>
+      <details>
+        <summary>L’application est-elle signée&nbsp;?</summary>
+        <p>Oui. Les versions distribuées sont signées avec un certificat Developer ID et notariées par Apple. Vous pouvez aussi comparer l’empreinte SHA-256 du DMG avec celle indiquée plus bas.</p>
+      </details>
+      <details>
+        <summary>Pourquoi demande-t-il l’accès complet au disque&nbsp;?</summary>
+        <p>Sans cet accès, macOS masque certains dossiers et une partie des analyses reste incomplète. L’accord se donne dans les Réglages Système.</p>
+      </details>
+      <details>
+        <summary>Que fait l’assistant système&nbsp;?</summary>
+        <p>Il exécute les rares opérations qui demandent des droits élevés, comme le contrôle de la charge. Il reste facultatif et nécessite votre approbation dans macOS.</p>
+      </details>
+      <details>
+        <summary>Peut-il limiter la charge de ma batterie&nbsp;?</summary>
+        <p>Cela dépend du Mac, de son firmware et de macOS. La limite native nécessite macOS 26.4 ou ultérieur. Les limites sous 80&nbsp;% et le mode Voile demandent un contrôle compatible&nbsp;: la version 0.2.2 l’apporte au MacBook Pro 13&nbsp;pouces M1, le seul modèle essayé à ce jour avec cette méthode. Ailleurs, si macOS refuse ce contrôle, MacCare l’indique et désactive les réglages concernés. Utilisez un seul contrôleur de charge à la fois.</p>
+      </details>
+      <details>
+        <summary>Quelles connexions réseau fait-il&nbsp;?</summary>
+        <p>Il contacte GitHub pour ses propres mises à jour, ce que vous pouvez désactiver dans les réglages. La recherche de mises à jour de vos apps interroge leurs sources, et le test Internet utilise Cloudflare lorsque vous le lancez.</p>
+      </details>
+      <details>
+        <summary>Combien d’espace vais-je récupérer&nbsp;?</summary>
+        <p>Cela dépend de votre Mac, et MacCare n’annonce rien à l’avance&nbsp;: il mesure ce qu’il trouve. Pour certains éléments, comme les instantanés locaux de Time Machine, l’espace réellement libéré dépend aussi de macOS.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section id="telecharger" class="download">
+  <div class="wrap download-inner">
+    <img class="download-icon" src="assets/icon-256.png" width="112" height="112" loading="lazy" alt="">
+    <h2>Prêt pour un peu d’entretien&nbsp;?</h2>
+    <p class="section-lead">Ouvrez le DMG, glissez MacCare dans Applications et lancez-le depuis ce dossier.</p>
+    <a class="button button-primary button-large" href="https://github.com/M0okz/maccare/releases/download/v0.2.2/MacCare-0.2.2-arm64.dmg">
+      <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8.5M4.2 7 8 10.8 11.8 7M3 13.5h10"/></svg>
+      Télécharger MacCare 0.2.2
+    </a>
+    <p class="requirements">DMG de 9,9&nbsp;Mo · Apple Silicon · macOS 13 ou ultérieur</p>
+    <div class="checksum">
+      <span class="checksum-label">SHA-256</span>
+      <code id="sha">93994af1ea90f0d237dc8241292bb978cdb72527dc4c3dbe094361679349ec05</code>
+      <button class="copy" type="button" data-copy="sha" hidden>
+        <span class="copy-label" data-state="idle">Copier</span>
+        <span class="copy-label" data-state="done" aria-hidden="true">Copié</span>
+      </button>
+    </div>
+    <p class="download-links">
+      <a class="text-link" href="https://github.com/M0okz/maccare/releases/tag/v0.2.2">Notes de version <span aria-hidden="true">↗</span></a>
+      <a class="text-link" href="https://github.com/M0okz/maccare#construire-depuis-les-sources">Compiler depuis les sources <span aria-hidden="true">↗</span></a>
+    </p>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-row">
+    <a class="brand" href="./"><img src="assets/icon-64.png" width="22" height="22" alt="" loading="lazy">MacCare</a>
+    <p>Licence MIT · <a href="https://github.com/M0okz/maccare">GitHub</a> · Découvrez aussi <a href="https://picta.homeblack.fr/">Picta</a> et <a href="https://warpgatesh.homeblack.fr/">WarpgateSH</a></p>
+    <p class="legal">Mac et macOS sont des marques d’Apple Inc. MacCare est un projet indépendant.</p>
+  </div>
+</footer>
+</body>
+</html>

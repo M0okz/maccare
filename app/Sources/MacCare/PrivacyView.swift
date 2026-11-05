@@ -22,7 +22,7 @@ struct PrivacyView: View {
             Divider()
             ToolManagerFooter {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("\(model.selection.count) élément(s) sélectionné(s) · \(humanSize(model.selectedSize))").font(AppFont.body.weight(.semibold))
+                    Text("\(model.selection.count) \(pl(model.selection.count, "élément")) \(pl(model.selection.count, "sélectionné")) · \(humanSize(model.selectedSize))").font(AppFont.body.weight(.semibold))
                     Text(model.lastReport?.summary ?? model.statusMessage ?? "Cookies, mots de passe et historique de navigation sont conservés.")
                         .font(AppFont.secondary).foregroundStyle(Theme.muted)
                 }
@@ -41,7 +41,7 @@ struct PrivacyView: View {
             Text("Examinez les fichiers temporaires de vos navigateurs et les données locales de macOS.")
                 .font(AppFont.secondary).foregroundStyle(Theme.muted)
             HStack {
-                Text(model.hasScanned ? "\(model.items.count) emplacement(s)" : "Prêt à analyser").font(AppFont.secondary)
+                Text(model.hasScanned ? "\(model.items.count) \(pl(model.items.count, "emplacement"))" : "Prêt à analyser").font(AppFont.secondary)
                 Spacer()
                 Button { model.scan() } label: { Image(systemName: "arrow.clockwise").frame(width: 32, height: 32) }
                     .buttonStyle(.plain).disabled(busy).accessibilityLabel("Actualiser les données locales")
@@ -75,7 +75,7 @@ struct PrivacyView: View {
                 Button("Tout cocher ici") { model.selection = Set(visible.map(\.id)) }.disabled(busy || visible.isEmpty)
                 Button("Tout décocher") { model.selectNone() }.disabled(busy || model.selection.isEmpty)
                 Spacer()
-                Text("\(visible.count) emplacement(s)").font(AppFont.secondary).foregroundStyle(Theme.muted)
+                Text("\(visible.count) \(pl(visible.count, "emplacement"))").font(AppFont.secondary).foregroundStyle(Theme.muted)
             }
             if group == .local {
                 Text("Retirer l’état des fenêtres empêche leur restauration. Les rapports retirés ne seront plus consultables.")
@@ -121,7 +121,7 @@ struct PrivacyView: View {
         VStack(alignment: .leading, spacing: 18) {
             Text(confirmedDirect ? "Supprimer définitivement ces données ?" : "Déplacer ces données vers la corbeille ?")
                 .font(.system(size: 26, weight: .semibold)).fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.isHeader)
-            Text("\(model.selectedItems.count) emplacement(s) · \(humanSize(model.selectedSize))").font(AppFont.body)
+            Text("\(model.selectedItems.count) \(pl(model.selectedItems.count, "emplacement")) · \(humanSize(model.selectedSize))").font(AppFont.body)
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(model.selectedItems) { item in Text(model.label(for: item)).font(AppFont.body) }

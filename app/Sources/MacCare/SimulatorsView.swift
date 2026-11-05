@@ -16,12 +16,12 @@ struct SimulatorsView: View {
                         .disabled(model.isLoading || model.isDeleting)
                         .opacity(model.isLoading || model.isDeleting ? 0.5 : 1)
                     if model.unavailableCount > 0 {
-                        Button("Cocher les \(model.unavailableCount) inutilisable(s)") { model.selectUnavailable() }
+                        Button("Cocher les \(model.unavailableCount) \(pl(model.unavailableCount, "inutilisable"))") { model.selectUnavailable() }
                             .buttonStyle(LinkStyle())
                     }
                     Spacer()
                     if model.hasLoaded && model.xcodeInstalled {
-                        Text("\(model.simulators.count) simulateur(s) · \(model.runtimes.count) runtime(s) · \(humanSize(model.totalSize))")
+                        Text("\(model.simulators.count) \(pl(model.simulators.count, "simulateur")) · \(model.runtimes.count) \(pl(model.runtimes.count, "runtime")) · \(humanSize(model.totalSize))")
                             .font(AppFont.secondary).foregroundStyle(Theme.muted)
                     }
                 }
@@ -102,7 +102,7 @@ struct SimulatorsView: View {
             ModuleIcon(symbol: "externaldrive.fill.badge.icloud", color: ModuleColor.maint, size: 30)
             VStack(alignment: .leading, spacing: 1) {
                 Text(r.name).font(AppFont.body.weight(.semibold))
-                Text(r.devices == 0 ? "Aucun simulateur ne l'utilise" : "Utilisé par \(r.devices) simulateur(s), inutilisables sans lui")
+                Text(r.devices == 0 ? "Aucun simulateur ne l'utilise" : "Utilisé par \(r.devices) \(pl(r.devices, "simulateur")), inutilisables sans lui")
                     .font(AppFont.caption).foregroundStyle(r.devices == 0 ? Theme.ok : Theme.warn)
             }
             Spacer(minLength: 8)
@@ -176,7 +176,7 @@ struct SimulatorsView: View {
             Text(summaryText).font(AppFont.body).fixedSize(horizontal: false, vertical: true)
             let orphaned = model.chosenRuntimes.reduce(0) { $0 + $1.devices }
             if orphaned > 0 {
-                Text("\(orphaned) simulateur(s) deviendront inutilisables sans leur runtime.")
+                Text("\(orphaned) \(pl(orphaned, "simulateur")) \(pl(orphaned, "deviendra", "deviendront")) \(pl(orphaned, "inutilisable")) sans leur runtime.")
                     .font(AppFont.secondary).foregroundStyle(Theme.warn)
             }
             Text("Irréversible : les apps et données de test de ces simulateurs seront perdues. Xcode pourra retélécharger les runtimes.")
@@ -199,8 +199,8 @@ struct SimulatorsView: View {
 
     private var summaryText: String {
         var parts: [String] = []
-        if !model.chosenSims.isEmpty { parts.append("\(model.chosenSims.count) simulateur(s)") }
-        if !model.chosenRuntimes.isEmpty { parts.append("\(model.chosenRuntimes.count) runtime(s) (\(model.chosenRuntimes.map(\.name).joined(separator: ", ")))") }
+        if !model.chosenSims.isEmpty { parts.append("\(model.chosenSims.count) \(pl(model.chosenSims.count, "simulateur"))") }
+        if !model.chosenRuntimes.isEmpty { parts.append("\(model.chosenRuntimes.count) \(pl(model.chosenRuntimes.count, "runtime")) (\(model.chosenRuntimes.map(\.name).joined(separator: ", ")))") }
         return parts.joined(separator: " et ") + " · \(humanSize(model.selectedSize)) seront supprimés via Xcode."
     }
 

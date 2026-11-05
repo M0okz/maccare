@@ -25,7 +25,9 @@ import Foundation
 public enum HelperIdentity {
     public static let machService = "org.maccare.helper"
     public static let daemonPlist = "org.maccare.helper.plist"
-    public static let protocolVersion = 9
+    // Version 10 adds a charge backend and recovery journal that version 9
+    // clients cannot decode or restore. Replacement remains an explicit action.
+    public static let protocolVersion = 10
 
     /// Équipe de signature (Developer ID et certificats de développement de la même équipe).
     public static let teamID = "5FAF9ZA2X9"

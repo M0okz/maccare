@@ -71,6 +71,8 @@ enum AppCatalog {
                 let url = URL(fileURLWithPath: dir).appendingPathComponent(entry)
                 let name = (entry as NSString).deletingPathExtension
                 let bundleId = Bundle(url: url)?.bundleIdentifier
+                // MacCare cannot remove itself: its running helper must be deactivated first.
+                if bundleId == Bundle.main.bundleIdentifier { continue }
                 apps.append(AppInfo(url: url, name: name, bundleId: bundleId))
             }
         }

@@ -105,7 +105,7 @@ enum AutomationAccess {
 /// État des autorisations système et du parcours de premier lancement.
 @MainActor
 final class PermissionsModel: ObservableObject {
-    private enum Keys { static let firstRunCompleted = "firstRunCompleted" }
+    enum Keys { static let firstRunCompleted = "firstRunCompleted" }
 
     @Published private(set) var fullDisk: PermissionState = .unknown
     @Published private(set) var automation: PermissionState = .unknown

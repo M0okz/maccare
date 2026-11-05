@@ -54,9 +54,12 @@ public final class RecoverableChargeHardware: ChargeHardware {
         let backend = capabilities.adapterBackend
         if let backend, try adapter.read(backend) { throw BatteryHardwareError(code: -2) }
         let record = try base.captureRecovery()
+        // The policy pulses this gate after each write, so it must be able to restore it.
+        if record.backend == .nativePolicy, backend == nil { base.endSession(); throw BatteryNativePolicyError.unavailable }
         pinnedAdapter = backend; captured = true
         return .init(backend: record.backend, machineID: record.machineID, firmwareUpper: record.firmwareUpper,
-                     firmwareLower: record.firmwareLower, nativeState: record.nativeState, adapterBackend: backend)
+                     firmwareLower: record.firmwareLower, nativeState: record.nativeState, adapterBackend: backend,
+                     nativePolicyPreferences: record.nativePolicyPreferences)
     }
     public func prepareForControl() throws { try base.prepareForControl() }
     public func validateDischarge() throws { try base.validateDischarge() }
@@ -73,11 +76,22 @@ public final class RecoverableChargeHardware: ChargeHardware {
             if try adapter.read(backend) { try adapter.write(backend, disabled: false) }
             guard try adapter.read(backend) == false else { throw BatteryHardwareError(code: -1) }
         }
-        try base.restore(record)
+        do { try base.restore(record) }
+        catch BatteryNativePolicyError.restorationDeferred(let target) {
+            // Still in control of the gate until the deferred restoration completes.
+            pinnedAdapter = record.adapterBackend; captured = true
+            throw BatteryNativePolicyError.restorationDeferred(target: target)
+        }
     }
     public func setChargeBand(upper: Int, lower: Int) throws { try base.setChargeBand(upper: upper, lower: lower) }
     public func setChargeLimit(_ limit: Int?) throws { try base.setChargeLimit(limit) }
     public func readSwitch() throws -> UInt8 { try base.readSwitch() }
     public func writeSwitch(_ value: UInt8) throws { try base.writeSwitch(value) }
+    public func applyChargeIntent(_ intent: BatteryChargeIntent, snapshot: BatterySnapshot, now: TimeInterval) throws {
+        try base.applyChargeIntent(intent, snapshot: snapshot, now: now)
+    }
+    public func chargeApplicationStatus(now: TimeInterval) throws -> BatteryChargeApplicationStatus? {
+        try base.chargeApplicationStatus(now: now)
+    }
     public func endSession() { base.endSession(); pinnedAdapter = nil; captured = false }
 }

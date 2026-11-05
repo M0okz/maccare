@@ -64,6 +64,12 @@ enum ManagerPanelMotion {
     static func transition(reduceMotion: Bool) -> AnyTransition {
         reduceMotion ? .identity : .opacity
     }
+
+    /// Changement de rubrique : l'ancienne page ne reste pas visible sous la nouvelle.
+    /// Le fond de catégorie, lui, assure la continuité de couleur.
+    static func page(reduceMotion: Bool) -> AnyTransition {
+        reduceMotion ? .identity : .asymmetric(insertion: .opacity, removal: .identity)
+    }
 }
 
 
@@ -98,5 +104,6 @@ private struct ToolbarActionSurface<Label: View>: View {
             .opacity(enabled ? 1 : 0.45)
             .onHover { hovered = $0 }
             .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: hovered)
+            .pressFeedback(pressed && enabled)
     }
 }

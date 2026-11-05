@@ -19,11 +19,10 @@ struct BatteryView: View {
                         if snapshot.present {
                             telemetry(snapshot)
                             Picker("Rubrique Batterie", selection: $tab) {
-                                Text("Réglages").tag(0); Text("Cycles").tag(1)
+                                Text("Réglages").tag(0)
                                 Text("Programmations").tag(2); Text("Historique").tag(3)
-                            }.pickerStyle(.segmented)
+                            }.pickerStyle(.segmented).labelsHidden()
                             switch tab {
-                            case 1: BatteryCyclesView(model: model)
                             case 2: BatterySchedulesView(model: model)
                             case 3: BatteryHistoryView(model: model)
                             default: protection(snapshot); BatteryProfilesView(model: model)
@@ -48,7 +47,9 @@ struct BatteryView: View {
             Button("Activer la protection") { Task { await model.perform(.enable) } }
             Button("Annuler", role: .cancel) {}
         } message: {
-            Text(model.nativeControl
+            Text(model.nativePolicyControl
+                 ? "MacCare demandera à macOS une limite de \(model.configuration.limit) %. Elle s’applique en général en quelques secondes, et la charge peut mettre environ une minute à réagir. Désactivez AlDente et tout autre contrôleur avant de continuer. MacCare conserve la recharge optimisée. À l’arrêt, il restaure les réglages de charge initiaux, dès que la batterie n’est plus au-dessus de la limite d’origine. La calibration de macOS peut temporairement imposer une recharge à 100 %."
+                 : model.nativeControl
                  ? "MacCare réglera la limite native de macOS à \(model.configuration.limit) %. Désactivez AlDente et tout autre contrôleur avant de continuer. Les protections de macOS restent actives ; un étalonnage Apple peut exceptionnellement charger à 100 %. À la désactivation, à la veille ou lorsque vous quittez MacCare, le réglage initial sera restauré. Après une interruption, l’assistant reprend cette restauration lorsque le Mac est éveillé."
                  : "MacCare pilotera la charge jusqu’à \(model.configuration.limit) %. Désactivez au préalable AlDente et tout autre contrôleur, et réglez la limite native de macOS sur 100 % avec la recharge optimisée désactivée. Le contrôle matériel est expérimental et n’a pas été validé sur toutes les générations de MacBook. À la mise en veille, la charge est rendue à macOS. Après fermeture ou interruption de MacCare, elle est rétablie sous environ 90 secondes lorsque le Mac est éveillé.")
         }
@@ -71,7 +72,7 @@ struct BatteryView: View {
             }
             Spacer()
             Button { Task { await model.refresh(force: true) } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
-                .buttonStyle(.bordered).disabled(model.controlsBusy)
+                .buttonStyle(SecondaryActionButtonStyle()).disabled(model.controlsBusy)
         }
     }
     private func telemetry(_ snapshot: BatterySnapshot) -> some View {
@@ -107,7 +108,8 @@ struct BatteryView: View {
     private func protection(_ snapshot: BatterySnapshot) -> some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Protection de la batterie").font(.title2.weight(.semibold)).accessibilityAddTraits(.isHeader)
-            Label(model.message, systemImage: model.active ? "checkmark.shield" : "shield")
+            Label(model.message, systemImage: model.active && model.protection?.chargeApplication?.registered == false
+                  ? "clock.arrow.circlepath" : model.active ? "checkmark.shield" : "shield")
                 .fixedSize(horizontal: false, vertical: true)
             if model.protection?.capabilities?.limitation == .hardwareAccessDenied {
                 Label("macOS refuse l’accès aux contrôles matériels de charge sur ce Mac. La limite native reste disponible de 80 à 100 %. Les limites sous 80 % et le mode Voile ne peuvent pas être activés avec cette méthode.", systemImage: "info.circle")
@@ -125,7 +127,12 @@ struct BatteryView: View {
                     Text("MacCare retente l’enregistrement, puis ouvre les Réglages Système si votre accord est encore nécessaire.")
                         .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
                 }
-            } else if model.restoring {
+            } else if model.helperUpdateRequired {
+                Text("Cette version de MacCare utilise un assistant plus récent. La mise à jour restaure d’abord les anciens réglages de charge et peut demander votre accord dans Réglages Système. La protection repart ensuite si elle était active.")
+                    .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+                Button("Mettre à jour l’assistant…") { Task { await model.updateHelper() } }
+                    .buttonStyle(.borderedProminent).disabled(model.controlsBusy)
+            } else if model.restoring && !model.restorationDeferred {
                 Text("MacCare restaure l’état de charge d’origine. L’assistant continue les tentatives ; aucune nouvelle protection ne peut démarrer pendant cette opération.")
                     .foregroundStyle(Theme.warn)
             } else if model.protection == nil {
@@ -141,7 +148,11 @@ struct BatteryView: View {
             }
             if snapshot.appleSilicon && (model.supported || model.active || !model.helperEnabled) {
                 VStack(alignment: .leading, spacing: 16) {
-                    if model.nativeControl {
+                    if model.nativePolicyControl {
+                        Stepper("Limite de charge : \(model.configuration.limit) %", value: $model.configuration.limit, in: 50...100)
+                        Text("macOS applique la limite et les pauses demandées, en général en quelques secondes ; la charge peut mettre environ une minute à réagir. Si la batterie est déjà au-dessus de la limite, son niveau est maintenu jusqu’à ce qu’elle redescende sur batterie. Si vous abaissez la limite pendant une recharge, la batterie peut encore gagner 3 points avant de s’arrêter. La calibration de macOS peut temporairement imposer 100 %.")
+                            .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+                    } else if model.nativeControl {
                         Picker("Limite de charge", selection: $model.configuration.limit) {
                             ForEach(model.availableLimits, id: \.self) { limit in Text("\(limit) %").tag(limit) }
                         }.pickerStyle(.menu)
@@ -150,7 +161,7 @@ struct BatteryView: View {
                     } else {
                         Stepper("Limite de charge : \(model.configuration.limit) %", value: $model.configuration.limit, in: 50...100, step: 5)
                     }
-                    if !model.nativeControl {
+                    if !model.usesAppleChargeControl {
                     Text(model.protection?.firmwareManaged == true
                          ? "80 % convient à un usage fréquent sur secteur. Le firmware gère une plage de 3 points et peut laisser la batterie redescendre vers cette plage même sur secteur."
                          : "80 % convient à un usage fréquent sur secteur. La charge reprend après une baisse de 3 points. Abaisser la limite ne force pas la décharge.")
@@ -182,7 +193,9 @@ struct BatteryView: View {
                     if model.configuration.thermalProtection {
                         Stepper("Température maximale : \(model.configuration.maximumTemperature) °C",
                                 value: $model.configuration.maximumTemperature, in: 30...45)
-                        Text("La charge reprend après une baisse de 2 °C. Une température manquante pendant la protection entraîne une pause de charge.")
+                        Text(model.nativePolicyControl
+                             ? "La reprise nécessite une baisse de 2 °C et au moins cinq minutes depuis le dernier dépassement. Une température manquante entraîne une demande de pause."
+                             : "La charge reprend après une baisse de 2 °C. Une température manquante pendant la protection entraîne une pause de charge.")
                             .font(.callout).foregroundStyle(Theme.muted)
                     }
                 }.disabled(model.controlsBusy)
@@ -197,9 +210,16 @@ struct BatteryView: View {
             }
             Divider()
             if model.supported || model.active {
-            Text("La protection reste active quand vous fermez la fenêtre et que MacCare reste dans la barre des menus. Quitter l’app restaure l’état de charge d’origine ; en cas d’interruption, l’assistant reprend cette restauration. Après une veille, MacCare doit reprendre contact avant de relancer la protection. Pendant la veille, macOS peut dépasser votre limite.")
+            VStack(alignment: .leading, spacing: 6) {
+                LoginLaunchToggle()
+                Text("Nécessaire pour que la protection reprenne après un redémarrage. MacCare démarre alors dans la barre des menus.")
+                    .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+            }
+            Text("La protection reste active quand vous fermez la fenêtre et que MacCare reste dans la barre des menus. Quitter l’app ou installer une mise à jour restaure l’état de charge d’origine ; en cas d’interruption, l’assistant reprend cette restauration. La protection repart à la prochaine ouverture de MacCare, sauf si vous l’avez désactivée ou si MacCare l’a arrêtée après une erreur. Après une veille, MacCare doit reprendre contact avant de relancer la protection. " + (model.nativePolicyControl
+                 ? "Pendant la veille, macOS conserve votre limite."
+                 : "Pendant la veille, macOS peut dépasser votre limite."))
                 .font(.callout).foregroundStyle(Theme.muted)
-            Text(model.nativeControl
+            Text(model.usesAppleChargeControl
                  ? "Utilisez un seul contrôleur de charge à la fois. Désactivez AlDente et les autres contrôleurs. MacCare conserve la recharge optimisée et restaure votre limite native initiale à l’arrêt."
                  : "Utilisez un seul contrôleur de charge à la fois. Pour utiliser MacCare, désactivez AlDente et la recharge optimisée, puis réglez la limite native de macOS sur 100 %.")
                 .font(.callout).foregroundStyle(Theme.muted)
@@ -209,8 +229,10 @@ struct BatteryView: View {
                 Task { do { diagnostics = try await HelperClient.batteryHardwareDiagnostics() } catch { diagnostics = error.localizedDescription } }
             }.disabled(!model.helperEnabled || model.controlsBusy)
             Button("Ouvrir les réglages Batterie de macOS…") { model.openBatterySettings() }
-                .buttonStyle(.borderedProminent)
-        }.padding(24).background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: Radius.card))
+        }
+        .buttonStyle(SecondaryActionButtonStyle())
+        .padding(24).frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: Radius.card))
     }
     @ViewBuilder private var actions: some View {
         if model.active {
@@ -222,7 +244,7 @@ struct BatteryView: View {
             Button("Désactiver la protection") { Task { await model.perform(.disable) } }.disabled(model.controlsBusy)
         } else {
             Button("Activer la protection") { confirmingActivation = true }
-                .buttonStyle(.borderedProminent).disabled(model.busy || !model.helperEnabled || !model.supported || !model.recoveryReady || model.restoring)
+                .buttonStyle(.borderedProminent).disabled(model.busy || !model.helperEnabled || !model.supported || !model.recoveryReady || (model.restoring && !model.restorationDeferred))
         }
     }
     private var unavailable: some View {

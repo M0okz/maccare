@@ -39,6 +39,8 @@ jobs:
           python-version: '3.12'
       - name: Vérifier le runner Apple Silicon
         run: test "$(uname -m)" = arm64
+      - name: Tester la frontière PowerUI sans écriture système
+        run: bash app/Tests/PowerUIBridgeTests/run.sh
       - name: Construire depuis les sources
         run: bash app/build.sh
       - name: Tests Swift

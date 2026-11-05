@@ -211,8 +211,8 @@ final class SystemCleanModel: ObservableObject {
                     failures.append(error.localizedDescription)
                 }
             }
-            var parts = ["\(removed) fichier(s) supprimé(s) définitivement, \(humanSize(freed)) libérés"]
-            if !refusedReasons.isEmpty { parts.append("\(refusedReasons.count) refusé(s) par sûreté (\(Set(refusedReasons).sorted().joined(separator: ", ")))") }
+            var parts = ["\(removed) \(pl(removed, "fichier")) \(pl(removed, "supprimé")) définitivement, \(humanSize(freed)) libérés"]
+            if !refusedReasons.isEmpty { parts.append("\(refusedReasons.count) \(pl(refusedReasons.count, "refusé")) par sûreté (\(Set(refusedReasons).sorted().joined(separator: ", ")))") }
             if !failures.isEmpty { parts.append("échec : \(Set(failures).sorted().joined(separator: ", "))") }
             lastSummary = parts.joined(separator: " · ")
             lastNeedsAttention = !refusedReasons.isEmpty || !failures.isEmpty

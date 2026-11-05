@@ -59,9 +59,9 @@ struct ApplicationsOverviewView: View {
                                 .font(.system(size: 18)).foregroundStyle(Theme.muted)
                                 .fixedSize(horizontal: false, vertical: true)
                             VStack(alignment: .leading, spacing: 20) {
-                                feature("app.badge", "Gérer les applications installées")
-                                feature("arrow.triangle.2.circlepath", "Consulter les mises à jour")
-                                feature("shippingbox", "Retrouver les données oubliées")
+                                OverviewFeatureRow(symbol: "app.badge", title: "Gérer les applications installées", tint: Theme.accentInk)
+                                OverviewFeatureRow(symbol: "arrow.triangle.2.circlepath", title: "Consulter les mises à jour", tint: Theme.accentInk)
+                                OverviewFeatureRow(symbol: "shippingbox", title: "Retrouver les données oubliées", tint: Theme.accentInk)
                             }.padding(.top, 10)
                         }
                         .frame(maxWidth: 450, alignment: .leading)
@@ -70,28 +70,18 @@ struct ApplicationsOverviewView: View {
                     .frame(maxWidth: .infinity, minHeight: geometry.size.height)
                 }
             }
-            VStack(spacing: 12) {
+            OverviewActionFooter(caption: "Analyse seule. Vous choisissez ensuite ce que vous souhaitez faire.") {
                 if analysis.phase == .inventory {
-                    ProgressView("Inventaire de vos applications…").font(AppFont.body)
+                    ProgressView("Inventaire de vos applications…").font(AppFont.body).frame(minHeight: 90)
                 } else {
                     Button("Analyser") { analyze() }
                         .buttonStyle(CircularOverviewActionStyle(tint: ModuleColor.uninstall))
                         .accessibilityLabel("Analyser les applications")
                 }
-                Text("Analyse seule. Vous choisissez ensuite ce que vous souhaitez faire.")
-                    .font(AppFont.secondary).foregroundStyle(Theme.muted)
             }
-            .padding(.horizontal, 24).padding(.bottom, 30).padding(.top, 12)
         }
     }
 
-    private func feature(_ symbol: String, _ text: String) -> some View {
-        HStack(spacing: 14) {
-            Image(systemName: symbol).font(.system(size: 22))
-                .foregroundStyle(Theme.accentInk).frame(width: 30).accessibilityHidden(true)
-            Text(text).font(.system(size: 16, weight: .medium))
-        }
-    }
 
     /// Illustration vectorielle propre à MacCare ; elle ne contient aucun contrôle.
     private var artwork: some View {
@@ -177,7 +167,7 @@ struct ApplicationsOverviewView: View {
                     if uninstall.isScanningLeftovers {
                         ProgressView().controlSize(.small)
                     } else {
-                        Text(uninstall.leftovers.isEmpty ? "Aucune donnée oubliée détectée." : "\(humanSize(uninstall.leftoverTotal)) à examiner · \(uninstall.leftovers.count) élément(s)")
+                        Text(uninstall.leftovers.isEmpty ? "Aucune donnée oubliée détectée." : "\(humanSize(uninstall.leftoverTotal)) à examiner · \(uninstall.leftovers.count) \(pl(uninstall.leftovers.count, "élément"))")
                             .font(.system(size: 17)).foregroundStyle(Theme.muted)
                     }
                 }

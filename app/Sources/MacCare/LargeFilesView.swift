@@ -155,7 +155,7 @@ struct LargeFilesView: View {
                     Label(msg, systemImage: "exclamationmark.triangle.fill")
                         .font(AppFont.secondary).foregroundStyle(Theme.warn)
                 } else {
-                    Text("\(model.visible.count) fichier(s) · \(humanSize(model.visibleSize))")
+                    Text("\(model.visible.count) \(pl(model.visible.count, "fichier")) · \(humanSize(model.visibleSize))")
                         .font(AppFont.secondary).foregroundStyle(Theme.muted)
                 }
             }

@@ -43,7 +43,7 @@ struct StartupView: View {
                     Button("Réglages de connexion") { model.openLoginSettings() }
                         .buttonStyle(LinkStyle())
                     Spacer()
-                    if model.hasLoaded { Text("\(visibleCount) élément(s) affiché(s)").font(AppFont.secondary).foregroundStyle(Theme.muted) }
+                    if model.hasLoaded { Text("\(visibleCount) \(pl(visibleCount, "élément")) \(pl(visibleCount, "affiché"))").font(AppFont.secondary).foregroundStyle(Theme.muted) }
                 }
             }
             .padding(Space.xl).padding(.bottom, Space.s)

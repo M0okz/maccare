@@ -6,20 +6,55 @@ la présence d’une fonction dans le code ne certifie pas son contrôle matéri
 Le paquet de développement est `build/MacCare.app` ; la copie utilisateur
 `/Applications/MacCare.app` reçoit les distributions signées par Sparkle.
 
+## Reprise de la protection
+
+Quitter MacCare ou installer une mise à jour termine la session et rétablit l'état de charge
+d'origine. Tant que l'utilisateur n'a pas désactivé la protection, l'app la relance une fois à sa
+prochaine ouverture, avec les derniers réglages appliqués. Elle attend la fin d'une session
+orpheline et un assistant à jour. La désactivation de la protection ou de l'assistant, ainsi
+qu'une session terminée sur une erreur, annulent cette reprise. Après un redémarrage, elle suppose
+l'ouverture de MacCare à la connexion, proposée à l'accueil et dans Batterie et désactivée par
+défaut. Ce démarrage se fait dans la barre des menus, sans fenêtre principale.
+
+## Version 0.2.2 : politique native distincte
+
+**Résultat des essais réels : d'abord en échec, puis validé sur le M1 de test.**
+Le maintien à 31–32 % a interrompu le secteur malgré le câble connecté. La cause établie
+est une limite enregistrée sous le niveau de charge. La méthode corrigée a tenu le secteur
+dans tous ses essais, sur le seul MacBookPro17,1, seul modèle autorisé, mode Voile et pause
+thermique compris. Elle n'est disponible qu'une fois la release 0.2.2 publiée.
+Voir [le résultat détaillé et les restrictions du système](native-charge-policy.md).
+
+Cette méthode est distincte du curseur PowerUI limité à 80–100 %. Sur ce modèle, elle propose
+50–100 %, les profils avec plage de maintien, la pause thermique et les cycles, en conservant
+les préférences de recharge optimisée. Le pilote SMC et l’ancien pilote PowerUI gardent
+leurs propres restrictions.
+
+Le protocole passe à 10. Le bouton « Mettre à jour l’assistant… » restaure
+l’ancienne session avant de remplacer le service, confirme le protocole chargé
+et ne réactive pas la protection. Une cible demandée, une cible enregistrée par macOS
+et l’arrêt physique de la charge sont affichés comme des états distincts.
+
+VoiceOver, le parcours complet Raccourcis, un cycle réel d’étalonnage et les Mac M2 à M6
+ne sont pas déclarés validés.
+
+Les sections suivantes conservent les constats antérieurs ; leurs restrictions
+matérielles décrivent les méthodes de la version 0.2.1, pas la nouvelle politique.
+
 ## Fonctions
 
 | Fonction | Comportement | Disponibilité |
 | --- | --- | --- |
 | Limite de charge | SMC : 50–100 % ; native : valeurs lues auprès de macOS | Contrôleur et firmware reconnus |
 | Mode Voile | Plage de maintien configurable de 2 à 20 points | Contrôleur SMC compatible |
-| Décharge volontaire | Utilise la batterie, câble branché, jusqu’à la limite ; annulable | Adaptateur reconnu, secteur et température fiables |
-| Étalonnage | Pleine charge → 10 % → pleine charge → limite | Confirmation explicite ; aucune activation par défaut |
 | Programmations | Une fois, quotidien, jours ouvrés, hebdomadaire, mensuel ; fuseau conservé | MacCare ouvert ; occurrence manquée au-delà de 10 min de retard |
-| Raccourcis | Régler la limite, recharge ponctuelle, arrêt, décharge et étalonnage | Mêmes validations que l’interface ; confirmation de l’étalonnage |
+| Raccourcis | Régler la limite, recharge ponctuelle, arrêt | Mêmes validations que l’interface |
 | Profils | Préréglages et profils personnels, sans adaptation silencieuse | Profil refusé si ses réglages sont incompatibles |
 | Historique | Mesures locales réelles, 30 jours et 10 000 entrées maximum | Aucun envoi réseau ; intervalle minimal sauf changement d’état |
 
-Les quatre onglets sont Réglages, Cycles, Programmations et Historique.
+Les trois onglets sont Réglages, Programmations et Historique.
+
+**Décharge volontaire et étalonnage sont retirés depuis la version 0.2.5.** Sur le MacBookPro17,1 d’essai, le secteur ne revenait pas à la fin d’une décharge sans reconnecter le câble, au repos comme sous charge. L’assistant refuse ces commandes. Le code du cycle reste en place, et les passages ci-dessous qui les décrivent ne concernent que les versions précédentes.
 Les métadonnées App Intents sont extraites pour Debug et Release lors du packaging.
 Le fournisseur de raccourcis est enregistré au lancement via
 `updateAppShortcutParameters()`.
@@ -47,7 +82,8 @@ jamais la découverte d’un autre mécanisme. Le journal v3 ajoute l’adaptate
 si nécessaire, la limite native compagnon ; les anciens journaux restent lisibles.
 
 L’étalonnage attend 100 % **et l’arrêt de la charge** avant chaque décharge.
-Chaque phase est bornée à 12 h, le cycle à 24 h. Mesures inconnues ou batterie
+Chaque recharge est bornée à 12 h, chaque décharge à 36 h et le cycle à 72 h : au repos, la
+décharge de 100 à 10 % prend près d'une journée. Mesures inconnues ou batterie
 à 45 °C : interruption et restauration. Le retour au secteur admet 180 secondes :
 le M1 de validation expose `PostDischargeWaitSeconds = 120`. Avec une cible
 finale de 100 %, le cycle termine sans isoler de nouveau l’adaptateur.
