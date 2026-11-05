@@ -207,7 +207,7 @@ final class BatteryProtectionTests: XCTestCase {
     @MainActor func testBatteryHasDedicatedNavigationAndStartsWithoutProtection() {
         XCTAssertEqual(Module.battery.section, .battery)
         XCTAssertEqual(NavigationSection.battery.destinations, [.battery])
-        let suite = "MacCareBatteryTests.\(UUID().uuidString)"
+        let suite = testPreferencesSuite("MacCareBatteryTests")
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
         let model = BatteryModel(defaults: defaults, monitor: false)

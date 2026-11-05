@@ -6,7 +6,7 @@ final class LocalSnapshotMaintenanceTests: XCTestCase {
     private let snapshots = "Snapshots for disk /:\ncom.apple.TimeMachine.2026-11-02-100000.local\ncom.apple.TimeMachine.2026-11-02-110000.local\n"
 
     func testDisabledPreferenceSurvivesReloadAndBlocksPreviouslyConfirmedRequest() throws {
-        let name = "maccare.snapshot-preferences." + UUID().uuidString
+        let name = testPreferencesSuite("maccare.snapshot-preferences")
         let defaults = try XCTUnwrap(UserDefaults(suiteName: name))
         defer { defaults.removePersistentDomain(forName: name) }
         XCTAssertTrue(PerformancePreferences.includeLocalSnapshots(in: defaults))
@@ -20,7 +20,7 @@ final class LocalSnapshotMaintenanceTests: XCTestCase {
     }
 
     @MainActor func testDisablingAfterConfirmationPreventsHelperCallAtExecution() async throws {
-        let name = "maccare.snapshot-routing." + UUID().uuidString
+        let name = testPreferencesSuite("maccare.snapshot-routing")
         let defaults = try XCTUnwrap(UserDefaults(suiteName: name))
         defer { defaults.removePersistentDomain(forName: name) }
         defaults.set(true, forKey: PerformancePreferences.localSnapshotsKey)

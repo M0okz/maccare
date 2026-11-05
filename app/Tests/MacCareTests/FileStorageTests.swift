@@ -3,7 +3,7 @@ import XCTest
 
 final class FileStorageTests: XCTestCase {
     private func withDefaults(_ test: (UserDefaults) -> Void) {
-        let suite = "MacCare-QA-FileStorage-\(UUID().uuidString)"
+        let suite = testPreferencesSuite("MacCare-QA-FileStorage")
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
         test(defaults)
