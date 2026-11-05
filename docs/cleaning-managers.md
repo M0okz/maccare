@@ -34,3 +34,9 @@ pas été exécutés. VoiceOver, Voice Control, texte agrandi, Réduire les anim
 et les autres tailles de fenêtre restent à vérifier. La copie utilisateur
 est distincte des paquets de développement ; l’intégration dans `main` ne
 constitue pas une nouvelle release ni une installation.
+
+Après intégration avec les alertes dans la PR nº 4 et mise à jour avec `main`,
+les neuf fichiers d’interface correspondent aux empreintes de la QA décrite
+ci-dessus. La suite complète de la branche passe : 212 XCTest et 226 tests
+Swift Testing. Les contrôles de compilation et packaging de la PR complètent
+cette validation sans lancer de suppression ni remplacer l’app utilisateur.

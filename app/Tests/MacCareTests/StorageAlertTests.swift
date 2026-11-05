@@ -3,7 +3,7 @@ import XCTest
 
 final class StorageAlertTests: XCTestCase {
     private func withPolicy(_ body: (StorageAlertPolicy) throws -> Void) rethrows {
-        let suite = "MacCare.StorageAlertTests.\(UUID().uuidString)"
+        let suite = testPreferencesSuite("MacCare.StorageAlertTests")
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
         try body(StorageAlertPolicy(defaults: defaults))

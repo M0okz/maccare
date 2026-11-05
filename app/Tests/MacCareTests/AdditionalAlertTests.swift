@@ -46,7 +46,7 @@ final class AdditionalAlertTests: XCTestCase {
     }
 
     func testIndependentRemindersAndEveryDistinctCompletion() {
-        let suite = "MacCare.AdditionalAlertTests.\(UUID())"
+        let suite = testPreferencesSuite("MacCare.AdditionalAlertTests")
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
         let now = Date(timeIntervalSince1970: 1_800_000_000)
@@ -108,11 +108,11 @@ final class AdditionalAlertTests: XCTestCase {
     func testTopUpCompletesOnceWithoutEnablingDisabledCycles() {
         var detector = BatteryAlertDetector()
         var running = status(percent: 99); running.topUp = true
-        XCTAssertNil(detector.observe(observation(running), uptime: 0, cyclesEnabled: false))
-        let finished = detector.observe(observation(status()), uptime: 15, cyclesEnabled: false)
+        XCTAssertNil(detector.observe(observation(running), uptime: 0, dischargeEnabled: false, calibrationEnabled: false))
+        let finished = detector.observe(observation(status()), uptime: 15, dischargeEnabled: false, calibrationEnabled: false)
         XCTAssertEqual(finished?.operation, .topUp)
         XCTAssertEqual(finished?.target, 80)
-        XCTAssertNil(detector.observe(observation(status()), uptime: 30, cyclesEnabled: false))
+        XCTAssertNil(detector.observe(observation(status()), uptime: 30, dischargeEnabled: false, calibrationEnabled: false))
     }
 
     func testTopUpWaitsForNativeLimitRegistration() {
@@ -143,30 +143,30 @@ final class AdditionalAlertTests: XCTestCase {
     func testCycleCompletionRequiresTerminalPhaseAndPowerReturn() {
         var detector = BatteryAlertDetector()
         var running = status(percent: 85); running.cycle = cycle(.dischargingToLimit)
-        _ = detector.observe(observation(running), uptime: 0, cyclesEnabled: true)
+        _ = detector.observe(observation(running), uptime: 0, dischargeEnabled: true, calibrationEnabled: true)
         var finished = status(percent: 80, onAC: false); finished.message = "Cycle terminé · limite rétablie"
-        XCTAssertNil(detector.observe(observation(finished), uptime: 15, cyclesEnabled: true))
+        XCTAssertNil(detector.observe(observation(finished), uptime: 15, dischargeEnabled: true, calibrationEnabled: true))
         finished.snapshot.onAC = true; finished.message = "Charge suspendue · limite atteinte"
-        XCTAssertEqual(detector.observe(observation(finished), uptime: 30, cyclesEnabled: true)?.operation, .discharge)
-        XCTAssertNil(detector.observe(observation(finished), uptime: 45, cyclesEnabled: true))
+        XCTAssertEqual(detector.observe(observation(finished), uptime: 30, dischargeEnabled: true, calibrationEnabled: true)?.operation, .discharge)
+        XCTAssertNil(detector.observe(observation(finished), uptime: 45, dischargeEnabled: true, calibrationEnabled: true))
     }
 
     func testDisabledCyclesEarlyPhasesAndExpiredPowerReturnNeverReportSuccess() {
         var running = status(percent: 85); running.cycle = cycle(.returningToLimit)
         var finished = status(percent: 80); finished.message = "Cycle terminé · limite rétablie"
         var detector = BatteryAlertDetector()
-        _ = detector.observe(observation(running), uptime: 0, cyclesEnabled: false)
-        XCTAssertNil(detector.observe(observation(finished), uptime: 15, cyclesEnabled: false))
+        _ = detector.observe(observation(running), uptime: 0, dischargeEnabled: false, calibrationEnabled: false)
+        XCTAssertNil(detector.observe(observation(finished), uptime: 15, dischargeEnabled: false, calibrationEnabled: false))
         running.cycle = cycle(.chargingToFull)
         detector.reset()
-        _ = detector.observe(observation(running), uptime: 0, cyclesEnabled: true)
-        XCTAssertNil(detector.observe(observation(finished), uptime: 15, cyclesEnabled: true))
+        _ = detector.observe(observation(running), uptime: 0, dischargeEnabled: true, calibrationEnabled: true)
+        XCTAssertNil(detector.observe(observation(finished), uptime: 15, dischargeEnabled: true, calibrationEnabled: true))
         running.cycle = cycle(.returningToLimit); finished.snapshot.onAC = false
         detector.reset()
-        _ = detector.observe(observation(running), uptime: 0, cyclesEnabled: true)
-        _ = detector.observe(observation(finished), uptime: 15, cyclesEnabled: true)
+        _ = detector.observe(observation(running), uptime: 0, dischargeEnabled: true, calibrationEnabled: true)
+        _ = detector.observe(observation(finished), uptime: 15, dischargeEnabled: true, calibrationEnabled: true)
         finished.snapshot.onAC = true
-        XCTAssertNil(detector.observe(observation(finished), uptime: 200, cyclesEnabled: true))
+        XCTAssertNil(detector.observe(observation(finished), uptime: 200, dischargeEnabled: true, calibrationEnabled: true))
     }
 
     func testCalibrationCompletesAtItsFinalLimitIncludingOneHundredPercent() {
@@ -177,13 +177,25 @@ final class AdditionalAlertTests: XCTestCase {
             phase.target = target
             running.cycle = phase
             running.configuration = .init(limit: target)
-            _ = detector.observe(observation(running), uptime: 0, cyclesEnabled: true)
+            _ = detector.observe(observation(running), uptime: 0, dischargeEnabled: true, calibrationEnabled: true)
             var finished = status(percent: target)
             finished.configuration = .init(limit: target)
             finished.message = "Cycle terminé · limite rétablie"
-            let result = detector.observe(observation(finished), uptime: 15, cyclesEnabled: true)
+            let result = detector.observe(observation(finished), uptime: 15, dischargeEnabled: true, calibrationEnabled: true)
             XCTAssertEqual(result?.operation, .calibration)
             XCTAssertEqual(result?.target, target)
+        }
+    }
+
+    func testDefaultReleaseCapabilitiesNotifyDischargeButNotCalibration() {
+        for phase in [BatteryCycleStatus.Phase.dischargingToLimit, .returningToLimit] {
+            var detector = BatteryAlertDetector()
+            var running = status(percent: 85); running.cycle = cycle(phase)
+            _ = detector.observe(observation(running), uptime: 0)
+            var finished = status(percent: 80); finished.message = "Cycle terminé · limite rétablie"
+            let result = detector.observe(observation(finished), uptime: 15)
+            if phase == .dischargingToLimit { XCTAssertEqual(result?.operation, .discharge) }
+            else { XCTAssertNil(result, "L’étalonnage reste désactivé dans la version de référence") }
         }
     }
 
@@ -200,7 +212,7 @@ final class AdditionalAlertTests: XCTestCase {
     }
 
     @MainActor func testBatteryAlertIntentSurvivesLostConnectionAndExplicitDisableClearsIt() async {
-        let suite = "MacCare.AlertIntentTests.\(UUID())", client = AlertClient()
+        let suite = testPreferencesSuite("MacCare.AlertIntentTests"), client = AlertClient()
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
         let model = BatteryModel(defaults: defaults, monitor: false, client: client)

@@ -3,7 +3,7 @@ import XCTest
 
 final class MemoryAlertTests: XCTestCase {
     private func withPolicy(_ test: (inout MemoryAlertPolicy) -> Void) {
-        let name = "MacCare.MemoryAlertTests.\(UUID().uuidString)"
+        let name = testPreferencesSuite("MacCare.MemoryAlertTests")
         let defaults = UserDefaults(suiteName: name)!
         defer { defaults.removePersistentDomain(forName: name) }
         var policy = MemoryAlertPolicy(defaults: defaults)

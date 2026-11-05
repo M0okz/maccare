@@ -11,7 +11,8 @@ struct BatteryAlertDetector {
     mutating func reset() { self = Self() }
 
     mutating func observe(_ observation: BatteryAlertObservation, uptime: TimeInterval,
-                          now: Date = Date(), cyclesEnabled: Bool = BatteryCycle.enabledInThisRelease) -> BatteryCompletionAlert? {
+                          now: Date = Date(), dischargeEnabled: Bool = BatteryCycle.dischargeAvailable,
+                          calibrationEnabled: Bool = BatteryCycle.calibrationAvailable) -> BatteryCompletionAlert? {
         defer { previous = observation }
         guard !observation.terminating else { reset(); return nil }
         if !observation.expected || observation.healthy {
@@ -38,8 +39,8 @@ struct BatteryAlertDetector {
                 return .init(id: UUID(), operation: .topUp, target: target, createdAt: now)
             }
         }
-        guard cyclesEnabled else { pendingCycle = nil; return nil }
         if let cycle = previous.status?.cycle, status.cycle == nil,
+           (cycle.phase == .dischargingToLimit ? dischargeEnabled : calibrationEnabled),
            status.message.hasPrefix("Cycle terminé"), cycle.target == target,
            let percent = status.snapshot.percent, percent <= target,
            cycle.phase == .dischargingToLimit || cycle.phase == .returningToLimit ||
@@ -47,6 +48,9 @@ struct BatteryAlertDetector {
             pendingCycle = (cycle, uptime)
         }
         guard let pending = pendingCycle else { return nil }
+        guard pending.0.phase == .dischargingToLimit ? dischargeEnabled : calibrationEnabled else {
+            pendingCycle = nil; return nil
+        }
         guard uptime >= pending.1, uptime - pending.1 <= BatteryCycle.powerReturnGrace,
               status.cycle == nil, status.configuration?.limit == pending.0.target else {
             pendingCycle = nil; return nil

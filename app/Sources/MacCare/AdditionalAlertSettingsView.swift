@@ -13,8 +13,8 @@ struct AdditionalAlertSettingsView: View {
         VStack(alignment: .leading, spacing: 10) {
             Toggle(kind.title, isOn: $enabled)
             Text(detail).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            if kind == .cycle && !BatteryCycle.enabledInThisRelease {
-                Text("La décharge et l’étalonnage sont désactivés dans cette version. La fin de recharge ponctuelle à 100 % reste signalée.")
+            if kind == .cycle && !BatteryCycle.calibrationAvailable {
+                Text("L’étalonnage reste désactivé dans cette version. Les fins de décharge et de recharge ponctuelle à 100 % sont signalées.")
                     .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
             Button("Afficher un aperçu : \(kind.title)") {

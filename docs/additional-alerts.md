@@ -1,9 +1,10 @@
 # Alertes CPU et batterie — développement du 6 novembre 2026
 
-Travail local non livré dans `/Applications/MacCare.app`, sur la branche
-préexistante `codex/menu-bar-alerts`, base `8868649`. Aucune nouvelle branche
-n’est créée par cette intervention. Les modifications de nettoyage arrivées
-en parallèle sont préservées et ne font pas partie de cette fonctionnalité.
+Fonctionnalité préparée dans la [PR nº 4](https://github.com/M0okz/maccare/pull/4),
+sur la branche préexistante `codex/menu-bar-alerts`. La base initiale est
+`8868649`, puis la branche est mise à jour avec `main`. L’harmonisation de
+Nettoyage, incluse dans cette même PR, est décrite dans `cleaning-managers.md`.
+L’intégration du code ne remplace pas la version utilisateur installée.
 
 Les trois alertes réutilisent `MenuBarAlertPresenter` et le contour déjà validé :
 largeur 340 points, flou AppKit natif, pointe raccordée, trait sombre fin,
@@ -63,11 +64,13 @@ fausse réussite. Le retour de la protection avant affichage est revérifié.
 
 Le détecteur prend aussi en charge les fins de décharge et d’étalonnage,
 uniquement après une phase finale cohérente et un retour confirmé du secteur.
-**Ces deux fonctions restent désactivées par `BatteryCycle.enabledInThisRelease`
-dans cette version, à la suite du problème d’alimentation constaté le 5 novembre.**
-Cette intervention ne les réactive pas. Les transitions correspondantes sont
-testées sur des états synthétiques, sans cycle matériel. La notification de
-recharge ponctuelle fonctionne indépendamment de ce drapeau.
+**Disponibilités après mise à jour avec `main` :** la décharge est disponible
+(`BatteryCycle.dischargeAvailable`), tandis que l’étalonnage reste désactivé
+(`BatteryCycle.calibrationAvailable`). Chaque notification respecte son propre
+drapeau ; aucun cycle n’est réactivé par le code des alertes. La détection de
+fin de décharge suit donc la disponibilité déjà décidée dans `main`. Les
+transitions d’étalonnage sont testées sur des états synthétiques uniquement.
+La notification de recharge ponctuelle est indépendante de ces drapeaux.
 
 ## Rappels, réglages et exécution
 
@@ -100,7 +103,7 @@ batterie, fin d’opération, CPU. Une fin mise en attente expire après 30 minu
 Les intégrations concernent `BatteryModel`, `TrayPanelController`,
 `TraySceneLifecycle`, `Shell` et `SettingsView`.
 
-38 tests ciblés réussis : 14 nouveaux tests de politiques/observations et
+Validation initiale : 38 tests ciblés réussis, dont 14 tests de politiques/observations et
 de clients batterie simulés, plus les régressions batterie, mémoire, disque
 et disposition. La QA emploie un hôte indépendant et des exemples fictifs :
 six captures (trois alertes dans deux apparences), commandes accessibles,
@@ -117,3 +120,10 @@ stricte, plist et `git diff --check` valides. La copie quotidienne 0.2.6 (8)
 garde la même empreinte binaire. Les sept pages Outline concernées (index,
 02, 03, 04, 06, 08 et 11) ont été mises à jour et relues ; leur emplacement
 et leurs liens sont conservés.
+
+Après mise à jour avec `main`, la suite complète passe : **212 XCTest et
+226 tests Swift Testing**, ainsi que 94 tests Rust (deux tests ignorés),
+15 tests de release, la frontière PowerUI sans écriture système et les
+signatures Sparkle. Un test supplémentaire couvre les disponibilités finales :
+décharge autorisée, étalonnage toujours désactivé. Les préférences des tests
+d’alertes utilisent le dossier temporaire commun des tests.
