@@ -10,7 +10,7 @@ final class PermissionsTests: XCTestCase {
 
     func testSkippingSetupPersistsWithoutGrantingPermissions() async {
         await MainActor.run {
-            let suite = "MacCare-QA-Onboarding-\(UUID().uuidString)"
+            let suite = testPreferencesSuite("MacCare-QA-Onboarding")
             let defaults = UserDefaults(suiteName: suite)!
             defer { defaults.removePersistentDomain(forName: suite) }
             let model = PermissionsModel(defaults: defaults)

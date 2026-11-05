@@ -58,7 +58,7 @@ struct BatteryNativeModelTests {
     }
 
     private func fixture(_ client: Client, initial: BatteryConfiguration? = nil) throws -> (BatteryModel, UserDefaults, String) {
-        let suite = "MacCareNativeModel.\(UUID())"
+        let suite = testPreferencesSuite("MacCareNativeModel")
         let defaults = try #require(UserDefaults(suiteName: suite))
         if let initial { defaults.set(try JSONEncoder().encode(initial), forKey: "battery.configuration") }
         return (.init(defaults: defaults, monitor: false, client: client), defaults, suite)

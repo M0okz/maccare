@@ -34,7 +34,7 @@ struct BatteryHelperRegistrationTests {
     }
 
     private func fixture(_ client: Client) throws -> (BatteryModel, UserDefaults, String) {
-        let name = "BatteryHelperRegistrationTests.\(UUID())"
+        let name = testPreferencesSuite("BatteryHelperRegistrationTests")
         let defaults = try #require(UserDefaults(suiteName: name))
         return (BatteryModel(defaults: defaults, monitor: false, client: client), defaults, name)
     }

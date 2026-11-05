@@ -30,7 +30,7 @@ struct BatteryAutomationTests {
         func openApproval() {}
     }
     private final class Preferences {
-        let name = "BatteryAutomationTests.\(UUID())"
+        let name = testPreferencesSuite("BatteryAutomationTests")
         let defaults: UserDefaults
         init() { defaults = UserDefaults(suiteName: name)! }
         deinit { defaults.removePersistentDomain(forName: name) }
