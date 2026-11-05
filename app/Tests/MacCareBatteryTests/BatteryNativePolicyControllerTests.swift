@@ -490,6 +490,35 @@ struct BatteryNativePolicyControllerTests {
         #expect(holding.active && holding.error == nil && f.driver.clears == 0 && f.driver.targets.last == 70)
         #expect(f.journal.pending != nil)
     }
+    @Test func nothingIsWrittenBetweenTheReopeningAndTheReturnOfInput() throws {
+        let f = Fixture(); try #require(f.run(.enable, limit: 85, percent: 87).active)
+        try #require(f.run(.discharge, percent: 87, now: 1).cycle != nil)
+        let written = f.driver.targets.count
+        #expect(f.run(.heartbeat, percent: 85, onAC: false, now: 2).cycle == nil)
+        let waiting = f.run(.heartbeat, percent: 85, onAC: false, now: 3)
+        #expect(waiting.active && waiting.error == nil && waiting.message == "Retour à l’alimentation secteur en cours")
+        #expect(f.driver.clears == 0 && f.driver.targets.count == written, "The limit stays in place until input is back")
+        #expect(f.adapter.writes.last == false)
+        let back = f.run(.heartbeat, percent: 85, now: 8)
+        #expect(back.active && back.message != waiting.message && f.driver.clears == 0)
+    }
+    @Test func inputThatNeverReturnsEndsTheWait() throws {
+        let f = Fixture(); try #require(f.run(.enable, limit: 85, percent: 87).active)
+        try #require(f.run(.discharge, percent: 87, now: 1).cycle != nil)
+        #expect(f.run(.heartbeat, percent: 85, onAC: false, now: 2).cycle == nil)
+        var waited = f.run(.heartbeat, percent: 84, onAC: false, now: 60)
+        #expect(waited.message == "Retour à l’alimentation secteur en cours")
+        waited = f.run(.heartbeat, percent: 84, onAC: false, now: 120)
+        #expect(waited.message == "Retour à l’alimentation secteur en cours")
+        waited = f.run(.heartbeat, percent: 84, onAC: false, now: 2 + BatteryCycle.powerReturnGrace)
+        #expect(waited.active && waited.message != "Retour à l’alimentation secteur en cours")
+    }
+    @Test func aCancelledDischargeWaitsForInputToo() throws {
+        let f = Fixture(); try #require(f.run(.enable, limit: 70, percent: 90).active)
+        try #require(f.run(.discharge, percent: 90, now: 1).cycle != nil)
+        let cancelled = f.run(.cancelCycle, percent: 85, onAC: false, now: 2)
+        #expect(cancelled.message == "Retour à l’alimentation secteur en cours" && f.driver.clears == 0)
+    }
     @Test func cancellingDischargeReopensTheGate() throws {
         let f = Fixture(); try #require(f.run(.enable, percent: 90).active)
         try #require(f.run(.discharge, percent: 90, now: 1).cycle != nil)

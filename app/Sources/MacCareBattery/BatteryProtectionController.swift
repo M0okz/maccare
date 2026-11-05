@@ -18,6 +18,8 @@ public final class BatteryProtectionController {
     private var suspended = false
     private var topUp = false
     private var cycle: BatteryCycle?
+    /// After the adapter gate reopens: nothing is written until input returns or this time passes.
+    private var inputReturnDeadline: TimeInterval?
     private var sleeping = false
     private var awaitingHeartbeat = false
     private var restoring = false
@@ -123,7 +125,10 @@ public final class BatteryProtectionController {
                     cycle = BatteryCycle(target: configuration.limit, now: now)
                     topUp = false
                 }
-                if command == .cancelCycle { try hardware.setDischarging(false); cycle = nil }
+                if command == .cancelCycle {
+                    try hardware.setDischarging(false); cycle = nil
+                    if !snapshot.onAC { inputReturnDeadline = now + BatteryCycle.powerReturnGrace }
+                }
                 if command == .topUp && cycle != nil { throw ControlError("Annulez le cycle avant la recharge ponctuelle.") }
                 if command == .topUp && !snapshot.onAC { throw ControlError("Branchez le Mac pour lancer une recharge ponctuelle.") }
                 if command == .topUp { topUp = true }
@@ -221,6 +226,7 @@ public final class BatteryProtectionController {
                 if action.finished {
                     // External input only reappears after this reading. The next tick evaluates it.
                     cycle = nil; topUp = false; suspended = false; failure = nil
+                    if !snapshot.onAC { inputReturnDeadline = now + BatteryCycle.powerReturnGrace }
                     message = "Cycle terminé · limite rétablie"
                     return
                 }
@@ -243,6 +249,16 @@ public final class BatteryProtectionController {
             }
         }
         if topUp && (!snapshot.onAC || snapshot.percent == 100) { topUp = false }
+        if let returnDeadline = inputReturnDeadline {
+            // On the M1 host a clear sent in the same instant as the reopening left the Mac without
+            // external input (5 Nov. 2026). The limit in place must stay untouched until input is back.
+            if !snapshot.onAC, now < returnDeadline {
+                suspended = false; failure = nil
+                message = "Retour à l’alimentation secteur en cours"
+                return
+            }
+            inputReturnDeadline = nil
+        }
         if sessionCapabilities?.backend == .nativePolicy {
             let decision = policy.evaluate(snapshot, configuration: configuration, topUp: topUp, now: now)
             try hardware.applyChargeIntent(decision.suspend ? .hold : .charge(to: topUp ? 100 : configuration.limit),
@@ -288,7 +304,7 @@ public final class BatteryProtectionController {
         try clearRecovery()
         self.recovery = nil; sessionCapabilities = nil; hardware.endSession()
         owner = nil; sessionID = nil; configuration = nil; topUp = false
-        policy = .init(); cycle = nil; restoring = false; awaitingHeartbeat = false
+        policy = .init(); cycle = nil; inputReturnDeadline = nil; restoring = false; awaitingHeartbeat = false
         message = "Protection désactivée"
     }
     /// Not a failure: the session is over and only the journal's final step is waiting on the charge level.
