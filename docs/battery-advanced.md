@@ -82,7 +82,8 @@ jamais la découverte d’un autre mécanisme. Le journal v3 ajoute l’adaptate
 si nécessaire, la limite native compagnon ; les anciens journaux restent lisibles.
 
 L’étalonnage attend 100 % **et l’arrêt de la charge** avant chaque décharge.
-Chaque phase est bornée à 12 h, le cycle à 24 h. Mesures inconnues ou batterie
+Chaque recharge est bornée à 12 h, chaque décharge à 36 h et le cycle à 72 h : au repos, la
+décharge de 100 à 10 % prend près d'une journée. Mesures inconnues ou batterie
 à 45 °C : interruption et restauration. Le retour au secteur admet 180 secondes :
 le M1 de validation expose `PostDischargeWaitSeconds = 120`. Avec une cible
 finale de 100 %, le cycle termine sans isoler de nouveau l’adaptateur.

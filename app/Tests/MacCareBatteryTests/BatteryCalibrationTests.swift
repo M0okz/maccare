@@ -42,6 +42,33 @@ struct BatteryCalibrationTests {
         #expect(try cycle.advance(snapshot: .init(percent: 11, onAC: true, temperature: 28), now: 130).limit == 100)
         #expect(cycle.status.phase == .rechargingToFull)
     }
+    @Test func aCalibrationAtRestIsNotStoppedByItsDuration() throws {
+        func snapshot(_ percent: Int, _ ac: Bool = true) -> BatterySnapshot { .init(percent: percent, onAC: ac, temperature: 28) }
+        let hour: TimeInterval = 3600
+        var cycle = BatteryCycle.calibration(target: 80, now: 0)
+        _ = try cycle.advance(snapshot: snapshot(100), now: 3 * hour)
+        #expect(cycle.status.phase == .dischargingForCalibration)
+        #expect(try cycle.advance(snapshot: snapshot(50, false), now: 15 * hour).discharge)
+        #expect(try cycle.advance(snapshot: snapshot(11, false), now: 22 * hour).discharge)
+        _ = try cycle.advance(snapshot: snapshot(10, false), now: 23 * hour)
+        #expect(cycle.status.phase == .rechargingToFull)
+        _ = try cycle.advance(snapshot: snapshot(100), now: 26 * hour)
+        #expect(cycle.status.phase == .returningToLimit)
+        #expect(try cycle.advance(snapshot: snapshot(80, false), now: 30 * hour).finished)
+    }
+    @Test func aPhaseThatMakesNoProgressStillEnds() throws {
+        func snapshot(_ percent: Int, _ ac: Bool = true) -> BatterySnapshot { .init(percent: percent, onAC: ac, temperature: 28) }
+        var charging = BatteryCycle.calibration(target: 80, now: 0)
+        #expect(throws: (any Error).self) { try charging.advance(snapshot: snapshot(90), now: BatteryCycle.chargePhaseLimit) }
+        var draining = BatteryCycle.calibration(target: 80, now: 0)
+        _ = try draining.advance(snapshot: snapshot(100), now: 1)
+        #expect(throws: (any Error).self) { try draining.advance(snapshot: snapshot(50, false), now: 1 + BatteryCycle.dischargePhaseLimit) }
+        var long = BatteryCycle.calibration(target: 80, now: 0)
+        _ = try long.advance(snapshot: snapshot(100), now: 11 * 3600)
+        _ = try long.advance(snapshot: snapshot(10, false), now: 46 * 3600)
+        _ = try long.advance(snapshot: snapshot(100), now: 57 * 3600)
+        #expect(throws: (any Error).self) { try long.advance(snapshot: snapshot(90, false), now: BatteryCycle.cycleLimit) }
+    }
     @Test func calibrationCannotContinueOnUnknownMeasurements() {
         var cycle = BatteryCycle.calibration(target: 80, now: 0)
         #expect(throws: (any Error).self) { try cycle.advance(snapshot: .init(percent: nil, onAC: true, temperature: 28), now: 1) }

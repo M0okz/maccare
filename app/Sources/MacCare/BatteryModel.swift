@@ -33,6 +33,9 @@ final class BatteryModel: ObservableObject {
     private var mayOwnLease = false
     private var ownsLease = false
     private var renewAfterLostReply = false
+    private var cycleActivity: NSObjectProtocol?
+    /// A cycle lasts many hours and sleep ends it, so idle sleep waits for the cycle.
+    var keepsMacAwake: Bool { cycleActivity != nil }
     private var nextHelperStatus = Date.distantPast
     private var monitoring: Task<Void, Never>?
     private static let preferencesKey = "battery.configuration"
@@ -249,6 +252,12 @@ final class BatteryModel: ObservableObject {
         else if renewAfterLostReply { ownsLease = true }
         if !status.active || status.restoring { renewAfterLostReply = false }
         if !status.active && !status.restoring { mayOwnLease = false }
+        if status.active, status.cycle != nil {
+            if cycleActivity == nil { cycleActivity = PowerAssertion.beginUserActivity("Cycle de batterie en cours") }
+        } else if let activity = cycleActivity {
+            PowerAssertion.end(activity)
+            cycleActivity = nil
+        }
     }
 }
 

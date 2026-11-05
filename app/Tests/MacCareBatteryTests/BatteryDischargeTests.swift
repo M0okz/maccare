@@ -64,7 +64,7 @@ struct BatteryDischargeTests {
         #expect(events.values == ["isolate", "restore-adapter", "restore-charge"])
         #expect(adapter.writes == [true, false])
     }
-    @Test(arguments: [Double.nan, -1.0, 43_200.0]) func invalidOrExpiredCycleRefusesIsolation(now: Double) {
+    @Test(arguments: [Double.nan, -1.0, BatteryCycle.dischargePhaseLimit]) func invalidOrExpiredCycleRefusesIsolation(now: Double) {
         var cycle = BatteryCycle(target: 70, now: 0)
         #expect(throws: (any Error).self) { try cycle.advance(snapshot: .init(percent: 80, onAC: true, temperature: 25), now: now) }
     }

@@ -25,7 +25,7 @@ struct BatteryCyclesView: View {
                         .disabled(!canStart || (model.snapshot?.percent ?? 0) <= model.configuration.limit)
                     Divider()
                     Text("Étalonnage du niveau de batterie").font(.headline)
-                    Text("Le cycle recharge à 100 %, décharge vers 10 %, recharge à nouveau à 100 %, puis revient à votre limite. Il aide à réévaluer le niveau de charge ; il ne répare pas une batterie usée. Il peut durer plusieurs heures.")
+                    Text("Le cycle recharge à 100 %, décharge vers 10 %, recharge à nouveau à 100 %, puis revient à votre limite. Il aide à réévaluer le niveau de charge ; il ne répare pas une batterie usée. Au repos, il peut durer plus d’une journée.")
                         .fixedSize(horizontal: false, vertical: true)
                     Button("Démarrer l’étalonnage…") { confirmingCalibration = true }.disabled(!canStart)
                 }
@@ -35,7 +35,7 @@ struct BatteryCyclesView: View {
                 } else if !model.active {
                     Text("Activez d’abord la protection dans l’onglet Réglages.").foregroundStyle(.secondary)
                 }
-                Text("La veille, la fermeture de MacCare ou une mesure devenue inconnue interrompent le cycle et déclenchent la restauration de l’alimentation.")
+                Text("Le Mac reste éveillé pendant le cycle. Fermer le capot, quitter MacCare ou une mesure devenue inconnue interrompent le cycle et déclenchent la restauration de l’alimentation.")
                     .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }.padding(12)
         }

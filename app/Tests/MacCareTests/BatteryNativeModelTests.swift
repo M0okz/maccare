@@ -13,6 +13,7 @@ struct BatteryNativeModelTests {
         var rootActive = false
         var restoring = false
         var failure: String?
+        var cycle: BatteryCycleStatus?
         var enableFails = false
         var requestFailures = 0
         var rootConfiguration: BatteryConfiguration?
@@ -40,6 +41,7 @@ struct BatteryNativeModelTests {
                          error: failure ?? (restoring ? "Étalonnage de la batterie en cours" : nil),
                          restoring: restoring, ownedByCaller: rootSession == sessionID, capabilities: capabilities)
             value.recoveryReady = true
+            value.cycle = cycle
             return value
         }
         func prepareProtection() async throws { preparations += 1 }
@@ -208,6 +210,19 @@ struct BatteryNativeModelTests {
         await next.resumeProtectionIfNeeded()
         #expect(next.active && next.protection?.ownedByCaller == true)
         #expect(client.requestedConfigurations == [settings, settings])
+    }
+    @Test func theMacStaysAwakeOnlyDuringACycle() async throws {
+        let client = Client()
+        let (model, defaults, suite) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        await model.perform(.enable)
+        #expect(!model.keepsMacAwake)
+        client.cycle = BatteryCycle.calibration(target: 80, now: 0).status
+        await model.refresh(force: true)
+        #expect(model.keepsMacAwake)
+        client.cycle = nil
+        await model.refresh(force: true)
+        #expect(!model.keepsMacAwake)
     }
     @Test func anExplicitDeactivationIsNotUndoneAtTheNextLaunch() async throws {
         let client = Client()
