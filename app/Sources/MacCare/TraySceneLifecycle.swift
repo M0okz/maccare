@@ -10,6 +10,7 @@ struct TraySceneLifecycle: View {
         Color.clear.frame(width: 0, height: 0).onAppear {
             let action = openWindow
             let open = { action(id: MacCareApp.mainWindowID) }
+            app.openCPUActivity = { action(id: HomeActivityWindow.id(for: .cpu)) }
             app.openMainWindow = open
             AppDelegate.openMainWindow = open
             delegate.configureTray(app: app, openMainWindow: open)

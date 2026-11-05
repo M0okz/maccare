@@ -189,6 +189,11 @@ struct SettingsView: View {
                     groupCard("Alerte de mémoire") {
                         MemoryAlertSettingsView(menuBarShown: menuBarShown)
                     }
+                    ForEach(AdditionalAlertKind.allCases) { kind in
+                        groupCard(kind.title) {
+                            AdditionalAlertSettingsView(kind: kind, menuBarShown: menuBarShown)
+                        }
+                    }
                     groupCard("Actions disponibles") {
                         Label("Consulter le dernier bilan", systemImage: "chart.bar.doc.horizontal")
                         Label("Lancer un Smart Scan", systemImage: "sparkle.magnifyingglass")

@@ -138,6 +138,7 @@ final class AppState: ObservableObject {
     private(set) var scheduler: ScanScheduler!
     /// Ouvre la fenêtre principale ; renseigné par la première vue qui dispose de `openWindow`.
     var openMainWindow: (() -> Void)?
+    var openCPUActivity: (() -> Void)?
 
     init() {
         AppDelegate.stopBatteryBeforeTermination = { [weak battery] in await battery?.prepareForTermination() }
