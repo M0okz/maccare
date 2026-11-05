@@ -17,7 +17,7 @@ struct DuplicatesView: View {
                         .opacity(model.stage == .scanning || model.isTrashing ? 0.5 : 1)
                     Spacer()
                     if model.stage == .results && !model.groups.isEmpty {
-                        Text("\(model.groups.count) groupe(s) · jusqu'à \(humanSize(model.reclaimable)) récupérables")
+                        Text("\(model.groups.count) \(pl(model.groups.count, "groupe")) · jusqu'à \(humanSize(model.reclaimable)) récupérables")
                             .font(AppFont.secondary).foregroundStyle(Theme.muted)
                             .help("Estimation : une copie faite dans le Finder partage souvent son espace avec l'original (clone APFS) et n'en libère alors presque pas.")
                     }

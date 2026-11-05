@@ -47,6 +47,7 @@ private struct HomeShortcutStyle: ButtonStyle {
                                        startPoint: .topLeading, endPoint: .bottomTrailing),
                         in: RoundedRectangle(cornerRadius: 18))
             .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(.white.opacity(hovering ? 0.22 : 0.1)))
-            .opacity(configuration.isPressed ? 0.75 : 1)
+            .opacity(configuration.isPressed ? 0.85 : 1)
+            .pressFeedback(configuration.isPressed, scale: 0.985)
     }
 }

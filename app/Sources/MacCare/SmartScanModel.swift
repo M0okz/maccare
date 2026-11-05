@@ -205,7 +205,7 @@ final class SmartScanModel: ObservableObject {
                     // Les catégories déjà terminées restent exploitables ; sinon retour à l'accueil.
                     self.statusMessage = self.groups.isEmpty
                         ? "Analyse interrompue."
-                        : "Analyse interrompue : résultats partiels (\(self.groups.count) catégorie(s) sur \(cats.count))."
+                        : "Analyse interrompue : résultats partiels (\(self.groups.count) \(pl(self.groups.count, "catégorie")) sur \(cats.count))."
                     self.stage = self.groups.isEmpty ? .idle : .results
                 } else {
                     self.progress = 1

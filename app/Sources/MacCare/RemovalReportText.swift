@@ -19,11 +19,11 @@ extension RemovalReport {
 
     /// Résumé d'une ligne : « 1 mis à la corbeille, 1 refusé par sûreté (chemin protégé) ».
     var summary: String {
-        let verb = direct ? "supprimé(s)" : "mis à la corbeille"
+        let verb = direct ? pl(removed, "supprimé") : "mis à la corbeille"
         var parts = ["\(removed) \(verb)"]
         if !refused.isEmpty {
             let reasons = Set(refused.map { Self.explain($0.reason) }).sorted().joined(separator: ", ")
-            parts.append("\(refused.count) refusé(s) par sûreté (\(reasons))")
+            parts.append("\(refused.count) \(pl(refused.count, "refusé")) par sûreté (\(reasons))")
         }
         if !failed.isEmpty { parts.append("\(failed.count) en échec") }
         return parts.joined(separator: ", ")

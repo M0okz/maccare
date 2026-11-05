@@ -86,15 +86,15 @@ final class TrashModel: ObservableObject {
                         self.lastNeedsAttention = true
                         break
                     }
-                    var parts = ["\(removed) élément(s) supprimé(s) définitivement, \(humanSize(freed)) libérés"]
+                    var parts = ["\(removed) \(pl(removed, "élément")) \(pl(removed, "supprimé")) définitivement, \(humanSize(freed)) libérés"]
                     if !failures.isEmpty {
                         let reasons = Set(failures.map(\.error)).sorted().joined(separator: ", ")
-                        parts.append("\(failures.count) non supprimé(s) (\(reasons))")
+                        parts.append("\(failures.count) non \(pl(failures.count, "supprimé")) (\(reasons))")
                     }
                     if refused.contains("content-changed") {
                         parts.append("une corbeille a changé depuis l'affichage et n'a pas été vidée")
                     } else if !refused.isEmpty {
-                        parts.append("\(refused.count) corbeille(s) refusée(s) par sûreté")
+                        parts.append("\(refused.count) \(pl(refused.count, "corbeille")) \(pl(refused.count, "refusée")) par sûreté")
                     }
                     if r.cancelled == true { parts.append("vidage interrompu") }
                     self.lastSummary = parts.joined(separator: " · ")

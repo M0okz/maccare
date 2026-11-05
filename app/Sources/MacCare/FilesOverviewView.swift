@@ -8,7 +8,7 @@ struct FilesOverviewView: View {
     @ObservedObject private var duplicates: DuplicatesModel
     @AppStorage(FileStoragePreferences.Key.large) private var searchLarge = true
     @AppStorage(FileStoragePreferences.Key.duplicates) private var searchDuplicates = true
-    @ScaledMetric private var heroSize = 42
+    @ScaledMetric private var heroSize = 44
     @ScaledMetric private var headlineSize = 26
 
     init(app: AppState) {
@@ -42,34 +42,36 @@ struct FilesOverviewView: View {
         VStack(spacing: 0) {
             GeometryReader { geometry in
                 ScrollView {
-                    HStack(spacing: 44) {
-                        FilesArtwork().frame(width: geometry.size.width < 800 ? 220 : 290)
-                        VStack(alignment: .leading, spacing: 24) {
+                    HStack(spacing: 48) {
+                        FilesArtwork().frame(width: geometry.size.width < 800 ? 220 : 280)
+                        VStack(alignment: .leading, spacing: 22) {
                             Text("Mes fichiers").font(.system(size: heroSize)).accessibilityAddTraits(.isHeader)
                             Text("Passez en revue vos fichiers et faites du tri, à votre rythme.")
-                                .font(.title3).foregroundStyle(.white.opacity(0.8))
-                            feature("doc.text.magnifyingglass", "Fichiers volumineux")
-                            feature("doc.on.doc", "Doublons identiques")
+                                .font(.system(size: 18)).foregroundStyle(Theme.muted)
+                                .fixedSize(horizontal: false, vertical: true)
+                            VStack(alignment: .leading, spacing: 20) {
+                                OverviewFeatureRow(symbol: "doc.text.magnifyingglass", title: "Fichiers volumineux", tint: FilesStyle.accent.shade(0.65))
+                                OverviewFeatureRow(symbol: "doc.on.doc", title: "Doublons identiques", tint: FilesStyle.accent.shade(0.65))
+                            }.padding(.top, 10)
                             locationMenu
                             if let error = analysis.locationError {
                                 Label(error, systemImage: "exclamationmark.triangle").font(AppFont.secondary)
                             }
-                        }.frame(maxWidth: 420, alignment: .leading)
+                        }.frame(maxWidth: 450, alignment: .leading)
                     }.padding(36).frame(maxWidth: .infinity, minHeight: geometry.size.height)
                 }
             }
-            Button("Analyser") { analyze() }
-                .buttonStyle(CircularOverviewActionStyle(tint: FilesStyle.accent))
-                .disabled(!searchLarge && !searchDuplicates)
-                .accessibilityLabel("Analyser les fichiers du dossier choisi")
-            if !searchLarge && !searchDuplicates {
-                Text("Activez une recherche dans Réglages → Fichiers et disque.").font(AppFont.secondary).padding(.top, 8)
+            OverviewActionFooter(caption: "Analyse seule. Vous choisissez ensuite ce que vous souhaitez garder.",
+                                 message: !searchLarge && !searchDuplicates ? "Activez une recherche dans Réglages → Fichiers et disque." : nil) {
+                Button("Analyser") { analyze() }
+                    .buttonStyle(CircularOverviewActionStyle(tint: FilesStyle.accent))
+                    .disabled(!searchLarge && !searchDuplicates)
+                    .accessibilityLabel("Analyser les fichiers du dossier choisi")
+            } secondary: {
+                Button("Examiner les catégories sans analyser") { analysis.choosingLocation = false; analysis.browsing = true }
+                    .buttonStyle(SecondaryActionButtonStyle()).font(AppFont.secondary)
             }
-            Button("Examiner les catégories sans analyser") { analysis.choosingLocation = false; analysis.browsing = true }
-                .buttonStyle(SecondaryActionButtonStyle()).font(AppFont.secondary).padding(.top, 12)
-            Text("Analyse seule. Vous choisissez ensuite ce que vous souhaitez garder.")
-                .font(AppFont.secondary).foregroundStyle(.white.opacity(0.75)).padding(.top, 10)
-        }.padding(.bottom, 20)
+        }
     }
 
     private var locationMenu: some View {
@@ -100,7 +102,7 @@ struct FilesOverviewView: View {
                     VStack(spacing: 24) {
                         FilesArtwork().frame(width: 160, height: 155)
                         VStack(spacing: 8) {
-                            Text(anyResults ? "\(count) fichier(s) à examiner" : "Vos fichiers, à examiner")
+                            Text(anyResults ? "\(count) \(pl(count, "fichier")) à examiner" : "Vos fichiers, à examiner")
                                 .font(.system(size: headlineSize, weight: .semibold)).accessibilityAddTraits(.isHeader)
                             Text("Examinez les résultats avant de choisir les éléments à retirer.")
                                 .font(AppFont.body).foregroundStyle(.white.opacity(0.8))
@@ -129,7 +131,7 @@ struct FilesOverviewView: View {
                 Image(systemName: isDuplicates ? "doc.on.doc" : "doc.text.magnifyingglass").font(.title2).accessibilityHidden(true)
             }
             if included && ready {
-                Text(isDuplicates ? "\(duplicates.groups.count) groupe(s) · jusqu’à \(humanSize(duplicates.reclaimable)) de copies" : "\(large.visible.count) fichier(s) · \(humanSize(large.visibleSize))")
+                Text(isDuplicates ? "\(duplicates.groups.count) \(pl(duplicates.groups.count, "groupe")) · jusqu’à \(humanSize(duplicates.reclaimable)) de copies" : "\(large.visible.count) \(pl(large.visible.count, "fichier")) · \(humanSize(large.visibleSize))")
                     .font(AppFont.body).monospacedDigit()
             } else {
                 Text(included ? "Recherche à lancer" : "Non inclus dans cette analyse").font(AppFont.body)
@@ -146,11 +148,6 @@ struct FilesOverviewView: View {
         }.padding(22).frame(minHeight: 180, alignment: .topLeading)
             .background(.white.opacity(0.13), in: RoundedRectangle(cornerRadius: 18))
             .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(.white.opacity(0.16)))
-    }
-    private func feature(_ symbol: String, _ title: String) -> some View {
-        Label { Text(title).font(AppFont.body.weight(.semibold)) } icon: {
-            Image(systemName: symbol).foregroundStyle(FilesStyle.accent.shade(0.65)).frame(width: 30).accessibilityHidden(true)
-        }
     }
     private func analyze() { analysis.analyze(large: large, duplicates: duplicates) }
 }

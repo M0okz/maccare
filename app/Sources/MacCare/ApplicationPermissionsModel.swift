@@ -35,7 +35,7 @@ final class ApplicationPermissionsModel: ObservableObject {
                 }
                 return (succeeded, errors)
             }.value
-            message = "\(result.0) autorisation(s) réinitialisée(s)." + (result.1.isEmpty ? " Les applications devront redemander votre accord." : " " + result.1.joined(separator: " "))
+            message = "\(result.0) \(pl(result.0, "autorisation")) \(pl(result.0, "réinitialisée"))." + (result.1.isEmpty ? " Les applications devront redemander votre accord." : " " + result.1.joined(separator: " "))
             busy = false; scan()
         }
     }

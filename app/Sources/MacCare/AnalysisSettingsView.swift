@@ -22,7 +22,7 @@ struct AnalysisSettingsView: View {
             .pickerStyle(.segmented)
             Text(preferences.profile.detail).font(.callout).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("\(selected.count) catégorie(s) incluse(s) dans les analyses manuelles et planifiées du Smart Scan.")
+            Text("\(selected.count) \(pl(selected.count, "catégorie")) \(pl(selected.count, "incluse")) dans les analyses manuelles et planifiées du Smart Scan.")
                 .font(.callout.weight(.medium))
             VStack(alignment: .leading, spacing: 12) {
                 ForEach(groups, id: \.self) { title in

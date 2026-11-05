@@ -18,7 +18,7 @@ struct DevJunkView: View {
                     .opacity(model.isScanning || model.isCleaning ? 0.5 : 1)
                     Spacer()
                     if !model.items.isEmpty {
-                        Text("\(model.items.count) cache(s) · \(humanSize(model.totalSize))")
+                        Text("\(model.items.count) \(pl(model.items.count, "cache")) · \(humanSize(model.totalSize))")
                             .font(AppFont.secondary).foregroundStyle(Theme.muted)
                     }
                 }

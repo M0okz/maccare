@@ -53,7 +53,7 @@ struct SmartScanView: View {
     private var scanning: some View {
         AnalysisProgressView(title: "Analyse de votre Mac…", detail: model.currentLabel ?? "Recherche des éléments à examiner.", symbol: "sparkles", cancel: { model.cancelScan() }) {
             Text("\(model.liveEntries.formatted()) entrées lues · \(humanSize(model.liveBytes))")
-            if model.foundCount > 0 { Text("\(model.foundCount) élément(s) repérés") }
+            if model.foundCount > 0 { Text("\(model.foundCount) \(pl(model.foundCount, "élément")) \(pl(model.foundCount, "repéré"))") }
         }
     }
 
@@ -69,7 +69,7 @@ struct SmartScanView: View {
                     VStack(spacing: Space.m) {
                         ForEach(Array(model.groups.enumerated()), id: \.element.id) { idx, group in
                             if !group.items.isEmpty {
-                                groupCard(group).appearIn(delay: Double(idx) * 0.08)
+                                groupCard(group).appearIn(delay: Double(min(idx, 6)) * 0.04)
                             }
                         }
                     }
@@ -206,7 +206,7 @@ struct SmartScanView: View {
     }
 
     private func groupSubtitle(_ group: ScanGroup) -> String {
-        let count = "\(group.items.count) élément(s)"
+        let count = "\(group.items.count) \(pl(group.items.count, "élément"))"
         if group.category.risk == .safe { return "\(count) · régénérable" }
         return group.category.summary.isEmpty ? count : "\(count) · \(group.category.summary)"
     }

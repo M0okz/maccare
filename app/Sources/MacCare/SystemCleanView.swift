@@ -21,7 +21,7 @@ struct SystemCleanView: View {
                             .opacity(model.isLoading || model.isRemoving ? 0.5 : 1)
                         Spacer()
                         if model.hasLoaded {
-                            Text("\(model.allItems.count) fichier(s) · \(humanSize(model.totalSize))")
+                            Text("\(model.allItems.count) \(pl(model.allItems.count, "fichier")) · \(humanSize(model.totalSize))")
                                 .font(AppFont.secondary).foregroundStyle(Theme.muted)
                         }
                     }
@@ -192,9 +192,9 @@ struct SystemCleanView: View {
                                 .font(AppFont.secondary).foregroundStyle(Theme.muted)
                             Text(model.title(forRule: e.rule)).font(AppFont.secondary.weight(.medium))
                             Spacer()
-                            Text("\(e.removed ?? 0) supprimé(s) · \(humanSize(e.freed_bytes ?? 0))")
+                            Text("\(e.removed ?? 0) \(pl(e.removed ?? 0, "supprimé")) · \(humanSize(e.freed_bytes ?? 0))")
                                 .font(AppFont.secondary).foregroundStyle(Theme.muted)
-                            if let r = e.refused, !r.isEmpty { PillBadge(text: "\(r.count) refusé(s)", kind: .review) }
+                            if let r = e.refused, !r.isEmpty { PillBadge(text: "\(r.count) \(pl(r.count, "refusé"))", kind: .review) }
                         }
                         .padding(.horizontal, 14).padding(.vertical, 8)
                     }
@@ -232,7 +232,7 @@ struct SystemCleanView: View {
                 Image(systemName: "exclamationmark.triangle.fill").font(AppFont.display).foregroundStyle(Theme.danger)
                 Text("Supprimer définitivement ?").font(AppFont.emphasis.weight(.bold))
             }
-            Text("\(model.selectedItems.count) fichier(s) · \(humanSize(model.selectedSize)) de journaux système seront supprimés par l'assistant.")
+            Text("\(model.selectedItems.count) \(pl(model.selectedItems.count, "fichier")) · \(humanSize(model.selectedSize)) de journaux système seront supprimés par l'assistant.")
                 .font(AppFont.body).fixedSize(horizontal: false, vertical: true)
             Text("Cette action est irréversible : ces fichiers ne passent pas par la corbeille.")
                 .font(AppFont.secondary.weight(.semibold)).foregroundStyle(Theme.danger)

@@ -128,33 +128,35 @@ extension View {
 struct AppearIn: ViewModifier {
     var delay: Double
     @State private var shown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     func body(content: Content) -> some View {
         content
             .opacity(shown ? 1 : 0)
-            .offset(y: shown ? 0 : 12)
-            .onAppear { withAnimation(.easeOut(duration: 0.45).delay(delay)) { shown = true } }
+            .offset(y: shown || reduceMotion ? 0 : 8)
+            .onAppear {
+                withAnimation(reduceMotion ? .easeOut(duration: 0.1) : Motion.easeOut(0.25).delay(delay)) { shown = true }
+            }
     }
 }
 
-/// Effet de survol réutilisable : l'élément se soulève légèrement.
+/// Effet de survol réutilisable : une ombre, sans déplacer le contenu sous le pointeur.
 struct HoverLift: ViewModifier {
     @State private var hover = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     func body(content: Content) -> some View {
         content
-            .scaleEffect(hover ? 1.012 : 1)
             .shadow(color: Color.black.opacity(hover ? 0.12 : 0), radius: 18, y: 10)
-            .animation(.spring(response: 0.3, dampingFraction: 0.72), value: hover)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: hover)
             .onHover { hover = $0 }
     }
 }
 
-/// Style de bouton avec enfoncement au clic (ressort).
+/// Style de bouton avec enfoncement au clic, sans rebond.
 struct PressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
             .opacity(configuration.isPressed ? 0.9 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
+            .pressFeedback(configuration.isPressed)
     }
 }
 

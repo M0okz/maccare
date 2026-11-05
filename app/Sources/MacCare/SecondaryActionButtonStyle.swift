@@ -51,5 +51,6 @@ private struct SecondaryActionSurface<Label: View>: View {
             .contentShape(RoundedRectangle(cornerRadius: 11))
             .onHover { hovered = $0 }
             .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: hovered)
+            .pressFeedback(pressed && enabled)
     }
 }

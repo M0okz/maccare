@@ -15,7 +15,7 @@ struct BatteryHistoryView: View {
         return result
     }
     var body: some View {
-        GroupBox("Historique local de la batterie") {
+        BatterySection(title: "Historique local de la batterie") {
             VStack(alignment: .leading, spacing: 18) {
                 Picker("Période", selection: $days) {
                     Text("24 heures").tag(1); Text("7 jours").tag(7); Text("30 jours").tag(30)
@@ -37,7 +37,7 @@ struct BatteryHistoryView: View {
                 }
                 Text("Mesures conservées sur ce Mac pendant trente jours. Aucun historique antérieur n’est reconstitué et aucune donnée n’est envoyée à un serveur.")
                     .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            }.padding(12)
+            }
         }
     }
 }

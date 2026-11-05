@@ -106,11 +106,11 @@ final class SimulatorsModel: ObservableObject {
                 case .success(let results):
                     let removed = results.filter(\.removed).count
                     let failed = results.filter { !$0.removed }
-                    var parts = ["\(removed) supprimé(s) définitivement"]
+                    var parts = ["\(removed) \(pl(removed, "supprimé")) définitivement"]
                     if failed.isEmpty { parts.append("environ \(humanSize(freedEstimate)) libérés") }
                     if !failed.isEmpty {
                         let reasons = Set(failed.compactMap(\.error).map(Self.explain)).sorted().joined(separator: ", ")
-                        parts.append("\(failed.count) refusé(s) ou en échec (\(reasons))")
+                        parts.append("\(failed.count) \(pl(failed.count, "refusé")) ou en échec (\(reasons))")
                     }
                     self.lastSummary = parts.joined(separator: " · ")
                     self.lastNeedsAttention = !failed.isEmpty

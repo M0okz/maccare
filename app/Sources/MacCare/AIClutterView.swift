@@ -27,7 +27,7 @@ struct AIClutterView: View {
             Divider()
             ToolManagerFooter {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("\(model.selection.count) élément(s) sélectionné(s) · \(humanSize(model.selectedSize))").font(AppFont.body.weight(.semibold)).monospacedDigit()
+                    Text("\(model.selection.count) \(pl(model.selection.count, "élément")) \(pl(model.selection.count, "sélectionné")) · \(humanSize(model.selectedSize))").font(AppFont.body.weight(.semibold)).monospacedDigit()
                     Text(model.lastReport?.summary ?? model.message ?? "Les éléments choisis seront déplacés vers la corbeille.")
                         .font(AppFont.secondary).foregroundStyle(Theme.muted)
                 }
@@ -45,7 +45,7 @@ struct AIClutterView: View {
             Text("Retrouvez les caches, les historiques et les modèles locaux de vos outils d’IA.")
                 .font(AppFont.secondary).foregroundStyle(Theme.muted)
             HStack {
-                Text(model.hasScanned ? "\(model.items.count) emplacement(s)" : "Prêt à analyser").font(AppFont.secondary)
+                Text(model.hasScanned ? "\(model.items.count) \(pl(model.items.count, "emplacement"))" : "Prêt à analyser").font(AppFont.secondary)
                 Spacer()
                 Button { model.scan() } label: { Image(systemName: "arrow.clockwise").frame(width: 32, height: 32) }
                     .buttonStyle(.plain).disabled(model.busy).accessibilityLabel("Actualiser les fichiers IA")
@@ -85,7 +85,7 @@ struct AIClutterView: View {
                 Button("Tout cocher ici") { model.selection.formUnion(visible.map(\.id)) }.disabled(model.busy || visible.isEmpty)
                 Button("Tout décocher") { model.selection = [] }.disabled(model.busy || model.selection.isEmpty)
                 Spacer()
-                Text("\(visible.count) élément(s)").font(AppFont.secondary).foregroundStyle(Theme.muted)
+                Text("\(visible.count) \(pl(visible.count, "élément"))").font(AppFont.secondary).foregroundStyle(Theme.muted)
             }
             if model.isScanning {
                 Spacer(); ProgressView("Analyse des emplacements IA…").frame(maxWidth: .infinity); Spacer()
@@ -131,7 +131,7 @@ struct AIClutterView: View {
     private var confirmation: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Déplacer ces fichiers IA vers la corbeille ?").font(AppFont.section).accessibilityAddTraits(.isHeader)
-            Text("\(model.selection.count) élément(s) · \(humanSize(model.selectedSize))").font(AppFont.emphasis)
+            Text("\(model.selection.count) \(pl(model.selection.count, "élément")) · \(humanSize(model.selectedSize))").font(AppFont.emphasis)
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(model.selectedItems) { item in

@@ -96,7 +96,7 @@ final class PerformanceTasksModel: ObservableObject {
                     AccessibilityNotification.Announcement("\(task.title) : \(report.message)").post()
                 }
             }
-            lastSummary = "\(completed) tâche(s) sur \(tasks.count) exécutée(s) ou lancée(s). Consultez le résultat de chaque tâche."
+            lastSummary = "\(completed) \(pl(tasks.count, "tâche")) sur \(tasks.count) \(pl(completed, "exécutée")) ou \(pl(completed, "lancée")). Consultez le résultat de chaque tâche."
             running = nil
         }
     }

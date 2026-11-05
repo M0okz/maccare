@@ -24,7 +24,7 @@ struct BatterySchedulesView: View {
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
-            GroupBox("Programmations") {
+            BatterySection(title: "Programmations") {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Les tâches s’exécutent lorsque MacCare est ouvert. Après une interruption de plus de dix minutes, l’occurrence est signalée comme manquée et la suivante est conservée.")
                         .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
@@ -42,9 +42,9 @@ struct BatterySchedulesView: View {
                         }
                         Divider()
                     }
-                }.padding(12)
+                }
             }
-            GroupBox("Ajouter une programmation") {
+            BatterySection(title: "Ajouter une programmation") {
                 VStack(alignment: .leading, spacing: 14) {
                     TextField("Nom de la programmation", text: $name).textFieldStyle(.roundedBorder)
                     Picker("Action", selection: $action) {
@@ -64,16 +64,16 @@ struct BatterySchedulesView: View {
                     }
                     Button("Enregistrer la programmation") { save() }
                         .disabled(model.controlsBusy || !model.automationsLoaded || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || firstRun <= .now)
-                }.padding(12)
+                }
             }
-            GroupBox("Raccourcis et dernières exécutions") {
+            BatterySection(title: "Raccourcis et dernières exécutions") {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Dans Raccourcis, recherchez MacCare pour régler la limite, recharger à 100 % ou désactiver la protection.")
                         .fixedSize(horizontal: false, vertical: true)
                     Button("Ouvrir Raccourcis") { if let url = URL(string: "shortcuts://") { NSWorkspace.shared.open(url) } }
                     if model.automationEvents.isEmpty { Text("Aucune exécution planifiée enregistrée.").foregroundStyle(.secondary) }
                     ForEach(Array(model.automationEvents.prefix(10).enumerated()), id: \.offset) { _, event in Text(event).font(.callout).textSelection(.enabled) }
-                }.padding(12)
+                }
             }
         }
         .onAppear { if !model.availableLimits.contains(limit), let first = model.availableLimits.first { limit = first } }

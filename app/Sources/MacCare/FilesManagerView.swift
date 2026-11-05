@@ -89,7 +89,7 @@ struct FilesManagerView: View {
                         ForEach(LargeFilesModel.Age.allCases) { Text($0.title).tag($0) }
                     }.frame(maxWidth: 235)
                 } else {
-                    Menu("Sélectionner : \(chosenCount == 0 ? "aucun" : "\(chosenCount) copie(s)")") {
+                    Menu("Sélectionner : \(chosenCount == 0 ? "aucun" : "\(chosenCount) \(pl(chosenCount, "copie"))")") {
                         Button("Cocher les copies affichées") { groups.forEach { duplicates.selectCopies(in: $0) } }
                         Button("Tout décocher") { duplicates.selectNone() }
                     }.frame(maxWidth: 230)
@@ -213,7 +213,7 @@ struct FilesManagerView: View {
     private var footer: some View {
         AdaptiveActionRow {
             VStack(alignment: .leading, spacing: 5) {
-                Text("\(category.title) : \(chosenCount) sélectionné(s) · \(humanSize(chosenSize))").font(AppFont.body.weight(.semibold))
+                Text("\(category.title) : \(chosenCount) \(pl(chosenCount, "sélectionné")) · \(humanSize(chosenSize))").font(AppFont.body.weight(.semibold))
                 Text(message ?? "Les éléments choisis seront déplacés vers la corbeille.")
                     .font(AppFont.secondary).foregroundStyle(FilesStyle.secondary)
             }
