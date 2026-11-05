@@ -85,7 +85,6 @@ final class TrayPanelController: NSObject {
     private func syncVisibility() {
         defer { storageAlert.syncAvailability(); memoryAlert.syncAvailability(); additionalAlerts.syncAvailability() }
         if MenuBarSetting.enabled {
-            app.trayMetrics.setMonitoring(for: .menuBar, enabled: true)
             guard statusItem == nil else { return }
             let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
             if let button = item.button {
@@ -148,6 +147,8 @@ final class TrayPanelController: NSObject {
         panel.setFrame(frame, display: false)
         panel.alphaValue = 0
         statusItem?.button?.highlight(true)
+        // Les mesures ne tournent que volet ouvert : fermé, il n’affiche rien.
+        app.trayMetrics.setMonitoring(for: .menuBar, enabled: true)
         installEventMonitors()
         panel.makeKeyAndOrderFront(nil)
         NSAnimationContext.runAnimationGroup { context in
@@ -209,6 +210,7 @@ final class TrayPanelController: NSObject {
         panel?.orderOut(nil)
         // Démonte les vues : annulation des tâches, du test réseau et des popovers.
         panel?.contentView = nil
+        app.trayMetrics.setMonitoring(for: .menuBar, enabled: false)
         closing = false
         writeQADiagnostics(event: "hidden")
     }

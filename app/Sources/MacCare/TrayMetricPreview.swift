@@ -3,6 +3,8 @@ import SwiftUI
 
 /// Point d’entrée de QA : le vrai panneau et ses actions, dans une fenêtre inspectable.
 struct TrayMetricPreview: View {
+    /// Un aperçu de QA n’ouvre pas le volet : il demande lui-même les mesures.
+    static let consumer = TrayMetricsStore.Consumer.dashboard(UUID())
     let kind: TrayMetricDetail.Kind
     @ObservedObject var metricsStore: TrayMetricsStore
 
@@ -22,6 +24,7 @@ struct TrayMetricPreview: View {
 
     var body: some View {
         TrayMetricDetail(kind: kind, metricsStore: metricsStore)
+            .modifier(TrayMetricsConsumerModifier(store: metricsStore, consumer: Self.consumer))
     }
 }
 #endif

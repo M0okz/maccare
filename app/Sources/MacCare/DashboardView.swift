@@ -86,7 +86,7 @@ struct DashboardView: View {
                 Label(scanning ? "Analyse en cours" : "Bilan du nettoyage", systemImage: "sparkles").font(.headline)
                 Spacer()
                 if let last = smart.lastCompletedAt, !scanning {
-                    Text(last, style: .relative).font(AppFont.caption).foregroundStyle(Theme.muted)
+                    ScanAgeText(date: last).font(AppFont.caption).foregroundStyle(Theme.muted)
                 }
             }
             HStack(spacing: 24) {
