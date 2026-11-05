@@ -519,6 +519,34 @@ struct BatteryNativePolicyControllerTests {
         let cancelled = f.run(.cancelCycle, percent: 85, onAC: false, now: 2)
         #expect(cancelled.message == "Retour à l’alimentation secteur en cours" && f.driver.clears == 0)
     }
+    @Test func aHoldRequestedDuringAChargeNeverRegistersUnderTheLevel() throws {
+        let f = Fixture(); f.driver.automaticallyRegister = false
+        f.level = 55
+        try #require(f.run(.enable, limit: 85, percent: 55, charging: true).active)
+        // The limit is lowered under the level while the battery is charging.
+        try #require(f.run(.enable, limit: 54, percent: 55, charging: true, now: 5).active)
+        #expect(f.driver.targets.last == 58, "The charge may run up to the margin")
+        let written = f.driver.targets.count
+        // Registration takes a minute. The level moves meanwhile, inside the margin.
+        for (level, now) in [(56, 40.0), (57, 80.0), (58, 120.0)] {
+            f.level = level
+            #expect(f.run(.heartbeat, percent: level, charging: true, now: now).active)
+            if level < 58 { #expect(f.driver.targets.count == written, "No rewrite while the target is above the level") }
+            #expect(f.driver.targets.allSatisfy { $0 >= 55 })
+        }
+        #expect(f.driver.targets.last ?? 0 > 58 || f.driver.registered == 58, "An unconfirmed target equal to the level moves up")
+    }
+    @Test func aHoldAtARegisteredTargetStaysThereDuringTheLastCharge() throws {
+        let f = Fixture()
+        try #require(f.run(.enable, limit: 70, percent: 69, charging: true).active)
+        #expect(f.run(.heartbeat, percent: 70, charging: true, now: 5).active)
+        #expect(f.driver.targets == [70], "The firmware stops the charge at a target it has registered")
+    }
+    @Test func aHoldWithoutAChargeFollowsTheLevelExactly() throws {
+        let f = Fixture()
+        try #require(f.run(.enable, limit: 54, percent: 56).active)
+        #expect(f.driver.targets.last == 56)
+    }
     @Test func cancellingDischargeReopensTheGate() throws {
         let f = Fixture(); try #require(f.run(.enable, percent: 90).active)
         try #require(f.run(.discharge, percent: 90, now: 1).cycle != nil)

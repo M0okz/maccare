@@ -142,7 +142,7 @@ public final class NativeChargePolicyHardware: ChargeHardware {
         case .hold:
             // Track natural declines too: a fixed ceiling would let firmware refill at its own lower threshold.
             // The request never asks for a ceiling below the just-observed battery level.
-            target = percent
+            target = snapshot.charging ? try holdTargetWhileCharging(level: percent) : percent
         case .discharge(let lower):
             // The closed gate makes the Mac report battery power, whether or not it is still plugged in.
             guard snapshot.onAC || wasDischarging else { throw BatteryNativePolicyError.powerRequired }
@@ -219,6 +219,16 @@ public final class NativeChargePolicyHardware: ChargeHardware {
         guard now.isFinite, now >= requested.since else { throw BatteryNativePolicyError.invalidState }
         return .init(requestedLimit: requested.limit, registeredLimit: try driver.registeredLimit(),
                      elapsed: now - requested.since, releasePending: resumeReleaseStarted != nil)
+    }
+    /// A hold requested during a charge can register a minute later, once the level has moved past
+    /// it, which cut external input on the M1 host (5 Nov. 2026, limit lowered at 55 %, registered at
+    /// 56 %). The charge may run up to the margin; a target already registered stops it at that level.
+    private func holdTargetWhileCharging(level: Int) throws -> Int {
+        if let written = requested?.limit, written >= level, written <= level + Self.restorationMargin {
+            if written > level { return written }
+            if try driver.registeredLimit() == written { return written }
+        }
+        return level >= 99 ? 100 : min(99, level + Self.restorationMargin)
     }
     /// A target can take minutes to register while the battery charges. Following the rising level
     /// would register one under it, which cut external input on the M1 host (5 Nov. 2026): during a
