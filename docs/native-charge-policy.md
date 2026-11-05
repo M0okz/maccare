@@ -49,7 +49,8 @@ ces règles :
 
 - une limite n'est jamais écrite sous le niveau de charge, sauf décharge demandée avec
   l'adaptateur déjà coupé ;
-- un maintien fixe la limite au niveau courant ;
+- un maintien fixe la limite au niveau courant, ou 3 points au-dessus tant que la batterie
+  charge : sa cible peut s'enregistrer une minute plus tard, sous un niveau qui a monté ;
 - une transition d'entrée de 500 ms via `CHIE` suit chaque changement sur secteur, et
   l'enregistrement a alors pris moins d'une seconde, contre 67 secondes sans elle ;
 - la restauration attend que la batterie soit redescendue à la limite d'origine ;
@@ -111,6 +112,14 @@ par macOS garde la priorité ; MacCare ne tente pas de la contourner.
 La décharge volontaire ferme d'abord la coupure d'adaptateur, écrit la cible, puis rouvre
 la coupure à l'arrivée, cible déjà en place. Le Mac se déclare alors sur batterie, ce qui
 n'interrompt pas le cycle.
+
+**Retirée depuis la version 0.2.5.** Essais du 5 novembre 2026 avec un chargeur 30 W : de 87 à
+85 % sous forte charge processeur, puis de 58 à 57 % au repos, sans aucune écriture après la
+réouverture. Le secteur n'est pas revenu sans reconnecter le câble ; il manquait encore 49 minutes
+après la seconde réouverture. Dans les deux cas, macOS a retiré la limite 300 secondes après la perte du
+secteur. Les décharges réussies du 4 novembre sont notées avec un chargeur 65 W, et le rôle du
+chargeur n'est pas isolé. Dans cet état, ni une impulsion sur la coupure ni une nouvelle limite
+n'ont rétabli le secteur.
 
 ## Veille
 

@@ -47,14 +47,14 @@ matérielles décrivent les méthodes de la version 0.2.1, pas la nouvelle polit
 | --- | --- | --- |
 | Limite de charge | SMC : 50–100 % ; native : valeurs lues auprès de macOS | Contrôleur et firmware reconnus |
 | Mode Voile | Plage de maintien configurable de 2 à 20 points | Contrôleur SMC compatible |
-| Décharge volontaire | Utilise la batterie, câble branché, jusqu’à la limite ; annulable | Adaptateur reconnu, secteur et température fiables |
-| Étalonnage | Pleine charge → 10 % → pleine charge → limite | Confirmation explicite ; aucune activation par défaut |
 | Programmations | Une fois, quotidien, jours ouvrés, hebdomadaire, mensuel ; fuseau conservé | MacCare ouvert ; occurrence manquée au-delà de 10 min de retard |
-| Raccourcis | Régler la limite, recharge ponctuelle, arrêt, décharge et étalonnage | Mêmes validations que l’interface ; confirmation de l’étalonnage |
+| Raccourcis | Régler la limite, recharge ponctuelle, arrêt | Mêmes validations que l’interface |
 | Profils | Préréglages et profils personnels, sans adaptation silencieuse | Profil refusé si ses réglages sont incompatibles |
 | Historique | Mesures locales réelles, 30 jours et 10 000 entrées maximum | Aucun envoi réseau ; intervalle minimal sauf changement d’état |
 
-Les quatre onglets sont Réglages, Cycles, Programmations et Historique.
+Les trois onglets sont Réglages, Programmations et Historique.
+
+**Décharge volontaire et étalonnage sont retirés depuis la version 0.2.5.** Sur le MacBookPro17,1 d’essai, le secteur ne revenait pas à la fin d’une décharge sans reconnecter le câble, au repos comme sous charge. L’assistant refuse ces commandes. Le code du cycle reste en place, et les passages ci-dessous qui les décrivent ne concernent que les versions précédentes.
 Les métadonnées App Intents sont extraites pour Debug et Release lors du packaging.
 Le fournisseur de raccourcis est enregistré au lancement via
 `updateAppShortcutParameters()`.
