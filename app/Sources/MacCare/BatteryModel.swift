@@ -43,11 +43,14 @@ final class BatteryModel: ObservableObject {
     /// for this run; an explicit deactivation or a safety stop removes it.
     static let resumeKey = "battery.protection.resume"
     private var resumeAttempted = false
+    private(set) var protectionExpectedForAlerts: Bool
+    private(set) var alertCancellation = 0
 
     init(defaults: UserDefaults = .standard, monitor: Bool = true, client: (any BatteryClient)? = nil, historyStore: BatteryHistoryStore? = nil) {
         self.historyStore = historyStore ?? BatteryHistoryStore()
         self.client = client ?? SystemBatteryClient()
         self.defaults = defaults
+        protectionExpectedForAlerts = defaults.bool(forKey: Self.resumeKey)
         if let data = defaults.data(forKey: Self.preferencesKey),
            let value = try? JSONDecoder().decode(BatteryConfiguration.self, from: data), value.isValid {
             configuration = value
@@ -151,7 +154,11 @@ final class BatteryModel: ObservableObject {
             requiresApproval = client.status == .requiresApproval
         }
         let requestedConfiguration = configuration
-        if command == .disable { defaults.removeObject(forKey: Self.resumeKey); renewAfterLostReply = false }
+        if [.disable, .cancelCycle, .cancelTopUp].contains(command) { alertCancellation += 1 }
+        if command == .disable {
+            protectionExpectedForAlerts = false
+            defaults.removeObject(forKey: Self.resumeKey); renewAfterLostReply = false
+        }
         do {
             if command == .enable {
                 try await client.prepareProtection()
@@ -164,7 +171,10 @@ final class BatteryModel: ObservableObject {
                 if command == .enable {
                     ownsLease = result.active && result.ownedByCaller
                     defaults.set(try JSONEncoder().encode(requestedConfiguration), forKey: Self.preferencesKey)
-                    if result.active { defaults.set(true, forKey: Self.resumeKey); resumeAttempted = true }
+                    if result.active {
+                        protectionExpectedForAlerts = true
+                        defaults.set(true, forKey: Self.resumeKey); resumeAttempted = true
+                    }
                 }
                 if command == .disable { ownsLease = false }
             }

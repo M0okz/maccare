@@ -183,6 +183,17 @@ struct SettingsView: View {
                         Text(menuBarShown ? "MacCare reste actif lorsque vous fermez sa fenêtre. Le menu donne accès au dernier bilan et permet de lancer une analyse." : "MacCare quitte lorsque vous fermez sa dernière fenêtre. Les analyses planifiées sont alors interrompues.")
                             .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     }
+                    groupCard("Alerte d’espace disque") {
+                        StorageAlertSettingsView(menuBarShown: menuBarShown)
+                    }
+                    groupCard("Alerte de mémoire") {
+                        MemoryAlertSettingsView(menuBarShown: menuBarShown)
+                    }
+                    ForEach(AdditionalAlertKind.allCases) { kind in
+                        groupCard(kind.title) {
+                            AdditionalAlertSettingsView(kind: kind, menuBarShown: menuBarShown)
+                        }
+                    }
                     groupCard("Actions disponibles") {
                         Label("Consulter le dernier bilan", systemImage: "chart.bar.doc.horizontal")
                         Label("Lancer un Smart Scan", systemImage: "sparkle.magnifyingglass")

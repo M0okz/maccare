@@ -16,6 +16,35 @@ final class TrayPanelController: NSObject {
     private var globalMonitor: Any?
     private var presentationID = UUID()
     private var closing = false
+    private lazy var storageAlert: StorageAlertController = StorageAlertController(
+        anchor: { [weak self] in self?.statusItem?.button },
+        canPresent: { [weak self] in
+            guard let self else { return false }
+            return self.panel?.isVisible != true && !self.memoryAlert.isVisible && !self.additionalAlerts.isVisible && self.app.smartScan.stage != .scanning
+                && self.app.smartScan.stage != .cleaning
+        },
+        openMacCare: { [weak self] in self?.app.show(.smartScan) })
+    private lazy var memoryAlert: MemoryAlertController = MemoryAlertController(
+        anchor: { [weak self] in self?.statusItem?.button },
+        canPresent: { [weak self] in
+            guard let self else { return false }
+            return self.panel?.isVisible != true && !self.storageAlert.isVisible && !self.additionalAlerts.isVisible
+                && self.app.smartScan.stage != .scanning && self.app.smartScan.stage != .cleaning
+        })
+
+    private lazy var additionalAlerts: AdditionalAlertsController = AdditionalAlertsController(
+        battery: app.battery, metrics: app.trayMetrics,
+        anchor: { [weak self] in self?.statusItem?.button },
+        canPresent: { [weak self] in
+            guard let self else { return false }
+            return self.panel?.isVisible != true && !self.storageAlert.isVisible && !self.memoryAlert.isVisible
+                && self.app.smartScan.stage != .scanning && self.app.smartScan.stage != .cleaning
+        },
+        openBattery: { [weak self] in self?.app.show(.battery) },
+        openCPU: { [weak self] in
+            NSApp.activate(ignoringOtherApps: true)
+            self?.app.openCPUActivity?()
+        })
 
     init(app: AppState, openMainWindow: @escaping () -> Void, openSettings: (() -> Void)?) {
         self.app = app
@@ -26,10 +55,10 @@ final class TrayPanelController: NSObject {
             Task { @MainActor in self?.syncVisibility() }
         })
         observers.append(NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in self?.reposition() }
+            Task { @MainActor in self?.storageAlert.dismiss(); self?.memoryAlert.dismiss(); self?.additionalAlerts.dismiss(); self?.reposition() }
         })
         workspaceObservers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in self?.dismiss(animated: false) }
+            Task { @MainActor in self?.storageAlert.dismiss(); self?.memoryAlert.dismiss(); self?.additionalAlerts.dismiss(); self?.dismiss(animated: false) }
         })
         workspaceObservers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] notification in
             let pid = (notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
@@ -39,11 +68,14 @@ final class TrayPanelController: NSObject {
         workspaceObservers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in
                 self?.dismiss(animated: false)
+                self?.storageAlert.suspend()
+                self?.memoryAlert.suspend()
+                self?.additionalAlerts.suspend()
                 self?.app.trayMetrics.suspend()
             }
         })
         workspaceObservers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in self?.app.trayMetrics.resume(); self?.syncVisibility() }
+            Task { @MainActor in self?.app.trayMetrics.resume(); self?.storageAlert.resume(); self?.memoryAlert.resume(); self?.additionalAlerts.resume(); self?.syncVisibility() }
         })
         syncVisibility()
     }
@@ -51,6 +83,7 @@ final class TrayPanelController: NSObject {
     func updateOpenMainWindow(_ action: @escaping () -> Void) { openMainWindow = action }
 
     private func syncVisibility() {
+        defer { storageAlert.syncAvailability(); memoryAlert.syncAvailability(); additionalAlerts.syncAvailability() }
         if MenuBarSetting.enabled {
             app.trayMetrics.setMonitoring(for: .menuBar, enabled: true)
             guard statusItem == nil else { return }
@@ -81,6 +114,9 @@ final class TrayPanelController: NSObject {
     }
 
     func show() {
+        storageAlert.dismiss()
+        memoryAlert.dismiss()
+        additionalAlerts.dismiss()
         syncVisibility()
         guard statusItem != nil else { return }
         if panel?.isVisible == true && !closing {
@@ -229,6 +265,9 @@ final class TrayPanelController: NSObject {
     }
 
     func shutdown() {
+        storageAlert.shutdown()
+        memoryAlert.shutdown()
+        additionalAlerts.shutdown()
         app.trayMetrics.setMonitoring(for: .menuBar, enabled: false)
         dismiss(animated: false)
         removeEventMonitors()
