@@ -43,13 +43,13 @@
     <div class="hero-side">
       <p class="lead rise d2">MacCare repère ce qui encombre votre Mac, vous montre ce qu’il a trouvé et vous laisse décider. Rien ne part sans votre accord.</p>
       <div class="hero-actions rise d3">
-        <a class="button button-primary" href="https://github.com/M0okz/maccare/releases/download/v0.2.2/MacCare-0.2.2-arm64.dmg">
+        <a class="button button-primary" href="https://github.com/M0okz/maccare/releases/download/v0.2.6/MacCare-0.2.6-arm64.dmg">
           <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8.5M4.2 7 8 10.8 11.8 7M3 13.5h10"/></svg>
           Télécharger pour Mac
         </a>
         <a class="button button-ghost" href="https://github.com/M0okz/maccare">Voir le code</a>
       </div>
-      <p class="requirements rise d4">Gratuit · Version 0.2.2 · Apple Silicon · macOS 13 ou ultérieur</p>
+      <p class="requirements rise d4">Gratuit · Version 0.2.6 · Apple Silicon · macOS 13 ou ultérieur</p>
     </div>
   </div>
   <figure class="wrap-wide hero-figure">
@@ -121,7 +121,8 @@
           <h3>Choisissez comment il se recharge.</h3>
           <ul>
             <li>Capacité estimée, cycles et température, avec un historique local de 30 jours.</li>
-            <li>Limite de charge, programmations et profils d’utilisation.</li>
+            <li>Limite de charge, décharge jusqu’à la limite, programmations et profils d’utilisation.</li>
+            <li>Après une décharge, il peut falloir débrancher puis rebrancher le câble pour retrouver le secteur.</li>
             <li>Les réglages proposés dépendent du Mac et de macOS.</li>
           </ul>
           <p class="panel-note">Capture réalisée sur un MacBook Pro 13&nbsp;pouces M1, à ce jour le seul modèle à proposer la plage de maintien et la pause thermique. Les autres Mac peuvent afficher moins de réglages.</p>
@@ -161,7 +162,7 @@
         </div>
       </article>
     </div>
-    <p class="tour-note">Captures réelles d’une préversion de la 0.2.2. Un seul écart connu&nbsp;: dans Batterie, la version publiée indique «&nbsp;batterie au-dessus de la limite&nbsp;» quand le niveau la dépasse.</p>
+    <p class="tour-note">Captures réelles d’une préversion de la 0.2.2. Certains écrans ont changé depuis, notamment dans Batterie.</p>
   </div>
 </section>
 
@@ -245,7 +246,7 @@
       </details>
       <details>
         <summary>Peut-il limiter la charge de ma batterie&nbsp;?</summary>
-        <p>Cela dépend du Mac, de son firmware et de macOS. La limite native nécessite macOS 26.4 ou ultérieur. Les limites sous 80&nbsp;% et le mode Voile demandent un contrôle compatible&nbsp;: la version 0.2.2 l’apporte au MacBook Pro 13&nbsp;pouces M1, le seul modèle essayé à ce jour avec cette méthode. Ailleurs, si macOS refuse ce contrôle, MacCare l’indique et désactive les réglages concernés. Utilisez un seul contrôleur de charge à la fois.</p>
+        <p>Cela dépend du Mac, de son firmware et de macOS. La limite native nécessite macOS 26.4 ou ultérieur. Les limites sous 80&nbsp;% et le mode Voile demandent un contrôle compatible&nbsp;: MacCare l’apporte au MacBook Pro 13&nbsp;pouces M1, le seul modèle essayé à ce jour avec cette méthode. Ailleurs, si macOS refuse ce contrôle, MacCare l’indique et désactive les réglages concernés. Utilisez un seul contrôleur de charge à la fois.</p>
       </details>
       <details>
         <summary>Quelles connexions réseau fait-il&nbsp;?</summary>
@@ -264,21 +265,21 @@
     <img class="download-icon" src="assets/icon-256.png" width="112" height="112" loading="lazy" alt="">
     <h2>Prêt pour un peu d’entretien&nbsp;?</h2>
     <p class="section-lead">Ouvrez le DMG, glissez MacCare dans Applications et lancez-le depuis ce dossier.</p>
-    <a class="button button-primary button-large" href="https://github.com/M0okz/maccare/releases/download/v0.2.2/MacCare-0.2.2-arm64.dmg">
+    <a class="button button-primary button-large" href="https://github.com/M0okz/maccare/releases/download/v0.2.6/MacCare-0.2.6-arm64.dmg">
       <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8.5M4.2 7 8 10.8 11.8 7M3 13.5h10"/></svg>
-      Télécharger MacCare 0.2.2
+      Télécharger MacCare 0.2.6
     </a>
     <p class="requirements">DMG de 9,9&nbsp;Mo · Apple Silicon · macOS 13 ou ultérieur</p>
     <div class="checksum">
       <span class="checksum-label">SHA-256</span>
-      <code id="sha">93994af1ea90f0d237dc8241292bb978cdb72527dc4c3dbe094361679349ec05</code>
+      <code id="sha">d8cf90cedaf0aecd24f368e1964eae62bbb28a5ddb388a9f4931c683f0e0363a</code>
       <button class="copy" type="button" data-copy="sha" hidden>
         <span class="copy-label" data-state="idle">Copier</span>
         <span class="copy-label" data-state="done" aria-hidden="true">Copié</span>
       </button>
     </div>
     <p class="download-links">
-      <a class="text-link" href="https://github.com/M0okz/maccare/releases/tag/v0.2.2">Notes de version <span aria-hidden="true">↗</span></a>
+      <a class="text-link" href="https://github.com/M0okz/maccare/releases/tag/v0.2.6">Notes de version <span aria-hidden="true">↗</span></a>
       <a class="text-link" href="https://github.com/M0okz/maccare#construire-depuis-les-sources">Compiler depuis les sources <span aria-hidden="true">↗</span></a>
     </p>
   </div>

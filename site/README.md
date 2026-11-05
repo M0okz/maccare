@@ -35,6 +35,5 @@ Les images de `public/assets/` sont de vraies captures de la fenêtre de MacCare
 Elles ne doivent montrer ni chemin, ni nom de dossier, ni nom de fichier personnel.
 La rubrique Mes fichiers n’en a pas pour cette raison : son écran d’accueil affiche
 le dossier personnel. Les captures actuelles viennent d’une préversion de la 0.2.2,
-en définition standard (1291 × 728). Le site signale le seul écart connu avec la
-version publiée, un libellé de la rubrique Batterie. Refaire cette capture depuis
-une 0.2.2 publiée, puis retirer la mention. Signaler tout nouvel écart.
+en définition standard (1291 × 728), et certains écrans ont changé depuis. Le site le
+signale. Refaire ces captures depuis une version publiée, puis retirer la mention.
