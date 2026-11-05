@@ -8,7 +8,7 @@ struct HomeActivityGlow: ViewModifier {
     func body(content: Content) -> some View {
         content
             .brightness(active ? 0.18 : 0)
-            .shadow(color: color.opacity(active ? 0.75 : 0), radius: 8)
+            .shadow(color: color.opacity(active ? 0.75 : 0), radius: active ? 8 : 0)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: active)
     }
 }

@@ -53,7 +53,7 @@ struct TrayProcessList: View {
 
     private func processRow(_ process: TrayProcess) -> some View {
         HStack(spacing: 8) {
-            if let icon = NSRunningApplication(processIdentifier: process.id.pid)?.icon {
+            if let icon = controller.presentation(for: process).icon {
                 Image(nsImage: icon).resizable().frame(width: 22, height: 22).accessibilityHidden(true)
             } else {
                 Image(systemName: "app.dashed").frame(width: 22, height: 22).foregroundStyle(.white.opacity(0.65)).accessibilityHidden(true)
@@ -87,6 +87,6 @@ struct TrayProcessList: View {
     }
 
     private func displayName(_ process: TrayProcess) -> String {
-        NSRunningApplication(processIdentifier: process.id.pid)?.localizedName ?? process.name
+        controller.presentation(for: process).name
     }
 }

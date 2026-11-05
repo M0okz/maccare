@@ -8,6 +8,8 @@ struct TrayMetricDetail: View {
     var height: CGFloat = 680
     private var metrics: TrayMetrics { metricsStore.snapshot.display }
     @StateObject private var processes = TrayProcessController()
+    @State private var windowVisible = true
+    private var samplesProcesses: Bool { kind != .wifi && windowVisible }
 
     var body: some View {
         ScrollView {
@@ -26,8 +28,9 @@ struct TrayMetricDetail: View {
             .padding(20)
         }
         .frame(width: 390, height: height)
-        .task(id: kind) {
-            if kind != .wifi { await processes.monitor() }
+        .background(WindowVisibilityObserver { windowVisible = $0 })
+        .task(id: samplesProcesses) {
+            if samplesProcesses { await processes.monitor() }
         }
         .foregroundStyle(.white)
         .background(LinearGradient(colors: [Color(red: 0.24, green: 0.10, blue: 0.45), Color(red: 0.08, green: 0.03, blue: 0.20)], startPoint: .topTrailing, endPoint: .bottomLeading))
@@ -36,11 +39,11 @@ struct TrayMetricDetail: View {
 
     @ViewBuilder private var cpu: some View {
         if let cpu = metrics.cpu {
-            TrayRollingValue(text: "\(Int(cpu.used * 100)) % utilisés", value: cpu.used * 100).font(.largeTitle)
+            Text("\(Int(cpu.used * 100)) % utilisés").monospacedDigit().font(.largeTitle)
             chart
-            row("Utilisateur", value: "\(Int(cpu.user * 100)) %", number: cpu.user * 100)
-            row("Système", value: "\(Int(cpu.system * 100)) %", number: cpu.system * 100)
-            row("Disponible", value: "\(Int(max(0, 1 - cpu.used) * 100)) %", number: max(0, 1 - cpu.used) * 100)
+            row("Utilisateur", value: "\(Int(cpu.user * 100)) %")
+            row("Système", value: "\(Int(cpu.system * 100)) %")
+            row("Disponible", value: "\(Int(max(0, 1 - cpu.used) * 100)) %")
             row("État thermique", value: thermalTitle)
             row("Temps de fonctionnement", value: "\(Int(ProcessInfo.processInfo.systemUptime / 3600)) h")
             Text("Charge globale de tous les cœurs · valeurs lissées. Historique réel des 40 dernières secondes, conservé tant que le suivi MacCare est actif.")
@@ -90,18 +93,17 @@ struct TrayMetricDetail: View {
     @ViewBuilder private var memory: some View {
         if let memory = metrics.memory {
             TrayMemoryRing(memory: memory)
-            row("Mémoire utilisée estimée", value: "\(Int(memory.fraction * 100)) %", number: memory.fraction * 100)
+            row("Mémoire utilisée estimée", value: "\(Int(memory.fraction * 100)) %")
             Text("Utilisation estimée : mémoire active non purgeable + résidente système + compressée. La mémoire inactive est considérée comme réutilisable. Ce pourcentage n’est pas la pression mémoire de macOS.")
                 .font(.caption).foregroundStyle(.white.opacity(0.75))
         } else { Text("Mesure indisponible") }
     }
 
-    private func row(_ title: String, value: String, number: Double? = nil) -> some View {
+    private func row(_ title: String, value: String) -> some View {
         HStack {
             Text(title).foregroundStyle(.white.opacity(0.8))
             Spacer()
-            if let number { TrayRollingValue(text: value, value: number).bold() }
-            else { Text(value).bold().monospacedDigit() }
+            Text(value).bold().monospacedDigit()
         }
             .font(.system(size: 12)).accessibilityElement(children: .combine)
     }

@@ -81,10 +81,10 @@ struct TrayWiFiDetail: View {
     private func trafficCard(title: String, symbol: String, points: [TrayHistoryPoint], total: Double, current: Double?, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Label(title, systemImage: symbol).font(.system(size: 12, weight: .semibold))
-            TrayRollingValue(text: TrayMetricDetail.speed(current), value: current ?? 0)
+            Text(TrayMetricDetail.speed(current)).monospacedDigit()
                 .font(.system(size: 20, weight: .semibold, design: .rounded)).minimumScaleFactor(0.7).lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            TrayRollingValue(text: "\(humanSize(UInt64(total))) transférés", value: total)
+            Text("\(humanSize(UInt64(total))) transférés").monospacedDigit()
                 .font(.system(size: 10)).foregroundStyle(muted)
             TrayHistoryChart(points: points, duration: 120, color: color,
                              maximum: trafficCeiling(points.map(\.value).max() ?? 1), filled: true)

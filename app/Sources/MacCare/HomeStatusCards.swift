@@ -15,8 +15,7 @@ struct HomeStatusCards: View {
                 VStack(spacing: 18) { battery; HomeActivityCard(store: app.trayMetrics) }
             }
         }
-        .onAppear { app.trayMetrics.setMonitoring(for: .dashboard(consumerID), enabled: true) }
-        .onDisappear { app.trayMetrics.setMonitoring(for: .dashboard(consumerID), enabled: false) }
+        .modifier(TrayMetricsConsumerModifier(store: app.trayMetrics, consumer: .dashboard(consumerID)))
     }
     private var battery: some View { HomeBatteryCard(model: app.battery) { app.select(.battery) } }
 }

@@ -32,15 +32,36 @@ struct TrayMetrics: Sendable {
     var wifi: WiFi?
 }
 
+/// Conserve une valeur coûteuse à lire pendant une durée donnée.
+struct TrayTimedCache<Value> {
+    let lifetime: TimeInterval
+    private var stored: (value: Value, readAt: TimeInterval)?
+
+    init(lifetime: TimeInterval) { self.lifetime = lifetime }
+
+    mutating func value(now: TimeInterval, read: () -> Value) -> Value {
+        if let stored, now >= stored.readAt, now - stored.readAt < lifetime { return stored.value }
+        let value = read()
+        stored = (value, now)
+        return value
+    }
+
+    mutating func clear() { stored = nil }
+}
+
 /// Deux relevés de compteurs sont nécessaires pour les débits et la charge CPU.
 /// Les lectures CoreWLAN et Mach restent hors du thread de l’interface.
 actor TrayMetricsSampler {
     private var previousCPU: [UInt32]?
     private var previousNetwork: (name: String, received: UInt32, sent: UInt32, time: TimeInterval)?
+    private struct WiFiLink { let name: String; let powered: Bool; let rate: Double; let rssi: Int }
+    /// Chaque lecture CoreWLAN sollicite un service système ; l’état de liaison varie peu.
+    private var link = TrayTimedCache<WiFiLink?>(lifetime: 5)
 
     func reset() {
         previousCPU = nil
         previousNetwork = nil
+        link.clear()
     }
 
     func sample() -> TrayMetrics {
@@ -85,12 +106,15 @@ actor TrayMetricsSampler {
     }
 
     private func wifi() -> TrayMetrics.WiFi? {
-        guard let interface = CWWiFiClient.shared().interface(), let name = interface.interfaceName else {
+        let cached = link.value(now: ProcessInfo.processInfo.systemUptime) {
+            guard let interface = CWWiFiClient.shared().interface(), let name = interface.interfaceName else { return nil }
+            return WiFiLink(name: name, powered: interface.powerOn(), rate: interface.transmitRate(), rssi: interface.rssiValue())
+        }
+        guard let cached else {
             previousNetwork = nil
             return nil
         }
-        let powered = interface.powerOn()
-        let rate = interface.transmitRate()
+        let (name, powered, rate, rssi) = (cached.name, cached.powered, cached.rate, cached.rssi)
         var received: Double?
         var sent: Double?
         var addresses: UnsafeMutablePointer<ifaddrs>?
@@ -113,7 +137,6 @@ actor TrayMetricsSampler {
                 break
             }
         } else { previousNetwork = nil }
-        let rssi = interface.rssiValue()
         return .init(interface: name, powered: powered, connected: powered && rate > 0,
                      linkRate: rate, received: received, sent: sent,
                      signalDBm: powered && rate > 0 && rssi != 0 ? rssi : nil)
