@@ -511,7 +511,9 @@ struct BatteryNativePolicyControllerTests {
         waited = f.run(.heartbeat, percent: 84, onAC: false, now: 120)
         #expect(waited.message == "Retour à l’alimentation secteur en cours")
         waited = f.run(.heartbeat, percent: 84, onAC: false, now: 2 + BatteryCycle.powerReturnGrace)
-        #expect(waited.active && waited.message != "Retour à l’alimentation secteur en cours")
+        #expect(waited.active && waited.message.contains("débranchez-le puis rebranchez-le"))
+        let back = f.run(.heartbeat, percent: 84, now: 190)
+        #expect(!back.message.contains("rebranchez-le"), "The advice ends when input returns")
     }
     @Test func aCancelledDischargeWaitsForInputToo() throws {
         let f = Fixture(); try #require(f.run(.enable, limit: 70, percent: 90).active)

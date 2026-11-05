@@ -20,6 +20,8 @@ public final class BatteryProtectionController {
     private var cycle: BatteryCycle?
     /// After the adapter gate reopens: nothing is written until input returns or this time passes.
     private var inputReturnDeadline: TimeInterval?
+    /// Input did not come back in time. Only reconnecting the cable has restored it on the M1 host.
+    private var inputReturnOverdue = false
     private var sleeping = false
     private var awaitingHeartbeat = false
     private var restoring = false
@@ -258,7 +260,9 @@ public final class BatteryProtectionController {
                 return
             }
             inputReturnDeadline = nil
+            inputReturnOverdue = !snapshot.onAC
         }
+        if snapshot.onAC { inputReturnOverdue = false }
         if sessionCapabilities?.backend == .nativePolicy {
             let decision = policy.evaluate(snapshot, configuration: configuration, topUp: topUp, now: now)
             try hardware.applyChargeIntent(decision.suspend ? .hold : .charge(to: topUp ? 100 : configuration.limit),
@@ -272,6 +276,7 @@ public final class BatteryProtectionController {
             } else if decision.suspend && snapshot.onAC && snapshot.charging {
                 message = "Pause enregistrée par macOS · attente de l’arrêt de la charge"
             } else { message = decision.reason }
+            if inputReturnOverdue { message = Self.reconnectMessage }
         } else if sessionCapabilities?.managesChargeLimit == true {
             if !topUp, configuration.sailingWidth != nil, sessionCapabilities?.backend == .firmware {
                 try hardware.setChargeBand(upper: configuration.limit, lower: configuration.resumeLimit)
@@ -304,7 +309,8 @@ public final class BatteryProtectionController {
         try clearRecovery()
         self.recovery = nil; sessionCapabilities = nil; hardware.endSession()
         owner = nil; sessionID = nil; configuration = nil; topUp = false
-        policy = .init(); cycle = nil; inputReturnDeadline = nil; restoring = false; awaitingHeartbeat = false
+        policy = .init(); cycle = nil; inputReturnDeadline = nil; inputReturnOverdue = false
+        restoring = false; awaitingHeartbeat = false
         message = "Protection désactivée"
     }
     /// Not a failure: the session is over and only the journal's final step is waiting on the charge level.
@@ -343,6 +349,7 @@ public final class BatteryProtectionController {
         result.deferredRestorationTarget = deferredRestorationTarget
         return result
     }
+    private static let reconnectMessage = "Secteur non revenu · si le câble est branché, débranchez-le puis rebranchez-le"
     private struct ControlError: LocalizedError {
         var message: String
         init(_ message: String) { self.message = message }
