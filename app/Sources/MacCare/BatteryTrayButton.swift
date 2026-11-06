@@ -63,7 +63,7 @@ struct BatteryTrayButton: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(TrayTileStyle())
-            .accessibilityHint("Ouvrir les détails de la batterie")
+            .accessibilityHint("Afficher le détail de la batterie")
         }
     }
 }

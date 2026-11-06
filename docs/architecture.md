@@ -145,3 +145,15 @@ La branche `codex/compact-menu-bar` est supprimée après CI verte. Les mesures
 restent en lecture seule et à la demande ; aucun réglage ventilateur ajouté.
 Le DMG public et le flux Sparkle ont été vérifiés, sans remplacer la copie
 quotidienne en 0.2.8 (10). Contrôles et limites dans `menu-bar-panel.md`.
+
+### Popovers Stockage et Batterie — correction Dev du 6 novembre 2026
+
+`TrayDetailSelection` sépare les détails d’activité existants (`TrayMetricDetail.Kind`)
+et les nouveaux détails Stockage/Batterie. Une sélection unique pilote le popover
+du volet ; les outils complets restent accessibles par une action de navigation
+explicite. `TrayDetailSurface` mutualise le cadre violet sans modifier le suivi des
+processus CPU/mémoire. `TrayStorageUsage` normalise les volumes, `TrayStorageDetail`
+réutilise le relevé disque du parent et `TrayBatteryDetail` observe le modèle batterie
+et la télémétrie déjà suivis. Pas de nouvelle analyse, boucle de suivi, écriture de
+charge ou commande ventilateur. Correction locale après 0.2.10, non publiée ; branche
+`codex/tray-storage-battery-details`, base `ec8cca3`.

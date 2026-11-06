@@ -12,29 +12,21 @@ struct TrayMetricDetail: View {
     private var samplesProcesses: Bool { kind != .wifi && windowVisible }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                Text(kind == .wifi ? "Réseau" : kind.rawValue).font(.title2.bold()).accessibilityAddTraits(.isHeader)
-                switch kind {
-                case .cpu: cpu
-                case .memory: memory
-                case .wifi: TrayWiFiDetail(metricsStore: metricsStore)
-                }
-                if kind != .wifi {
-                    Divider().overlay(.white.opacity(0.1))
-                    TrayProcessList(controller: processes, memory: kind == .memory)
-                }
+        TrayDetailSurface(title: kind.rawValue, height: height) {
+            switch kind {
+            case .cpu: cpu
+            case .memory: memory
+            case .wifi: TrayWiFiDetail(metricsStore: metricsStore)
             }
-            .padding(20)
+            if kind != .wifi {
+                Divider().overlay(.white.opacity(0.1))
+                TrayProcessList(controller: processes, memory: kind == .memory)
+            }
         }
-        .frame(width: 390, height: height)
         .background(WindowVisibilityObserver { windowVisible = $0 })
         .task(id: samplesProcesses) {
             if samplesProcesses { await processes.monitor() }
         }
-        .foregroundStyle(.white)
-        .background(LinearGradient(colors: [Color(red: 0.24, green: 0.10, blue: 0.45), Color(red: 0.08, green: 0.03, blue: 0.20)], startPoint: .topTrailing, endPoint: .bottomLeading))
-        .preferredColorScheme(.dark)
     }
 
     @ViewBuilder private var cpu: some View {

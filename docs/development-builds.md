@@ -48,3 +48,11 @@ tag `v0.2.10` sur `e5dfb42`, après fusion de la PR #17 et suppression de la bra
 `codex/compact-menu-bar`. Le paquet Dev ci-dessus reste une copie de QA locale,
 distincte du DMG public signé et notarié. La copie quotidienne reste en 0.2.8 (10),
 sans remplacement. Voir les preuves et limites dans `menu-bar-panel.md`.
+
+## Correction des détails du volet — 6 novembre 2026
+
+La branche `codex/tray-storage-battery-details` ajoute les popovers Stockage interne
+et Batterie, après la publication 0.2.10. Le paquet `build/tray-details/MacCare.app`
+porte toujours l’identité Dev 0.2.10 (12) et actualise `/Applications/MacCare Dev.app`.
+Cette correction est locale, non publiée. Aucun remplacement de la copie quotidienne.
+Voir `menu-bar-panel.md` pour les mesures, la navigation et les limites de validation.
