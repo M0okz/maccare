@@ -198,7 +198,7 @@ final class AppState: ObservableObject {
     /// Ramène MacCare au premier plan sur un module (fenêtre rouverte si elle était fermée).
     func show(_ m: Module) {
         module = m
-        NSApp.activate(ignoringOtherApps: true)
+        DockVisibilityController.activateForWindow()
         if !NSApp.windows.contains(where: { $0.isVisible && $0.canBecomeMain }) { openMainWindow?() }
     }
 }

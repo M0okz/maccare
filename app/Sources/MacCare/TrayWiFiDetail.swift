@@ -15,14 +15,15 @@ struct WiFiTrafficHistory {
             self = .init()
             return
         }
-        if interface != wifi.interface { self = .init(); interface = wifi.interface }
+        let identity = "\(wifi.kind.rawValue):\(wifi.interface):\(wifi.address ?? "")"
+        if interface != identity { self = .init(); interface = identity }
         if let previousTime {
             let elapsed = metrics.sampledAt - previousTime
             // Un intervalle après veille ne décrit pas un débit instantané fiable.
             if elapsed > 0 && elapsed <= 10 {
                 receivedBytes += received * elapsed
                 sentBytes += sent * elapsed
-            } else if elapsed > 10 { self = .init(); interface = wifi.interface }
+            } else if elapsed > 10 { self = .init(); interface = identity }
         }
         previousTime = metrics.sampledAt
         samples.append(.init(time: metrics.sampledAt, received: received, sent: sent))
@@ -46,7 +47,7 @@ struct TrayWiFiDetail: View {
                 trafficCard(title: "Envoi", symbol: "arrow.up", points: traffic.samples.map { .init(time: $0.time, value: $0.sent) },
                             total: traffic.sentBytes, current: metrics.wifi?.sent, color: .pink)
             }
-            Text("Trafic Wi-Fi, échanges locaux compris · 2 dernières minutes. Débits lissés, courbes réelles. Volumes depuis l’activation du suivi.")
+            Text("Trafic de l’interface réseau principale, échanges locaux compris · 2 dernières minutes. Débits lissés, courbes réelles. Volumes depuis l’activation du suivi.")
                 .font(.caption2).foregroundStyle(muted).fixedSize(horizontal: false, vertical: true)
             speedTest
         }
@@ -58,13 +59,17 @@ struct TrayWiFiDetail: View {
 
     private var connection: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "wifi").font(.title2).foregroundStyle(.cyan).accessibilityHidden(true)
+            Image(systemName: metrics.network?.symbol ?? "network").font(.title2).foregroundStyle(.cyan).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text(connectionTitle).font(.headline)
                 if let wifi = metrics.wifi, wifi.connected {
-                    Text("\(wifi.interface) · Liaison à \(Int(wifi.linkRate)) Mbit/s").font(.caption).foregroundStyle(muted)
+                    Text("\(wifi.interface) · \(wifi.address ?? "IP indisponible")").font(.caption).foregroundStyle(muted)
+                        .textSelection(.enabled)
+                    if wifi.kind == .wifi && wifi.linkRate > 0 {
+                        Text("Liaison Wi-Fi à \(Int(wifi.linkRate)) Mb/s").font(.caption2).foregroundStyle(muted)
+                    }
                 } else {
-                    Text("Connectez le Mac à un réseau Wi-Fi pour suivre son trafic.").font(.caption).foregroundStyle(muted)
+                    Text("Connectez le Mac à un réseau pour suivre son trafic.").font(.caption).foregroundStyle(muted)
                 }
             }
             Spacer(minLength: 0)
@@ -74,14 +79,14 @@ struct TrayWiFiDetail: View {
     }
 
     private var connectionTitle: String {
-        guard let wifi = metrics.wifi else { return "Wi-Fi indisponible" }
-        return !wifi.powered ? "Wi-Fi désactivé" : wifi.connected ? "Wi-Fi connecté" : "Wi-Fi non connecté"
+        guard let network = metrics.network, network.connected else { return "Réseau déconnecté" }
+        return "\(network.kind.rawValue) connecté"
     }
 
     private func trafficCard(title: String, symbol: String, points: [TrayHistoryPoint], total: Double, current: Double?, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Label(title, systemImage: symbol).font(.system(size: 12, weight: .semibold))
-            Text(TrayMetricDetail.speed(current)).monospacedDigit()
+            Text(NetworkRateFormat.megabits(current)).monospacedDigit()
                 .font(.system(size: 20, weight: .semibold, design: .rounded)).minimumScaleFactor(0.7).lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Text("\(humanSize(UInt64(total))) transférés").monospacedDigit()
@@ -89,7 +94,7 @@ struct TrayWiFiDetail: View {
             TrayHistoryChart(points: points, duration: 120, color: color,
                              maximum: trafficCeiling(points.map(\.value).max() ?? 1), filled: true)
                 .frame(height: 65).accessibilityLabel("Historique de débit sur deux minutes")
-            Text("Pic : \(TrayMetricDetail.speed(points.map(\.value).max()))").font(.system(size: 10)).foregroundStyle(muted)
+            Text("Pic : \(NetworkRateFormat.megabits(points.map(\.value).max()))").font(.system(size: 10)).foregroundStyle(muted)
         }
         .padding(12).frame(maxWidth: .infinity, alignment: .leading)
         .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
@@ -142,14 +147,14 @@ struct TrayWiFiDetail: View {
             Text("Au clic uniquement · jusqu’à 72 Mo de données de test. Cloudflare reçoit votre adresse IP. Aucun fichier personnel n’est envoyé.")
                 .font(.caption2).foregroundStyle(muted).fixedSize(horizontal: false, vertical: true)
             DisclosureGroup("Comprendre la mesure") {
-                Text("Test HTTP court à un flux vers speed.cloudflare.com. La durée des échanges est incluse dans le débit : ce résultat peut être inférieur au débit maximal de votre ligne. La latence est un aller-retour HTTP médian, pas un ping ICMP. Les courbes Wi-Fi montrent tout le trafic local ; le test peut emprunter une autre interface selon le routage du Mac.")
+                Text("Test HTTP court à un flux vers speed.cloudflare.com. La durée des échanges est incluse dans le débit : ce résultat peut être inférieur au débit maximal de votre ligne. La latence est un aller-retour HTTP médian, pas un ping ICMP. Les courbes montrent le trafic de l’interface principale, échanges locaux compris ; le test peut emprunter une autre interface selon le routage du Mac.")
                     .font(.caption2).foregroundStyle(muted).fixedSize(horizontal: false, vertical: true)
             }
             .font(.caption)
         }
     }
 
-    private func mbps(_ value: Double?) -> String { value.map { String(format: "%.1f Mbit/s", $0) } ?? "—" }
+    private func mbps(_ value: Double?) -> String { value.map { String(format: "%.1f Mb/s", $0) } ?? "—" }
 
     private func resultCell(_ title: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 5) {

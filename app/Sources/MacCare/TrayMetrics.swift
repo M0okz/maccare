@@ -1,11 +1,13 @@
 import Foundation
 import Darwin
 import CoreWLAN
+import CMacCareSMC
 
 struct TrayMetrics: Sendable {
     struct CPU: Sendable {
         let user: Double
         let system: Double
+        var temperature: Double? = nil
         var used: Double { user + system }
     }
     struct Memory: Sendable {
@@ -13,11 +15,13 @@ struct TrayMetrics: Sendable {
         let active: UInt64
         let wired: UInt64
         let compressed: UInt64
+        var pressure: MemoryPressureLevel? = nil
         var used: UInt64 { min(total, active + wired + compressed) }
         var available: UInt64 { total - used }
         var fraction: Double { Double(used) / Double(max(total, 1)) }
     }
-    struct WiFi: Sendable {
+    struct Network: Sendable {
+        enum Kind: String, Sendable { case wifi = "Wi-Fi", ethernet = "Ethernet", vpn = "VPN", other = "Réseau" }
         let interface: String
         let powered: Bool
         let connected: Bool
@@ -25,8 +29,15 @@ struct TrayMetrics: Sendable {
         let received: Double?
         let sent: Double?
         var signalDBm: Int? = nil
+        var kind: Kind = .wifi
+        var address: String? = nil
+        var symbol: String { kind == .wifi ? "wifi" : kind == .vpn ? "lock.shield" : "network" }
     }
+    typealias WiFi = Network
+    var network: Network? { wifi }
     var sampledAt: TimeInterval = ProcessInfo.processInfo.systemUptime
+    var gpu: TrayGPU?
+    var fans: TrayFans?
     var cpu: CPU?
     var memory: Memory?
     var wifi: WiFi?
@@ -80,21 +91,42 @@ struct TrayTimedCache<Value> {
 /// Les lectures CoreWLAN et Mach restent hors du thread de l’interface.
 actor TrayMetricsSampler {
     private var cpuLoad = CPULoadCounter()
-    private var previousNetwork: (name: String, received: UInt32, sent: UInt32, time: TimeInterval)?
+    private var previousNetwork: (name: String, address: String?, received: UInt32, sent: UInt32, time: TimeInterval)?
     private struct WiFiLink { let name: String; let powered: Bool; let rate: Double; let rssi: Int }
     /// Chaque lecture CoreWLAN sollicite un service système ; l’état de liaison varie peu.
     private var link = TrayTimedCache<WiFiLink?>(lifetime: 5)
+    private var interfaceTypes = TrayTimedCache<[String: String]>(lifetime: 10)
+    private var cpuTemperature = TrayTimedCache<Double?>(lifetime: 5)
+
+    private var gpuTemperature = TrayTimedCache<Double?>(lifetime: 5)
+    private var fans = TrayTimedCache<TrayFans?>(lifetime: 5)
 
     func reset() {
         cpuLoad.reset()
         previousNetwork = nil
         link.clear()
+        interfaceTypes.clear()
+        cpuTemperature.clear()
+        gpuTemperature.clear()
+        fans.clear()
     }
 
     func sample() -> TrayMetrics {
         let host = mach_host_self()
         defer { mach_port_deallocate(mach_task_self_, host) }
-        return TrayMetrics(cpu: cpuLoad.read(), memory: memory(host: host), wifi: wifi())
+        var cpu = cpuLoad.read()
+        cpu?.temperature = cpuTemperature.value(now: ProcessInfo.processInfo.systemUptime) {
+            var temperature: Double = 0
+            return maccare_cpu_temperature(&temperature) == 0 ? temperature : nil
+        }
+        let now = ProcessInfo.processInfo.systemUptime
+        var gpu = TrayGPU.current()
+        gpu?.temperature = gpuTemperature.value(now: now) {
+            var temperature: Double = 0
+            return maccare_gpu_temperature(&temperature) == 0 ? temperature : nil
+        }
+        return TrayMetrics(gpu: gpu, fans: fans.value(now: now) { TrayFans.current() },
+                           cpu: cpu, memory: memory(host: host), wifi: network())
     }
 
     private func memory(host: host_t) -> TrayMetrics.Memory? {
@@ -111,43 +143,32 @@ actor TrayMetricsSampler {
         let active = UInt64(info.active_count) - min(UInt64(info.active_count), UInt64(info.purgeable_count))
         return .init(total: ProcessInfo.processInfo.physicalMemory,
                      active: active * UInt64(pageSize), wired: UInt64(info.wire_count) * UInt64(pageSize),
-                     compressed: UInt64(info.compressor_page_count) * UInt64(pageSize))
+                     compressed: UInt64(info.compressor_page_count) * UInt64(pageSize), pressure: MemoryPressureLevel.current())
     }
 
-    private func wifi() -> TrayMetrics.WiFi? {
-        let cached = link.value(now: ProcessInfo.processInfo.systemUptime) {
+    private func network() -> TrayMetrics.Network? {
+        let now = ProcessInfo.processInfo.systemUptime
+        let cached = link.value(now: now) {
             guard let interface = CWWiFiClient.shared().interface(), let name = interface.interfaceName else { return nil }
             return WiFiLink(name: name, powered: interface.powerOn(), rate: interface.transmitRate(), rssi: interface.rssiValue())
         }
-        guard let cached else {
+        let types = interfaceTypes.value(now: now) { NetworkInterfaceSample.interfaceTypes() }
+        guard let current = NetworkInterfaceSample.current(types: types, wifiName: cached?.name) else {
             previousNetwork = nil
             return nil
         }
-        let (name, powered, rate, rssi) = (cached.name, cached.powered, cached.rate, cached.rssi)
-        var received: Double?
-        var sent: Double?
-        var addresses: UnsafeMutablePointer<ifaddrs>?
-        if powered && rate > 0 && getifaddrs(&addresses) == 0 {
-            defer { freeifaddrs(addresses) }
-            var current = addresses
-            while let entry = current {
-                defer { current = entry.pointee.ifa_next }
-                guard String(cString: entry.pointee.ifa_name) == name,
-                      entry.pointee.ifa_addr?.pointee.sa_family == UInt8(AF_LINK),
-                      let data = entry.pointee.ifa_data?.assumingMemoryBound(to: if_data.self) else { continue }
-                let now = ProcessInfo.processInfo.systemUptime
-                let input = data.pointee.ifi_ibytes
-                let output = data.pointee.ifi_obytes
-                if let previousNetwork, previousNetwork.name == name, now > previousNetwork.time {
-                    received = Double(input &- previousNetwork.received) / (now - previousNetwork.time)
-                    sent = Double(output &- previousNetwork.sent) / (now - previousNetwork.time)
-                }
-                previousNetwork = (name, input, output, now)
-                break
-            }
-        } else { previousNetwork = nil }
-        return .init(interface: name, powered: powered, connected: powered && rate > 0,
-                     linkRate: rate, received: received, sent: sent,
-                     signalDBm: powered && rate > 0 && rssi != 0 ? rssi : nil)
+        var received: Double?, sent: Double?
+        if let previousNetwork, previousNetwork.name == current.name, previousNetwork.address == current.address,
+           now > previousNetwork.time, now - previousNetwork.time <= 3 {
+            received = Double(current.received &- previousNetwork.received) / (now - previousNetwork.time)
+            sent = Double(current.sent &- previousNetwork.sent) / (now - previousNetwork.time)
+        }
+        previousNetwork = (current.name, current.address, current.received, current.sent, now)
+        let wireless = current.kind == .wifi
+        return .init(interface: current.name, powered: wireless ? cached?.powered ?? true : true,
+                     connected: current.address != nil, linkRate: wireless ? cached?.rate ?? 0 : 0,
+                     received: received, sent: sent,
+                     signalDBm: wireless && cached?.rssi != 0 ? cached?.rssi : nil,
+                     kind: current.kind, address: current.address)
     }
 }

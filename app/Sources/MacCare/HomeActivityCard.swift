@@ -30,7 +30,7 @@ struct HomeActivityCard: View {
             HStack {
                 Text("Utilisation mémoire estimée")
                 Spacer(minLength: 4)
-                if wifi?.connected == true { Text("↑ \(TrayMetricDetail.speed(wifi?.sent))").monospacedDigit() }
+                if wifi?.connected == true { Text("↑ \(NetworkRateFormat.megabits(wifi?.sent))").monospacedDigit() }
             }.font(AppFont.caption).foregroundStyle(Theme.muted)
                 .transaction { $0.animation = nil }
         }
@@ -87,7 +87,7 @@ struct HomeActivityCard: View {
     private var network: some View {
         Button { openWindow(id: HomeActivityWindow.id(for: .wifi)) } label: {
             VStack(alignment: .leading, spacing: 8) {
-                metricLabel("Réseau", symbol: "wifi")
+                metricLabel("Réseau", symbol: wifi?.symbol ?? "network")
                 Text(download).font(AppFont.emphasis).monospacedDigit().lineLimit(1).minimumScaleFactor(0.85)
                     .transaction { $0.animation = nil }
                 Text(connection).font(AppFont.caption).foregroundStyle(Theme.muted)
@@ -103,7 +103,7 @@ struct HomeActivityCard: View {
             }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
         }.buttonStyle(HomeActivityMetricButtonStyle())
             .onHover { networkHovered = $0 }
-            .help("Trafic de l’interface Wi-Fi, échanges locaux compris. Ce débit n’est pas un test de vitesse Internet.")
+            .help("Trafic de l’interface réseau principale, échanges locaux compris. Ce débit n’est pas un test de vitesse Internet.")
             .accessibilityElement(children: .combine)
             .accessibilityHint("Ouvrir la fenêtre Réseau")
     }
@@ -113,11 +113,10 @@ struct HomeActivityCard: View {
     }
     private var download: String {
         guard let wifi else { return "—" }
-        return wifi.connected ? TrayMetricDetail.speed(wifi.received) : "—"
+        return wifi.connected ? NetworkRateFormat.megabits(wifi.received) : "—"
     }
     private var connection: String {
-        guard let wifi else { return "Wi-Fi indisponible" }
-        if !wifi.powered { return "Wi-Fi désactivé" }
-        return wifi.connected ? "↓ réception · Wi-Fi" : "Wi-Fi déconnecté"
+        guard let wifi, wifi.connected else { return "Réseau déconnecté" }
+        return "↓ réception · \(wifi.kind.rawValue)"
     }
 }

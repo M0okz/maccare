@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Mesures détaillées et fermeture explicite des processus sélectionnés.
 struct TrayMetricDetail: View {
-    enum Kind: String, Identifiable { case cpu = "Processeur", memory = "Mémoire", wifi = "Wi-Fi"; var id: String { rawValue } }
+    enum Kind: String, Identifiable { case cpu = "Processeur", memory = "Mémoire", wifi = "Réseau"; var id: String { rawValue } }
     let kind: Kind
     @ObservedObject var metricsStore: TrayMetricsStore
     var height: CGFloat = 680
@@ -44,6 +44,7 @@ struct TrayMetricDetail: View {
             row("Utilisateur", value: "\(Int(cpu.user * 100)) %")
             row("Système", value: "\(Int(cpu.system * 100)) %")
             row("Disponible", value: "\(Int(max(0, 1 - cpu.used) * 100)) %")
+            row("Température CPU", value: metrics.cpu?.temperature.map { "\(Int($0.rounded())) °C" } ?? "Indisponible")
             row("État thermique", value: thermalTitle)
             row("Temps de fonctionnement", value: "\(Int(ProcessInfo.processInfo.systemUptime / 3600)) h")
             Text("Charge globale de tous les cœurs · valeurs lissées. Historique réel des 40 dernières secondes, conservé tant que le suivi MacCare est actif.")
@@ -93,6 +94,7 @@ struct TrayMetricDetail: View {
     @ViewBuilder private var memory: some View {
         if let memory = metrics.memory {
             TrayMemoryRing(memory: memory)
+            row("Pression mémoire", value: memory.pressure?.title ?? "Indisponible")
             row("Mémoire utilisée estimée", value: "\(Int(memory.fraction * 100)) %")
             Text("Utilisation estimée : mémoire active non purgeable + résidente système + compressée. La mémoire inactive est considérée comme réutilisable. Ce pourcentage n’est pas la pression mémoire de macOS.")
                 .font(.caption).foregroundStyle(.white.opacity(0.75))

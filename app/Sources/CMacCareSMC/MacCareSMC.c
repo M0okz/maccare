@@ -6,6 +6,8 @@
 #include <stddef.h>
 #include <math.h>
 #include <sys/sysctl.h>
+#include <dlfcn.h>
+#include <CoreFoundation/CoreFoundation.h>
 
 typedef struct {
     uint32_t key;
@@ -176,6 +178,145 @@ int32_t maccare_battery_temperature(double *celsius) {
     if (highest == -1000) return kIOReturnNotFound;
     *celsius = highest;
     return 0;
+}
+
+// IOHID temperature events expose the CPU clusters on Apple Silicon without
+// opening a charge-control user client. Missing symbols/events stay unavailable.
+static int32_t sensorHIDTemperature(double *celsius, int gpu) {
+    typedef CFTypeRef (*Create)(CFAllocatorRef);
+    typedef int (*Match)(CFTypeRef, CFDictionaryRef);
+    typedef CFArrayRef (*Services)(CFTypeRef);
+    typedef CFTypeRef (*Property)(CFTypeRef, CFStringRef);
+    typedef CFTypeRef (*Event)(CFTypeRef, int64_t, int32_t, int64_t);
+    typedef double (*FloatValue)(CFTypeRef, int32_t);
+    Create create = (Create)dlsym(RTLD_DEFAULT, "IOHIDEventSystemClientCreate");
+    Match match = (Match)dlsym(RTLD_DEFAULT, "IOHIDEventSystemClientSetMatching");
+    Services services = (Services)dlsym(RTLD_DEFAULT, "IOHIDEventSystemClientCopyServices");
+    Property property = (Property)dlsym(RTLD_DEFAULT, "IOHIDServiceClientCopyProperty");
+    Event event = (Event)dlsym(RTLD_DEFAULT, "IOHIDServiceClientCopyEvent");
+    FloatValue value = (FloatValue)dlsym(RTLD_DEFAULT, "IOHIDEventGetFloatValue");
+    if (!create || !match || !services || !property || !event || !value) return kIOReturnUnsupported;
+    CFTypeRef client = create(kCFAllocatorDefault);
+    if (!client) return kIOReturnNotFound;
+    int page = 0xff00, usage = 5;
+    CFNumberRef pageNumber = CFNumberCreate(NULL, kCFNumberIntType, &page);
+    CFNumberRef usageNumber = CFNumberCreate(NULL, kCFNumberIntType, &usage);
+    const void *keys[] = {CFSTR("PrimaryUsagePage"), CFSTR("PrimaryUsage")};
+    const void *values[] = {pageNumber, usageNumber};
+    CFDictionaryRef matching = CFDictionaryCreate(NULL, keys, values, 2, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+    match(client, matching);
+    CFRelease(matching); CFRelease(pageNumber); CFRelease(usageNumber);
+    CFArrayRef list = services(client);
+    double highest = -1;
+    if (list) {
+        for (CFIndex i = 0; i < CFArrayGetCount(list); ++i) {
+            CFTypeRef service = CFArrayGetValueAtIndex(list, i);
+            CFTypeRef name = property(service, CFSTR("Product"));
+            int wanted = name && CFGetTypeID(name) == CFStringGetTypeID() &&
+                (gpu ? CFStringHasPrefix(name, CFSTR("GPU MTR Temp")) :
+                 (CFStringHasPrefix(name, CFSTR("pACC MTR Temp")) || CFStringHasPrefix(name, CFSTR("eACC MTR Temp"))));
+            if (name) CFRelease(name);
+            if (!wanted) continue;
+            CFTypeRef reading = event(service, 15, 0, 0);
+            if (!reading) continue;
+            double temperature = value(reading, 15 << 16);
+            CFRelease(reading);
+            if (isfinite(temperature) && temperature > 0 && temperature <= 125 && temperature > highest) highest = temperature;
+        }
+        CFRelease(list);
+    }
+    CFRelease(client);
+    if (highest < 0) return kIOReturnNotFound;
+    *celsius = highest;
+    return 0;
+}
+
+int32_t maccare_cpu_temperature(double *celsius) {
+    if (!celsius) return kIOReturnBadArgument;
+    int32_t arm64 = 0; size_t size = sizeof(arm64);
+    sysctlbyname("hw.optional.arm64", &arm64, &size, NULL, 0);
+    char brand[128] = {0}; size = sizeof(brand);
+    sysctlbyname("machdep.cpu.brand_string", brand, &size, NULL, 0);
+    // Identités des capteurs documentées par le catalogue public de Stats.
+    // https://github.com/exelban/stats/blob/master/Modules/Sensors/values.swift
+    const char *intel[] = {"TCAD", "TC0D", "TC0E", "TC0F"};
+    const char *m1[] = {"Tp09", "Tp0T", "Tp01", "Tp05", "Tp0D", "Tp0H", "Tp0L", "Tp0P", "Tp0X", "Tp0b"};
+    const char **keys = intel; size_t count = sizeof(intel) / sizeof(*intel);
+    if (arm64) {
+        if (sensorHIDTemperature(celsius, 0) == 0) return 0;
+        if (!strstr(brand, "Apple M1")) return kIOReturnUnsupported;
+        keys = m1; count = sizeof(m1) / sizeof(*m1);
+    }
+    io_connect_t connection = 0;
+    io_service_t service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSMC"));
+    if (!service) return kIOReturnNotFound;
+    int32_t result = IOServiceOpen(service, mach_task_self(), 0, &connection);
+    IOObjectRelease(service);
+    if (result) return result;
+    double highest = -1;
+    for (size_t i = 0; i < count; ++i) {
+        SMCMessage out = {0};
+        if (readKey(connection, keys[i], &out)) continue;
+        double value = -1;
+        if (out.info.type == code("sp78") && out.info.size == 2)
+            value = (int16_t)((out.bytes[0]<<8)|out.bytes[1]) / 256.0;
+        else if (out.info.type == code("flt ") && out.info.size == 4) {
+            float f; memcpy(&f, out.bytes, 4); value = f;
+        }
+        if (isfinite(value) && value > 0 && value <= 125 && value > highest) highest = value;
+    }
+    IOServiceClose(connection);
+    if (highest < 0) return kIOReturnNotFound;
+    *celsius = highest;
+    return 0;
+}
+
+int32_t maccare_gpu_temperature(double *celsius) {
+    if (!celsius) return kIOReturnBadArgument;
+    return sensorHIDTemperature(celsius, 1);
+}
+
+static int fanValue(const SMCMessage *field, double *value) {
+    double result = -1;
+    if (field->info.type == code("fpe2") && field->info.size == 2)
+        result = ((field->bytes[0] << 8) | field->bytes[1]) / 4.0;
+    else if (field->info.type == code("flt ") && field->info.size == 4) {
+        float f; memcpy(&f, field->bytes, 4); result = f;
+    } else if (field->info.type == code("ui16") && field->info.size == 2)
+        result = (field->bytes[0] << 8) | field->bytes[1];
+    if (!isfinite(result) || result < 0 || result > 30000) return 0;
+    *value = result;
+    return 1;
+}
+
+int32_t maccare_fans_read(MCFanSnapshot *snapshot) {
+    if (!snapshot) return kIOReturnBadArgument;
+    memset(snapshot, 0, sizeof(*snapshot));
+    int32_t last = kIOReturnNotFound;
+    for (uint32_t transport = 0; transport <= 1; ++transport) {
+        io_service_t service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSMC"));
+        if (!service) return kIOReturnNotFound;
+        io_connect_t connection = 0;
+        last = IOServiceOpen(service, mach_task_self(), transport, &connection);
+        IOObjectRelease(service);
+        if (last) continue;
+        SMCMessage field = {0};
+        last = readKey(connection, "FNum", &field);
+        if (last) { IOServiceClose(connection); continue; }
+        if (field.info.size != 1 || field.info.type != code("ui8 ") || field.bytes[0] > 8) {
+            IOServiceClose(connection); return kIOReturnUnsupported;
+        }
+        snapshot->count = field.bytes[0];
+        for (uint32_t i = 0; i < snapshot->count; ++i) {
+            char key[] = {'F', (char)('0' + i), 'A', 'c', 0};
+            if (!readKey(connection, key, &field)) snapshot->currentValid[i] = fanValue(&field, &snapshot->current[i]);
+            key[2] = 'M'; key[3] = 'x';
+            if (!readKey(connection, key, &field)) snapshot->maximumValid[i] = fanValue(&field, &snapshot->maximum[i]);
+        }
+        IOServiceClose(connection);
+        return 0;
+    }
+    return last;
 }
 
 static uint32_t little32(const uint8_t *b) {

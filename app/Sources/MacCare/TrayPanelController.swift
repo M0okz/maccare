@@ -166,7 +166,7 @@ final class TrayPanelController: NSObject {
 
     private func showSettings() {
         dismiss(animated: false)
-        NSApp.activate(ignoringOtherApps: true)
+        DockVisibilityController.activateForWindow()
         if let openSettings { openSettings() }
         else { NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil) }
     }

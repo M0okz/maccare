@@ -9,6 +9,16 @@ int32_t maccare_charge_probe(int32_t *backend);
 int32_t maccare_charge_read(int32_t backend, uint8_t *value);
 int32_t maccare_charge_write(int32_t backend, uint8_t value);
 int32_t maccare_battery_temperature(double *celsius);
+// Maximum des capteurs CPU connus, lecture seule ; indisponible sur les modèles non reconnus.
+int32_t maccare_cpu_temperature(double *celsius);
+int32_t maccare_gpu_temperature(double *celsius);
+typedef struct {
+    uint32_t count;
+    double current[8], maximum[8];
+    uint8_t currentValid[8], maximumValid[8];
+} MCFanSnapshot;
+// Vitesses uniquement : aucune commande de ventilateur ni changement de mode.
+int32_t maccare_fans_read(MCFanSnapshot *snapshot);
 int32_t maccare_firmware_limit_read(uint8_t *active, uint32_t *upper, uint32_t *lower);
 int32_t maccare_firmware_limit_set(uint32_t upper, uint32_t lower, uint8_t active);
 int32_t maccare_firmware_limit_restore(uint32_t upper, uint32_t lower);

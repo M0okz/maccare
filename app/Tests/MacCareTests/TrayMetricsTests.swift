@@ -15,7 +15,8 @@ final class TrayMetricsTests: XCTestCase {
         let cpu = try XCTUnwrap(second.cpu)
         XCTAssertTrue((0...1).contains(cpu.used))
         if let wifi = second.wifi, wifi.connected {
-            XCTAssertGreaterThan(wifi.linkRate, 0)
+            if wifi.kind == .wifi { XCTAssertGreaterThan(wifi.linkRate, 0) }
+            XCTAssertNotNil(wifi.address)
             if let received = wifi.received { XCTAssertGreaterThanOrEqual(received, 0) }
             if let sent = wifi.sent { XCTAssertGreaterThanOrEqual(sent, 0) }
         }

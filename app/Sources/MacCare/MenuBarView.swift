@@ -13,44 +13,34 @@ struct MenuBarView: View {
     @Environment(\.openWindow) private var openWindow
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var entered = false
+    @AppStorage(TrayShortcuts.key) private var shortcuts = TrayShortcuts.defaults
     private var metrics: TrayMetrics { metricsStore.snapshot.display }
     @State private var networkReadout = TrayNetworkReadout()
     private var networkRates: TrayMetrics.WiFi? { networkReadout.wifi ?? metrics.wifi }
+    @StateObject private var batteryContext = TrayBatteryController()
+    @State private var showingHealth = false
     @State private var detail: TrayMetricDetail.Kind?
     @State private var disk = DiskSpace.current()
     private let hardware = MacHardwarePresentation.current
-    private let muted = Color(red: 0.80, green: 0.74, blue: 0.91)
-    private let highlight = Color(red: 0.76, green: 0.58, blue: 1)
+    private let machineName = Host.current().localizedName ?? MacHardwarePresentation.current.title
+    private let muted = TrayAppearance.secondary
+    private let highlight = TrayAppearance.accent
     private var busy: Bool { smart.stage == .scanning || smart.stage == .cleaning }
     private var bodyHeight: CGFloat {
         if let panelSize { return max(0, panelSize.height - TrayPanelLayout.footerHeight) }
-        return min(740, max(460, (NSScreen.main?.visibleFrame.height ?? 900) - 130))
+        return TrayPanelLayout.frame(in: NSScreen.main?.visibleFrame ?? CGRect(x: 0, y: 0, width: 1512, height: 900)).height - TrayPanelLayout.footerHeight
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    header.modifier(entrance(0))
-                    scanCard.modifier(entrance(1))
-                    VStack(alignment: .leading, spacing: 12) {
-                        sectionTitle("État de votre Mac")
-                        HStack(spacing: 12) { storageCard; memoryCard }
-                        HStack(spacing: 12) { processorCard; wifiCard }
-                    }.modifier(entrance(2))
-                    VStack(alignment: .leading, spacing: 12) {
-                        sectionTitle("Actions rapides")
-                        quickActions
-                    }.modifier(entrance(3))
-                    BatteryTrayButton(model: app.battery) { show(.battery) }.modifier(entrance(4))
-                    activity.modifier(entrance(4))
-                }
-                .padding(20).padding(.top, 10)
+            ViewThatFits(in: .vertical) {
+                overview
+                ScrollView { overview }
             }
-            .frame(height: bodyHeight)
+            .frame(height: bodyHeight, alignment: .top)
             footer
         }
-        .frame(width: panelSize?.width ?? 540)
+        .frame(width: panelSize?.width ?? TrayPanelLayout.width)
         .foregroundStyle(.white)
         .background(TrayBackdrop())
         .tint(highlight)
@@ -59,6 +49,9 @@ struct MenuBarView: View {
         .onChange(of: metrics.sampledAt) { _ in networkReadout.record(metrics) }
         .popover(item: $detail, arrowEdge: .leading) { selected in
             TrayMetricDetail(kind: selected, metricsStore: metricsStore)
+        }
+        .task(id: app.battery.snapshot?.present == true) {
+            if app.battery.snapshot?.present == true { await batteryContext.monitor() }
         }
         .task {
             await Task.yield()
@@ -71,268 +64,261 @@ struct MenuBarView: View {
         }
     }
 
+    private var overview: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            header.modifier(entrance(0))
+            scanCard.modifier(entrance(1))
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) { processorCard; gpuCard }
+                HStack(spacing: 6) { memoryCard; fansCard }
+                HStack(spacing: 6) { storageCard; wifiCard }
+            }.modifier(entrance(2))
+            BatteryTrayButton(model: app.battery, telemetry: batteryContext.telemetry) { show(.battery) }.modifier(entrance(3))
+        }
+        .padding(12)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var health: MacHealthScore.Assessment {
+        MacHealthScore.assess(free: disk?.free, total: disk?.total, pressure: metrics.memory?.pressure,
+                              thermal: ProcessInfo.processInfo.thermalState, battery: app.battery.snapshot)
+    }
+
+    private var healthColor: Color {
+        switch health.grade {
+        case .excellent: return Color(hex: "#85DFBE")
+        case .good: return highlight
+        case .poor: return .orange
+        case nil: return muted
+        }
+    }
+
     private var header: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack {
-                Text("MACCARE").font(.system(size: 11, weight: .semibold)).tracking(0.8).foregroundStyle(highlight)
-                Spacer()
-                HStack(spacing: 6) {
-                    Circle().fill(thermalWarning ? .orange : .green).frame(width: 7, height: 7).accessibilityHidden(true)
-                    Text(thermalStatus).font(.system(size: 10, weight: .medium))
+        VStack(alignment: .leading, spacing: 4) {
+            Button { showingHealth = true } label: {
+                HStack(spacing: 5) {
+                    Text("Santé du Mac :").font(.headline)
+                    Text(health.grade?.rawValue ?? "Calcul en cours").font(.headline).foregroundStyle(healthColor)
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.down").font(.caption2).foregroundStyle(muted).accessibilityHidden(true)
                 }
-                .padding(.horizontal, 11).padding(.vertical, 6)
-                .background(.white.opacity(0.045), in: Capsule())
-                .overlay(Capsule().strokeBorder(.white.opacity(0.12)))
+                .contentShape(Rectangle())
             }
-            Text("Votre Mac, au meilleur de sa forme").font(.system(size: 22, weight: .bold))
-                .accessibilityAddTraits(.isHeader).fixedSize(horizontal: false, vertical: true)
-            Text(Host.current().localizedName ?? hardware.title).font(.system(size: 13)).foregroundStyle(muted)
-                .help(hardware.title).accessibilityLabel("\(Host.current().localizedName ?? "Mon Mac"), \(hardware.title)")
+            .buttonStyle(.plain)
+            .accessibilityHint("Afficher les critères et le calcul de la santé du Mac")
+            .help("Indice estimé de l’état actuel. Cliquez pour voir son calcul.")
+            .popover(isPresented: $showingHealth, arrowEdge: .bottom) { MacHealthDetails(assessment: health) }
+            Text(machineName).font(.callout.weight(.medium)).lineLimit(1)
+                .help(hardware.title).accessibilityAddTraits(.isHeader)
+            Text(specsLine)
+                .font(.caption2).foregroundStyle(muted).monospacedDigit().lineLimit(1)
+                .help("\(MacSystemSpecs.ram) · \(disk.map { humanSize($0.total) + " de stockage interne" } ?? "Stockage indisponible") · \(MacSystemSpecs.systemVersion) · \(MacSystemSpecs.uptime())")
         }
-    }
-
-    private var thermalStatus: String {
-        switch ProcessInfo.processInfo.thermalState {
-        case .nominal: return "État thermique normal"
-        case .fair: return "Charge thermique modérée"
-        case .serious: return "État thermique élevé"
-        case .critical: return "État thermique critique"
-        @unknown default: return "État thermique indisponible"
-        }
-    }
-
-    private var thermalWarning: Bool {
-        ProcessInfo.processInfo.thermalState == .serious || ProcessInfo.processInfo.thermalState == .critical
     }
 
     private var scanCard: some View {
-        HStack(alignment: .center, spacing: 8) {
-            VStack(alignment: .leading, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Smart Scan").font(.system(size: 21, weight: .semibold))
-                    Text(scanSubtitle).font(.system(size: 12)).foregroundStyle(muted)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("Smart Scan").font(.callout.weight(.semibold)).accessibilityAddTraits(.isHeader)
+                Spacer(minLength: 0)
+                Text(scanSubtitle).font(.caption2).foregroundStyle(muted).lineLimit(1)
+            }
+            HStack(spacing: 12) {
                 if smart.stage == .scanning {
-                    Text(smart.currentLabel ?? "Analyse en cours…").font(.system(size: 17, weight: .semibold))
-                    ProgressView(value: smart.progress).accessibilityLabel("Progression du Smart Scan")
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(smart.currentLabel ?? "Analyse en cours…").font(.callout.weight(.semibold)).lineLimit(1)
+                        ProgressView(value: smart.progress).accessibilityLabel("Progression du Smart Scan")
+                    }.frame(maxWidth: .infinity, alignment: .leading)
                     Button("Arrêter l’analyse") { smart.cancelScan() }.buttonStyle(TrayActionStyle())
                 } else if smart.stage == .cleaning {
-                    Text("Nettoyage en cours…").font(.system(size: 20, weight: .semibold))
+                    Text("Nettoyage en cours…").font(.callout.weight(.semibold))
+                    Spacer(minLength: 0)
                     Button("Voir la progression") { show(.smartScan) }.buttonStyle(TrayActionStyle())
                 } else {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(smart.lastCompletedAt == nil ? "Faites le point" : humanSize(smart.lastSafeBytes))
-                            .font(.system(size: smart.lastCompletedAt == nil ? 28 : 38, weight: .semibold, design: .rounded))
-                            .monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
+                            .font(.title3.weight(.semibold)).monospacedDigit().lineLimit(1)
                         Text(smart.lastCompletedAt == nil ? "sur l’espace récupérable" : "récupérables")
-                            .font(.system(size: 13)).foregroundStyle(muted)
-                    }
+                            .font(.caption2).foregroundStyle(muted)
+                    }.frame(maxWidth: .infinity, alignment: .leading)
                     Button(action: analyze) {
                         Label(smart.lastCompletedAt == nil ? "Analyser mon Mac" : "Analyser à nouveau", systemImage: "play.fill")
                     }
                     .buttonStyle(TrayActionStyle(prominent: true)).disabled(busy)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            MacHardwareArtwork(hardware: hardware)
-                .frame(width: 220, height: 162)
-                .shadow(color: .black.opacity(0.25), radius: 6, y: 6)
         }
-        .padding(20)
+        .padding(10)
         .background {
-            RoundedRectangle(cornerRadius: 20)
+            RoundedRectangle(cornerRadius: TrayAppearance.cardRadius)
                 .fill(LinearGradient(colors: [Color(hex: "#4D2B79").opacity(0.86), Color(hex: "#743AC3").opacity(0.66), Color(hex: "#302055")], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(Color(hex: "#AD82EF").opacity(0.48)))
+                .overlay(RoundedRectangle(cornerRadius: TrayAppearance.cardRadius).strokeBorder(Color(hex: "#AD82EF").opacity(0.22)))
         }
     }
 
     private var storageCard: some View {
         Button { show(.space) } label: {
-            VStack(alignment: .leading, spacing: 7) {
-                Label("Disque de démarrage", systemImage: "internaldrive").font(.system(size: 12, weight: .medium))
-                if let disk {
-                    HStack(alignment: .firstTextBaseline, spacing: 5) {
-                        Text(humanSize(disk.free)).font(.system(size: 23, weight: .semibold, design: .rounded)).monospacedDigit()
-                        Text("libres").font(.system(size: 11)).foregroundStyle(muted)
-                    }
-                    Text("sur \(humanSize(disk.total))").font(.system(size: 11)).foregroundStyle(muted)
-                    GeometryReader { geometry in
-                        Capsule().fill(.white.opacity(0.20)).overlay(alignment: .leading) {
-                            Capsule().fill(LinearGradient(colors: [.yellow, .orange], startPoint: .leading, endPoint: .trailing))
-                                .frame(width: geometry.size.width * Double(disk.total - min(disk.free, disk.total)) / Double(max(disk.total, 1)))
-                        }
-                    }
-                    .frame(height: 5).accessibilityHidden(true)
-                } else { Text("Espace indisponible").font(.system(size: 16, weight: .semibold)) }
+            TrayMetricTile(title: "Stockage interne", symbol: "internaldrive", value: disk.map { humanSize($0.free) } ?? "—") {
+                if let disk { Text("libres sur \(humanSize(disk.total))").lineLimit(1) }
+                else { Text("Espace indisponible") }
+            } indicator: {
+                if let disk { TrayStorageGrid(free: disk.free, total: disk.total) }
             }
-            .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading).padding(14)
         }
         .buttonStyle(TrayTileStyle())
-        .accessibilityHint("Explorer le disque dans MacCare")
+        .accessibilityHint("Explorer le stockage interne dans MacCare")
     }
 
     private var memoryRingFraction: Double { TrayMemoryRingLayout.rounded(metrics.memory?.fraction ?? 0) }
 
     private var memoryCard: some View {
         Button { detail = .memory } label: {
-            VStack(alignment: .leading, spacing: 10) {
-                Label("Mémoire", systemImage: "memorychip").font(.system(size: 12, weight: .medium))
-                HStack {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(memoryValue).monospacedDigit()
-                            .font(.system(size: 25, weight: .semibold, design: .rounded))
-                            .frame(minWidth: 84, alignment: .leading)
-                        Text("Utilisation estimée").font(.system(size: 11)).foregroundStyle(muted)
-                    }
-                    Spacer(minLength: 2)
-                    ZStack {
-                        Circle().stroke(.white.opacity(0.16), lineWidth: 6)
-                        Circle().trim(from: 0, to: memoryRingFraction)
-                            .stroke(AngularGradient(colors: [Color(hex: "#7442BC"), Color(hex: "#C197FF")], center: .center), style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                            .rotationEffect(.degrees(-90))
-                    }.frame(width: 45, height: 45).padding(3).accessibilityHidden(true)
-                }
+            TrayMetricTile(title: "Mémoire", symbol: "memorychip", value: memoryValue) {
+                Text(metrics.memory?.pressure?.title ?? "Pression indisponible").lineLimit(1)
+                    .foregroundStyle(memoryPressureColor)
+                    .help("Pression mémoire mesurée par macOS. Le pourcentage indique l’utilisation estimée.")
+            } indicator: {
+                ZStack {
+                    Circle().stroke(.white.opacity(0.16), lineWidth: 3)
+                    Circle().trim(from: 0, to: memoryRingFraction)
+                        .stroke(AngularGradient(colors: [Color(hex: "#7442BC"), Color(hex: "#C197FF")], center: .center), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                }.frame(width: 28, height: 28).padding(2).accessibilityHidden(true)
             }
-            .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading).padding(14)
         }
         .buttonStyle(TrayTileStyle()).accessibilityHint("Afficher la répartition mémoire et les processus")
     }
 
     private var processorCard: some View {
         Button { detail = .cpu } label: {
-            VStack(alignment: .leading, spacing: 9) {
-                Label("Processeur", systemImage: "cpu").font(.system(size: 12, weight: .medium))
-                HStack(alignment: .center) {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(cpuValue).monospacedDigit()
-                            .font(.system(size: 25, weight: .semibold, design: .rounded))
-                            .frame(minWidth: 84, alignment: .leading)
-                        Text("Charge du processeur").font(.system(size: 10)).foregroundStyle(muted)
-                    }
-                    Spacer(minLength: 0)
+            TrayMetricTile(title: "Processeur", symbol: "cpu", value: cpuValue) {
+                Text("Charge du processeur").lineLimit(1)
+            } indicator: {
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text(cpuTemperature).font(.caption2.weight(.medium)).monospacedDigit()
+                        .foregroundStyle(highlight)
+                        .accessibilityLabel("Température du processeur : \(cpuTemperature)")
+                        .help("Température maximale des capteurs CPU disponibles. Lecture en cours d’actualisation toutes les 5 secondes.")
                     TrayHistoryChart(points: metricsStore.snapshot.cpu.points, color: Color(hex: "#B481F5"))
-                        .frame(width: 80, height: 32).accessibilityHidden(true)
+                        .frame(width: 36, height: 12).accessibilityHidden(true)
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: 70, alignment: .leading).padding(14)
         }
         .buttonStyle(TrayTileStyle()).accessibilityHint("Afficher l’historique CPU et les processus")
     }
 
+    private var gpuCard: some View {
+        TrayMetricTile(title: "GPU", symbol: "display", value: metrics.gpu?.fraction.map { "\(Int(($0 * 100).rounded())) %" } ?? "—") {
+            Text(gpuStatus).lineLimit(1)
+        } indicator: {
+            VStack(alignment: .trailing, spacing: 3) {
+                Text(metrics.gpu?.temperature.map { "\(Int($0.rounded())) °C" } ?? "— °C")
+                    .font(.caption2.weight(.medium)).foregroundStyle(highlight).monospacedDigit()
+                TrayHistoryChart(points: metricsStore.snapshot.gpu.points, color: highlight)
+                    .frame(width: 36, height: 12).accessibilityHidden(true)
+            }
+        }
+        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: TrayAppearance.cardRadius))
+        .overlay(RoundedRectangle(cornerRadius: TrayAppearance.cardRadius).strokeBorder(.white.opacity(0.09)))
+        .accessibilityElement(children: .combine)
+        .help(metrics.gpu?.model ?? "Mesures du GPU indisponibles")
+    }
+
+    private var gpuStatus: String {
+        guard let gpu = metrics.gpu else { return "Mesures indisponibles" }
+        let activity = gpu.fraction.map { $0 < 0.01 ? "Au repos" : "Actif" } ?? "Charge indisponible"
+        return activity + (gpu.cores.map { " · \($0) cœurs" } ?? "")
+    }
+
+    private var fansCard: some View {
+        TrayMetricTile(title: "Ventilateurs", symbol: "fanblades", value: metrics.fans?.fastest.map { "\(Int($0.rounded())) tr/min" } ?? "—") {
+            Text(metrics.fans?.state ?? "Vitesse indisponible").lineLimit(1)
+        } indicator: {
+            if let load = metrics.fans?.load {
+                Text("\(Int((load * 100).rounded())) %").font(.caption2).monospacedDigit().foregroundStyle(muted)
+                    .accessibilityLabel("Vitesse relative au maximum : \(Int((load * 100).rounded())) pour cent")
+            }
+        }
+        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: TrayAppearance.cardRadius))
+        .overlay(RoundedRectangle(cornerRadius: TrayAppearance.cardRadius).strokeBorder(.white.opacity(0.09)))
+        .accessibilityElement(children: .combine)
+        .help((metrics.fans?.description ?? "Lecture indisponible") + "\nGestion des ventilateurs par macOS. La valeur principale est la vitesse la plus élevée.")
+    }
+
     private var wifiCard: some View {
         Button { detail = .wifi } label: {
-            VStack(alignment: .leading, spacing: 9) {
-                Label("Wi-Fi", systemImage: "wifi").font(.system(size: 12, weight: .medium))
-                HStack {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(wifiState).font(.system(size: 23, weight: .semibold, design: .rounded)).lineLimit(1).minimumScaleFactor(0.7)
-                        if metrics.wifi?.connected == true {
-                            HStack(spacing: 4) {
-                                Text("↓")
-                                Text(TrayMetricDetail.speed(networkRates?.received)).monospacedDigit()
-                                    .frame(width: 61, alignment: .leading)
-                                Text("↑")
-                                Text(TrayMetricDetail.speed(networkRates?.sent)).monospacedDigit()
-                                    .frame(width: 61, alignment: .leading)
-                            }
-                            .font(.system(size: 10)).foregroundStyle(muted).lineLimit(1).minimumScaleFactor(0.75)
-                        } else { Text("Aucune liaison active").font(.system(size: 10)).foregroundStyle(muted) }
-                    }
-                    Spacer(minLength: 0)
-                    HStack(alignment: .bottom, spacing: 3) {
+            TrayMetricTile(title: "Réseau", symbol: metrics.network?.symbol ?? "network", value: networkType) {
+                VStack(alignment: .leading, spacing: 3) {
+                    if let network = metrics.network, network.connected {
+                        Text(network.address ?? "IP indisponible")
+                            .monospacedDigit().lineLimit(1).truncationMode(.middle)
+                            .help("Adresse IP locale : \(network.address ?? "indisponible") · \(network.interface)")
+                            .accessibilityLabel("Adresse IP locale : \(network.address ?? "indisponible")")
+                    } else { Text("Aucune liaison active").lineLimit(1) }
+                    HStack(spacing: 4) {
+                        Text("↓ \(NetworkRateFormat.value(networkRates?.received))").monospacedDigit()
+                            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                            .accessibilityLabel("Réception : \(NetworkRateFormat.megabits(networkRates?.received))")
+                        Text("↑ \(NetworkRateFormat.value(networkRates?.sent))").monospacedDigit()
+                            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                            .accessibilityLabel("Envoi : \(NetworkRateFormat.megabits(networkRates?.sent))")
+                        Text("Mb/s").accessibilityHidden(true)
+                    }.lineLimit(1)
+                }
+            } indicator: {
+                if metrics.network?.kind == .wifi {
+                    HStack(alignment: .bottom, spacing: 2) {
                         ForEach(0..<4) { index in
                             Capsule().fill(index < wifiSignalBars ? Color(hex: "#85DFBE") : .white.opacity(0.18))
-                                .frame(width: 3, height: CGFloat(6 + index * 4))
+                                .frame(width: 2, height: CGFloat(4 + index * 3))
                         }
                     }
-                    .help(metrics.wifi?.signalDBm.map { "Signal Wi-Fi : \($0) dBm" } ?? "Signal Wi-Fi indisponible")
-                    .accessibilityLabel(metrics.wifi?.signalDBm.map { "Signal Wi-Fi : \($0) dBm" } ?? "Signal Wi-Fi indisponible")
+                    .help(metrics.network?.signalDBm.map { "Signal Wi-Fi : \($0) dBm" } ?? "Signal Wi-Fi indisponible")
+                    .accessibilityHidden(true)
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: 70, alignment: .leading).padding(14)
         }
-        .buttonStyle(TrayTileStyle()).accessibilityHint("Afficher les débits et tester la vitesse Internet")
+        .buttonStyle(TrayTileStyle()).accessibilityHint("Afficher les détails de la connexion réseau et les débits")
     }
 
-    private var quickActions: some View {
-        HStack(spacing: 8) {
-            Button { show(.cleaningOverview) } label: { Label("Libérer de l’espace", systemImage: "trash").frame(maxWidth: .infinity) }
-            Button { show(.performanceOverview) } label: { Label("Optimiser", systemImage: "gauge.with.needle").frame(maxWidth: .infinity) }
-            Button(action: analyze) { Label("Vérifier le système", systemImage: "checkmark.shield").frame(maxWidth: .infinity) }.disabled(busy)
-            Menu {
-                Button("Explorer le disque") { show(.space) }
-                Button("Tous les outils") { show(.toolsOverview) }
-                Button("Activité récente") { show(.dashboard) }
-                Divider()
-                Text(scheduleText)
-                Button("Quitter MacCare") { NSApp.terminate(nil) }
-            } label: { Label("Plus", systemImage: "ellipsis") }
-                .menuStyle(.borderlessButton).fixedSize()
-        }
-        .font(.system(size: 11, weight: .medium))
-        .lineLimit(1).minimumScaleFactor(0.85)
-        .buttonStyle(TrayActionStyle())
-    }
-
-    private var activity: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionTitle("Activité récente")
-            if !app.activity.isEmpty {
-                ForEach(Array(app.activity.prefix(2))) { entry in
-                    Button { show(entry.module) } label: {
-                        activityRow(entry.title, date: entry.date)
-                    }.buttonStyle(.borderless)
-                }
-            } else if let last = smart.lastCompletedAt {
-                Button { show(.smartScan) } label: { activityRow("Dernier Smart Scan", date: last) }.buttonStyle(.borderless)
-            } else {
-                Text("Votre prochaine analyse apparaîtra ici.").font(.system(size: 12)).foregroundStyle(muted)
-            }
-        }
-    }
-
-    private func activityRow(_ title: String, date: Date) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: "clock.arrow.circlepath").foregroundStyle(highlight).accessibilityHidden(true)
-            Text(title).font(.system(size: 12, weight: .medium))
-            Spacer()
-            Text(Self.relative.localizedString(for: date, relativeTo: Date())).font(.system(size: 11)).foregroundStyle(muted)
-            Image(systemName: "chevron.right").font(.system(size: 10)).foregroundStyle(muted).accessibilityHidden(true)
-        }
-        .padding(12).background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
+    private var specsLine: String {
+        let uptime = MacSystemSpecs.bootDate.map { MacSystemSpecs.duration(Date().timeIntervalSince($0)) } ?? "—"
+        return "\(MacSystemSpecs.ram) · \(disk.map { humanSize($0.total) } ?? "—") · \(MacSystemSpecs.systemVersion) · ↑ \(uptime)"
     }
 
     private var footer: some View {
-        HStack(spacing: 8) {
-            Button { show(.dashboard) } label: { Label("Ouvrir MacCare", systemImage: "macwindow").frame(maxWidth: .infinity, alignment: .leading) }
+        HStack(spacing: 6) {
+            ForEach(TrayShortcuts.slots(shortcuts).compactMap { $0 }) { module in
+                Button { show(module) } label: { Image(systemName: module.symbol).frame(width: 20) }
+                    .buttonStyle(TrayActionStyle())
+                    .accessibilityLabel(module.title).accessibilityInputLabels([module.title])
+                    .help(module.title)
+            }
+            Spacer(minLength: 0)
+            Button { show(.dashboard) } label: { Image(systemName: "macwindow").frame(width: 20) }
                 .buttonStyle(TrayActionStyle())
+                .accessibilityLabel("Ouvrir MacCare").accessibilityInputLabels(["Ouvrir MacCare"])
+                .help("Ouvrir MacCare")
             if let openSettingsAction {
-                Button(action: openSettingsAction) { Image(systemName: "gearshape") }
+                Button(action: openSettingsAction) { Image(systemName: "gearshape").frame(width: 20) }
                     .buttonStyle(TrayActionStyle()).accessibilityLabel("Réglages de MacCare").help("Réglages de MacCare")
             } else if #available(macOS 14, *) {
-                SettingsLink { Image(systemName: "gearshape") }.buttonStyle(TrayActionStyle())
+                SettingsLink { Image(systemName: "gearshape").frame(width: 20) }.buttonStyle(TrayActionStyle())
                     .accessibilityLabel("Réglages de MacCare").help("Réglages de MacCare")
             } else {
                 Button {
                     NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
                     NSApp.activate(ignoringOtherApps: true)
-                } label: { Image(systemName: "gearshape") }
-                    .buttonStyle(TrayActionStyle()).accessibilityLabel("Réglages de MacCare")
+                } label: { Image(systemName: "gearshape").frame(width: 20) }
+                    .buttonStyle(TrayActionStyle()).accessibilityLabel("Réglages de MacCare").help("Réglages de MacCare")
             }
-            Button { NSApp.terminate(nil) } label: { Image(systemName: "power") }
-                .buttonStyle(TrayActionStyle()).accessibilityLabel("Quitter MacCare").help("Quitter MacCare")
         }
-        .padding(.horizontal, 16).padding(.vertical, 10)
+        .padding(.horizontal, 12).padding(.vertical, 8)
         .background(.black.opacity(0.20))
     }
 
     private func entrance(_ index: Int) -> TrayEntranceModifier {
         TrayEntranceModifier(index: index, enabled: animateEntrance, entered: entered, reduceMotion: reduceMotion)
-    }
-
-    private func sectionTitle(_ title: String) -> some View {
-        Text(title).font(.system(size: 16, weight: .semibold)).accessibilityAddTraits(.isHeader)
     }
 
     private func show(_ section: Module) {
@@ -348,9 +334,20 @@ struct MenuBarView: View {
 
     private var memoryValue: String { metrics.memory.map { "\(Int($0.fraction * 100)) %" } ?? "—" }
     private var cpuValue: String { metrics.cpu.map { "\(Int($0.used * 100)) %" } ?? "—" }
-    private var wifiState: String {
-        guard let wifi = metrics.wifi else { return "Indisponible" }
-        return !wifi.powered ? "Désactivé" : wifi.connected ? "Connecté" : "Déconnecté"
+    private var networkType: String {
+        guard let network = metrics.network, network.connected else { return "Déconnecté" }
+        return network.kind.rawValue
+    }
+    private var cpuTemperature: String {
+        metrics.cpu?.temperature.map { "\(Int($0.rounded())) °C" } ?? "— °C"
+    }
+    private var memoryPressureColor: Color {
+        switch metrics.memory?.pressure {
+        case .normal: return Color(hex: "#85DFBE")
+        case .warning: return .orange
+        case .critical: return .red
+        case nil: return muted
+        }
     }
     private var wifiSignalBars: Int {
         guard let rssi = metrics.wifi?.signalDBm else { return 0 }
@@ -363,13 +360,6 @@ struct MenuBarView: View {
         if busy { return "Votre Mac fait le point" }
         guard let last = smart.lastCompletedAt else { return "Analyse seule, à votre rythme" }
         return "Dernier bilan \(Self.relative.localizedString(for: last, relativeTo: Date()))"
-    }
-    private var scheduleText: String {
-        switch ScanScheduler.frequency {
-        case .off: return "Analyse automatique désactivée"
-        case .daily: return "Analyse automatique quotidienne"
-        case .weekly: return "Analyse automatique hebdomadaire"
-        }
     }
     private static let relative: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()
@@ -405,27 +395,15 @@ private struct TrayActionStyle: ButtonStyle {
     @State private var hovered = false
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 11, weight: .medium))
-            .padding(.horizontal, prominent ? 16 : 10).frame(minHeight: prominent ? 36 : 38)
+            .font(.caption.weight(.medium))
+            .padding(.horizontal, prominent ? 12 : 8).frame(minHeight: 28)
             .foregroundStyle(.white.opacity(enabled ? 1 : 0.4))
             .background {
-                RoundedRectangle(cornerRadius: 10).fill(LinearGradient(colors: prominent ? [Color(hex: "#AB64F4"), Color(hex: "#793BE0")] : [.white.opacity(hovered ? 0.16 : 0.10), .white.opacity(0.07)], startPoint: .top, endPoint: .bottom))
+                RoundedRectangle(cornerRadius: TrayAppearance.controlRadius).fill(LinearGradient(colors: prominent ? [Color(hex: "#AB64F4"), Color(hex: "#793BE0")] : [.white.opacity(hovered ? 0.10 : 0.055), .white.opacity(0.035)], startPoint: .top, endPoint: .bottom))
             }
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.white.opacity(prominent ? 0.25 : 0.17)))
+            .overlay(RoundedRectangle(cornerRadius: TrayAppearance.controlRadius).strokeBorder(.white.opacity(prominent ? 0.22 : 0.10)))
             .opacity(configuration.isPressed ? 0.85 : 1)
             .pressFeedback(configuration.isPressed && enabled)
-            .onHover { hovered = $0 }
-    }
-}
-
-private struct TrayTileStyle: ButtonStyle {
-    @State private var hovered = false
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .background(LinearGradient(colors: [.white.opacity(hovered ? 0.13 : 0.085), .white.opacity(0.04)], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 14))
-            .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(.white.opacity(hovered ? 0.24 : 0.14)))
-            .opacity(configuration.isPressed ? 0.85 : 1)
-            .pressFeedback(configuration.isPressed, scale: 0.985)
             .onHover { hovered = $0 }
     }
 }

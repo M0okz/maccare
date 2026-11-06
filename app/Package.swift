@@ -28,7 +28,7 @@ let package = Package(
         // Application SwiftUI.
         .executableTarget(
             name: "MacCare",
-            dependencies: ["CMacCareCore", "MacCareHelperProtocol", "MacCareMaintenance", "MacCareBattery", "CSQLite",
+            dependencies: ["CMacCareCore", "CMacCareSMC", "MacCareHelperProtocol", "MacCareMaintenance", "MacCareBattery", "CSQLite",
                            .product(name: "Sparkle", package: "Sparkle")],
             // La bibliothèque statique Rust est liée via le script app/build.sh
             // (-L core/target/release -lmaccare_core).
