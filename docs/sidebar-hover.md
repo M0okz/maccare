@@ -42,3 +42,7 @@ disposition, de raccourci, de moteur d’analyse ou de logique de navigation.
 Preuves locales : `build/sidebar-hover-qa/` (build, packaging, identification des
 paquets et validation). L’app reste ouverte sur une introduction pour comparer
 le survol à la sélection active.
+
+## Publication 0.2.11 — 6 novembre 2026
+
+Ces évolutions sont publiées dans [MacCare 0.2.11 (build 13)](https://github.com/M0okz/maccare/releases/tag/v0.2.11), tag `v0.2.11` sur `b7e76f2`, après fusion de la PR #18 et suppression de la branche `codex/tray-storage-battery-details`. Ce statut remplace celui de développement non livré des notes précédentes. Le DMG téléchargé et le flux Sparkle ont été vérifiés : signatures, notarisation et Gatekeeper valides. Les limites de QA datées restent applicables, dont le survol seul à confirmer à la souris réelle. La copie quotidienne en 0.2.8 (10) est préservée ; la Dev installée reste identifiée 0.2.10 (12).

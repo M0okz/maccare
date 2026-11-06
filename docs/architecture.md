@@ -180,3 +180,7 @@ Les inventaires déjà lus restent disponibles aux outils. Mes fichiers conserve
 son retour au choix du dossier ; Espace disque conserve la distinction entre
 Changer d’emplacement et Actualiser la mesure. Voir [les validations Dev et
 limites](analysis-restarts.md). Aucun changement du moteur ni de la suppression.
+
+## Publication 0.2.11 — 6 novembre 2026
+
+Ces évolutions sont publiées dans [MacCare 0.2.11 (build 13)](https://github.com/M0okz/maccare/releases/tag/v0.2.11), tag `v0.2.11` sur `b7e76f2`, après fusion de la PR #18 et suppression de la branche `codex/tray-storage-battery-details`. Ce statut remplace celui de développement non livré des notes précédentes. Le DMG téléchargé et le flux Sparkle ont été vérifiés : signatures, notarisation et Gatekeeper valides. Les limites de QA datées restent applicables, dont le survol seul à confirmer à la souris réelle. La copie quotidienne en 0.2.8 (10) est préservée ; la Dev installée reste identifiée 0.2.10 (12).
