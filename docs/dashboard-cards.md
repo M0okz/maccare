@@ -1,8 +1,73 @@
-# Accueil : bilan et batterie enrichis
+# Accueil : bilan, batterie et santé
 
 Intégration du 6 novembre 2026, après validation de la maquette. Branche locale
 `codex/dashboard-summary-cards`, après la publication 0.2.11. Ces ajouts ne font
 pas partie de la release publique 0.2.11.
+
+## Disposition validée — intégration Dev
+
+La deuxième proposition visuelle a été validée par Gregory. Elle remplace la
+composition des premières passes décrites plus bas : bilan sur toute la largeur,
+colonne Batterie puis Santé à gauche, et Activité en grille 3 × 2 à droite. La
+carte autonome Disque de démarrage est retirée de l’accueil ; une seule tuile
+Stockage subsiste dans Activité. Aucune donnée fictive de la maquette n’est reprise.
+
+`DashboardView` compose le bilan seul en tête. `HomeCleaningCard` aligne total,
+répartition et action circulaire sur une ligne lorsque le contenu dispose d’au
+moins 900 points ; sinon il reprend une disposition verticale. Les états sans
+analyse, historique sans détail, analyse active, interruption et nettoyage restent
+issus du modèle. Les actions Analyser/Suivre/Arrêter ne changent pas de sens.
+
+À partir de 1040 points disponibles, `HomeStatusCards` réserve 36 % de la largeur
+à Batterie et Santé empilées, avec 18 points entre cartes. Activité remplit la
+hauteur de cette colonne. Plus bas, Batterie et Santé passent d’abord côte à côte,
+puis s’empilent si leurs largeurs minimales ne tiennent plus ; Activité vient
+dessous et garde son propre repli à deux colonnes. Batterie reprend sa hauteur
+naturelle, sans minimum de 256 points ni espaces qui étirent son centre. Les
+anneaux de 34 points gardent leurs trois emplacements fixes et la rétention de
+20 secondes. Les noms/niveaux restent accessibles et au survol.
+
+`HomeHealthCard` remplace le doublon par un contexte : état, raison principale,
+nom réel du Mac, RAM/macOS et uptime. Pas de capacité ni de jauge de stockage dans
+cette carte. Le résumé `HomeHealthPresentation` réutilise `MacHealthScore` et le
+seuil existant `StorageAlertPolicy.isLow`, sans changer le barème ni le suivi des
+mesures. Il distingue Tout va bien, À surveiller, À vérifier, Lecture en cours et
+Mesures partielles. Une condition critique prime sur un avertissement ordinaire ;
+une mesure manquante ne produit pas un faux état sain. Le clic ouvre le détail
+natif des critères existant, avec le grade et le score chiffré réservés à ce détail.
+Les mesures CPU instantanées et l’uptime n’influencent toujours pas le calcul.
+
+Après le retour de Gregory sur la hauteur excessive des tuiles, Batterie et Santé
+sont resserrées ensemble : marges internes de 18 points, source et puissance du
+chargeur sur une ligne, RAM/macOS/uptime sur une ligne. Le nom du Mac reste au-dessus.
+La raison courte Santé conserve une seule ligne stable, avec son texte complet au
+survol et dans le détail. La grille Activité suit cette colonne plus courte au
+lieu d’étirer des tuiles à travers un grand vide. Le style partagé laisse Batterie
+et Santé à leur hauteur naturelle ; seul Activité demande explicitement de remplir
+la hauteur disponible, ce qui évite de répartir artificiellement la colonne en
+deux cartes égales et de comprimer le pied de Batterie.
+
+Polissage selon le skill Emil : mêmes espacements, blancs lumineux et surfaces
+violettes ; chiffre principal avec chiffres tabulaires ; hauteur stable pour la
+raison courte de santé et le processus ; anneaux sans animation de déplacement ;
+focus arrondi suivant le contour des tuiles. Les éléments décoratifs sont masqués à
+l’accessibilité et les actions restent des boutons natifs. Les retours de pression
+et graphiques existants conservent leur prise en compte de Réduire les animations.
+
+Validation de cette passe : 33 tests ciblés réussis (résumé de santé, barème,
+accessoires, persistance et retours du nettoyage). Build et vérification du paquet
+Dev dans `build/dashboard-approved-qa/`. Le rendu natif à 1436 × 784 a été contrôlé : disposition 36/64, haut/bas alignés,
+Batterie compacte, anneaux, Santé avec mesures réelles, un seul stockage, bilan
+horizontal et accès au détail Santé. Après le retour sur les hauteurs, le rendu
+final confirme des tuiles moins hautes, la marge sous le processus Batterie et la
+hauteur naturelle distincte des deux cartes de gauche. Échap referme le détail Santé. Analyser revient à
+la préparation sans déclencher de scan. Le contrôle des formats étroits reste
+limité : la tentative par le menu natif a été interrompue par des changements
+d’état de l’application ; aucun repli étroit n’est déclaré visuellement validé.
+Pas de campagne complète VoiceOver/clavier/grandes tailles/Réduire les animations. Paquet local
+`build/dashboard-approved/MacCare.app`, Dev 0.2.11 (build local 1), non publié.
+La copie quotidienne dans Applications est préservée.
+
 
 ## Bilan du nettoyage
 

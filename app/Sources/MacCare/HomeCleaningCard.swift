@@ -21,37 +21,62 @@ struct HomeCleaningCard: View {
                     ScanAgeText(date: last).font(AppFont.caption).foregroundStyle(Theme.muted)
                 }
             }
-            HStack(spacing: 24) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(metric).font(.system(size: metricSize, weight: .semibold)).monospacedDigit()
-                        .accessibilityAddTraits(.isHeader)
-                    Text(detail).font(AppFont.body).foregroundStyle(Theme.muted)
-                        .fixedSize(horizontal: false, vertical: true)
-                }.frame(maxWidth: .infinity, alignment: .leading)
-                Button(busy ? "Suivre" : "Analyser", action: onAnalyze)
-                    .buttonStyle(CircularOverviewActionStyle(tint: ModuleColor.clean))
-                    .accessibilityLabel(busy ? "Suivre le nettoyage" : "Analyser le nettoyage")
-                    .help(busy ? "Ouvrir l’opération en cours." : "Revenir à l’écran Analyser pour préparer un nouveau bilan.")
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 24) {
+                    summary.frame(width: 300, alignment: .leading)
+                    Rectangle().fill(.white.opacity(0.12)).frame(width: 1, height: 72).accessibilityHidden(true)
+                    distribution.frame(maxWidth: .infinity, alignment: .leading)
+                    analyzeButton
+                }.frame(minWidth: 900)
+                VStack(alignment: .leading, spacing: 20) {
+                    HStack(spacing: 20) {
+                        summary.frame(maxWidth: .infinity, alignment: .leading)
+                        analyzeButton
+                    }
+                    distribution
+                }
             }
-            if scanning {
-                ProgressView(value: model.progress).accessibilityLabel("Progression de l’analyse")
-                Button("Arrêter l’analyse") { model.cancelScan() }.buttonStyle(LinkStyle())
-            } else if let breakdown, breakdown.total > 0 {
-                HomeCleaningDistribution(breakdown: breakdown)
-            } else if !busy && !model.wasCancelled && model.lastCompletedAt != nil && !model.isComplete {
-                Text("La répartition sera disponible après la prochaine analyse.")
-                    .font(AppFont.secondary).foregroundStyle(Theme.muted)
-            }
+            Divider().overlay(.white.opacity(0.08))
             Label {
                 Text("Analyse seule. Vous choisissez chaque suppression.")
             } icon: {
                 Image(systemName: "shield").accessibilityHidden(true)
             }.font(AppFont.secondary).foregroundStyle(Theme.muted)
         }
-        .padding(24).frame(maxWidth: .infinity, minHeight: 245, maxHeight: .infinity, alignment: .topLeading)
+        .padding(24).frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .topLeading)
         .background(LinearGradient(colors: [ModuleColor.clean.opacity(0.24), .white.opacity(0.035)],
                                    startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 22))
         .overlay(RoundedRectangle(cornerRadius: 22).strokeBorder(.white.opacity(0.12)))
+    }
+
+    private var summary: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(metric).font(.system(size: metricSize, weight: .semibold)).monospacedDigit()
+                .accessibilityAddTraits(.isHeader)
+            Text(detail).font(AppFont.body).foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var analyzeButton: some View {
+        Button(busy ? "Suivre" : "Analyser", action: onAnalyze)
+            .buttonStyle(CircularOverviewActionStyle(tint: ModuleColor.clean))
+            .accessibilityLabel(busy ? "Suivre le nettoyage" : "Analyser le nettoyage")
+            .help(busy ? "Ouvrir l’opération en cours." : "Revenir à l’écran Analyser pour préparer un nouveau bilan.")
+    }
+
+    @ViewBuilder private var distribution: some View {
+        if scanning {
+            VStack(alignment: .leading, spacing: 12) {
+                ProgressView(value: model.progress).accessibilityLabel("Progression de l’analyse")
+                Button("Arrêter l’analyse") { model.cancelScan() }.buttonStyle(LinkStyle())
+            }
+        } else if let breakdown, breakdown.total > 0 {
+            HomeCleaningDistribution(breakdown: breakdown)
+        } else if !busy && !model.wasCancelled && model.lastCompletedAt != nil && !model.isComplete {
+            Text("La répartition sera disponible après la prochaine analyse.")
+                .font(AppFont.secondary).foregroundStyle(Theme.muted)
+        }
     }
 
     private var metric: String {

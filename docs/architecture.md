@@ -126,6 +126,19 @@ ou les changements de numéro de source. Chargeur et processus restent mis à jo
 à chaque relevé. La carte d’accueil utilise trois emplacements d’anneaux à taille
 constante (ce Mac et deux accessoires), avec les détails au survol et accessibles.
 
+La disposition d’accueil validée retire la carte disque autonome : un seul
+`HomeCleaningCard` occupe la première ligne, puis `HomeStatusCards` compose
+Batterie/Santé dans une colonne et Activité en regard. `HomeHealthPresentation`
+résume les signaux existants sans recalculer un autre indice : il conserve
+l’évaluation `MacHealthScore`, réutilise le seuil d’alerte stockage et priorise les
+conditions critiques. Les plafonds chiffrés restent dans `MacHealthDetails`, pas
+dans la raison courte de la carte. `HomeHealthCard` observe le store et le modèle
+batterie existants ; son uptime se met à jour à la minute sans nouveau lecteur
+matériel. Les dispositions étroites passent par `ViewThatFits` et l’empilement.
+Le remplissage vertical du style est explicite pour Activité ; Batterie et Santé
+conservent leur hauteur de contenu, avec alimentation/puissance et caractéristiques/
+uptime regroupés pour éviter l’étirement des tuiles.
+
 ## Distribution
 
 L’app et l’assistant conservent des identifiants distincts, avec une signature Apple

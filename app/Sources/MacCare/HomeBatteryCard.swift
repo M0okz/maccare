@@ -8,7 +8,7 @@ struct HomeBatteryCard: View {
     @StateObject private var context = TrayBatteryController()
     @State private var windowVisible = false
     @ScaledMetric(relativeTo: .largeTitle) private var chargeSize = 36
-    @ScaledMetric(relativeTo: .body) private var accessoryDiameter: CGFloat = 40
+    @ScaledMetric(relativeTo: .body) private var accessoryDiameter: CGFloat = 34
     private var snapshot: BatterySnapshot? { model.snapshot }
     private var telemetry: TrayBatteryTelemetry { context.telemetry }
 
@@ -28,7 +28,7 @@ struct HomeBatteryCard: View {
     }
 
     private var content: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 Image(systemName: "battery.100percent").foregroundStyle(Theme.ok).accessibilityHidden(true)
                 Text("Batterie").font(.headline)
@@ -43,9 +43,7 @@ struct HomeBatteryCard: View {
                 Text("Ce Mac ne possède pas de batterie intégrée.")
                     .font(AppFont.body).foregroundStyle(Theme.muted)
             } else {
-                Spacer(minLength: 0)
                 charge
-                Spacer(minLength: 0)
                 Divider().overlay(.white.opacity(0.08))
                 consumer
             }
@@ -53,31 +51,31 @@ struct HomeBatteryCard: View {
     }
 
     private var charge: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 18) {
-                chargeSummary.fixedSize(horizontal: true, vertical: false)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 12) {
+                Text(HomeBatteryPresentation.charge(snapshot))
+                    .font(.system(size: chargeSize, weight: .semibold)).monospacedDigit()
                 Spacer(minLength: 0)
                 accessories
             }
-            VStack(alignment: .leading, spacing: 14) {
-                chargeSummary
-                accessories
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) { source; power }
+                VStack(alignment: .leading, spacing: 4) { source; power }
             }
         }
     }
 
-    private var chargeSummary: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(HomeBatteryPresentation.charge(snapshot))
-                .font(.system(size: chargeSize, weight: .semibold)).monospacedDigit()
-            Text(HomeBatteryPresentation.source(snapshot)).font(AppFont.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            if let powerDetail {
-                Label { Text(powerDetail) } icon: {
-                    Image(systemName: powerSymbol).accessibilityHidden(true)
-                }.font(AppFont.caption).foregroundStyle(Theme.muted)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+    private var source: some View {
+        Text(HomeBatteryPresentation.source(snapshot)).font(AppFont.caption)
+            .fixedSize(horizontal: true, vertical: false)
+    }
+
+    @ViewBuilder private var power: some View {
+        if let powerDetail {
+            Label { Text(powerDetail) } icon: {
+                Image(systemName: powerSymbol).accessibilityHidden(true)
+            }.font(AppFont.caption).foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: true, vertical: false)
         }
     }
 
@@ -87,7 +85,7 @@ struct HomeBatteryCard: View {
                              diameter: accessoryDiameter, lineWidth: 3)
             ForEach(0..<2, id: \.self) { index in
                 if index < telemetry.accessories.count {
-                    HomeBatteryAccessory(accessory: telemetry.accessories[index])
+                    HomeBatteryAccessory(accessory: telemetry.accessories[index], diameter: accessoryDiameter)
                 } else {
                     Color.clear.frame(width: accessoryDiameter + 4, height: accessoryDiameter + 4)
                         .accessibilityHidden(true)
@@ -99,7 +97,7 @@ struct HomeBatteryCard: View {
     }
 
     private var consumer: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 5) {
             if let consumer = telemetry.consumer {
                 Label {
                     Text(consumer.measuredPower ? "Processus le plus énergivore" : "Processus le plus actif CPU")
@@ -122,7 +120,7 @@ struct HomeBatteryCard: View {
                 Text(context.hasSampled ? "Consommation indisponible." : "Lecture des processus accessibles…")
                     .font(AppFont.secondary).foregroundStyle(Theme.muted)
             }
-        }
+        }.frame(minHeight: 45, alignment: .topLeading)
     }
 
     private var powerDetail: String? {

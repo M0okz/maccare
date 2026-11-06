@@ -32,7 +32,7 @@ struct HomeActivityCard: View {
                 }
             }.frame(maxHeight: .infinity)
         }
-        .modifier(HomeStatusCardStyle(tint: Theme.accent))
+        .modifier(HomeStatusCardStyle(tint: Theme.accent, expandsVertically: true))
         .onAppear { readout.record(metrics) }
         .onChange(of: metrics.sampledAt) { _ in readout.record(metrics) }
     }

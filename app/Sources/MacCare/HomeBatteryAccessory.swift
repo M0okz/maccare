@@ -2,7 +2,7 @@ import SwiftUI
 
 struct HomeBatteryAccessory: View {
     let accessory: TrayBatteryTelemetry.Accessory
-    @ScaledMetric(relativeTo: .body) private var diameter: CGFloat = 40
+    var diameter: CGFloat = 40
 
     var body: some View {
         TrayBatteryGauge(name: accessory.name, symbol: accessory.symbol, percent: accessory.percent,

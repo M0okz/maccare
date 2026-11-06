@@ -130,3 +130,14 @@ en échec. Le paquet conserve le numéro de build Dev local par défaut, 1, dist
 du build public 13 précédemment reporté par erreur pour la Dev. Installation
 uniquement dans `/Applications/MacCare Dev.app`, copie quotidienne préservée.
 Voir [les détails et limites](dashboard-cards.md).
+
+## Disposition d’accueil validée — Dev
+
+Le paquet `build/dashboard-approved/MacCare.app` intègre la deuxième maquette
+validée : bilan sur toute la largeur, Batterie compacte et Santé du Mac empilées
+à gauche, Activité en grille à droite. Le disque autonome en doublon est retiré.
+Le résumé de santé réutilise le score et les mesures du volet, avec un accès au
+détail des critères ; les informations de la maquette restent illustratives.
+33 tests ciblés réussis. Disposition native, détail Santé et retour à Analyser
+vérifiés. Paquet Dev 0.2.11 (build local 1), installé uniquement dans
+`/Applications/MacCare Dev.app`, non publié. Voir [la disposition et les contrôles](dashboard-cards.md).

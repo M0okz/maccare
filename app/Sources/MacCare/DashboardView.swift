@@ -20,13 +20,7 @@ struct DashboardView: View {
             VStack(alignment: .leading, spacing: 24) {
                 header
                 if permissions.showBanner { permissionBanner }
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .top, spacing: 20) {
-                        hero.frame(minWidth: 390, maxWidth: .infinity)
-                        storage.frame(width: 290)
-                    }.fixedSize(horizontal: false, vertical: true)
-                    VStack(spacing: 20) { hero; storage }
-                }
+                hero
                 HomeStatusCards(app: app, availableWidth: min(geometry.size.width, 1200) - 56,
                                 storage: disk.flatMap { TrayStorageUsage(free: $0.free, total: $0.total) })
                 VStack(alignment: .leading, spacing: 14) {
@@ -57,20 +51,6 @@ struct DashboardView: View {
             Text("Bienvenue dans MacCare").font(.title.weight(.semibold)).accessibilityAddTraits(.isHeader)
             Text("Un peu d’entretien. Plus de place pour l’essentiel.").font(AppFont.body).foregroundStyle(Theme.muted)
         }.multilineTextAlignment(.center).frame(maxWidth: .infinity)
-    }
-
-    @ViewBuilder private var storage: some View {
-        if let disk {
-            HomeStorageCard(free: disk.free, total: disk.total) { app.select(.space) }
-        } else {
-            Button { app.select(.space) } label: {
-                VStack(alignment: .leading, spacing: 16) {
-                    Label("Disque de démarrage", systemImage: "internaldrive").font(.headline)
-                    Text("Le stockage n’a pas pu être mesuré.").font(AppFont.body).foregroundStyle(Theme.muted)
-                }.padding(24).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .contentShape(RoundedRectangle(cornerRadius: 22))
-            }.buttonStyle(HomeStorageCardStyle()).accessibilityHint("Ouvrir Espace disque")
-        }
     }
 
     private var hero: some View {
