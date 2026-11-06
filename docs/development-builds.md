@@ -75,3 +75,12 @@ mesure courante et son bouton Changer d’emplacement. Les quatre parcours ont
 `/Applications/MacCare Dev.app` est actualisée, toujours en Dev 0.2.10 (12), sans
 publication ni remplacement de la copie quotidienne. Voir [les contrôles et
 limites](analysis-restarts.md).
+
+## Textes plus lumineux — 6 novembre 2026
+
+Le paquet `build/text-contrast/MacCare.app` renforce les blancs du thème sombre,
+retire l’opacité réduite des libellés du menu et éclaircit les textes secondaires
+du volet. Il actualise `/Applications/MacCare Dev.app` (Dev 0.2.10, build 12),
+sans publication. L’introduction et le bilan Applications, le gestionnaire blanc,
+les réglages blancs et le volet réel ont été vérifiés. Build et signatures valides,
+copie quotidienne inchangée. Voir [les couleurs, mesures et limites](text-contrast.md).

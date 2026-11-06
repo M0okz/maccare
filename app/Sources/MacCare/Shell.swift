@@ -242,6 +242,7 @@ struct RootView: View {
         .preferredColorScheme(.dark)   // Fonds colorés profonds, texte clair.
         .tint((app.module ?? .dashboard).section.palette.accent)
         .font(AppFont.body)
+        .foregroundStyle(Theme.fg)
         .lineSpacing(3)
         .background(WindowConfigurator())
     }
@@ -392,7 +393,7 @@ struct Sidebar: View {
                 if !compact {
                     Text(m.title)
                         .font(AppFont.body.weight(.medium))
-                        .foregroundStyle(selected ? Color.white : Theme.fg.opacity(0.82))
+                        .foregroundStyle(Theme.fg)
                     Spacer(minLength: 0)
                 }
             }
