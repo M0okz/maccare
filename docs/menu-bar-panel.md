@@ -294,3 +294,32 @@ SHA-256 DMG : `e3001f4ff023cd23eb3ef8d7d3d40870628f0568289eb919afe518a154106a95`
 L’installation quotidienne est conservée en 0.2.8 (10) ; son SHA-256 ne change pas.
 Aucune mise à jour Sparkle réelle vers 0.2.10 n’a été effectuée dans cette tâche.
 Les limites de QA matérielle et d’accessibilité ci-dessus restent applicables.
+
+## Détails Stockage et Batterie — correction Dev du 6 novembre 2026
+
+Correction locale **non publiée** après 0.2.10. Les cartes Stockage interne et
+Batterie ouvraient directement leur module dans la fenêtre principale, alors que
+CPU, mémoire et réseau disposaient d’un popover. Elles ouvrent maintenant un
+popover ancré au volet, avec la même surface violette et une sélection unique
+`TrayDetailSelection`. Un bouton explicite permet ensuite d’ouvrir l’outil complet.
+
+`TrayStorageDetail` présente l’espace disponible, utilisé, total et l’occupation
+estimée avec un anneau. Les valeurs proviennent du même relevé `DiskSpace` que la
+carte (actualisé toutes les dix secondes), sans parcours des fichiers. Le disponible
+macOS peut inclure de l’espace purgeable ; ce point est expliqué dans le détail.
+`TrayStorageUsage` rejette une capacité nulle et borne le disponible à la capacité
+pour éviter un dépassement arithmétique ou une jauge invalide.
+
+`TrayBatteryDetail` observe le `BatteryModel` existant et reçoit la télémétrie du
+volet : charge, alimentation/autonomie, capacité restante estimée, cycles,
+température, état, chargeur annoncé, protection, processus énergivore ou repli CPU
+et accessoires. Une erreur de contrôle reste indiquée comme état indisponible.
+Aucune nouvelle commande matérielle ni nouvelle boucle de lecture n’est créée.
+`TrayDetailSurface`, `TrayDetailRow` et `TrayActionStyle` partagent le cadre et les
+contrôles ; les fenêtres d’activité existantes gardent leurs types de métrique.
+
+Référence de travail : branche `codex/tray-storage-battery-details`, base `ec8cca3`.
+Paquet Dev : `build/tray-details/MacCare.app`, installé sur demande dans
+`/Applications/MacCare Dev.app` (0.2.10, build 12, signature Apple Development).
+La release publique 0.2.10 ne contient pas encore cette correction ; la copie
+quotidienne `/Applications/MacCare.app` reste en 0.2.8 (10), inchangée.

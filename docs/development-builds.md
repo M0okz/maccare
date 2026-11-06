@@ -48,3 +48,57 @@ tag `v0.2.10` sur `e5dfb42`, après fusion de la PR #17 et suppression de la bra
 `codex/compact-menu-bar`. Le paquet Dev ci-dessus reste une copie de QA locale,
 distincte du DMG public signé et notarié. La copie quotidienne reste en 0.2.8 (10),
 sans remplacement. Voir les preuves et limites dans `menu-bar-panel.md`.
+
+## Correction des détails du volet — 6 novembre 2026
+
+La branche `codex/tray-storage-battery-details` ajoute les popovers Stockage interne
+et Batterie, après la publication 0.2.10. Le paquet `build/tray-details/MacCare.app`
+porte toujours l’identité Dev 0.2.10 (12) et actualise `/Applications/MacCare Dev.app`.
+Cette correction est locale, non publiée. Aucun remplacement de la copie quotidienne.
+Voir `menu-bar-panel.md` pour les mesures, la navigation et les limites de validation.
+
+## Bilan Nettoyage : retour à Analyser — 6 novembre 2026
+
+Le paquet `build/cleaning-restart/MacCare.app` ajoute le retour à l’écran de
+préparation depuis « Relancer l’analyse » du bilan Nettoyage, sans relance du moteur.
+Il conserve les correctifs des détails Stockage/Batterie et met à jour la copie
+`/Applications/MacCare Dev.app` (0.2.10, build 12, Apple Development). Ce travail
+reste local et non publié, distinct de l’installation quotidienne préservée.
+
+## Cohérence des boutons Recommencer — 6 novembre 2026
+
+Le paquet `build/overview-restarts/MacCare.app` ajoute le retour à Analyser dans
+Performances et Applications, avec le libellé Recommencer. Mes fichiers était
+déjà conforme. Espace disque conserve explicitement son actualisation de la
+mesure courante et son bouton Changer d’emplacement. Les quatre parcours ont
+été vérifiés dans l’application, avec 37 tests ciblés réussis. La copie installée
+`/Applications/MacCare Dev.app` est actualisée, toujours en Dev 0.2.10 (12), sans
+publication ni remplacement de la copie quotidienne. Voir [les contrôles et
+limites](analysis-restarts.md).
+
+## Textes plus lumineux — 6 novembre 2026
+
+Le paquet `build/text-contrast/MacCare.app` renforce les blancs du thème sombre,
+retire l’opacité réduite des libellés du menu et éclaircit les textes secondaires
+du volet. Il actualise `/Applications/MacCare Dev.app` (Dev 0.2.10, build 12),
+sans publication. L’introduction et le bilan Applications, le gestionnaire blanc,
+les réglages blancs et le volet réel ont été vérifiés. Build et signatures valides,
+copie quotidienne inchangée. Voir [les couleurs, mesures et limites](text-contrast.md).
+
+## Survol des catégories — 6 novembre 2026
+
+Le paquet `build/sidebar-hover/MacCare.app` ajoute un fond arrondi au survol des
+catégories, plus léger que la sélection active, sans navigation automatique.
+Style partagé entre barre complète et rail compact, fondu de 120 ms désactivé
+avec Réduire les animations. La copie Dev installée est actualisée (0.2.10, build
+12), sans publication ni remplacement de la copie quotidienne. Build, signatures,
+sélection et clics de navigation vérifiés ; confirmation du survol seul à la
+souris réelle encore nécessaire. Voir [les contrôles et limites](sidebar-hover.md).
+
+## Préparation de la version 0.2.11 — 6 novembre 2026
+
+La prochaine publication réunit les corrections locales des détails Stockage et
+Batterie, du retour à Analyser, des textes et du survol. La version source passe
+à 0.2.11 ; le numéro de build sera attribué par le workflow de release. Les notes
+de version conservent les limites de QA, dont le survol seul à la souris réelle.
+Cette section décrit la préparation : aucune installation quotidienne effectuée.

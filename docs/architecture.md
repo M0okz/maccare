@@ -145,3 +145,38 @@ La branche `codex/compact-menu-bar` est supprimée après CI verte. Les mesures
 restent en lecture seule et à la demande ; aucun réglage ventilateur ajouté.
 Le DMG public et le flux Sparkle ont été vérifiés, sans remplacer la copie
 quotidienne en 0.2.8 (10). Contrôles et limites dans `menu-bar-panel.md`.
+
+### Popovers Stockage et Batterie — correction Dev du 6 novembre 2026
+
+`TrayDetailSelection` sépare les détails d’activité existants (`TrayMetricDetail.Kind`)
+et les nouveaux détails Stockage/Batterie. Une sélection unique pilote le popover
+du volet ; les outils complets restent accessibles par une action de navigation
+explicite. `TrayDetailSurface` mutualise le cadre violet sans modifier le suivi des
+processus CPU/mémoire. `TrayStorageUsage` normalise les volumes, `TrayStorageDetail`
+réutilise le relevé disque du parent et `TrayBatteryDetail` observe le modèle batterie
+et la télémétrie déjà suivis. Pas de nouvelle analyse, boucle de suivi, écriture de
+charge ou commande ventilateur. Correction locale après 0.2.10, non publiée ; branche
+`codex/tray-storage-battery-details`, base `ec8cca3`.
+
+### Retour à la préparation du nettoyage — correction Dev du 6 novembre 2026
+
+Le bouton de relance du bilan distingue `CleaningOverviewView.prepareNewAnalysis()`
+du démarrage réel `analyze()`. Il appelle `SmartScanModel.prepareForNewScan()` et
+retire le mode d’accès direct aux outils. Le modèle annule le scan, incrémente sa
+génération et efface l’état de la session, tout en gardant le dernier bilan complet
+mémorisé. La remise à zéro est refusée pendant une suppression. UserDefaults devient
+injectable pour des tests isolés ; les clés et le domaine utilisés en production
+ne changent pas. Régression avant/après : `CleaningRestartTests`, complétée par
+Nettoyage/profils/navigation (15 tests). Aucun changement du moteur Rust ni de la
+politique de suppression. Correction locale non publiée ; voir cleaning-managers.
+
+### Recommencer les bilans — correction Dev du 6 novembre 2026
+
+Performances et Applications distinguent également le retour à la préparation
+du lancement d’une analyse. Le premier remet `performanceAnalyzed` à faux ; le
+second appelle `ApplicationsAnalysisModel.prepareForNewAnalysis()`. Les deux
+retirent leur détail actif et refusent le retour pendant une opération en cours.
+Les inventaires déjà lus restent disponibles aux outils. Mes fichiers conserve
+son retour au choix du dossier ; Espace disque conserve la distinction entre
+Changer d’emplacement et Actualiser la mesure. Voir [les validations Dev et
+limites](analysis-restarts.md). Aucun changement du moteur ni de la suppression.

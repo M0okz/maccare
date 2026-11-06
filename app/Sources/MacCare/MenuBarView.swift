@@ -19,7 +19,7 @@ struct MenuBarView: View {
     private var networkRates: TrayMetrics.WiFi? { networkReadout.wifi ?? metrics.wifi }
     @StateObject private var batteryContext = TrayBatteryController()
     @State private var showingHealth = false
-    @State private var detail: TrayMetricDetail.Kind?
+    @State private var detail: TrayDetailSelection?
     @State private var disk = DiskSpace.current()
     private let hardware = MacHardwarePresentation.current
     private let machineName = Host.current().localizedName ?? MacHardwarePresentation.current.title
@@ -48,7 +48,11 @@ struct MenuBarView: View {
         .onAppear { networkReadout.record(metrics) }
         .onChange(of: metrics.sampledAt) { _ in networkReadout.record(metrics) }
         .popover(item: $detail, arrowEdge: .leading) { selected in
-            TrayMetricDetail(kind: selected, metricsStore: metricsStore)
+            switch selected {
+            case .activity(let kind): TrayMetricDetail(kind: kind, metricsStore: metricsStore)
+            case .storage: TrayStorageDetail(space: disk) { show(.space) }
+            case .battery: TrayBatteryDetail(model: app.battery, telemetry: batteryContext.telemetry) { show(.battery) }
+            }
         }
         .task(id: app.battery.snapshot?.present == true) {
             if app.battery.snapshot?.present == true { await batteryContext.monitor() }
@@ -73,7 +77,7 @@ struct MenuBarView: View {
                 HStack(spacing: 6) { memoryCard; fansCard }
                 HStack(spacing: 6) { storageCard; wifiCard }
             }.modifier(entrance(2))
-            BatteryTrayButton(model: app.battery, telemetry: batteryContext.telemetry) { show(.battery) }.modifier(entrance(3))
+            BatteryTrayButton(model: app.battery, telemetry: batteryContext.telemetry) { detail = .battery }.modifier(entrance(3))
         }
         .padding(12)
         .fixedSize(horizontal: false, vertical: true)
@@ -157,7 +161,7 @@ struct MenuBarView: View {
     }
 
     private var storageCard: some View {
-        Button { show(.space) } label: {
+        Button { detail = .storage } label: {
             TrayMetricTile(title: "Stockage interne", symbol: "internaldrive", value: disk.map { humanSize($0.free) } ?? "—") {
                 if let disk { Text("libres sur \(humanSize(disk.total))").lineLimit(1) }
                 else { Text("Espace indisponible") }
@@ -166,13 +170,13 @@ struct MenuBarView: View {
             }
         }
         .buttonStyle(TrayTileStyle())
-        .accessibilityHint("Explorer le stockage interne dans MacCare")
+        .accessibilityHint("Afficher le détail du stockage interne")
     }
 
     private var memoryRingFraction: Double { TrayMemoryRingLayout.rounded(metrics.memory?.fraction ?? 0) }
 
     private var memoryCard: some View {
-        Button { detail = .memory } label: {
+        Button { detail = .activity(.memory) } label: {
             TrayMetricTile(title: "Mémoire", symbol: "memorychip", value: memoryValue) {
                 Text(metrics.memory?.pressure?.title ?? "Pression indisponible").lineLimit(1)
                     .foregroundStyle(memoryPressureColor)
@@ -190,7 +194,7 @@ struct MenuBarView: View {
     }
 
     private var processorCard: some View {
-        Button { detail = .cpu } label: {
+        Button { detail = .activity(.cpu) } label: {
             TrayMetricTile(title: "Processeur", symbol: "cpu", value: cpuValue) {
                 Text("Charge du processeur").lineLimit(1)
             } indicator: {
@@ -246,7 +250,7 @@ struct MenuBarView: View {
     }
 
     private var wifiCard: some View {
-        Button { detail = .wifi } label: {
+        Button { detail = .activity(.wifi) } label: {
             TrayMetricTile(title: "Réseau", symbol: metrics.network?.symbol ?? "network", value: networkType) {
                 VStack(alignment: .leading, spacing: 3) {
                     if let network = metrics.network, network.connected {
@@ -386,24 +390,5 @@ private struct TrayBackdrop: View {
             ], startPoint: .top, endPoint: .bottom))
         }
         .clipped().allowsHitTesting(false).accessibilityHidden(true)
-    }
-}
-
-private struct TrayActionStyle: ButtonStyle {
-    var prominent = false
-    @Environment(\.isEnabled) private var enabled
-    @State private var hovered = false
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.caption.weight(.medium))
-            .padding(.horizontal, prominent ? 12 : 8).frame(minHeight: 28)
-            .foregroundStyle(.white.opacity(enabled ? 1 : 0.4))
-            .background {
-                RoundedRectangle(cornerRadius: TrayAppearance.controlRadius).fill(LinearGradient(colors: prominent ? [Color(hex: "#AB64F4"), Color(hex: "#793BE0")] : [.white.opacity(hovered ? 0.10 : 0.055), .white.opacity(0.035)], startPoint: .top, endPoint: .bottom))
-            }
-            .overlay(RoundedRectangle(cornerRadius: TrayAppearance.controlRadius).strokeBorder(.white.opacity(prominent ? 0.22 : 0.10)))
-            .opacity(configuration.isPressed ? 0.85 : 1)
-            .pressFeedback(configuration.isPressed && enabled)
-            .onHover { hovered = $0 }
     }
 }

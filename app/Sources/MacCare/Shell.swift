@@ -242,6 +242,7 @@ struct RootView: View {
         .preferredColorScheme(.dark)   // Fonds colorés profonds, texte clair.
         .tint((app.module ?? .dashboard).section.palette.accent)
         .font(AppFont.body)
+        .foregroundStyle(Theme.fg)
         .lineSpacing(3)
         .background(WindowConfigurator())
     }
@@ -392,23 +393,15 @@ struct Sidebar: View {
                 if !compact {
                     Text(m.title)
                         .font(AppFont.body.weight(.medium))
-                        .foregroundStyle(selected ? Color.white : Theme.fg.opacity(0.82))
+                        .foregroundStyle(Theme.fg)
                     Spacer(minLength: 0)
                 }
             }
             .padding(.horizontal, compact ? 0 : 12).padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: compact ? .center : .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .fill(selected ? Color.white.opacity(0.13) : Color.clear)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .strokeBorder(Color.white.opacity(selected ? 0.08 : 0), lineWidth: 0.5)
-            )
             .contentShape(Rectangle())
         }
-        .buttonStyle(PressStyle())
+        .buttonStyle(SidebarRowStyle(selected: selected))
         .overlay(alignment: compact ? .topTrailing : .trailing) {
             // Rail : pastille à l'angle de l'icône. Barre complète : en fin de ligne, dans son axe.
             Group {

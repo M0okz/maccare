@@ -81,8 +81,9 @@ struct PerformanceOverviewView: View {
     private var summary: some View {
         VStack(spacing: 0) {
             ScreenToolbar(title: "Performances") {
-                Button(action: analyze) { Label("Actualiser le bilan", systemImage: "arrow.clockwise") }
+                Button(action: prepareNewAnalysis) { Label("Recommencer", systemImage: "arrow.counterclockwise") }
                     .buttonStyle(ToolbarActionButtonStyle()).disabled(startup.isLoading || writing)
+                    .help("Revenir à l’écran Analyser pour préparer un nouveau bilan.")
             } trailing: { EmptyView() }.padding(.horizontal, 32).frame(height: 56).padding(.vertical, 8)
             ScrollView {
                 VStack(spacing: 26) {
@@ -141,6 +142,12 @@ struct PerformanceOverviewView: View {
             return "\(startup.userAgents.count) \(pl(startup.userAgents.count, "agent")) de session · \(startup.systemAgents.count) système · \(startup.disabledAgents.count) \(pl(startup.disabledAgents.count, "désactivé"))"
         }
     }
+    private func prepareNewAnalysis() {
+        guard !startup.isLoading, !writing else { return }
+        app.performanceDetail = nil
+        app.performanceAnalyzed = false
+    }
+
     private func analyze() {
         guard !startup.isLoading, !writing else { return }
         app.performanceAnalyzed = true

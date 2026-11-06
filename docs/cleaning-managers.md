@@ -46,3 +46,30 @@ les neuf fichiers d’interface correspondent aux empreintes de la QA décrite
 ci-dessus. La suite complète de la branche passe : 212 XCTest et 226 tests
 Swift Testing. Les contrôles de compilation et packaging de la PR complètent
 cette validation sans lancer de suppression ni remplacer l’app utilisateur.
+
+## Relancer depuis le bilan — correction Dev du 6 novembre 2026
+
+Après une analyse, « Relancer l’analyse » dans le bilan Nettoyage revient désormais
+à l’introduction avec son bouton « Analyser ». Le moteur ne redémarre qu’au clic
+explicite sur ce dernier. Avant la correction, le bouton appelait directement la
+même action que le premier démarrage et revenait au bilan après le nouveau scan.
+
+`SmartScanModel.prepareForNewScan()` remet à zéro les résultats et sélections de
+la session, la progression, les messages et le compte rendu. Il annule l’ancienne
+tâche et invalide sa génération pour ignorer tout résultat tardif. Le dernier
+bilan complet mémorisé (date et volume sûr) est conservé. Une suppression en cours
+bloque cette remise à zéro, comme le bouton déjà désactivé. La vue désactive aussi
+le mode d’accès direct aux outils pour afficher effectivement l’introduction.
+Le premier lancement depuis les outils sans résultat garde son action d’analyse.
+
+Les préférences sont injectables dans SmartScanModel pour les tests ; la production
+conserve UserDefaults.standard et les mêmes clés, sans migration de profil ni
+changement des exclusions. Deux tests de régression sur des fixtures temporaires
+vérifient le retour sans relance, la conservation du bilan et les résultats tardifs.
+Ils échouaient avec l’ancienne action puis passent après correction. Avec les
+suites Nettoyage, profils et navigation, 15 tests ciblés passent.
+
+Correction locale non publiée sur `codex/tray-storage-battery-details`, après
+`7bcdedb`. Le paquet Dev est `build/cleaning-restart/MacCare.app` ; la copie Dev
+installée conserve le chemin `/Applications/MacCare Dev.app`. La release publique
+0.2.10 et la copie quotidienne `/Applications/MacCare.app` ne sont pas modifiées.
