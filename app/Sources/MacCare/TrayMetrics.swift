@@ -32,6 +32,33 @@ struct TrayMetrics: Sendable {
     var wifi: WiFi?
 }
 
+/// Charge CPU globale entre deux lectures des compteurs système.
+struct CPULoadCounter {
+    private var previous: [UInt32]?
+
+    mutating func reset() { previous = nil }
+
+    mutating func read() -> TrayMetrics.CPU? {
+        let host = mach_host_self()
+        defer { mach_port_deallocate(mach_task_self_, host) }
+        var info = host_cpu_load_info()
+        var count = mach_msg_type_number_t(MemoryLayout<host_cpu_load_info>.size / MemoryLayout<integer_t>.size)
+        let status = withUnsafeMutablePointer(to: &info) { pointer in
+            pointer.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                host_statistics(host, HOST_CPU_LOAD_INFO, $0, &count)
+            }
+        }
+        guard status == KERN_SUCCESS else { previous = nil; return nil }
+        let ticks = [info.cpu_ticks.0, info.cpu_ticks.1, info.cpu_ticks.2, info.cpu_ticks.3]
+        defer { previous = ticks }
+        guard let previous else { return nil }
+        let delta = zip(ticks, previous).map { UInt64($0 &- $1) }
+        let total = delta.reduce(0, +)
+        guard total > 0 else { return nil }
+        return .init(user: Double(delta[0] + delta[3]) / Double(total), system: Double(delta[1]) / Double(total))
+    }
+}
+
 /// Conserve une valeur coûteuse à lire pendant une durée donnée.
 struct TrayTimedCache<Value> {
     let lifetime: TimeInterval
@@ -52,14 +79,14 @@ struct TrayTimedCache<Value> {
 /// Deux relevés de compteurs sont nécessaires pour les débits et la charge CPU.
 /// Les lectures CoreWLAN et Mach restent hors du thread de l’interface.
 actor TrayMetricsSampler {
-    private var previousCPU: [UInt32]?
+    private var cpuLoad = CPULoadCounter()
     private var previousNetwork: (name: String, received: UInt32, sent: UInt32, time: TimeInterval)?
     private struct WiFiLink { let name: String; let powered: Bool; let rate: Double; let rssi: Int }
     /// Chaque lecture CoreWLAN sollicite un service système ; l’état de liaison varie peu.
     private var link = TrayTimedCache<WiFiLink?>(lifetime: 5)
 
     func reset() {
-        previousCPU = nil
+        cpuLoad.reset()
         previousNetwork = nil
         link.clear()
     }
@@ -67,25 +94,7 @@ actor TrayMetricsSampler {
     func sample() -> TrayMetrics {
         let host = mach_host_self()
         defer { mach_port_deallocate(mach_task_self_, host) }
-        return TrayMetrics(cpu: cpu(host: host), memory: memory(host: host), wifi: wifi())
-    }
-
-    private func cpu(host: host_t) -> TrayMetrics.CPU? {
-        var info = host_cpu_load_info()
-        var count = mach_msg_type_number_t(MemoryLayout<host_cpu_load_info>.size / MemoryLayout<integer_t>.size)
-        let status = withUnsafeMutablePointer(to: &info) { pointer in
-            pointer.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
-                host_statistics(host, HOST_CPU_LOAD_INFO, $0, &count)
-            }
-        }
-        guard status == KERN_SUCCESS else { previousCPU = nil; return nil }
-        let ticks = [info.cpu_ticks.0, info.cpu_ticks.1, info.cpu_ticks.2, info.cpu_ticks.3]
-        defer { previousCPU = ticks }
-        guard let previousCPU else { return nil }
-        let delta = zip(ticks, previousCPU).map { UInt64($0 &- $1) }
-        let total = delta.reduce(0, +)
-        guard total > 0 else { return nil }
-        return .init(user: Double(delta[0] + delta[3]) / Double(total), system: Double(delta[1]) / Double(total))
+        return TrayMetrics(cpu: cpuLoad.read(), memory: memory(host: host), wifi: wifi())
     }
 
     private func memory(host: host_t) -> TrayMetrics.Memory? {

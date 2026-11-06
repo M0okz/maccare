@@ -33,7 +33,7 @@ final class TrayPanelController: NSObject {
         })
 
     private lazy var additionalAlerts: AdditionalAlertsController = AdditionalAlertsController(
-        battery: app.battery, metrics: app.trayMetrics,
+        battery: app.battery,
         anchor: { [weak self] in self?.statusItem?.button },
         canPresent: { [weak self] in
             guard let self else { return false }

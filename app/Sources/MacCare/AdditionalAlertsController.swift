@@ -1,12 +1,10 @@
 import AppKit
-import Combine
 import MacCareBattery
 import SwiftUI
 
 @MainActor
 final class AdditionalAlertsController {
     private let battery: BatteryModel
-    private let metrics: TrayMetricsStore
     private let anchor: () -> NSStatusBarButton?
     private let canPresent: () -> Bool
     private let openBattery: () -> Void
@@ -15,20 +13,21 @@ final class AdditionalAlertsController {
     private let sampler = TrayProcessSampler()
     private let processes = MemoryAlertModel()
     private var cpu = CPUAlertCondition()
+    /// Lecture dédiée : le suivi de l’activité ne tourne que lorsqu’un écran l’affiche.
+    private var cpuLoad = CPULoadCounter()
     private var detector = BatteryAlertDetector()
     private var pendingCompletion: BatteryCompletionAlert?
     private var visibleKind: AdditionalAlertKind?
     private var preview = false
     private var timer: Timer?
-    private var subscription: AnyCancellable?
     private var previewObserver: NSObjectProtocol?
     private var sampling: Task<Void, Never>?
     private var suspended = false
     var isVisible: Bool { presenter.isVisible }
 
-    init(battery: BatteryModel, metrics: TrayMetricsStore, anchor: @escaping () -> NSStatusBarButton?,
+    init(battery: BatteryModel, anchor: @escaping () -> NSStatusBarButton?,
          canPresent: @escaping () -> Bool, openBattery: @escaping () -> Void, openCPU: @escaping () -> Void) {
-        self.battery = battery; self.metrics = metrics; self.anchor = anchor; self.canPresent = canPresent
+        self.battery = battery; self.anchor = anchor; self.canPresent = canPresent
         self.openBattery = openBattery; self.openCPU = openCPU
         previewObserver = NotificationCenter.default.addObserver(forName: AdditionalAlertKind.previewNotification, object: nil, queue: .main) { [weak self] note in
             guard let raw = note.userInfo?["kind"] as? String, let kind = AdditionalAlertKind(rawValue: raw) else { return }
@@ -40,14 +39,9 @@ final class AdditionalAlertsController {
         let enabled = AdditionalAlertKind.allCases.contains { AdditionalAlertReminder($0).enabled }
         guard !suspended, anchor() != nil, enabled else { stop(); return }
         if let visibleKind, !AdditionalAlertReminder(visibleKind).enabled, !preview { dismiss() }
-        if !AdditionalAlertReminder(.cpu).enabled { cpu.reset() }
+        if !AdditionalAlertReminder(.cpu).enabled { cpu.reset(); cpuLoad.reset() }
         guard timer == nil else { return }
-        subscription = metrics.$snapshot.sink { [weak self] snapshot in
-            MainActor.assumeIsolated {
-                guard let self, AdditionalAlertReminder(.cpu).enabled else { return }
-                self.cpu.observe(fraction: snapshot.raw.cpu?.used, sampledAt: snapshot.raw.sampledAt)
-            }
-        }
+        _ = cpuLoad.read()
         let timer = Timer(fire: Date().addingTimeInterval(5), interval: 5, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.check() }
         }
@@ -60,9 +54,8 @@ final class AdditionalAlertsController {
     func dismiss() { presenter.dismiss(); visibleKind = nil; preview = false }
     private func stop() {
         timer?.invalidate(); timer = nil
-        subscription = nil
         sampling?.cancel()
-        cpu.reset(); detector.reset(); pendingCompletion = nil
+        cpu.reset(); cpuLoad.reset(); detector.reset(); pendingCompletion = nil
         dismiss()
     }
 
@@ -74,6 +67,7 @@ final class AdditionalAlertsController {
 
     private func check() {
         let now = Date(), uptime = ProcessInfo.processInfo.systemUptime
+        if AdditionalAlertReminder(.cpu).enabled { cpu.observe(fraction: cpuLoad.read()?.used, sampledAt: uptime) }
         if !battery.controlsBusy {
             let value = observation()
             if let completion = detector.observe(value, uptime: uptime, now: now) { pendingCompletion = completion }

@@ -19,10 +19,12 @@ apparences claire/sombre, fermeture par Échap ou clic extérieur.
 ## CPU élevé
 
 La charge globale doit atteindre 85 % pendant 120 secondes consécutives.
-Les relevés bruts du `TrayMetricsStore` existant sont réutilisés, sans deuxième
-échantillonneur global. Une mesure absente/invalide, un retour sous le seuil,
-un intervalle de plus de trois secondes ou la veille réinitialisent la fenêtre.
-Une mesure âgée de plus de trois secondes ne permet pas de présenter l’alerte.
+Le contrôleur lit lui-même les compteurs CPU toutes les 5 secondes (`CPULoadCounter`) :
+le `TrayMetricsStore` ne tourne que lorsqu’un écran l’affiche. Chaque lecture donne
+la charge moyenne depuis la précédente, donc une baisse de moins de 5 secondes peut
+passer inaperçue. Une mesure absente/invalide, un retour sous le seuil, un intervalle
+de plus de 15 secondes ou la veille réinitialisent la fenêtre. Une mesure âgée de plus
+de 15 secondes ne permet pas de présenter l’alerte.
 
 Deux lectures du `TrayProcessSampler`, espacées d’une seconde, attribuent
 ensuite le CPU aux applications accessibles. Jusqu’à trois applications

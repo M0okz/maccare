@@ -89,15 +89,11 @@ final class TrayEnergyTests: XCTestCase {
 }
 
 final class TrayMetricsStartTests: XCTestCase {
-    @MainActor func testFirstValuesArriveWellBeforeTheOneSecondCadence() async throws {
-        let store = TrayMetricsStore()
-        store.start()
-        defer { store.stop() }
-        let started = ContinuousClock.now
-        while store.snapshot.display.cpu == nil, ContinuousClock.now - started < .milliseconds(900) {
-            try await Task.sleep(for: .milliseconds(20))
-        }
-        XCTAssertNotNil(store.snapshot.display.cpu, "Un volet tout juste ouvert ne doit pas attendre la cadence normale")
+    func testReadsQuicklyOnlyWhileTheCPULoadIsMissing() {
+        XCTAssertEqual(TrayMetricsStore.nextDelay(hasCPU: false, reading: 1), .milliseconds(250))
+        XCTAssertEqual(TrayMetricsStore.nextDelay(hasCPU: false, reading: 5), .milliseconds(250))
+        XCTAssertEqual(TrayMetricsStore.nextDelay(hasCPU: true, reading: 2), .seconds(1))
+        XCTAssertEqual(TrayMetricsStore.nextDelay(hasCPU: false, reading: 6), .seconds(1), "Sans compteurs CPU, pas de relecture rapide sans fin")
     }
 
     @MainActor func testLastConsumerStopsMeasuresAndAnotherKeepsThemRunning() {
