@@ -94,3 +94,11 @@ avec Réduire les animations. La copie Dev installée est actualisée (0.2.10, b
 12), sans publication ni remplacement de la copie quotidienne. Build, signatures,
 sélection et clics de navigation vérifiés ; confirmation du survol seul à la
 souris réelle encore nécessaire. Voir [les contrôles et limites](sidebar-hover.md).
+
+## Préparation de la version 0.2.11 — 6 novembre 2026
+
+La prochaine publication réunit les corrections locales des détails Stockage et
+Batterie, du retour à Analyser, des textes et du survol. La version source passe
+à 0.2.11 ; le numéro de build sera attribué par le workflow de release. Les notes
+de version conservent les limites de QA, dont le survol seul à la souris réelle.
+Cette section décrit la préparation : aucune installation quotidienne effectuée.
