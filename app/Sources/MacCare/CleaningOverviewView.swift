@@ -94,8 +94,9 @@ struct CleaningOverviewView: View {
         ScrollView {
             VStack(spacing: 20) {
                 ScreenToolbar(title: "Nettoyage") {
-                    Button { analyze() } label: { Label(smart.hasRun ? "Relancer l’analyse" : "Analyser mon Mac", systemImage: "arrow.clockwise") }
+                    Button { if smart.hasRun { prepareNewAnalysis() } else { analyze() } } label: { Label(smart.hasRun ? "Relancer l’analyse" : "Analyser mon Mac", systemImage: "arrow.clockwise") }
                         .buttonStyle(SecondaryActionButtonStyle()).disabled(smart.stage == .cleaning)
+                        .help(smart.hasRun ? "Revenir à l’écran Analyser pour préparer une nouvelle analyse." : "Lancer une analyse du profil de nettoyage.")
                 } trailing: { EmptyView() }
                 VStack(spacing: 12) {
                     Text(hasResults ? result.title : "Choisissez votre nettoyage")
@@ -202,6 +203,12 @@ struct CleaningOverviewView: View {
     private func icon(_ symbol: String, color: Color) -> some View {
         Image(systemName: symbol).font(.system(size: 28, weight: .medium))
             .foregroundStyle(color.shade(0.5)).frame(width: 42, height: 42).accessibilityHidden(true)
+    }
+
+    private func prepareNewAnalysis() {
+        guard smart.stage != .cleaning else { return }
+        smart.prepareForNewScan()
+        app.cleaningToolsVisible = false
     }
 
     private func analyze() {

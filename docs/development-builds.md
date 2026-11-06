@@ -56,3 +56,11 @@ et Batterie, après la publication 0.2.10. Le paquet `build/tray-details/MacCare
 porte toujours l’identité Dev 0.2.10 (12) et actualise `/Applications/MacCare Dev.app`.
 Cette correction est locale, non publiée. Aucun remplacement de la copie quotidienne.
 Voir `menu-bar-panel.md` pour les mesures, la navigation et les limites de validation.
+
+## Bilan Nettoyage : retour à Analyser — 6 novembre 2026
+
+Le paquet `build/cleaning-restart/MacCare.app` ajoute le retour à l’écran de
+préparation depuis « Relancer l’analyse » du bilan Nettoyage, sans relance du moteur.
+Il conserve les correctifs des détails Stockage/Batterie et met à jour la copie
+`/Applications/MacCare Dev.app` (0.2.10, build 12, Apple Development). Ce travail
+reste local et non publié, distinct de l’installation quotidienne préservée.

@@ -157,3 +157,15 @@ réutilise le relevé disque du parent et `TrayBatteryDetail` observe le modèle
 et la télémétrie déjà suivis. Pas de nouvelle analyse, boucle de suivi, écriture de
 charge ou commande ventilateur. Correction locale après 0.2.10, non publiée ; branche
 `codex/tray-storage-battery-details`, base `ec8cca3`.
+
+### Retour à la préparation du nettoyage — correction Dev du 6 novembre 2026
+
+Le bouton de relance du bilan distingue `CleaningOverviewView.prepareNewAnalysis()`
+du démarrage réel `analyze()`. Il appelle `SmartScanModel.prepareForNewScan()` et
+retire le mode d’accès direct aux outils. Le modèle annule le scan, incrémente sa
+génération et efface l’état de la session, tout en gardant le dernier bilan complet
+mémorisé. La remise à zéro est refusée pendant une suppression. UserDefaults devient
+injectable pour des tests isolés ; les clés et le domaine utilisés en production
+ne changent pas. Régression avant/après : `CleaningRestartTests`, complétée par
+Nettoyage/profils/navigation (15 tests). Aucun changement du moteur Rust ni de la
+politique de suppression. Correction locale non publiée ; voir cleaning-managers.

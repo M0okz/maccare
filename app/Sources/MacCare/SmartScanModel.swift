@@ -50,25 +50,29 @@ final class SmartScanModel: ObservableObject {
     /// Vrai si le dernier scan a été arrêté par l'utilisateur : on ne le relance pas d'office.
     @Published private(set) var wasCancelled = false
     /// Dernier Smart Scan **complet**, mémorisé : la barre des menus l'affiche même après relance.
-    @Published private(set) var lastCompletedAt: Date? = UserDefaults.standard.object(forKey: LastScan.dateKey) as? Date
-    @Published private(set) var lastSafeBytes: UInt64 = LastScan.bytes(LastScan.safeKey)
+    @Published private(set) var lastCompletedAt: Date?
+    @Published private(set) var lastSafeBytes: UInt64
     /// Appelé à la fin de chaque scan complet (espace sûr, espace détecté) : sert au planificateur.
     var onComplete: ((UInt64, UInt64) -> Void)?
 
     private enum LastScan {
         static let dateKey = "lastSmartScanDate"
         static let safeKey = "lastSmartScanSafeBytes"
-        static func bytes(_ key: String) -> UInt64 {
-            (UserDefaults.standard.object(forKey: key) as? NSNumber)?.uint64Value ?? 0
+        static func bytes(_ key: String, defaults: UserDefaults) -> UInt64 {
+            (defaults.object(forKey: key) as? NSNumber)?.uint64Value ?? 0
         }
     }
 
     /// Lue à chaque scan : suit le réglage « Outils pour développeurs ».
     private let categorySource: () -> [CleaningCategory]
+    private let defaults: UserDefaults
     private var categories: [CleaningCategory] { categorySource() }
 
-    init(categories: @escaping () -> [CleaningCategory] = { ScanPreferences.currentCategories }) {
+    init(categories: @escaping () -> [CleaningCategory] = { ScanPreferences.currentCategories }, defaults: UserDefaults = .standard) {
         categorySource = categories
+        self.defaults = defaults
+        lastCompletedAt = defaults.object(forKey: LastScan.dateKey) as? Date
+        lastSafeBytes = LastScan.bytes(LastScan.safeKey, defaults: defaults)
     }
     /// Tâche moteur du scan en cours (annulation, progression).
     private var task: EngineTask?
@@ -85,12 +89,12 @@ final class SmartScanModel: ObservableObject {
     private var categoryStartEntries: UInt64 = 0
 
     // Réglages partagés avec le module Nettoyage (mêmes clés UserDefaults).
-    private var directDelete: Bool { UserDefaults.standard.bool(forKey: "directDelete") }
+    private var directDelete: Bool { defaults.bool(forKey: "directDelete") }
     private var logThresholdKB: Int {
-        return (UserDefaults.standard.object(forKey: "logThresholdKB") as? NSNumber)?.intValue ?? 10
+        return (defaults.object(forKey: "logThresholdKB") as? NSNumber)?.intValue ?? 10
     }
     private var userExclusions: [String] {
-        UserDefaults.standard.stringArray(forKey: "userExclusions") ?? []
+        defaults.stringArray(forKey: "userExclusions") ?? []
     }
 
     var directDeleteEnabled: Bool { directDelete }
@@ -105,6 +109,29 @@ final class SmartScanModel: ObservableObject {
     var hasRun: Bool { stage != .idle }
 
     // MARK: Scan
+
+    /// Revient à la préparation sans analyser ni effacer le dernier bilan mémorisé.
+    func prepareForNewScan() {
+        guard stage != .cleaning else { return }
+        task?.cancel()
+        task = nil
+        generation += 1
+        stage = .idle
+        progress = 0
+        groups = []
+        selection = []
+        currentLabel = nil
+        statusMessage = nil
+        lastReport = nil
+        liveEntries = 0
+        liveBytes = 0
+        isComplete = false
+        wasCancelled = false
+        expectedEntries = [:]
+        measuredEntries = [:]
+        categoriesDone = 0
+        categoryStartEntries = 0
+    }
 
     func scan(keepReport: Bool = false) {
         guard !categories.isEmpty else {
@@ -129,7 +156,7 @@ final class SmartScanModel: ObservableObject {
         progress = 0
         isComplete = false
         wasCancelled = false
-        expectedEntries = ((UserDefaults.standard.dictionary(forKey: Self.expectedKey) as? [String: NSNumber]) ?? [:])
+        expectedEntries = ((defaults.dictionary(forKey: Self.expectedKey) as? [String: NSNumber]) ?? [:])
             .mapValues(\.uint64Value)
         measuredEntries = [:]
         categoriesDone = 0
@@ -210,13 +237,13 @@ final class SmartScanModel: ObservableObject {
                 } else {
                     self.progress = 1
                     self.isComplete = true
-                    UserDefaults.standard.set(self.measuredEntries.mapValues { NSNumber(value: $0) }, forKey: Self.expectedKey)
+                    self.defaults.set(self.measuredEntries.mapValues { NSNumber(value: $0) }, forKey: Self.expectedKey)
                     self.stage = .results
                     let now = Date(), safe = self.safeSize
                     self.lastCompletedAt = now
                     self.lastSafeBytes = safe
-                    UserDefaults.standard.set(now, forKey: LastScan.dateKey)
-                    UserDefaults.standard.set(NSNumber(value: safe), forKey: LastScan.safeKey)
+                    self.defaults.set(now, forKey: LastScan.dateKey)
+                    self.defaults.set(NSNumber(value: safe), forKey: LastScan.safeKey)
                     self.onComplete?(safe, self.foundSize)
                 }
             }
