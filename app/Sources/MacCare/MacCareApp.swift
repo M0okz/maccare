@@ -20,6 +20,7 @@ struct MacCareApp: App {
                 #if DEBUG
                 if TrayMetricPreview.isOverviewRequested {
                     MenuBarView(app: app, smart: app.smartScan, metricsStore: app.trayMetrics)
+                        .modifier(TrayMetricsConsumerModifier(store: app.trayMetrics, consumer: TrayMetricPreview.consumer))
                 } else if let preview = TrayMetricPreview.requestedKind {
                     TrayMetricPreview(kind: preview, metricsStore: app.trayMetrics)
                 } else {

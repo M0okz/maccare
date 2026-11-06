@@ -22,10 +22,35 @@ final class AdditionalAlertTests: XCTestCase {
         XCTAssertFalse(condition.sustained)
         condition.observe(fraction: 0.9, sampledAt: 120)
         XCTAssertTrue(condition.sustained)
-        XCTAssertTrue(condition.isFresh(at: 123))
-        XCTAssertFalse(condition.isFresh(at: 124))
+        XCTAssertTrue(condition.isFresh(at: 120 + CPUAlertCondition.maximumGap))
+        XCTAssertFalse(condition.isFresh(at: 121 + CPUAlertCondition.maximumGap))
         condition.observe(fraction: 0.84, sampledAt: 121)
         XCTAssertFalse(condition.sustained)
+    }
+
+    func testCPUSustainedAtTheFiveSecondCadenceOfTheAlertTimer() {
+        var condition = CPUAlertCondition()
+        for tick in 0..<24 { condition.observe(fraction: 0.9, sampledAt: Double(tick * 5)) }
+        XCTAssertFalse(condition.sustained, "115 secondes ne suffisent pas")
+        condition.observe(fraction: 0.9, sampledAt: 120)
+        XCTAssertTrue(condition.sustained)
+        condition.observe(fraction: 0.9, sampledAt: 120 + CPUAlertCondition.maximumGap + 1)
+        XCTAssertFalse(condition.sustained, "Un trou plus long, comme une veille, rompt la continuité")
+    }
+
+    func testCPULoadCounterNeedsTwoReadingsAndStaysInRange() throws {
+        var counter = CPULoadCounter()
+        XCTAssertNil(counter.read())
+        // macOS met ces compteurs à jour par à-coups : une lecture trop rapprochée peut rester vide.
+        var reading: TrayMetrics.CPU?
+        for _ in 0..<30 where reading == nil {
+            Thread.sleep(forTimeInterval: 0.1)
+            reading = counter.read()
+        }
+        let load = try XCTUnwrap(reading)
+        XCTAssertTrue((0...1).contains(load.used))
+        counter.reset()
+        XCTAssertNil(counter.read(), "Une reprise ne doit pas mesurer tout l’intervalle écoulé")
     }
 
     func testCPUGapsInvalidSamplesAndSleepResetTheWindow() {

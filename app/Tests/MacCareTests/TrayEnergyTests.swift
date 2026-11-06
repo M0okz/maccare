@@ -87,3 +87,36 @@ final class TrayEnergyTests: XCTestCase {
         XCTAssertFalse(store.isMonitoring, "Une fenêtre masquée ne doit plus maintenir les mesures")
     }
 }
+
+final class TrayMetricsStartTests: XCTestCase {
+    func testReadsQuicklyOnlyWhileTheCPULoadIsMissing() {
+        XCTAssertEqual(TrayMetricsStore.nextDelay(hasCPU: false, reading: 1), .milliseconds(250))
+        XCTAssertEqual(TrayMetricsStore.nextDelay(hasCPU: false, reading: 5), .milliseconds(250))
+        XCTAssertEqual(TrayMetricsStore.nextDelay(hasCPU: true, reading: 2), .seconds(1))
+        XCTAssertEqual(TrayMetricsStore.nextDelay(hasCPU: false, reading: 6), .seconds(1), "Sans compteurs CPU, pas de relecture rapide sans fin")
+    }
+
+    @MainActor func testLastConsumerStopsMeasuresAndAnotherKeepsThemRunning() {
+        let store = TrayMetricsStore()
+        defer { store.stop() }
+        let window = TrayMetricsStore.Consumer.activityDetail(UUID())
+        store.setMonitoring(for: .menuBar, enabled: true)
+        store.setMonitoring(for: window, enabled: true)
+        store.setMonitoring(for: .menuBar, enabled: false)
+        XCTAssertTrue(store.isMonitoring, "Fermer le volet ne doit pas priver une fenêtre visible de ses mesures")
+        store.setMonitoring(for: window, enabled: false)
+        XCTAssertFalse(store.isMonitoring)
+    }
+}
+
+final class ScanAgeTextTests: XCTestCase {
+    func testLabelDescribesTheElapsedTimeWithoutCountingSeconds() {
+        let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        func label(_ seconds: TimeInterval) -> String { ScanAgeText.label(since: now.addingTimeInterval(-seconds), now: now) }
+        XCTAssertEqual(label(0), "moins d’une minute")
+        XCTAssertEqual(label(59), "moins d’une minute")
+        XCTAssertEqual(label(-30), "moins d’une minute", "Une horloge reculée ne doit pas afficher de durée négative")
+        XCTAssertFalse(label(300).isEmpty)
+        XCTAssertNotEqual(label(300), label(345_000))
+    }
+}

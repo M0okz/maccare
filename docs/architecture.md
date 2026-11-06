@@ -40,7 +40,9 @@ et des préférences d’inclusion dans un scan.
 La télémétrie utilise les interfaces macOS et distingue les données indisponibles
 des valeurs nulles. Le suivi CPU, mémoire et Wi-Fi est partagé entre la barre des
 menus, l’accueil et les fenêtres de détails. Chaque consommateur enregistre sa
-demande de suivi ; la disparition de l’un ne doit pas arrêter les autres.
+demande de suivi ; la disparition de l’un ne doit pas arrêter les autres. Une vue ne
+demande le suivi que lorsqu’elle affiche des valeurs : volet ouvert, ou fenêtre visible.
+Sans demande, aucun relevé n’a lieu, et les courbes repartent de zéro à la reprise.
 
 La protection batterie est facultative et démarre désactivée. L’assistant conserve
 un état de récupération et un bail surveillé ; il tente de restaurer la configuration

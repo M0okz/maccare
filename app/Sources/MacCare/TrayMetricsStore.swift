@@ -69,6 +69,12 @@ final class TrayMetricsStore: ObservableObject {
     private var suspended = false
     var isMonitoring: Bool { task != nil }
 
+    /// La charge CPU exige deux relevés, et macOS met ses compteurs à jour par à-coups : on
+    /// relit vite tant qu’elle manque, pour qu’un volet tout juste ouvert affiche ses valeurs.
+    nonisolated static func nextDelay(hasCPU: Bool, reading: Int) -> Duration {
+        !hasCPU && reading < 6 ? .milliseconds(250) : .seconds(1)
+    }
+
     func setMonitoring(for consumer: Consumer, enabled: Bool) {
         if enabled { consumers.insert(consumer) } else { consumers.remove(consumer) }
         reconcileMonitoring()
@@ -84,11 +90,13 @@ final class TrayMetricsStore: ObservableObject {
         let sampler = sampler
         task = Task { [weak self] in
             await sampler.reset()
+            var reading = 0
             while !Task.isCancelled {
                 let sample = await sampler.sample()
                 guard !Task.isCancelled else { return }
                 self?.record(sample)
-                do { try await Task.sleep(for: .seconds(1)) } catch { return }
+                reading += 1
+                do { try await Task.sleep(for: Self.nextDelay(hasCPU: sample.cpu != nil, reading: reading)) } catch { return }
             }
         }
     }
