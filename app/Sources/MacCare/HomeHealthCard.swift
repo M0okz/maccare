@@ -6,6 +6,7 @@ struct HomeHealthCard: View {
     let storage: TrayStorageUsage?
     @State private var showingDetails = false
     @ScaledMetric(relativeTo: .title) private var statusSize = 24
+    @ScaledMetric(relativeTo: .body) private var iconColumn: CGFloat = 18
     private let machineName = Host.current().localizedName ?? MacHardwarePresentation.current.title
     private var presentation: HomeHealthPresentation {
         .init(storage: storage, pressure: store.snapshot.display.memory?.pressure,
@@ -14,17 +15,23 @@ struct HomeHealthCard: View {
 
     var body: some View {
         Button { showingDetails = true } label: {
-            VStack(alignment: .leading, spacing: 10) {
-                Label { Text("Santé du Mac") } icon: {
-                    Image(systemName: "waveform.path.ecg").foregroundStyle(Theme.accentInk).accessibilityHidden(true)
-                }.font(.headline).accessibilityAddTraits(.isHeader)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(presentation.title).font(.system(size: statusSize, weight: .semibold)).foregroundStyle(statusColor)
-                    Text(presentation.detail).font(AppFont.secondary).foregroundStyle(Theme.muted)
-                        .lineLimit(1).help(presentation.detail)
+            Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 10) {
+                GridRow(alignment: .firstTextBaseline) {
+                    Image(systemName: "waveform.path.ecg").font(.headline)
+                        .foregroundStyle(Theme.accentInk).frame(width: iconColumn).accessibilityHidden(true)
+                    Text("Santé du Mac").font(.headline).accessibilityAddTraits(.isHeader)
                 }
-                HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: machineSymbol).font(.title3).foregroundStyle(Theme.muted).accessibilityHidden(true)
+                GridRow {
+                    Color.clear.frame(width: iconColumn, height: 0).accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(presentation.title).font(.system(size: statusSize, weight: .semibold)).foregroundStyle(statusColor)
+                        Text(presentation.detail).font(AppFont.secondary).foregroundStyle(Theme.muted)
+                            .lineLimit(1).help(presentation.detail)
+                    }
+                }
+                GridRow(alignment: .top) {
+                    Image(systemName: machineSymbol).font(.title3).foregroundStyle(Theme.muted)
+                        .frame(width: iconColumn).accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 4) {
                         Text(machineName).font(AppFont.emphasis).lineLimit(1).help(machineName)
                         TimelineView(.periodic(from: .now, by: 60)) { context in

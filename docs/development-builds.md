@@ -141,3 +141,11 @@ détail des critères ; les informations de la maquette restent illustratives.
 33 tests ciblés réussis. Disposition native, détail Santé et retour à Analyser
 vérifiés. Paquet Dev 0.2.11 (build local 1), installé uniquement dans
 `/Applications/MacCare Dev.app`, non publié. Voir [la disposition et les contrôles](dashboard-cards.md).
+
+## Texte Santé aligné — Dev
+
+Le paquet `build/health-alignment/MacCare.app` applique l’aperçu validé : tous les
+textes du bloc Santé partagent une verticale, avec les icônes dans une marge dédiée.
+La hauteur compacte et les informations sont conservées. Dev 0.2.11 (build local 1),
+installation uniquement dans `/Applications/MacCare Dev.app`, sans publication ni
+remplacement de la copie quotidienne. Voir [les contrôles](dashboard-cards.md).

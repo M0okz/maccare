@@ -213,3 +213,26 @@ Correction documentaire : le numéro du paquet Dev assemblé par défaut est 1,
 constaté dans son Info.plist ; le numéro 13 précédemment indiqué dans cette page
 correspondait à la distribution publique et ne décrivait pas ce paquet local.
 La copie quotidienne reste en 0.2.8 (10). Le correctif reste non publié.
+
+## Alignement du texte Santé — Dev
+
+Après validation de l’aperçu, `HomeHealthCard` utilise une grille à deux colonnes :
+une marge d’icônes de 18 points adaptatifs, un espacement de 10 points et une
+colonne commune à tous les textes. Titre, statut, raison, nom du Mac et ligne
+RAM/macOS/uptime démarrent sur la même verticale. Les lignes gardent les mêmes
+polices et espacements verticaux compacts ; le calcul, les relevés et l’accès au
+détail ne changent pas. Les icônes et la cellule vide décorative sont masquées à
+l’accessibilité ; le résumé du bouton conserve les textes utiles.
+
+Paquet `build/health-alignment/MacCare.app`, identité Dev 0.2.11 (build local 1),
+installé uniquement dans `/Applications/MacCare Dev.app`, non publié. Vérifications
+et limites de cette passe consignées dans `build/health-alignment-qa/`. Pas de
+nouveau test métier pour ce seul changement d’alignement ; les résultats de la
+passe précédente restent propres à cette passe.
+
+Contrôle de l’alignement : build Release arm64 et signatures profondes strictes
+réussis, UUID compilé/paquet/installé concordants. Rendu natif à 1436 × 784 : colonne
+de texte commune, marge d’icônes et hauteur compacte conservées. Le résumé natif
+du bouton contient encore le statut, la raison, le nom et les caractéristiques.
+Pas de campagne complète VoiceOver, clavier ou grandes tailles dans cette passe.
+La copie temporaire de retour arrière est retirée après validation.
