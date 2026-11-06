@@ -1,4 +1,10 @@
-# Alertes CPU et batterie — développement du 6 novembre 2026
+# Alertes CPU et batterie
+
+Disponible depuis [MacCare 0.2.8 (build 10)](https://github.com/M0okz/maccare/releases/tag/v0.2.8), publiée le 6 novembre 2026
+(heure de Paris). Installation de cette version vérifiée dans
+`/Applications/MacCare.app` via Sparkle, depuis 0.2.6 (8). Le paquet installé
+correspond au binaire public signé et notarié. Les validations de développement
+ci-dessous restent datées et conservent leurs limites.
 
 Fonctionnalité préparée dans la [PR nº 4](https://github.com/M0okz/maccare/pull/4),
 sur la branche préexistante `codex/menu-bar-alerts`. La base initiale est
