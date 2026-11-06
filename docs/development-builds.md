@@ -108,3 +108,13 @@ Cette section décrit la préparation : aucune installation quotidienne effectu�
 Ces évolutions sont publiées dans [MacCare 0.2.11 (build 13)](https://github.com/M0okz/maccare/releases/tag/v0.2.11), tag `v0.2.11` sur `b7e76f2`, après fusion de la PR #18 et suppression de la branche `codex/tray-storage-battery-details`. Ce statut remplace celui de développement non livré des notes précédentes. Le DMG téléchargé et le flux Sparkle ont été vérifiés : signatures, notarisation et Gatekeeper valides. Les limites de QA datées restent applicables, dont le survol seul à confirmer à la souris réelle. La copie quotidienne en 0.2.8 (10) est préservée ; la Dev installée reste identifiée 0.2.10 (12).
 
 Référence : [workflow de release réussi](https://github.com/M0okz/maccare/actions/runs/42265708515). Validation locale : `build/release-0.2.11-qa/`. Le DMG fait 10 233 711 octets, SHA-256 `8f40f18f1c22ce43ed8c89c917fb1e16f237921a2a77402ef8b9e2222f95dfb8`. Les suites locales comptent 251 XCTest et 226 Swift Testing, ainsi que 15 tests des outils de release. Frontière PowerUI sans appel natif d’écriture et contrôles négatifs Sparkle réussis ; CI Rust et macOS de la branche et de la PR vertes. Aucune installation de distribution effectuée dans cette livraison.
+
+## Accueil enrichi — Dev du 6 novembre 2026
+
+Le paquet `build/dashboard-cards/MacCare.app` intègre la maquette validée du bilan
+et de la batterie : répartition réelle mémorisée, bouton Analyser, accessoires en
+anneaux, chargeur en watts et processus énergivore. Activité du Mac est enrichi par six tuiles : CPU, GPU, mémoire, stockage, réseau
+et ventilateurs, à la hauteur de la carte Batterie pour aligner la grille. Il actualise la copie Dev
+installée (0.2.11, build 13), sans publication ni remplacement de la copie quotidienne.
+41 tests ciblés réussis ; rendu natif des six tuiles et des anneaux d’accessoires
+vérifié. Voir [la disposition, les données et les limites](dashboard-cards.md).

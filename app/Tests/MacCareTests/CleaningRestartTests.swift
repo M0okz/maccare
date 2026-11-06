@@ -20,6 +20,10 @@ final class CleaningRestartTests: XCTestCase {
         XCTAssertFalse(model.selection.isEmpty)
         let lastDate = model.lastCompletedAt, lastBytes = model.lastSafeBytes, reads = categoryReads
         let persistedDate = defaults.object(forKey: "lastSmartScanDate") as? Date
+        let breakdown = try XCTUnwrap(model.lastBreakdown)
+        XCTAssertEqual(breakdown.total, lastBytes)
+        let restored = SmartScanModel(categories: { [category] }, defaults: defaults)
+        XCTAssertEqual(restored.lastBreakdown, breakdown, "La répartition du bilan doit survivre à la fermeture de l’app")
 
         model.prepareForNewScan()
 
@@ -39,6 +43,7 @@ final class CleaningRestartTests: XCTestCase {
         XCTAssertEqual(completions, 1)
         XCTAssertEqual(model.lastCompletedAt, lastDate)
         XCTAssertEqual(model.lastSafeBytes, lastBytes)
+        XCTAssertEqual(model.lastBreakdown, breakdown)
         XCTAssertEqual(defaults.object(forKey: "lastSmartScanDate") as? Date, persistedDate)
     }
 

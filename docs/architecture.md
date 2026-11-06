@@ -98,11 +98,26 @@ pression mémoire, état thermique et capacité batterie. Les absences de donné
 et les plafonds critiques sont explicites. `MacHealthDetails` expose le calcul,
 et `MacSystemSpecs` centralise les caractéristiques du Mac et sa date de démarrage.
 
-`TrayBatteryController` possède le suivi limité à la vie du volet ; son acteur
+`TrayBatteryController` possède le suivi limité à la visibilité du volet ou de la
+carte Batterie de l’accueil ; son acteur
 lit le chargeur/accessoires IOPS et les processus. `TrayProcessSampler` peut
 relever l’énergie attribuée par macOS sans changer les actions de fermeture.
 La puissance vient des nanojoules ; le repli CPU est explicitement séparé et
 conserve la base de temps Mach. [Barème et limites](menu-bar-panel.md).
+
+## Cartes de l’accueil — développement après 0.2.11
+
+`HomeCleaningCard` projette une répartition des seuls groupes sûrs. Le calcul pur
+`HomeCleaningBreakdown` est mémorisé par `SmartScanModel` avec date et total du
+bilan ; une répartition absente ou incohérente n’est pas reconstruite arbitrairement.
+L’action Analyser prépare un nouveau bilan, sans relancer immédiatement le moteur.
+
+`HomeBatteryCard` réutilise les relevés du volet pour les anneaux d’accessoires,
+le chargeur en watts et le processus énergivore. `HomeActivityCard` compose six
+tuiles : CPU, GPU, mémoire, stockage, réseau et ventilateurs. Les mesures et
+historiques viennent du store partagé ; le stockage reprend le relevé de l’accueil.
+Les composants n’ajoutent pas de lecteurs matériels ni de commandes de charge ou
+de vitesse. [Données, disposition et validations](dashboard-cards.md).
 
 ## Distribution
 

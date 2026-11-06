@@ -14,14 +14,6 @@ struct DashboardView: View {
         self.permissions = app.permissions
     }
 
-    private var hasResults: Bool { smart.stage == .results || smart.stage == .cleaning }
-    private var scanning: Bool { smart.stage == .scanning }
-    private var heroDetail: String {
-        if scanning { return smart.currentLabel ?? "Recherche des éléments récupérables…" }
-        if smart.wasCancelled { return hasResults ? "Des résultats partiels sont disponibles." : "Relancez l’analyse pour connaître l’espace récupérable." }
-        return "Caches et journaux régénérables"
-    }
-
     var body: some View {
         GeometryReader { geometry in
         ScrollView {
@@ -35,7 +27,8 @@ struct DashboardView: View {
                     }.fixedSize(horizontal: false, vertical: true)
                     VStack(spacing: 20) { hero; storage }
                 }
-                HomeStatusCards(app: app, availableWidth: min(geometry.size.width, 1200) - 56)
+                HomeStatusCards(app: app, availableWidth: min(geometry.size.width, 1200) - 56,
+                                storage: disk.flatMap { TrayStorageUsage(free: $0.free, total: $0.total) })
                 VStack(alignment: .leading, spacing: 14) {
                     HStack {
                         Text("À vous de choisir").font(.title3.weight(.semibold)).accessibilityAddTraits(.isHeader)
@@ -81,60 +74,11 @@ struct DashboardView: View {
     }
 
     private var hero: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            HStack {
-                Label(scanning ? "Analyse en cours" : "Bilan du nettoyage", systemImage: "sparkles").font(.headline)
-                Spacer()
-                if let last = smart.lastCompletedAt, !scanning {
-                    ScanAgeText(date: last).font(AppFont.caption).foregroundStyle(Theme.muted)
-                }
-            }
-            HStack(spacing: 24) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(heroMetric).font(.largeTitle.weight(.semibold)).monospacedDigit()
-                        .accessibilityAddTraits(.isHeader)
-                    Text(heroMetricDetail).font(AppFont.body).foregroundStyle(Theme.muted)
-                        .fixedSize(horizontal: false, vertical: true)
-                }.frame(maxWidth: .infinity, alignment: .leading)
-                Button(scanning ? "Suivre" : (hasResults ? "Bilan" : "Analyser")) { openAnalysis() }
-                    .buttonStyle(CircularOverviewActionStyle(tint: ModuleColor.clean))
-                    .accessibilityLabel(scanning ? "Voir la progression de l’analyse" : (hasResults ? "Voir le bilan du nettoyage" : "Analyser mon Mac"))
-            }
-            if scanning {
-                ProgressView(value: smart.progress).accessibilityLabel("Progression de l’analyse")
-                Button("Arrêter l’analyse") { smart.cancelScan() }.buttonStyle(LinkStyle())
-            } else if hasResults || smart.wasCancelled {
-                Button("Relancer l’analyse") { app.select(.cleaning); smart.scan() }
-                    .buttonStyle(LinkStyle()).disabled(smart.stage == .cleaning)
-            }
-            Text(scanning ? heroDetail : "Analyse seule. Vous choisissez chaque suppression.")
-                .font(AppFont.secondary).foregroundStyle(Theme.muted)
+        HomeCleaningCard(model: smart) {
+            if smart.stage != .scanning && smart.stage != .cleaning { smart.prepareForNewScan() }
+            app.select(.cleaning)
+            app.cleaningToolsVisible = false
         }
-        .padding(24).frame(maxWidth: .infinity, minHeight: 245, maxHeight: .infinity, alignment: .topLeading)
-        .background(LinearGradient(colors: [ModuleColor.clean.opacity(0.24), .white.opacity(0.035)],
-                                   startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 22))
-        .overlay(RoundedRectangle(cornerRadius: 22).strokeBorder(.white.opacity(0.12)))
-    }
-
-    private var heroMetric: String {
-        if scanning { return "On fait le point…" }
-        if smart.stage == .cleaning { return "Nettoyage en cours" }
-        if smart.wasCancelled { return "Analyse interrompue" }
-        if smart.isComplete { return humanSize(smart.safeSize) }
-        if smart.lastCompletedAt != nil { return humanSize(smart.lastSafeBytes) }
-        return "Faites place nette"
-    }
-    private var heroMetricDetail: String {
-        if scanning { return heroDetail }
-        if smart.stage == .cleaning { return "Consultez le bilan pour suivre l’opération." }
-        if smart.wasCancelled { return heroDetail }
-        if smart.isComplete { return "récupérables dans le bilan actuel" }
-        if smart.lastCompletedAt != nil { return "repérés lors de la dernière analyse" }
-        return "Repérez les caches et journaux régénérables de votre Mac."
-    }
-    private func openAnalysis() {
-        app.select(.cleaning)
-        if smart.stage == .idle { smart.scan() }
     }
 
     private var cleaningShortcut: some View {
