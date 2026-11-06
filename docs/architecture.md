@@ -119,6 +119,13 @@ historiques viennent du store partagé ; le stockage reprend le relevé de l’a
 Les composants n’ajoutent pas de lecteurs matériels ni de commandes de charge ou
 de vitesse. [Données, disposition et validations](dashboard-cards.md).
 
+`TrayBatteryAccessoryHistory` conserve les derniers niveaux connus pendant
+20 secondes au plus depuis la dernière lecture de chaque appareil. Le contrôleur
+stabilise leur ordre et leur identité de présentation malgré les relevés partiels
+ou les changements de numéro de source. Chargeur et processus restent mis à jour
+à chaque relevé. La carte d’accueil utilise trois emplacements d’anneaux à taille
+constante (ce Mac et deux accessoires), avec les détails au survol et accessibles.
+
 ## Distribution
 
 L’app et l’assistant conservent des identifiants distincts, avec une signature Apple

@@ -37,9 +37,23 @@ affiche un message jusqu’à la prochaine analyse, sans valeurs fictives.
 
 `HomeBatteryCard` garde son accès au module Batterie et son état d’alimentation.
 La capacité et les cycles quittent la carte d’accueil ; ils restent accessibles
-dans le module complet. Les accessoires disponibles utilisent les anneaux du
-volet, agrandis et légendés par `HomeBatteryAccessory`. Jusqu’à deux appareils sont
-présentés, comme dans le volet. Le boîtier AirPods possède un symbole distinct.
+dans le module complet. Après simplification demandée par Gregory, la jauge
+horizontale et la section nommée Appareils connectés sont remplacées par les seuls
+pictogrammes dans des anneaux de 40 points : ce Mac, puis jusqu’à deux accessoires.
+Les noms et niveaux restent au survol et dans le résumé accessible, sans légendes
+ni pourcentages sous les anneaux. Les trois emplacements gardent une largeur et
+une hauteur constantes, même lorsqu’aucun accessoire n’est disponible. La rangée
+passe sous le niveau principal si la largeur ne suffit pas.
+
+`TrayBatteryAccessoryHistory`, utilisé par le contrôleur partagé, stabilise les
+relevés : une absence ponctuelle conserve le dernier niveau connu pendant au
+maximum 20 secondes depuis sa dernière lecture. L’expiration est individuelle,
+et un nouveau niveau reçu remplace immédiatement le précédent. L’ordre et les
+identifiants de présentation restent stables lorsque les listes sont partielles
+ou que macOS change son numéro de source. Deux appareils portant le même nom
+restent distincts si leurs sources les distinguent. Aucun appareil n’est inventé
+sur un premier relevé vide. Une longue interruption du suivi fait expirer les
+anciens niveaux à la reprise. Les autres mesures du contrôleur restent fraîches.
 
 La puissance annoncée du chargeur est affichée en **watts**, selon le choix de
 Gregory, uniquement sur secteur et lorsqu’elle est disponible. Il ne s’agit pas
@@ -80,7 +94,7 @@ commande. Le réseau affiche type, IP locale et débits descendants/montants en 
 Les composants reprennent le violet, les blancs lumineux et la surface batterie
 légèrement verte. Coins 22 points, contenu à 22–24 points, bouton circulaire 90
 points, chiffres principaux adaptatifs de 40/36 points, anneaux d’accessoires de
-50 points. Pas d’animation de déplacement ajoutée ; le retour de survol existant
+40 points. Pas d’animation de déplacement ajoutée ; le retour de survol existant
 respecte Réduire les animations.
 
 ## Validation et état de livraison
@@ -107,6 +121,30 @@ toujours son indisponibilité préexistante dans le module complet ; aucun dépa
 matériel ajouté à cette évolution de l’accueil.
 
 Paquet `build/dashboard-cards/MacCare.app`, installé dans
-`/Applications/MacCare Dev.app` (Dev 0.2.11, build 13), lancé avec
+`/Applications/MacCare Dev.app` (Dev 0.2.11, build local 1), lancé avec
 `-battery.protection.resume NO`. La copie quotidienne reste préservée. Preuves
 locales : `build/dashboard-cards-qa/`. Travail non publié.
+
+## Stabilisation des accessoires — 6 novembre 2026
+
+Cause reproduite : le contrôleur remplaçait les accessoires à chaque relevé, y
+compris un relevé vide temporaire ; la section passait alors d’anneaux légendés à
+un message plus court. Un relevé natif IOPS de 20 secondes a montré huit lectures
+vides, puis les mêmes deux appareils. Le changement de hauteur est aussi supprimé
+par la rangée d’icônes à dimensions constantes. La ligne de processus garde une
+hauteur minimale constante lorsque son icône d’application apparaît ou disparaît.
+
+Un test a d’abord échoué sur la disparition au premier relevé vide. Les 17 tests
+ciblés passent ensuite : rétention, expiration individuelle, mise à jour des
+niveaux, ordre, changement de source, noms identiques, premier relevé vide,
+remise à zéro de l’horloge et télémétrie batterie. Build et contrôle natif après
+installation Dev consignés dans `build/accessory-stability-qa/`. Les anneaux
+compacts et leurs positions identiques après plusieurs mises à jour ont été
+observés à 1553 × 784, avec les niveaux AirPods/boîtier dans le résumé accessible.
+Les bords des deux cartes restent alignés. Pas de déconnexion physique forcée,
+ni de campagne complète de survol, clavier ou VoiceOver dans cette passe.
+
+Correction documentaire : le numéro du paquet Dev assemblé par défaut est 1,
+constaté dans son Info.plist ; le numéro 13 précédemment indiqué dans cette page
+correspondait à la distribution publique et ne décrivait pas ce paquet local.
+La copie quotidienne reste en 0.2.8 (10). Le correctif reste non publié.

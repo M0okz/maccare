@@ -6,10 +6,9 @@ struct HomeBatteryCard: View {
     @ObservedObject var model: BatteryModel
     let onDetails: () -> Void
     @StateObject private var context = TrayBatteryController()
-    @State private var hovered = false
     @State private var windowVisible = false
     @ScaledMetric(relativeTo: .largeTitle) private var chargeSize = 36
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .body) private var accessoryDiameter: CGFloat = 40
     private var snapshot: BatterySnapshot? { model.snapshot }
     private var telemetry: TrayBatteryTelemetry { context.telemetry }
 
@@ -17,7 +16,6 @@ struct HomeBatteryCard: View {
         Button(action: onDetails) { content }
             .buttonStyle(HomeStatusCardButtonStyle(tint: Theme.ok))
             .foregroundStyle(Theme.fg)
-            .onHover { hovered = $0 }
             .accessibilityElement(children: .ignore)
             .accessibilityAddTraits(.isButton)
             .accessibilityLabel("Batterie")
@@ -45,9 +43,9 @@ struct HomeBatteryCard: View {
                 Text("Ce Mac ne possède pas de batterie intégrée.")
                     .font(AppFont.body).foregroundStyle(Theme.muted)
             } else {
+                Spacer(minLength: 0)
                 charge
-                Divider().overlay(.white.opacity(0.08))
-                accessories
+                Spacer(minLength: 0)
                 Divider().overlay(.white.opacity(0.08))
                 consumer
             }
@@ -55,36 +53,49 @@ struct HomeBatteryCard: View {
     }
 
     private var charge: some View {
-        HStack(spacing: 18) {
-            batteryGauge
-            VStack(alignment: .leading, spacing: 5) {
-                Text(HomeBatteryPresentation.charge(snapshot))
-                    .font(.system(size: chargeSize, weight: .semibold)).monospacedDigit()
-                Text(HomeBatteryPresentation.source(snapshot)).font(AppFont.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                if let powerDetail {
-                    Label { Text(powerDetail) } icon: {
-                        Image(systemName: powerSymbol).accessibilityHidden(true)
-                    }.font(AppFont.caption).foregroundStyle(Theme.muted)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 18) {
+                chargeSummary.fixedSize(horizontal: true, vertical: false)
+                Spacer(minLength: 0)
+                accessories
             }
-        }.frame(maxWidth: .infinity, minHeight: 78, alignment: .leading)
+            VStack(alignment: .leading, spacing: 14) {
+                chargeSummary
+                accessories
+            }
+        }
+    }
+
+    private var chargeSummary: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(HomeBatteryPresentation.charge(snapshot))
+                .font(.system(size: chargeSize, weight: .semibold)).monospacedDigit()
+            Text(HomeBatteryPresentation.source(snapshot)).font(AppFont.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if let powerDetail {
+                Label { Text(powerDetail) } icon: {
+                    Image(systemName: powerSymbol).accessibilityHidden(true)
+                }.font(AppFont.caption).foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 
     private var accessories: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Appareils connectés").font(AppFont.caption).foregroundStyle(Theme.muted)
-            if telemetry.accessories.isEmpty {
-                Text(context.hasSampled ? "Aucun appareil avec batterie détecté." : "Lecture des appareils…")
-                    .font(AppFont.secondary).foregroundStyle(Theme.muted)
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .center)
-            } else {
-                HStack(alignment: .top, spacing: 14) {
-                    ForEach(Array(telemetry.accessories.prefix(2))) { HomeBatteryAccessory(accessory: $0) }
+        HStack(spacing: 10) {
+            TrayBatteryGauge(name: "Ce Mac", symbol: "laptopcomputer", percent: snapshot?.percent,
+                             diameter: accessoryDiameter, lineWidth: 3)
+            ForEach(0..<2, id: \.self) { index in
+                if index < telemetry.accessories.count {
+                    HomeBatteryAccessory(accessory: telemetry.accessories[index])
+                } else {
+                    Color.clear.frame(width: accessoryDiameter + 4, height: accessoryDiameter + 4)
+                        .accessibilityHidden(true)
                 }
             }
         }
+        .frame(width: (accessoryDiameter + 4) * 3 + 20, height: accessoryDiameter + 4)
+        .transaction { $0.animation = nil }
     }
 
     private var consumer: some View {
@@ -104,7 +115,7 @@ struct HomeBatteryCard: View {
                         .truncationMode(.middle).help(consumer.name)
                     Spacer(minLength: 4)
                     Text(consumer.formattedValue).font(AppFont.emphasis).monospacedDigit().fixedSize()
-                }
+                }.frame(minHeight: 26)
                 .help(consumer.measuredPower ? "Estimation parmi les processus accessibles, pas la consommation totale de l’app." : "Puissance indisponible : repli sur la charge CPU, 100 % correspondant à un cœur.")
             } else {
                 Label("Processus énergivores", systemImage: "flame").font(AppFont.caption).foregroundStyle(Theme.muted)
@@ -134,30 +145,11 @@ struct HomeBatteryCard: View {
         var parts = [HomeBatteryPresentation.charge(snapshot), HomeBatteryPresentation.source(snapshot),
                      "État : \(HomeBatteryPresentation.condition(snapshot))"]
         if let powerDetail { parts.append(powerDetail) }
-        parts += telemetry.accessories.prefix(2).map { "\($0.name) : \($0.percent) %" }
+        parts += telemetry.accessories.prefix(2).map { "\($0.name) : dernier niveau connu \($0.percent) %" }
         if let consumer = telemetry.consumer {
             parts.append("\(consumer.measuredPower ? "Processus le plus énergivore" : "Processus le plus actif CPU") : \(consumer.name), \(consumer.formattedValue)")
         }
         return parts.joined(separator: ", ")
     }
 
-    private var batteryGauge: some View {
-        HStack(spacing: 3) {
-            GeometryReader { geometry in
-                RoundedRectangle(cornerRadius: 8).strokeBorder(Theme.ok.opacity(0.65), lineWidth: 2)
-                    .overlay(alignment: .leading) {
-                        if let snapshot, snapshot.present, let percent = snapshot.percent, (0...100).contains(percent) {
-                            RoundedRectangle(cornerRadius: 4).fill(Theme.ok.gradient)
-                                .frame(width: max(0, geometry.size.width - 12) * Double(percent) / 100, height: 28)
-                                .padding(.leading, 6)
-                        }
-                    }
-            }.frame(width: 80, height: 40)
-            Capsule().fill(Theme.ok.opacity(0.65)).frame(width: 3, height: 13)
-        }
-        .brightness(hovered ? 0.18 : 0)
-        .shadow(color: Theme.ok.opacity(hovered ? 0.7 : 0), radius: 10)
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: hovered)
-        .accessibilityHidden(true)
-    }
 }

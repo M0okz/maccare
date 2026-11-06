@@ -115,6 +115,18 @@ Le paquet `build/dashboard-cards/MacCare.app` intègre la maquette validée du b
 et de la batterie : répartition réelle mémorisée, bouton Analyser, accessoires en
 anneaux, chargeur en watts et processus énergivore. Activité du Mac est enrichi par six tuiles : CPU, GPU, mémoire, stockage, réseau
 et ventilateurs, à la hauteur de la carte Batterie pour aligner la grille. Il actualise la copie Dev
-installée (0.2.11, build 13), sans publication ni remplacement de la copie quotidienne.
+installée (0.2.11, build local 1), sans publication ni remplacement de la copie quotidienne.
 41 tests ciblés réussis ; rendu natif des six tuiles et des anneaux d’accessoires
 vérifié. Voir [la disposition, les données et les limites](dashboard-cards.md).
+
+## Accessoires compacts et stables — Dev du 6 novembre 2026
+
+Le paquet `build/accessory-stability/MacCare.app` simplifie les accessoires en
+pictogrammes entourés d’un anneau, sans section ni légende sous les icônes. Une
+absence de relevé inférieure à 20 secondes ne retire plus immédiatement un
+accessoire ; les niveaux récents expirent individuellement. Les emplacements
+restent de dimensions constantes. 17 tests ciblés réussis, dont le cas auparavant
+en échec. Le paquet conserve le numéro de build Dev local par défaut, 1, distinct
+du build public 13 précédemment reporté par erreur pour la Dev. Installation
+uniquement dans `/Applications/MacCare Dev.app`, copie quotidienne préservée.
+Voir [les détails et limites](dashboard-cards.md).
