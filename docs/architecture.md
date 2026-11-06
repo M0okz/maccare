@@ -62,6 +62,48 @@ essayé sur matériel ; les autres gardent les méthodes précédentes. Si le fi
 est remplacé pendant une restauration en attente, il se termine entre deux opérations et
 launchd le relance depuis le nouveau paquet, qui reprend le journal.
 
+## Fenêtres, barre des menus et Dock
+
+`TrayPanelController` présente un panneau natif indépendant de la fenêtre
+principale. `MenuBarView` privilégie une vue compacte sans défilement et conserve
+un repli pour les zones utiles trop courtes. `TrayMetricTile` partage les
+proportions entre disque, mémoire, CPU et Wi-Fi ; `TrayAppearance` et
+`TrayTileStyle` centralisent leurs surfaces et contrôles compacts.
+
+`DockVisibilityController`, détenu par `AppDelegate`, choisit la présence dans le
+Dock à partir des fenêtres de travail et du réglage de barre des menus. Les
+panneaux de menus sont exclus ; les fenêtres minimisées restent restaurables
+par le Dock. Les actions qui ouvrent une fenêtre rétablissent la politique
+AppKit `regular` avant activation. Voir [le comportement et ses validations](menu-bar-panel.md).
+
+## Indicateurs système du volet
+
+`TrayMetricsSampler` lit la pression mémoire XNU et relève la température CPU
+hors du fil principal (cache de 5 secondes). Le pont C `maccare_cpu_temperature`
+ne fait que des lectures IOHID/SMC ; les fonctions existantes de contrôle batterie
+et le protocole de l’assistant ne changent pas.
+
+`NetworkInterfaceSample` associe type, adresse et compteurs à la route principale
+SystemConfiguration, IPv4 puis IPv6. `TrayMetrics.Network` porte cette identité ;
+les noms historiques `wifi` restent compatibles. Le lissage et l’historique
+réinitialisent les débits lors d’un changement d’interface ou d’IP. Les unités de
+présentation sont centralisées par `NetworkRateFormat`. La grille `TrayStorageGrid`
+est une projection arrondie de l’espace utilisé sur 72 cellules, indépendante
+de la lecture des capacités. [Origines, contrôles et limites](menu-bar-panel.md).
+
+## Santé et contexte de batterie
+
+`MacHealthScore` est un calcul pur pondéré, indépendant des vues : stockage,
+pression mémoire, état thermique et capacité batterie. Les absences de données
+et les plafonds critiques sont explicites. `MacHealthDetails` expose le calcul,
+et `MacSystemSpecs` centralise les caractéristiques du Mac et sa date de démarrage.
+
+`TrayBatteryController` possède le suivi limité à la vie du volet ; son acteur
+lit le chargeur/accessoires IOPS et les processus. `TrayProcessSampler` peut
+relever l’énergie attribuée par macOS sans changer les actions de fermeture.
+La puissance vient des nanojoules ; le repli CPU est explicitement séparé et
+conserve la base de temps Mach. [Barème et limites](menu-bar-panel.md).
+
 ## Distribution
 
 L’app et l’assistant conservent des identifiants distincts, avec une signature Apple
@@ -73,3 +115,23 @@ Sparkle vérifie un flux public signé et la signature du DMG final avant extrac
 Les recherches automatiques sont désactivables et les installations nécessitent
 une action de l’utilisateur. Les détails et limites de validation sont dans
 [la procédure de release](releasing.md).
+
+
+### Volet GPU/ventilateurs et raccourcis — 6 novembre 2026, non livré
+
+`TrayMetricsSampler` relève IOAccelerator (GPU le plus actif, modèle/cœurs/charge),
+les capteurs HID GPU et les clés SMC de vitesse des ventilateurs. Les mesures
+restent dans l’actor, températures et ventilateurs en cache de cinq secondes,
+charge GPU à la cadence de suivi existante. `TrayGPUHistory` conserve 40 secondes
+et réinitialise l’historique lors d’un changement de GPU. Aucun appel de commande
+ventilateur ajouté. Données manquantes distinctes des zéros mesurés ; bornes et
+types contrôlés. L’absence de capteur GPU compatible reste explicite.
+
+`TrayShortcuts` partage le contrat de préférence entre `MenuBarView` et
+`TrayShortcutSettingsView` dans les réglages blancs. Quatre positions, liste
+fermée de modules, Aucun, déduplication et validation à la lecture. Les boutons
+appellent la navigation existante, sans exécuter d’entretien. L’en-tête masque
+le pourcentage du score ; son calcul explicable reste accessible. La carte
+batterie est conservée. Référence vérifiée : `main` à `134b7bc`, modifications
+de travail, `build/tray-layout/MacCare.app`, 53 tests ciblés, neuf assertions
+C, signature et rendu natif. Limites détaillées dans `menu-bar-panel.md`.

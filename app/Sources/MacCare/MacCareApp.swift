@@ -34,7 +34,7 @@ struct MacCareApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         #if DEBUG
-        .defaultSize(width: TrayMetricPreview.isOverviewRequested ? 540 : 1200, height: TrayMetricPreview.isOverviewRequested ? 820 : 720)
+        .defaultSize(width: TrayMetricPreview.isOverviewRequested ? TrayPanelLayout.width : 1200, height: TrayMetricPreview.isOverviewRequested ? TrayPanelLayout.maximumBodyHeight + TrayPanelLayout.footerHeight : 720)
         #else
         .defaultSize(width: 1200, height: 720)
         #endif
@@ -71,6 +71,7 @@ enum MenuBarSetting {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var tray: TrayPanelController?
+    private let dockVisibility = DockVisibilityController()
     private var openSettingsAction: (() -> Void)?
     private var startsWithoutWindow = false
 
@@ -123,7 +124,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Clic sur l'icône du Dock (ou réouverture depuis le Finder) sans fenêtre visible : avec la
     /// barre des menus, SwiftUI ne recrée pas la fenêtre de lui-même.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if !flag { Self.openMainWindow?() }
+        DockVisibilityController.activateForWindow()
+        if !NSApp.windows.contains(where: { $0.canBecomeMain && ($0.isVisible || $0.isMiniaturized) }) {
+            Self.openMainWindow?()
+        }
         return true
     }
 

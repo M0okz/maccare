@@ -9,7 +9,10 @@ struct TraySceneLifecycle: View {
     var body: some View {
         Color.clear.frame(width: 0, height: 0).onAppear {
             let action = openWindow
-            let open = { action(id: MacCareApp.mainWindowID) }
+            let open = {
+                DockVisibilityController.activateForWindow()
+                action(id: MacCareApp.mainWindowID)
+            }
             app.openCPUActivity = { action(id: HomeActivityWindow.id(for: .cpu)) }
             app.openMainWindow = open
             AppDelegate.openMainWindow = open

@@ -32,19 +32,19 @@ struct TrayMetricsSmoothing {
         let weight = 1 - exp(-elapsed / 1.5)
         func blend(_ old: Double, _ new: Double) -> Double { old + (new - old) * weight }
         if let old = previous.cpu, let new = raw.cpu {
-            result.cpu = .init(user: blend(old.user, new.user), system: blend(old.system, new.system))
+            result.cpu = .init(user: blend(old.user, new.user), system: blend(old.system, new.system), temperature: new.temperature)
         }
         if let old = previous.memory, let new = raw.memory, old.total == new.total {
             result.memory = .init(total: new.total,
                                   active: UInt64(blend(Double(old.active), Double(new.active))),
                                   wired: UInt64(blend(Double(old.wired), Double(new.wired))),
-                                  compressed: UInt64(blend(Double(old.compressed), Double(new.compressed))))
+                                  compressed: UInt64(blend(Double(old.compressed), Double(new.compressed))), pressure: new.pressure)
         }
-        if let old = previous.wifi, let new = raw.wifi, old.interface == new.interface, old.connected, new.connected {
+        if let old = previous.wifi, let new = raw.wifi, old.interface == new.interface, old.address == new.address, old.kind == new.kind, old.connected, new.connected {
             result.wifi = .init(interface: new.interface, powered: new.powered, connected: new.connected,
                                 linkRate: new.linkRate,
                                 received: new.received.map { blend(old.received ?? $0, $0) },
-                                sent: new.sent.map { blend(old.sent ?? $0, $0) }, signalDBm: new.signalDBm)
+                                sent: new.sent.map { blend(old.sent ?? $0, $0) }, signalDBm: new.signalDBm, kind: new.kind, address: new.address)
         }
         return result
     }
@@ -55,6 +55,7 @@ struct TrayMetricsSnapshot {
     var display = TrayMetrics()
     var cpu = TrayCPUHistory()
     var traffic = WiFiTrafficHistory()
+    var gpu = TrayGPUHistory()
 }
 
 /// Un seul suivi pour l’application, indépendant de la durée de vie du panneau.
@@ -115,6 +116,7 @@ final class TrayMetricsStore: ObservableObject {
         next.raw = sample
         next.display = smoothing.apply(sample)
         next.cpu.record(sample)
+        next.gpu.record(sample)
         next.traffic.record(sample)
         snapshot = next
     }

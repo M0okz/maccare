@@ -7,7 +7,7 @@ final class TrayPanelLayoutTests: XCTestCase {
         let panel = TrayPanelLayout.frame(in: screen)
         XCTAssertEqual(screen.maxX - panel.maxX, 8)
         XCTAssertEqual(screen.maxY - panel.maxY, 8)
-        XCTAssertEqual(panel.width, 540)
+        XCTAssertEqual(panel.width, 420)
         XCTAssertTrue(screen.contains(panel))
     }
     func testSecondaryScreenWithNegativeOrigin() {
@@ -18,18 +18,18 @@ final class TrayPanelLayoutTests: XCTestCase {
         XCTAssertTrue(screen.contains(panel))
     }
     func testShortScreenKeepsPanelInsideUsableArea() {
-        let screen = CGRect(x: 200, y: 20, width: 1024, height: 630)
+        let screen = CGRect(x: 200, y: 20, width: 1024, height: 400)
         let panel = TrayPanelLayout.frame(in: screen)
-        XCTAssertEqual(panel.height, 614)
+        XCTAssertEqual(panel.height, 384)
         XCTAssertEqual(panel.minY, 28)
-        XCTAssertEqual(panel.maxY, 642)
+        XCTAssertEqual(panel.maxY, 412)
         XCTAssertTrue(screen.contains(panel))
     }
     func testNarrowScreenClampsBothDimensions() {
-        let screen = CGRect(x: 500, y: 0, width: 500, height: 600)
+        let screen = CGRect(x: 500, y: 0, width: 400, height: 400)
         let panel = TrayPanelLayout.frame(in: screen)
-        XCTAssertEqual(panel.width, 484)
-        XCTAssertEqual(panel.height, 584)
+        XCTAssertEqual(panel.width, 384)
+        XCTAssertEqual(panel.height, 384)
         XCTAssertTrue(screen.contains(panel))
     }
 }
