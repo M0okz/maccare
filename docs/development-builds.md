@@ -40,3 +40,11 @@ et configure jusqu’à quatre raccourcis dans Réglages → Menu. Le volet mesu
 MacCare et Réglages utilisent des icônes nommées. 53 tests ciblés et neuf
 assertions C de décodage réussis ; rendu natif du volet et réglages blancs vérifiés.
 État local non livré, `main` à `134b7bc` plus modifications de travail.
+
+## Publication 0.2.10 — 6 novembre 2026
+
+Les fonctions du volet sont désormais publiées dans MacCare 0.2.10 (build 12),
+tag `v0.2.10` sur `e5dfb42`, après fusion de la PR #17 et suppression de la branche
+`codex/compact-menu-bar`. Le paquet Dev ci-dessus reste une copie de QA locale,
+distincte du DMG public signé et notarié. La copie quotidienne reste en 0.2.8 (10),
+sans remplacement. Voir les preuves et limites dans `menu-bar-panel.md`.

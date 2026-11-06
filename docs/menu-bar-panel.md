@@ -2,9 +2,12 @@
 
 ## État au 6 novembre 2026
 
-Développement local non livré, depuis `main` à `134b7bc` avec modifications de
-travail. Le paquet vérifié est `build/tray-layout/MacCare.app`, identifié
-**MacCare Dev**. La copie utilisateur `/Applications/MacCare.app` n’est pas remplacée.
+Le volet décrit ici est publié dans [MacCare 0.2.10 (build 12)](https://github.com/M0okz/maccare/releases/tag/v0.2.10),
+à partir du tag `v0.2.10` sur `e5dfb42` (PR #17, commit fonctionnel `a48bedf`).
+Le paquet public Developer ID arm64 est signé et notarié ; les signatures du DMG
+et du flux Sparkle ont été vérifiées avec la clé publique de la copie installée.
+Le paquet Dev de QA est `build/tray-layout/MacCare.app`, identifié **MacCare Dev**.
+La copie quotidienne `/Applications/MacCare.app` reste en 0.2.8 (10), sans remplacement.
 
 ## Vue d’ensemble
 
@@ -265,6 +268,29 @@ fois présents dans la lecture native. Aucun essai de mise en rotation forcée.
 
 Les noms accessibles et aides sont présents dans l’arbre natif. VoiceOver complet,
 clavier seul, grands textes et autres moniteurs ne sont pas déclarés validés.
-Développement non livré sur `main` à `134b7bc` avec modifications de travail,
+État de la QA avant publication : développement non livré sur `main` à `134b7bc` avec modifications de travail,
 aucune installation utilisateur. SHA-256 du binaire `/Applications/MacCare.app`
 conservé : `78763818d09076720974baaa3d915c29728d37362f385ffd3615a8a645104133`.
+
+
+## Publication et clôture — 6 novembre 2026
+
+La [PR #17](https://github.com/M0okz/maccare/pull/17) est fusionnée et la branche
+`codex/compact-menu-bar` supprimée en local et à distance. CI de branche, PR et
+`main` réussies. Le [workflow Release macOS](https://github.com/M0okz/maccare/actions/runs/42230295376)
+a publié la version 0.2.10 (12), le 6 novembre à 15 h 10 (Paris).
+
+Contrôles locaux complets : 94 tests Rust réussis, deux ignorés ; 246 XCTest et
+226 Swift Testing réussis ; 15 tests Python de release, frontière PowerUI sans
+appel natif d’écriture et signatures Sparkle réussis. Ces suites ont également
+été exécutées par les chaînes CI applicables. Le DMG public téléchargé a été
+vérifié : intégrité, signature, tickets Apple sur l’app réellement embarquée et
+sur le DMG, Gatekeeper `Notarized Developer ID`, identifiants/équipe inchangés,
+arm64 pour app et helper, build 12 supérieur au build 10 installé, signatures
+Ed25519 du flux et du DMG, flux latest identique à la release.
+
+SHA-256 DMG : `e3001f4ff023cd23eb3ef8d7d3d40870628f0568289eb919afe518a154106a95`
+(10 204 866 octets). Preuves sous `build/release-0.2.10-validation/`.
+L’installation quotidienne est conservée en 0.2.8 (10) ; son SHA-256 ne change pas.
+Aucune mise à jour Sparkle réelle vers 0.2.10 n’a été effectuée dans cette tâche.
+Les limites de QA matérielle et d’accessibilité ci-dessus restent applicables.

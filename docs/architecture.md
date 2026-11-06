@@ -135,3 +135,13 @@ le pourcentage du score ; son calcul explicable reste accessible. La carte
 batterie est conservée. Référence vérifiée : `main` à `134b7bc`, modifications
 de travail, `build/tray-layout/MacCare.app`, 53 tests ciblés, neuf assertions
 C, signature et rendu natif. Limites détaillées dans `menu-bar-panel.md`.
+
+
+### Publication du volet compact — 6 novembre 2026
+
+Les ajouts du volet décrits dans les sections précédentes sont publiés en
+0.2.10 (build 12), tag `v0.2.10` sur `e5dfb42` (PR #17, source `a48bedf`).
+La branche `codex/compact-menu-bar` est supprimée après CI verte. Les mesures
+restent en lecture seule et à la demande ; aucun réglage ventilateur ajouté.
+Le DMG public et le flux Sparkle ont été vérifiés, sans remplacer la copie
+quotidienne en 0.2.8 (10). Contrôles et limites dans `menu-bar-panel.md`.
