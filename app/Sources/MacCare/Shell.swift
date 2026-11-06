@@ -399,17 +399,9 @@ struct Sidebar: View {
             }
             .padding(.horizontal, compact ? 0 : 12).padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: compact ? .center : .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .fill(selected ? Color.white.opacity(0.13) : Color.clear)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .strokeBorder(Color.white.opacity(selected ? 0.08 : 0), lineWidth: 0.5)
-            )
             .contentShape(Rectangle())
         }
-        .buttonStyle(PressStyle())
+        .buttonStyle(SidebarRowStyle(selected: selected))
         .overlay(alignment: compact ? .topTrailing : .trailing) {
             // Rail : pastille à l'angle de l'icône. Barre complète : en fin de ligne, dans son axe.
             Group {

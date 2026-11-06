@@ -84,3 +84,13 @@ du volet. Il actualise `/Applications/MacCare Dev.app` (Dev 0.2.10, build 12),
 sans publication. L’introduction et le bilan Applications, le gestionnaire blanc,
 les réglages blancs et le volet réel ont été vérifiés. Build et signatures valides,
 copie quotidienne inchangée. Voir [les couleurs, mesures et limites](text-contrast.md).
+
+## Survol des catégories — 6 novembre 2026
+
+Le paquet `build/sidebar-hover/MacCare.app` ajoute un fond arrondi au survol des
+catégories, plus léger que la sélection active, sans navigation automatique.
+Style partagé entre barre complète et rail compact, fondu de 120 ms désactivé
+avec Réduire les animations. La copie Dev installée est actualisée (0.2.10, build
+12), sans publication ni remplacement de la copie quotidienne. Build, signatures,
+sélection et clics de navigation vérifiés ; confirmation du survol seul à la
+souris réelle encore nécessaire. Voir [les contrôles et limites](sidebar-hover.md).
