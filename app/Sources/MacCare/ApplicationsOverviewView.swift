@@ -106,8 +106,9 @@ struct ApplicationsOverviewView: View {
     private var summary: some View {
         VStack(spacing: 0) {
             ScreenToolbar(title: "Applications") {
-                Button { analyze() } label: { Label("Actualiser le bilan", systemImage: "arrow.clockwise") }
-                    .buttonStyle(ToolbarActionButtonStyle()).disabled(working)
+                Button(action: prepareNewAnalysis) { Label("Recommencer", systemImage: "arrow.counterclockwise") }
+                    .buttonStyle(ToolbarActionButtonStyle()).disabled(working || uninstall.isCleaning)
+                    .help("Revenir à l’écran Analyser pour préparer un nouveau bilan.")
             } trailing: { EmptyView() }
                 .padding(.horizontal, 32).frame(height: 56).padding(.vertical, 8)
             ScrollView {
@@ -220,6 +221,12 @@ struct ApplicationsOverviewView: View {
             uninstall.showingLeftovers = true
         }
         app.applicationsDetail = destination
+    }
+
+    private func prepareNewAnalysis() {
+        guard !working, !uninstall.isCleaning else { return }
+        analysis.prepareForNewAnalysis()
+        app.applicationsDetail = nil
     }
 
     private func analyze() { analysis.analyze(uninstall: uninstall, updates: updates) }

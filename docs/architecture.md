@@ -169,3 +169,14 @@ injectable pour des tests isolés ; les clés et le domaine utilisés en product
 ne changent pas. Régression avant/après : `CleaningRestartTests`, complétée par
 Nettoyage/profils/navigation (15 tests). Aucun changement du moteur Rust ni de la
 politique de suppression. Correction locale non publiée ; voir cleaning-managers.
+
+### Recommencer les bilans — correction Dev du 6 novembre 2026
+
+Performances et Applications distinguent également le retour à la préparation
+du lancement d’une analyse. Le premier remet `performanceAnalyzed` à faux ; le
+second appelle `ApplicationsAnalysisModel.prepareForNewAnalysis()`. Les deux
+retirent leur détail actif et refusent le retour pendant une opération en cours.
+Les inventaires déjà lus restent disponibles aux outils. Mes fichiers conserve
+son retour au choix du dossier ; Espace disque conserve la distinction entre
+Changer d’emplacement et Actualiser la mesure. Voir [les validations Dev et
+limites](analysis-restarts.md). Aucun changement du moteur ni de la suppression.

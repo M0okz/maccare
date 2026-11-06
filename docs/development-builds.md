@@ -64,3 +64,14 @@ préparation depuis « Relancer l’analyse » du bilan Nettoyage, sans relance 
 Il conserve les correctifs des détails Stockage/Batterie et met à jour la copie
 `/Applications/MacCare Dev.app` (0.2.10, build 12, Apple Development). Ce travail
 reste local et non publié, distinct de l’installation quotidienne préservée.
+
+## Cohérence des boutons Recommencer — 6 novembre 2026
+
+Le paquet `build/overview-restarts/MacCare.app` ajoute le retour à Analyser dans
+Performances et Applications, avec le libellé Recommencer. Mes fichiers était
+déjà conforme. Espace disque conserve explicitement son actualisation de la
+mesure courante et son bouton Changer d’emplacement. Les quatre parcours ont
+été vérifiés dans l’application, avec 37 tests ciblés réussis. La copie installée
+`/Applications/MacCare Dev.app` est actualisée, toujours en Dev 0.2.10 (12), sans
+publication ni remplacement de la copie quotidienne. Voir [les contrôles et
+limites](analysis-restarts.md).

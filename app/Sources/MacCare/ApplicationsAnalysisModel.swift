@@ -6,6 +6,12 @@ final class ApplicationsAnalysisModel: ObservableObject {
     enum Phase { case introduction, inventory, summary }
     @Published private(set) var phase: Phase = .introduction
 
+    /// Revient à la préparation, sans inventaire ni recherche de mises à jour.
+    func prepareForNewAnalysis() {
+        guard phase != .inventory else { return }
+        phase = .introduction
+    }
+
     func analyze(uninstall: UninstallModel, updates: UpdatesModel) {
         guard phase != .inventory else { return }
         phase = .inventory
