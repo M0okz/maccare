@@ -1,5 +1,14 @@
 # Reconnaître un build de développement
 
+## App Store sans Homebrew — développement du 7 novembre 2026
+
+Le paquet `build/bundled-mas/MacCare.app` embarque mas 7.0.0, signé avec
+MacCare et ses licences. La source App Store utilise uniquement ce composant,
+sans rechercher une installation Homebrew. L'action des résultats ouvre
+l'App Store. Voir [le fonctionnement, le packaging et la validation](app-store-updates.md).
+Évolution locale non publiée sur `codex/bundled-mas` ; la copie quotidienne et
+les autres paquets Dev restent préservés.
+
 Les paquets assemblés par `app/package.sh` affichent **MacCare Dev** dans la
 fenêtre principale et comme nom d’application macOS. Ce repère reste visible
 pendant la navigation, sous les boutons de la fenêtre : « Dev » seul lorsque la

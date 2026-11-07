@@ -180,7 +180,11 @@ struct ApplicationsUpdatesManager: View {
             }
         } actions: {
             if let entry = selected {
-                if let url = entry.item.applicationURL {
+                if entry.source.key == "mas" {
+                    Button("Ouvrir l’App Store") { NSWorkspace.shared.open(AppStoreUpdates.storeURL) }
+                        .buttonStyle(.borderedProminent).controlSize(.large)
+                        .help("Ouvre l’App Store pour choisir les mises à jour à installer.")
+                } else if let url = entry.item.applicationURL {
                     Button("Ouvrir pour mettre à jour") { NSWorkspace.shared.open(url) }
                         .buttonStyle(.borderedProminent).controlSize(.large)
                         .help("Ouvre l’application pour utiliser son mécanisme de mise à jour.")

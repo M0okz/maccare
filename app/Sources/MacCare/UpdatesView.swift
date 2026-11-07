@@ -16,7 +16,7 @@ struct UpdatesView: View {
                     title: "Mises à jour",
                     subtitle: applicationsOnly
                         ? "Consultez les mises à jour de vos applications et leurs notes de version. Aucune installation automatique."
-                        : "État des mises à jour via Homebrew, l’App Store, Sparkle (NetNewsWire) et macOS. MacCare n'installe rien : copiez la commande et lancez-la vous-même."
+                        : "État des mises à jour via Homebrew, l’App Store, Sparkle (NetNewsWire) et macOS. Ouvrez l’application concernée ou copiez la commande proposée. Aucune installation automatique."
                 )
                 HStack(spacing: Space.m) {
                     PrimaryButton(title: "Vérifier", systemImage: "arrow.triangle.2.circlepath", tint: ModuleColor.updates) { if applicationsOnly { model.checkApplications() } else { model.check() } }
@@ -68,7 +68,11 @@ struct UpdatesView: View {
                                 Text("Notes de version").font(.headline).accessibilityAddTraits(.isHeader)
                                 Text(entry.item.releaseNotes ?? "Les notes de version ne sont pas fournies par cette source.")
                                     .textSelection(.enabled)
-                                if let url = entry.item.applicationURL {
+                                if entry.source.key == "mas" {
+                                    Button("Ouvrir l’App Store") { NSWorkspace.shared.open(AppStoreUpdates.storeURL) }
+                                        .buttonStyle(.borderedProminent)
+                                        .help("Ouvre l’App Store pour choisir les mises à jour à installer.")
+                                } else if let url = entry.item.applicationURL {
                                     Button("Ouvrir NetNewsWire pour mettre à jour") { NSWorkspace.shared.open(url) }
                                         .buttonStyle(.borderedProminent)
                                 } else if !entry.source.command.isEmpty {
