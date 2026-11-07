@@ -1,5 +1,13 @@
 # Architecture de MacCare
 
+## Source App Store autonome
+
+`UpdatesModel` délègue à `AppStoreUpdates` la vérification en lecture seule par
+`Contents/Helpers/mas` (7.0.0). Ce composant est figé, vérifié, signé et embarqué
+par le packaging ; sa détection ne dépend pas de Homebrew. Les résultats JSON
+rejoignent le gestionnaire Applications et ouvrent l'App Store pour installer
+à la demande. Voir [le contrat et les limites](app-store-updates.md).
+
 ## Application et moteur
 
 L’application SwiftUI conserve les modèles de chaque rubrique dans `AppState`.

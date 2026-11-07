@@ -54,6 +54,7 @@ python3 app/release/configure_helper.py "$app"
 # Règles de nettoyage au format ouvert : lues par l'app au démarrage (voir CleaningCategory.swift).
 cp -R core/rules "$app/Contents/Resources/rules"
 python3 app/battery-intents.py "$app"
+python3 app/release/embed_mas.py "$app"
 
 # SwiftPM lie le framework, mais l’assemblage manuel doit l’embarquer et préserver ses liens.
 sparkle="app/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
@@ -94,12 +95,15 @@ if [ -n "$identity" ]; then
     done
     codesign "${sign_options[@]}" --sign "$identity" --identifier org.maccare.helper --options runtime \
         "$app/Contents/MacOS/MacCareHelper"
+    codesign "${sign_options[@]}" --sign "$identity" --identifier org.maccare.mas --options runtime \
+        "$app/Contents/Helpers/mas"
     codesign "${sign_options[@]}" --sign "$identity" "${app_options[@]}" "$app"
 else
     echo "==> Aucune identité de signature trouvée : signature ad hoc."
     echo "    Les autorisations macOS ne tiendront pas d'un build à l'autre ;"
     echo "    l'assistant de nettoyage système ne pourra pas être activé (exigence de signature)."
     codesign --force --sign - --identifier org.maccare.helper "$app/Contents/MacOS/MacCareHelper"
+    codesign --force --sign - --identifier org.maccare.mas --options runtime "$app/Contents/Helpers/mas"
     codesign --force --sign - --identifier org.maccare.app "$app"
 fi
 

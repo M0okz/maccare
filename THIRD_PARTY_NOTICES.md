@@ -1,5 +1,17 @@
 # Third-party notices
 
+## mas 7.0.0
+
+MacCare embeds the official mas executable to detect Mac App Store updates
+without Homebrew. Source: https://github.com/mas-cli/mas/tree/v7.0.0
+The upstream MIT license is preserved in `app/vendor/mas/LICENSE`, alongside
+the licenses of its pinned Swift dependencies and their source revisions.
+These notices are copied into `MacCare.app/Contents/Resources/mas/`.
+The executable is re-signed with MacCare's identity, without source changes.
+MacCare only invokes `outdated --inaccurate --json`; users install app updates
+in the App Store. The upstream executable uses Apple's private frameworks,
+so compatibility with future macOS versions is not guaranteed.
+
 ## Sparkle 2.10.1
 
 MacCare embeds Sparkle, the BSD-licensed macOS software update framework.

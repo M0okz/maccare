@@ -1,0 +1,15 @@
+{
+  "version": "7.0.0",
+  "source": "https://github.com/mas-cli/mas/tree/v7.0.0",
+  "minimum_macos": "13.0",
+  "archives": {
+    "arm64": {
+      "url": "https://github.com/mas-cli/mas/releases/download/v7.0.0/mas-7.0.0-arm64.pkg",
+      "sha256": "bc218a854c85d9e1c95496a96b26287bb66056b95688b90f91d04fa62ed21b75"
+    },
+    "x86_64": {
+      "url": "https://github.com/mas-cli/mas/releases/download/v7.0.0/mas-7.0.0-x86_64.pkg",
+      "sha256": "9bca1de1fb6ea19c9e0b9d7b7c85249020c9ed65a9d434c2ef40896a2f3395f9"
+    }
+  }
+}
