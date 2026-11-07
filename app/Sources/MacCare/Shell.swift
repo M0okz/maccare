@@ -6,7 +6,7 @@ import Combine
 enum Module: String, CaseIterable, Identifiable {
     case dashboard, smartScan, applicationsOverview, cleaningOverview, filesOverview, toolsOverview, performanceOverview
     case cleaning, space, largeFiles, duplicates, trash, systemClean, uninstall, simulators, devJunk, startup, privacy, updates, maintenance
-    case screenCleaning, aiClutter, applicationPermissions, battery
+    case screenCleaning, aiClutter, applicationPermissions, battery, imageOptimization, diskHealth
 
     var id: String { rawValue }
 
@@ -22,6 +22,8 @@ enum Module: String, CaseIterable, Identifiable {
         case .smartScan: return "Smart Scan"
         case .cleaning: return "Nettoyage"
         case .space: return "Espace disque"
+        case .diskHealth: return "Santé des disques"
+        case .imageOptimization: return "Alléger des images"
         case .largeFiles: return "Gros fichiers"
         case .duplicates: return "Doublons"
         case .trash: return "Corbeilles"
@@ -51,6 +53,8 @@ enum Module: String, CaseIterable, Identifiable {
         case .smartScan: return "sparkles"
         case .cleaning: return "sparkle.magnifyingglass"
         case .space: return "externaldrive.fill"
+        case .diskHealth: return "internaldrive.fill"
+        case .imageOptimization: return "photo.on.rectangle.angled"
         case .largeFiles: return "doc.richtext.fill"
         case .duplicates: return "doc.on.doc.fill"
         case .trash: return "trash.fill"
@@ -74,7 +78,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .dashboard, .cleaning, .cleaningOverview: return ModuleColor.clean
         case .smartScan, .privacy: return ModuleColor.privacy
         case .space, .filesOverview: return ModuleColor.space
-        case .largeFiles: return ModuleColor.space
+        case .largeFiles, .imageOptimization: return ModuleColor.space
         case .duplicates: return ModuleColor.space
         case .trash: return ModuleColor.clean
         case .systemClean: return ModuleColor.maint
@@ -83,7 +87,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .devJunk: return ModuleColor.maint
         case .startup, .performanceOverview: return ModuleColor.startup
         case .updates: return ModuleColor.updates
-        case .maintenance, .toolsOverview: return ModuleColor.maint
+        case .maintenance, .toolsOverview, .diskHealth: return ModuleColor.maint
         case .screenCleaning: return .pink
         case .aiClutter: return .green
         case .applicationPermissions: return ModuleColor.privacy
@@ -117,6 +121,7 @@ final class AppState: ObservableObject {
     let review = ReviewModel()
     let space = SpaceModel()
     let largeFiles = LargeFilesModel()
+    let pngOptimization = PNGOptimizationModel()
     let filesAnalysis = FilesAnalysisModel()
     let duplicates = DuplicatesModel()
     let trash = TrashModel()
@@ -336,7 +341,7 @@ struct Sidebar: View {
     }
     private var focusedExploration: Bool {
         activity((app.module ?? .dashboard).section).busy || (app.module == .space && space.hasMeasured) ||
-            app.module == .largeFiles || app.module == .duplicates ||
+            app.module == .largeFiles || app.module == .duplicates || app.module == .imageOptimization ||
             ((app.module ?? .dashboard).section == .tools && app.module != .toolsOverview) ||
             (app.module == .performanceOverview && (app.performanceAnalyzed || app.performanceDetail != nil)) ||
             (app.module == .applicationsOverview && (app.applicationsDetail != nil || applications.phase == .summary)) ||
@@ -427,7 +432,7 @@ struct DetailView: View {
     @ObservedObject var app: AppState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var filesManagerVisible: Bool { app.module == .largeFiles || app.module == .duplicates }
+    private var filesManagerVisible: Bool { app.module == .largeFiles || app.module == .duplicates || app.module == .imageOptimization }
     private var filesPanelTransition: AnyTransition {
         ManagerPanelMotion.transition(reduceMotion: reduceMotion)
     }
@@ -458,11 +463,12 @@ struct DetailView: View {
                     case .smartScan, .cleaning, .trash, .systemClean, .simulators, .devJunk:
                         CleaningDetailPanel(app: app, module: app.module ?? .cleaning)
                     case .space: SpaceView(model: app.space)
+                    case .imageOptimization: PNGOptimizationView(model: app.pngOptimization) { app.module = .filesOverview }
                     case .largeFiles: FilesManagerView(app: app, category: .large)
                     case .duplicates: FilesManagerView(app: app, category: .duplicates)
                     case .uninstall: UninstallView(model: app.uninstall)
                     case .updates: UpdatesView(model: app.updates)
-                    case .startup, .privacy, .maintenance, .screenCleaning, .aiClutter, .applicationPermissions:
+                    case .startup, .privacy, .maintenance, .screenCleaning, .aiClutter, .applicationPermissions, .diskHealth:
                         ToolsDetailPanel(app: app, module: app.module ?? .toolsOverview)
                     }
                 }

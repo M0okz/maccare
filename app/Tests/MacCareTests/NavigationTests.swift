@@ -15,7 +15,7 @@ final class NavigationTests: XCTestCase {
 
     func testToolsEntryKeepsAllToolsReachable() {
         XCTAssertEqual(NavigationSection.tools.defaultDestination, .toolsOverview)
-        XCTAssertEqual(Set(NavigationSection.tools.destinations), [.toolsOverview, .screenCleaning, .aiClutter, .applicationPermissions, .maintenance, .startup, .privacy])
+        XCTAssertEqual(Set(NavigationSection.tools.destinations), [.toolsOverview, .screenCleaning, .aiClutter, .applicationPermissions, .maintenance, .startup, .privacy, .diskHealth])
         XCTAssertEqual(Module.startup.section, .tools)
         XCTAssertEqual(Module.devJunk.section, .cleaning)
     }

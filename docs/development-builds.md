@@ -158,3 +158,12 @@ textes du bloc Santé partagent une verticale, avec les icônes dans une marge d
 La hauteur compacte et les informations sont conservées. Dev 0.2.11 (build local 1),
 installation uniquement dans `/Applications/MacCare Dev.app`, sans publication ni
 remplacement de la copie quotidienne. Voir [les contrôles](dashboard-cards.md).
+
+## Outils natifs fichiers/disques — développement du 7 novembre 2026
+
+Branche `codex/native-file-disk-tools`, après mas embarqué `226be66`. Paquet de QA
+`build/native-tools-final/MacCare.app`, identifié MacCare Dev. Images PNG dans
+Mes fichiers, diagnostic de santé dans Outils et sous-volet Stockage interne de
+la barre des menus. Aucune nouvelle santé dans Espace disque. La copie quotidienne
+et les autres Dev préexistantes ne sont pas remplacées. Voir
+[le fonctionnement et les vérifications](native-file-disk-tools.md).

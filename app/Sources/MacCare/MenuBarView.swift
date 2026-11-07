@@ -50,7 +50,7 @@ struct MenuBarView: View {
         .popover(item: $detail, arrowEdge: .leading) { selected in
             switch selected {
             case .activity(let kind): TrayMetricDetail(kind: kind, metricsStore: metricsStore)
-            case .storage: TrayStorageDetail(space: disk) { show(.space) }
+            case .storage: TrayStorageDetail(space: disk, openStorage: { show(.space) }, openHealth: { show(.diskHealth) })
             case .battery: TrayBatteryDetail(model: app.battery, telemetry: batteryContext.telemetry) { show(.battery) }
             }
         }

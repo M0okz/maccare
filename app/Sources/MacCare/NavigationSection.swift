@@ -36,9 +36,9 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .performance: return [.performanceOverview]
         case .cleaning: return [.cleaningOverview, .smartScan, .cleaning, .systemClean, .trash, .devJunk, .simulators]
         case .space: return [.space]
-        case .files: return [.filesOverview, .largeFiles, .duplicates]
+        case .files: return [.filesOverview, .largeFiles, .duplicates, .imageOptimization]
         case .applications: return [.applicationsOverview, .uninstall, .updates]
-        case .tools: return [.toolsOverview, .screenCleaning, .aiClutter, .applicationPermissions, .maintenance, .startup, .privacy]
+        case .tools: return [.toolsOverview, .screenCleaning, .aiClutter, .applicationPermissions, .maintenance, .startup, .privacy, .diskHealth]
         }
     }
     var defaultDestination: Module { destinations[0] }
@@ -56,9 +56,9 @@ extension Module {
         case .performanceOverview: return .performance
         case .cleaningOverview, .smartScan, .cleaning, .systemClean, .trash, .devJunk, .simulators: return .cleaning
         case .space: return .space
-        case .filesOverview, .largeFiles, .duplicates: return .files
+        case .filesOverview, .largeFiles, .duplicates, .imageOptimization: return .files
         case .applicationsOverview, .uninstall, .updates: return .applications
-        case .toolsOverview, .startup, .privacy, .maintenance, .screenCleaning, .aiClutter, .applicationPermissions: return .tools
+        case .toolsOverview, .startup, .privacy, .maintenance, .screenCleaning, .aiClutter, .applicationPermissions, .diskHealth: return .tools
         }
     }
     var tabTitle: String {
