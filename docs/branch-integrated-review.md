@@ -78,3 +78,10 @@ non vides sont couverts par les fixtures, pas par cette session native.
 Preuves locales : `build/branch-integrated-qa/validation.json`, journaux de tests,
 `red-tests.log`, `package-checks.json`, `package-provenance.json`,
 `tool-runtime.json` et `native-runtime.json`.
+
+## Version Dev actualisée après cette revue
+
+La Dev installée porte désormais **0.2.12 (2)**, vérifiée dans sa fenêtre À propos.
+Ce changement de métadonnées conserve les fonctionnalités et corrections revues
+ci-dessus. Les références 0.2.11 (1) décrivent le paquet précédent. Voir
+[la construction de la Dev 0.2.12](development-builds.md#numéro-de-version-actualisé--dev-du-7-novembre-2026).

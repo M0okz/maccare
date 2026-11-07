@@ -179,3 +179,16 @@ Python passent, ainsi que les contrôles PowerUI et Sparkle. Les nouveaux parcou
 sont vérifiés dans la Dev installée et l’accueil est laissé ouvert. Aucun push
 ni nouvelle release dans cette intervention ; copie quotidienne préservée.
 Voir [la revue complète, les références et les limites](branch-integrated-review.md).
+
+## Numéro de version actualisé — Dev du 7 novembre 2026
+
+La version source passe à **0.2.12**, avec le build local **2**, dans
+`app/Info.plist`. Le paquet `build/version-0.2.12/MacCare.app` actualise
+`/Applications/MacCare Dev.app`. La fenêtre native À propos affiche bien
+**Version 0.2.12 (2)** ; le descripteur du helper porte les mêmes numéros et le
+canal development. Compilation Rust/Swift Release, 19 tests Python de packaging,
+architecture arm64 des quatre exécutables et signatures strictes réussis.
+Les suites fonctionnelles complètes de la revue précédente restent la référence :
+cette intervention ne modifie que les métadonnées de version et leur documentation.
+Copie quotidienne 0.2.8 (10) préservée, sans nouvelle publication. Preuves :
+`build/version-0.2.12-qa/validation.json`, journaux de build, packaging et tests.
