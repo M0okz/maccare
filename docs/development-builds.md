@@ -1,5 +1,14 @@
 # Reconnaître un build de développement
 
+## App Store sans Homebrew — développement du 7 novembre 2026
+
+Le paquet `build/bundled-mas/MacCare.app` embarque mas 7.0.0, signé avec
+MacCare et ses licences. La source App Store utilise uniquement ce composant,
+sans rechercher une installation Homebrew. L'action des résultats ouvre
+l'App Store. Voir [le fonctionnement, le packaging et la validation](app-store-updates.md).
+Évolution locale non publiée sur `codex/bundled-mas` ; la copie quotidienne et
+les autres paquets Dev restent préservés.
+
 Les paquets assemblés par `app/package.sh` affichent **MacCare Dev** dans la
 fenêtre principale et comme nom d’application macOS. Ce repère reste visible
 pendant la navigation, sous les boutons de la fenêtre : « Dev » seul lorsque la
@@ -108,3 +117,78 @@ Cette section décrit la préparation : aucune installation quotidienne effectu�
 Ces évolutions sont publiées dans [MacCare 0.2.11 (build 13)](https://github.com/M0okz/maccare/releases/tag/v0.2.11), tag `v0.2.11` sur `b7e76f2`, après fusion de la PR #18 et suppression de la branche `codex/tray-storage-battery-details`. Ce statut remplace celui de développement non livré des notes précédentes. Le DMG téléchargé et le flux Sparkle ont été vérifiés : signatures, notarisation et Gatekeeper valides. Les limites de QA datées restent applicables, dont le survol seul à confirmer à la souris réelle. La copie quotidienne en 0.2.8 (10) est préservée ; la Dev installée reste identifiée 0.2.10 (12).
 
 Référence : [workflow de release réussi](https://github.com/M0okz/maccare/actions/runs/42265708515). Validation locale : `build/release-0.2.11-qa/`. Le DMG fait 10 233 711 octets, SHA-256 `8f40f18f1c22ce43ed8c89c917fb1e16f237921a2a77402ef8b9e2222f95dfb8`. Les suites locales comptent 251 XCTest et 226 Swift Testing, ainsi que 15 tests des outils de release. Frontière PowerUI sans appel natif d’écriture et contrôles négatifs Sparkle réussis ; CI Rust et macOS de la branche et de la PR vertes. Aucune installation de distribution effectuée dans cette livraison.
+
+## Accueil enrichi — Dev du 6 novembre 2026
+
+Le paquet `build/dashboard-cards/MacCare.app` intègre la maquette validée du bilan
+et de la batterie : répartition réelle mémorisée, bouton Analyser, accessoires en
+anneaux, chargeur en watts et processus énergivore. Activité du Mac est enrichi par six tuiles : CPU, GPU, mémoire, stockage, réseau
+et ventilateurs, à la hauteur de la carte Batterie pour aligner la grille. Il actualise la copie Dev
+installée (0.2.11, build local 1), sans publication ni remplacement de la copie quotidienne.
+41 tests ciblés réussis ; rendu natif des six tuiles et des anneaux d’accessoires
+vérifié. Voir [la disposition, les données et les limites](dashboard-cards.md).
+
+## Accessoires compacts et stables — Dev du 6 novembre 2026
+
+Le paquet `build/accessory-stability/MacCare.app` simplifie les accessoires en
+pictogrammes entourés d’un anneau, sans section ni légende sous les icônes. Une
+absence de relevé inférieure à 20 secondes ne retire plus immédiatement un
+accessoire ; les niveaux récents expirent individuellement. Les emplacements
+restent de dimensions constantes. 17 tests ciblés réussis, dont le cas auparavant
+en échec. Le paquet conserve le numéro de build Dev local par défaut, 1, distinct
+du build public 13 précédemment reporté par erreur pour la Dev. Installation
+uniquement dans `/Applications/MacCare Dev.app`, copie quotidienne préservée.
+Voir [les détails et limites](dashboard-cards.md).
+
+## Disposition d’accueil validée — Dev
+
+Le paquet `build/dashboard-approved/MacCare.app` intègre la deuxième maquette
+validée : bilan sur toute la largeur, Batterie compacte et Santé du Mac empilées
+à gauche, Activité en grille à droite. Le disque autonome en doublon est retiré.
+Le résumé de santé réutilise le score et les mesures du volet, avec un accès au
+détail des critères ; les informations de la maquette restent illustratives.
+33 tests ciblés réussis. Disposition native, détail Santé et retour à Analyser
+vérifiés. Paquet Dev 0.2.11 (build local 1), installé uniquement dans
+`/Applications/MacCare Dev.app`, non publié. Voir [la disposition et les contrôles](dashboard-cards.md).
+
+## Texte Santé aligné — Dev
+
+Le paquet `build/health-alignment/MacCare.app` applique l’aperçu validé : tous les
+textes du bloc Santé partagent une verticale, avec les icônes dans une marge dédiée.
+La hauteur compacte et les informations sont conservées. Dev 0.2.11 (build local 1),
+installation uniquement dans `/Applications/MacCare Dev.app`, sans publication ni
+remplacement de la copie quotidienne. Voir [les contrôles](dashboard-cards.md).
+
+## Outils natifs fichiers/disques — développement du 7 novembre 2026
+
+Branche `codex/native-file-disk-tools`, après mas embarqué `226be66`. Paquet de QA
+`build/native-tools-final/MacCare.app`, identifié MacCare Dev. Images PNG dans
+Mes fichiers, diagnostic de santé dans Outils et sous-volet Stockage interne de
+la barre des menus. Aucune nouvelle santé dans Espace disque. La copie quotidienne
+et les autres Dev préexistantes ne sont pas remplacées. Voir
+[le fonctionnement et les vérifications](native-file-disk-tools.md).
+
+## Branche réunie et nouvelle Dev — 7 novembre 2026
+
+Les commits mas embarqué et outils natifs ajoutés à `codex/dashboard-summary-cards`
+sont vérifiés avec l’ensemble de l’accueil. Deux corrections de revue concernent
+la taille PNG réellement traitée et l’échéance des commandes disque. Le paquet
+`build/branch-integrated/MacCare.app` actualise `/Applications/MacCare Dev.app`
+(0.2.11, build local 1). 269 XCTest, 242 Swift Testing, 98 tests Rust et 19 tests
+Python passent, ainsi que les contrôles PowerUI et Sparkle. Les nouveaux parcours
+sont vérifiés dans la Dev installée et l’accueil est laissé ouvert. Aucun push
+ni nouvelle release dans cette intervention ; copie quotidienne préservée.
+Voir [la revue complète, les références et les limites](branch-integrated-review.md).
+
+## Numéro de version actualisé — Dev du 7 novembre 2026
+
+La version source passe à **0.2.12**, avec le build local **2**, dans
+`app/Info.plist`. Le paquet `build/version-0.2.12/MacCare.app` actualise
+`/Applications/MacCare Dev.app`. La fenêtre native À propos affiche bien
+**Version 0.2.12 (2)** ; le descripteur du helper porte les mêmes numéros et le
+canal development. Compilation Rust/Swift Release, 19 tests Python de packaging,
+architecture arm64 des quatre exécutables et signatures strictes réussis.
+Les suites fonctionnelles complètes de la revue précédente restent la référence :
+cette intervention ne modifie que les métadonnées de version et leur documentation.
+Copie quotidienne 0.2.8 (10) préservée, sans nouvelle publication. Preuves :
+`build/version-0.2.12-qa/validation.json`, journaux de build, packaging et tests.

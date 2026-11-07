@@ -39,6 +39,7 @@ struct ToolsDetailPanel: View {
             Divider()
             Group {
                 switch module {
+                case .diskHealth: DiskHealthView()
                 case .aiClutter: AIClutterView(model: ai)
                 case .applicationPermissions: ApplicationPermissionsView(model: app.applicationPermissions)
                 case .privacy: PrivacyView(model: privacy)

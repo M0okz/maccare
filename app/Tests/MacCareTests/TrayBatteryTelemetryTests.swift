@@ -16,6 +16,8 @@ final class TrayBatteryTelemetryTests: XCTestCase {
         XCTAssertNil(TrayBatteryTelemetry.powerSourceAccessory(id: 1, properties: ["Name": "iPhone", "Current Capacity": 40, "Max Capacity": 80, "Is Present": false]))
         XCTAssertNil(TrayBatteryTelemetry.accessory(id: 2, properties: ["Product": "AirPods", "BatteryPercent": true]))
         XCTAssertNil(TrayBatteryTelemetry.accessory(id: 2, properties: ["Product": "AirPods", "BatteryPercent": 150]))
+        XCTAssertEqual(TrayBatteryTelemetry.accessory(id: 3, properties: ["Product": "Boîtier AirPods Pro", "BatteryPercent": 66])?.symbol, "airpods.chargingcase")
+        XCTAssertEqual(TrayBatteryTelemetry.accessory(id: 4, properties: ["Product": "Showcase Keyboard", "BatteryPercent": 72])?.symbol, "keyboard")
     }
 
     func testProcessPowerUsesNanojoulesAndRequiresTwoCoherentReadings() {

@@ -185,6 +185,9 @@ char *maccare_set_agent_task(const char *input_json, const MaccareTask *task);
 char *maccare_system_list(const char *input_json);
 char *maccare_system_remove(const char *input_json);
 
+/* Crée une copie PNG allégée, sans écraser aucun fichier existant. */
+char *maccare_optimize_png_copy(const char *input_json);
+
 /* Libère une chaîne renvoyée par les fonctions ci-dessus. NULL accepté. */
 void maccare_string_free(char *ptr);
 

@@ -45,8 +45,8 @@ def main():
     app = output / 'MacCare.app'
     run('bash', 'app/package.sh', str(app))
     info = plistlib.loads((app / 'Contents/Info.plist').read_bytes())
-    for binary in ['MacCare', 'MacCareHelper']:
-        arch = run('lipo', '-archs', str(app / 'Contents/MacOS' / binary), capture_output=True, text=True).stdout.split()
+    for binary in ['MacOS/MacCare', 'MacOS/MacCareHelper', 'Helpers/mas', 'Helpers/smartctl']:
+        arch = run('lipo', '-archs', str(app / 'Contents' / binary), capture_output=True, text=True).stdout.split()
         if arch != ['arm64']:
             raise RuntimeError('La distribution actuelle doit cibler uniquement Apple Silicon.')
     run('codesign', '--verify', '--deep', '--strict', str(app))
@@ -86,6 +86,9 @@ def main():
     (output / 'release.json').write_text(json.dumps({
         'version': version, 'build': info['CFBundleVersion'], 'architecture': 'arm64',
         'sha256': digest, 'sparkle': '2.10.1', 'notarized': True,
+        'oxipng': json.loads((app / 'Contents/Resources/oxipng/manifest.json').read_text())['oxipng'],
+        'smartmontools': json.loads((app / 'Contents/Resources/smartmontools/manifest.json').read_text())['version'],
+        'mas': json.loads((app / 'Contents/Resources/mas/manifest.json').read_text())['version'],
     }, indent=2) + '\n')
 
 

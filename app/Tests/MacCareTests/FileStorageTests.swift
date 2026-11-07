@@ -59,11 +59,14 @@ final class FileStorageTests: XCTestCase {
 
     func testFilesAndExplorerHaveIndependentRoutes() {
         XCTAssertEqual(NavigationSection.files.defaultDestination, .filesOverview)
-        XCTAssertEqual(Set(NavigationSection.files.destinations), [.filesOverview, .largeFiles, .duplicates])
+        XCTAssertEqual(Set(NavigationSection.files.destinations), [.filesOverview, .largeFiles, .duplicates, .imageOptimization])
         XCTAssertEqual(NavigationSection.space.destinations, [.space])
         var history = NavigationHistory()
         history.remember(.duplicates)
         XCTAssertEqual(history.destination(for: .files, developerTools: true), .duplicates)
+        XCTAssertEqual(history.destination(for: .space, developerTools: true), .space)
+        history.remember(.imageOptimization)
+        XCTAssertEqual(history.destination(for: .files, developerTools: true), .imageOptimization)
         XCTAssertEqual(history.destination(for: .space, developerTools: true), .space)
         XCTAssertTrue(SettingsTab.allCases.contains(.filesStorage))
     }

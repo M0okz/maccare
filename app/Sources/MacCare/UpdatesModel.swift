@@ -24,7 +24,7 @@ struct UpdateSource: Identifiable {
     var id: String { key }
 }
 
-/// Vérifie les mises à jour en **lecture seule** via Homebrew, mas (App Store) et softwareupdate.
+/// Vérifie les mises à jour en **lecture seule** via Homebrew, mas embarqué et softwareupdate.
 /// MacCare ne lance jamais les mises à jour lui-même : il affiche la liste et la commande à copier.
 @MainActor
 final class UpdatesModel: ObservableObject {
@@ -70,7 +70,7 @@ final class UpdatesModel: ObservableObject {
             UpdateSource(key: "netnewswire", title: "NetNewsWire · Sparkle", command: ""),
             UpdateSource(key: "brew", title: "Homebrew", command: "brew upgrade"),
             UpdateSource(key: "cask", title: "Homebrew (apps)", command: "brew upgrade --cask"),
-            UpdateSource(key: "mas", title: "App Store", command: "mas upgrade"),
+            UpdateSource(key: "mas", title: "App Store", command: ""),
             UpdateSource(key: "macos", title: "macOS", command: "softwareupdate -ia"),
         ].filter { !applicationsOnly || ["cask", "mas", "netnewswire"].contains($0.key) }
         let keys = sources.map(\.key)
@@ -84,7 +84,7 @@ final class UpdatesModel: ObservableObject {
                 case "netnewswire": result = await NetNewsWireFeed.check()
                 case "brew": result = Self.brewOutdated(brew, cask: false)
                 case "cask": result = Self.brewOutdated(brew, cask: true)
-                case "mas": result = Self.masOutdated()
+                case "mas": result = AppStoreUpdates.check()
                 default: result = Self.macosOutdated()
                 }
                 await MainActor.run {
@@ -118,23 +118,6 @@ final class UpdatesModel: ObservableObject {
             return OutdatedItem(name: s, detail: "")
         }
         return (key, .ok, items)
-    }
-
-    nonisolated private static func masOutdated() -> (String, UpdateSource.State, [OutdatedItem]) {
-        guard let mas = SystemTools.locate("mas") else { return ("mas", .notInstalled, []) }
-        let out = SystemTools.run(mas, ["outdated"])
-        guard out.ok else { return ("mas", .error(out.stderr.isEmpty ? "échec de mas" : out.stderr), []) }
-        let items = out.stdout.split(separator: "\n").map { line -> OutdatedItem in
-            // "497799835 Xcode (14.0 -> 14.1)"
-            let parts = String(line).split(separator: " ", maxSplits: 1).map(String.init)
-            let rest = parts.count > 1 ? parts[1] : String(line)
-            if let paren = rest.firstIndex(of: "(") {
-                return OutdatedItem(name: String(rest[..<paren]).trimmingCharacters(in: .whitespaces),
-                                    detail: String(rest[paren...]))
-            }
-            return OutdatedItem(name: rest, detail: "")
-        }
-        return ("mas", .ok, items)
     }
 
     nonisolated private static func macosOutdated() -> (String, UpdateSource.State, [OutdatedItem]) {

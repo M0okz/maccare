@@ -52,12 +52,14 @@ final class SmartScanModel: ObservableObject {
     /// Dernier Smart Scan **complet**, mémorisé : la barre des menus l'affiche même après relance.
     @Published private(set) var lastCompletedAt: Date?
     @Published private(set) var lastSafeBytes: UInt64
+    @Published private(set) var lastBreakdown: HomeCleaningBreakdown?
     /// Appelé à la fin de chaque scan complet (espace sûr, espace détecté) : sert au planificateur.
     var onComplete: ((UInt64, UInt64) -> Void)?
 
     private enum LastScan {
         static let dateKey = "lastSmartScanDate"
         static let safeKey = "lastSmartScanSafeBytes"
+        static let breakdownKey = "lastSmartScanSafeBreakdown"
         static func bytes(_ key: String, defaults: UserDefaults) -> UInt64 {
             (defaults.object(forKey: key) as? NSNumber)?.uint64Value ?? 0
         }
@@ -71,8 +73,16 @@ final class SmartScanModel: ObservableObject {
     init(categories: @escaping () -> [CleaningCategory] = { ScanPreferences.currentCategories }, defaults: UserDefaults = .standard) {
         categorySource = categories
         self.defaults = defaults
-        lastCompletedAt = defaults.object(forKey: LastScan.dateKey) as? Date
-        lastSafeBytes = LastScan.bytes(LastScan.safeKey, defaults: defaults)
+        let completedAt = defaults.object(forKey: LastScan.dateKey) as? Date
+        let bytes = LastScan.bytes(LastScan.safeKey, defaults: defaults)
+        lastCompletedAt = completedAt
+        lastSafeBytes = bytes
+        let saved = defaults.dictionary(forKey: LastScan.breakdownKey)
+        if let completedAt, saved?["date"] as? Date == completedAt {
+            lastBreakdown = HomeCleaningBreakdown(stored: saved?["parts"], total: bytes)
+        } else {
+            lastBreakdown = nil
+        }
     }
     /// Tâche moteur du scan en cours (annulation, progression).
     private var task: EngineTask?
@@ -242,8 +252,11 @@ final class SmartScanModel: ObservableObject {
                     let now = Date(), safe = self.safeSize
                     self.lastCompletedAt = now
                     self.lastSafeBytes = safe
+                    let breakdown = HomeCleaningBreakdown(groups: self.groups)
+                    self.lastBreakdown = breakdown
                     self.defaults.set(now, forKey: LastScan.dateKey)
                     self.defaults.set(NSNumber(value: safe), forKey: LastScan.safeKey)
+                    self.defaults.set(["date": now, "parts": breakdown.stored], forKey: LastScan.breakdownKey)
                     self.onComplete?(safe, self.foundSize)
                 }
             }

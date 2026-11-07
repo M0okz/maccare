@@ -1,5 +1,36 @@
 # Third-party notices
 
+## oxipng 10.2.1
+
+MacCare statically links oxipng into its Rust engine with default features disabled.
+Source: https://github.com/oxipng/oxipng/tree/v10.2.1
+The upstream MIT license and licenses/notices of its pinned dependency tree are
+preserved in `app/vendor/oxipng` and copied to `Contents/Resources/oxipng`.
+The locked versions are in `core/Cargo.lock`; `manifest.json` maps source and notices.
+The integration only recompresses PNG copies and preserves original files.
+
+## smartmontools 7.5 (r5714)
+
+MacCare bundles the unmodified upstream smartctl program, narrowed to the app
+architecture and re-signed. It is a separate process, used only for read-only
+health information. No smartd service, installer scripts or kernel drivers are installed.
+Source: https://github.com/smartmontools/smartmontools/tree/RELEASE_7_5
+GPLv2-or-later COPYING, AUTHORS, the drive database, the exact corresponding
+upstream source archive and pinned provenance are supplied in
+`Contents/Resources/smartmontools`. The source archive includes build instructions.
+
+## mas 7.0.0
+
+MacCare embeds the official mas executable to detect Mac App Store updates
+without Homebrew. Source: https://github.com/mas-cli/mas/tree/v7.0.0
+The upstream MIT license is preserved in `app/vendor/mas/LICENSE`, alongside
+the licenses of its pinned Swift dependencies and their source revisions.
+These notices are copied into `MacCare.app/Contents/Resources/mas/`.
+The executable is re-signed with MacCare's identity, without source changes.
+MacCare only invokes `outdated --inaccurate --json`; users install app updates
+in the App Store. The upstream executable uses Apple's private frameworks,
+so compatibility with future macOS versions is not guaranteed.
+
 ## Sparkle 2.10.1
 
 MacCare embeds Sparkle, the BSD-licensed macOS software update framework.

@@ -14,6 +14,11 @@ struct TrayBatteryTelemetry: Sendable {
         let name: String
         let value: Double
         let measuredPower: Bool
+        var executable: String? = nil
+        var appBundlePath: String? {
+            guard let executable, executable.hasPrefix("/"), let range = executable.range(of: ".app/") else { return nil }
+            return String(executable[..<range.lowerBound]) + ".app"
+        }
         var formattedValue: String {
             if measuredPower {
                 if value > 0 && value < 0.01 { return "< 0,01 W" }
@@ -40,7 +45,9 @@ struct TrayBatteryTelemetry: Sendable {
               (0...100).contains(value.doubleValue),
               let name = properties["Product"] as? String, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
         let lower = name.lowercased()
-        let symbol = lower.contains("mouse") || lower.contains("souris") ? "computermouse" :
+        let isChargingCase = lower.contains("boîtier") || lower.contains("boitier") || (lower.contains("airpod") && lower.contains("case"))
+        let symbol = isChargingCase ? "airpods.chargingcase" :
+            lower.contains("mouse") || lower.contains("souris") ? "computermouse" :
             lower.contains("keyboard") || lower.contains("clavier") ? "keyboard" :
             lower.contains("iphone") ? "iphone" : lower.contains("ipad") ? "ipad" :
             lower.contains("airpod") || lower.contains("headphone") ? "headphones" : "battery.100percent"
@@ -61,10 +68,10 @@ struct TrayBatteryTelemetry: Sendable {
 
     static func leadingConsumer(_ processes: [TrayProcess]) -> Consumer? {
         if let process = processes.filter({ ($0.energyWatts ?? 0) > 0 }).max(by: { ($0.energyWatts ?? 0) < ($1.energyWatts ?? 0) }), let watts = process.energyWatts {
-            return .init(name: process.name, value: watts, measuredPower: true)
+            return .init(name: process.name, value: watts, measuredPower: true, executable: process.executable)
         }
         if let process = processes.filter({ ($0.cpuPercent ?? 0) > 0 }).max(by: { ($0.cpuPercent ?? 0) < ($1.cpuPercent ?? 0) }), let cpu = process.cpuPercent {
-            return .init(name: process.name, value: cpu, measuredPower: false)
+            return .init(name: process.name, value: cpu, measuredPower: false, executable: process.executable)
         }
         return nil
     }

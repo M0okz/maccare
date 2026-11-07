@@ -20,5 +20,7 @@ libc = "0.2.191"
 sha2 = "0.10.9"
 plist = { version = "1.8.0", default-features = false }
 
+oxipng = { version = "=10.2.1", default-features = false }
+
 [dev-dependencies]
 tempfile = "3.15.0"

@@ -1,5 +1,13 @@
 # Architecture de MacCare
 
+## Source App Store autonome
+
+`UpdatesModel` délègue à `AppStoreUpdates` la vérification en lecture seule par
+`Contents/Helpers/mas` (7.0.0). Ce composant est figé, vérifié, signé et embarqué
+par le packaging ; sa détection ne dépend pas de Homebrew. Les résultats JSON
+rejoignent le gestionnaire Applications et ouvrent l'App Store pour installer
+à la demande. Voir [le contrat et les limites](app-store-updates.md).
+
 ## Application et moteur
 
 L’application SwiftUI conserve les modèles de chaque rubrique dans `AppState`.
@@ -98,11 +106,46 @@ pression mémoire, état thermique et capacité batterie. Les absences de donné
 et les plafonds critiques sont explicites. `MacHealthDetails` expose le calcul,
 et `MacSystemSpecs` centralise les caractéristiques du Mac et sa date de démarrage.
 
-`TrayBatteryController` possède le suivi limité à la vie du volet ; son acteur
+`TrayBatteryController` possède le suivi limité à la visibilité du volet ou de la
+carte Batterie de l’accueil ; son acteur
 lit le chargeur/accessoires IOPS et les processus. `TrayProcessSampler` peut
 relever l’énergie attribuée par macOS sans changer les actions de fermeture.
 La puissance vient des nanojoules ; le repli CPU est explicitement séparé et
 conserve la base de temps Mach. [Barème et limites](menu-bar-panel.md).
+
+## Cartes de l’accueil — développement après 0.2.11
+
+`HomeCleaningCard` projette une répartition des seuls groupes sûrs. Le calcul pur
+`HomeCleaningBreakdown` est mémorisé par `SmartScanModel` avec date et total du
+bilan ; une répartition absente ou incohérente n’est pas reconstruite arbitrairement.
+L’action Analyser prépare un nouveau bilan, sans relancer immédiatement le moteur.
+
+`HomeBatteryCard` réutilise les relevés du volet pour les anneaux d’accessoires,
+le chargeur en watts et le processus énergivore. `HomeActivityCard` compose six
+tuiles : CPU, GPU, mémoire, stockage, réseau et ventilateurs. Les mesures et
+historiques viennent du store partagé ; le stockage reprend le relevé de l’accueil.
+Les composants n’ajoutent pas de lecteurs matériels ni de commandes de charge ou
+de vitesse. [Données, disposition et validations](dashboard-cards.md).
+
+`TrayBatteryAccessoryHistory` conserve les derniers niveaux connus pendant
+20 secondes au plus depuis la dernière lecture de chaque appareil. Le contrôleur
+stabilise leur ordre et leur identité de présentation malgré les relevés partiels
+ou les changements de numéro de source. Chargeur et processus restent mis à jour
+à chaque relevé. La carte d’accueil utilise trois emplacements d’anneaux à taille
+constante (ce Mac et deux accessoires), avec les détails au survol et accessibles.
+
+La disposition d’accueil validée retire la carte disque autonome : un seul
+`HomeCleaningCard` occupe la première ligne, puis `HomeStatusCards` compose
+Batterie/Santé dans une colonne et Activité en regard. `HomeHealthPresentation`
+résume les signaux existants sans recalculer un autre indice : il conserve
+l’évaluation `MacHealthScore`, réutilise le seuil d’alerte stockage et priorise les
+conditions critiques. Les plafonds chiffrés restent dans `MacHealthDetails`, pas
+dans la raison courte de la carte. `HomeHealthCard` observe le store et le modèle
+batterie existants ; son uptime se met à jour à la minute sans nouveau lecteur
+matériel. Les dispositions étroites passent par `ViewThatFits` et l’empilement.
+Le remplissage vertical du style est explicite pour Activité ; Batterie et Santé
+conservent leur hauteur de contenu, avec alimentation/puissance et caractéristiques/
+uptime regroupés pour éviter l’étirement des tuiles.
 
 ## Distribution
 
@@ -184,3 +227,12 @@ limites](analysis-restarts.md). Aucun changement du moteur ni de la suppression.
 ## Publication 0.2.11 — 6 novembre 2026
 
 Ces évolutions sont publiées dans [MacCare 0.2.11 (build 13)](https://github.com/M0okz/maccare/releases/tag/v0.2.11), tag `v0.2.11` sur `b7e76f2`, après fusion de la PR #18 et suppression de la branche `codex/tray-storage-battery-details`. Ce statut remplace celui de développement non livré des notes précédentes. Le DMG téléchargé et le flux Sparkle ont été vérifiés : signatures, notarisation et Gatekeeper valides. Les limites de QA datées restent applicables, dont le survol seul à confirmer à la souris réelle. La copie quotidienne en 0.2.8 (10) est préservée ; la Dev installée reste identifiée 0.2.10 (12).
+
+
+## PNG natifs et diagnostic des disques — Dev du 7 novembre 2026
+
+oxipng 10.2.1 est lié au moteur Rust via une frontière C/JSON pour créer des copies
+PNG sans écrasement depuis Mes fichiers. smartctl 7.5 est embarqué, signé et utilisé
+en lecture seule dans Outils → Santé des disques et le sous-volet Stockage interne
+de la barre des menus. La section Espace disque reste distincte. Détails, bornes,
+licences et vérifications : [outils natifs](native-file-disk-tools.md).
