@@ -1005,6 +1005,26 @@ fn refusal_code(decision: &Decision) -> Option<&'static str> {
     }
 }
 
+/// Creates a PNG copy; never overwrites source or existing output. Input: source_path, destination_directory.
+/// # Safety
+/// input_json must be null or a valid NUL-terminated string.
+#[no_mangle]
+pub unsafe extern "C" fn maccare_optimize_png_copy(input_json: *const c_char) -> *mut c_char {
+    guarded(|| {
+        #[derive(Deserialize)]
+        struct Input { source_path: String, destination_directory: String }
+        if input_json.is_null() { return error_json("Image manquante."); }
+        let input: Input = match serde_json::from_slice(CStr::from_ptr(input_json).to_bytes()) {
+            Ok(input) => input,
+            Err(_) => return error_json("Image ou destination illisible."),
+        };
+        match crate::png_optimizer::optimize_copy(Path::new(&input.source_path), Path::new(&input.destination_directory)) {
+            Ok(result) => serde_json::json!({"result": result}).to_string(),
+            Err(message) => error_json(&message),
+        }
+    })
+}
+
 /// Exécute un point d'entrée en interceptant toute panique, convertie en `{"error":...}`.
 fn guarded(f: impl FnOnce() -> String) -> *mut c_char {
     let json = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f))

@@ -3,11 +3,14 @@ import SwiftUI
 struct TrayStorageDetail: View {
     let space: (free: UInt64, total: UInt64)?
     let openStorage: () -> Void
+    let openHealth: () -> Void
+    @StateObject private var health = DiskHealthModel()
     private var usage: TrayStorageUsage? { space.flatMap { TrayStorageUsage(free: $0.free, total: $0.total) } }
     @ScaledMetric(relativeTo: .title2) private var valueSize = 24
 
     var body: some View {
-        TrayDetailSurface(title: "Stockage interne", height: 540) {
+        TrayDetailSurface(title: "Stockage interne", height: 640) {
+            healthSummary
             if let usage {
                 ZStack {
                     Circle().stroke(.white.opacity(0.13), lineWidth: 18)
@@ -38,8 +41,41 @@ struct TrayStorageDetail: View {
                     .font(.callout).foregroundStyle(TrayAppearance.secondary)
             }
             Divider().overlay(.white.opacity(0.1))
+            Button("Voir la santé des disques", action: openHealth)
+                .buttonStyle(TrayActionStyle(prominent: true))
             Button("Explorer le stockage dans MacCare", action: openStorage)
                 .buttonStyle(TrayActionStyle())
         }
+        .task { await health.refresh(at: "/") }
+    }
+
+    private var healthSummary: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text("Santé du disque").font(.headline).accessibilityAddTraits(.isHeader)
+            if health.isLoading {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("Lecture des informations…").font(.callout)
+                }
+            } else if let report = health.report {
+                Label(report.summary, systemImage: report.warning ? "exclamationmark.triangle" : (report.passed == true ? "checkmark.shield" : "info.circle"))
+                    .font(.callout).foregroundStyle(report.warning ? Color.orange : Color.white)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 14) { healthMetrics(report) }
+                    VStack(alignment: .leading, spacing: 7) { healthMetrics(report) }
+                }
+                if let model = report.model { Text(model).font(.caption).foregroundStyle(TrayAppearance.secondary) }
+            } else {
+                Text("Données de santé indisponibles").font(.callout)
+                Text("Le diagnostic complet précise les informations accessibles pour ce disque.")
+                    .font(.caption).foregroundStyle(TrayAppearance.secondary)
+            }
+        }.padding(14).frame(maxWidth: .infinity, alignment: .leading)
+            .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    @ViewBuilder private func healthMetrics(_ report: DiskHealthReport) -> some View {
+        if let value = report.temperature { Text("Température : \(value) °C").font(.caption.weight(.semibold)).monospacedDigit() }
+        if let value = report.enduranceUsed { Text("Endurance consommée : \(value) %").font(.caption).monospacedDigit() }
     }
 }

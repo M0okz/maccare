@@ -53,6 +53,8 @@ struct FilesOverviewView: View {
                                 OverviewFeatureRow(symbol: "doc.text.magnifyingglass", title: "Fichiers volumineux", tint: FilesStyle.accent.shade(0.65))
                                 OverviewFeatureRow(symbol: "doc.on.doc", title: "Doublons identiques", tint: FilesStyle.accent.shade(0.65))
                             }.padding(.top, 10)
+                            Button { app.module = .imageOptimization } label: { Label("Alléger des images PNG", systemImage: "photo.on.rectangle.angled") }
+                                .buttonStyle(SecondaryActionButtonStyle()).controlSize(.large)
                             locationMenu
                             if let error = analysis.locationError {
                                 Label(error, systemImage: "exclamationmark.triangle").font(AppFont.secondary)
@@ -113,6 +115,12 @@ struct FilesOverviewView: View {
                             resultCard(duplicates: true).frame(maxWidth: .infinity)
                             resultCard(duplicates: false).frame(maxWidth: .infinity)
                         }.padding(.top, 16)
+                        HStack(spacing: 16) {
+                            Label("Des images PNG plus légères, sans perte de qualité", systemImage: "photo.on.rectangle.angled")
+                                .font(AppFont.body.weight(.semibold))
+                            Spacer()
+                            Button("Alléger des images") { app.module = .imageOptimization }.buttonStyle(SecondaryActionButtonStyle())
+                        }.padding(22).background(.white.opacity(0.13), in: RoundedRectangle(cornerRadius: 18))
                         InterfaceHelp(title: "À propos des résultats", message: "Un fichier peut apparaître dans les deux catégories ; leurs volumes ne s’additionnent pas. Les doublons sont identiques par contenu. Une copie reste conservée. Les éléments choisis passent toujours par la corbeille.")
                     }.padding(30).frame(maxWidth: .infinity, minHeight: geometry.size.height)
                 }

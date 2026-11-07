@@ -45,6 +45,7 @@ cp "$bin" "$app/Contents/MacOS/MacCare"
 cp app/Info.plist "$app/Contents/Info.plist"
 python3 app/release/configure_bundle.py "$app/Contents/Info.plist"
 cp THIRD_PARTY_NOTICES.md "$app/Contents/Resources/THIRD_PARTY_NOTICES.md"
+cp -R app/vendor/oxipng "$app/Contents/Resources/oxipng"
 cp "$assets/MacCare.icns" "$app/Contents/Resources/MacCare.icns"
 # Assistant privilégié (nettoyage système) : l'exécutable vit dans le paquet et le plist launchd
 # est enregistré par SMAppService.daemon (voir docs/architecture.md). Il disparaît avec l'app.
@@ -55,6 +56,7 @@ python3 app/release/configure_helper.py "$app"
 cp -R core/rules "$app/Contents/Resources/rules"
 python3 app/battery-intents.py "$app"
 python3 app/release/embed_mas.py "$app"
+python3 -m app.release.embed_smartmontools "$app"
 
 # SwiftPM lie le framework, mais l’assemblage manuel doit l’embarquer et préserver ses liens.
 sparkle="app/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
@@ -97,6 +99,8 @@ if [ -n "$identity" ]; then
         "$app/Contents/MacOS/MacCareHelper"
     codesign "${sign_options[@]}" --sign "$identity" --identifier org.maccare.mas --options runtime \
         "$app/Contents/Helpers/mas"
+    codesign "${sign_options[@]}" --sign "$identity" --identifier org.maccare.smartctl --options runtime \
+        "$app/Contents/Helpers/smartctl"
     codesign "${sign_options[@]}" --sign "$identity" "${app_options[@]}" "$app"
 else
     echo "==> Aucune identité de signature trouvée : signature ad hoc."
@@ -104,6 +108,7 @@ else
     echo "    l'assistant de nettoyage système ne pourra pas être activé (exigence de signature)."
     codesign --force --sign - --identifier org.maccare.helper "$app/Contents/MacOS/MacCareHelper"
     codesign --force --sign - --identifier org.maccare.mas --options runtime "$app/Contents/Helpers/mas"
+    codesign --force --sign - --identifier org.maccare.smartctl --options runtime "$app/Contents/Helpers/smartctl"
     codesign --force --sign - --identifier org.maccare.app "$app"
 fi
 

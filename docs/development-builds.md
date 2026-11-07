@@ -117,3 +117,13 @@ Cette section décrit la préparation : aucune installation quotidienne effectu�
 Ces évolutions sont publiées dans [MacCare 0.2.11 (build 13)](https://github.com/M0okz/maccare/releases/tag/v0.2.11), tag `v0.2.11` sur `b7e76f2`, après fusion de la PR #18 et suppression de la branche `codex/tray-storage-battery-details`. Ce statut remplace celui de développement non livré des notes précédentes. Le DMG téléchargé et le flux Sparkle ont été vérifiés : signatures, notarisation et Gatekeeper valides. Les limites de QA datées restent applicables, dont le survol seul à confirmer à la souris réelle. La copie quotidienne en 0.2.8 (10) est préservée ; la Dev installée reste identifiée 0.2.10 (12).
 
 Référence : [workflow de release réussi](https://github.com/M0okz/maccare/actions/runs/42265708515). Validation locale : `build/release-0.2.11-qa/`. Le DMG fait 10 233 711 octets, SHA-256 `8f40f18f1c22ce43ed8c89c917fb1e16f237921a2a77402ef8b9e2222f95dfb8`. Les suites locales comptent 251 XCTest et 226 Swift Testing, ainsi que 15 tests des outils de release. Frontière PowerUI sans appel natif d’écriture et contrôles négatifs Sparkle réussis ; CI Rust et macOS de la branche et de la PR vertes. Aucune installation de distribution effectuée dans cette livraison.
+
+
+## Outils natifs fichiers/disques — développement du 7 novembre 2026
+
+Branche `codex/native-file-disk-tools`, après mas embarqué `226be66`. Paquet de QA
+`build/native-tools-final/MacCare.app`, identifié MacCare Dev. Images PNG dans
+Mes fichiers, diagnostic de santé dans Outils et sous-volet Stockage interne de
+la barre des menus. Aucune nouvelle santé dans Espace disque. La copie quotidienne
+et les autres Dev préexistantes ne sont pas remplacées. Voir
+[le fonctionnement et les vérifications](native-file-disk-tools.md).

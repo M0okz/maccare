@@ -327,3 +327,15 @@ quotidienne `/Applications/MacCare.app` reste en 0.2.8 (10), inchangée.
 ## Publication 0.2.11 — 6 novembre 2026
 
 Ces évolutions sont publiées dans [MacCare 0.2.11 (build 13)](https://github.com/M0okz/maccare/releases/tag/v0.2.11), tag `v0.2.11` sur `b7e76f2`, après fusion de la PR #18 et suppression de la branche `codex/tray-storage-battery-details`. Ce statut remplace celui de développement non livré des notes précédentes. Le DMG téléchargé et le flux Sparkle ont été vérifiés : signatures, notarisation et Gatekeeper valides. Les limites de QA datées restent applicables, dont le survol seul à confirmer à la souris réelle. La copie quotidienne en 0.2.8 (10) est préservée ; la Dev installée reste identifiée 0.2.10 (12).
+
+
+## Santé du disque dans Stockage interne — Dev du 7 novembre 2026
+
+Le sous-volet Stockage interne lit désormais les indicateurs matériels par le
+smartctl embarqué, en plus de l’occupation du volume. Statut, température et
+endurance consommée apparaissent avant le détail des capacités. L’action Voir
+la santé des disques ouvre Outils → Santé des disques ; l’exploration des fichiers
+conserve son action distincte. Lecture seulement à l’ouverture du sous-volet,
+sans mesure périodique de fond ni installation Homebrew. La hauteur du détail
+est 640 points, avec défilement. Évolution non livrée ; voir
+[les outils natifs](native-file-disk-tools.md).

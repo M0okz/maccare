@@ -198,6 +198,17 @@ enum Engine {
 
     // MARK: - Interne
 
+    static func optimizePNGCopy(source: String, destination: String) throws -> PNGOptimizationResult {
+        struct Input: Encodable { let source_path: String; let destination_directory: String }
+        struct Response: Decodable { let result: PNGOptimizationResult?; let error: String? }
+        let input = Input(source_path: source, destination_directory: destination)
+        let json = String(decoding: try JSONEncoder().encode(input), as: UTF8.self)
+        let response: Response = try callJSON(maccare_optimize_png_copy, json)
+        if let error = response.error { throw EngineError.engine(error) }
+        guard let result = response.result else { throw EngineError.nullReturn }
+        return result
+    }
+
     private typealias CStringFn = (UnsafePointer<CChar>?) -> UnsafeMutablePointer<CChar>?
 
     private static func callJSON<T: Decodable>(_ fn: CStringFn, _ arg: String) throws -> T {

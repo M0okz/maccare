@@ -21,6 +21,7 @@ pub mod proc;
 pub mod startup;
 pub mod system;
 pub mod clean;
+pub mod png_optimizer;
 pub mod ffi;
 
 pub use model::{FileIdentity, ScanItem};

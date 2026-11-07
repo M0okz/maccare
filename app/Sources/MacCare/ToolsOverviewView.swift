@@ -23,6 +23,7 @@ struct ToolsOverviewView: View {
                     }
                     .padding(.top, 12)
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 250), spacing: 18)], spacing: 18) {
+                        tool(title: "Santé des disques", subtitle: "Consultez les alertes matérielles, la température et l’endurance de vos disques. Un diagnostic en lecture seule.", action: "Examiner les disques", module: .diskHealth)
                         tool(title: "Mode nettoyage d’écran", subtitle: "Un écran noir et des saisies bloquées pour nettoyer l’écran, le clavier et le trackpad. Quittez avec ⌘ + Échap.", action: "Ouvrir", module: .screenCleaning)
                         tool(title: "Fichiers IA inutiles", subtitle: "Examinez les caches, les historiques et les modèles locaux de vos outils d’IA. Choisissez ce que vous souhaitez retirer.", action: "Analyser", module: .aiClutter)
                         tool(title: "Autorisations des applications", subtitle: "Retrouvez les accès accordés aux applications : écran, caméra, microphone, fichiers et autres fonctionnalités.", action: "Analyser", module: .applicationPermissions)
