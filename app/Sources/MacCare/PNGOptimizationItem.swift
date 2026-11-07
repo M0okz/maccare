@@ -2,7 +2,7 @@ import Foundation
 
 struct PNGOptimizationItem: Identifiable {
     let url: URL
-    let originalSize: UInt64
+    var originalSize: UInt64
     var result: PNGOptimizationResult?
     var error: String?
     var processing = false

@@ -42,6 +42,7 @@ final class PNGOptimizationModel: ObservableObject {
             items[index].processing = true
             do {
                 let result = try await Task.detached(priority: .utility) { try worker(source, destination) }.value
+                items[index].originalSize = result.original_bytes
                 items[index].result = result
             } catch {
                 if case Engine.EngineError.engine(let message) = error { items[index].error = message }

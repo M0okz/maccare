@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 /// Fixed read-only commands, no sudo, no self-tests, no SMART setting changes.
 enum DiskHealthReader {
@@ -63,7 +64,7 @@ enum DiskHealthReader {
                                 hours: hours, powerCycles: cycles, writtenBytes: bytes, mediaErrors: mediaErrors)
     }
 
-    private static func run(_ executable: String, _ arguments: [String]) throws -> (status: Int32, data: Data) {
+    static func run(_ executable: String, _ arguments: [String], timeout: TimeInterval = 12) throws -> (status: Int32, data: Data) {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
@@ -71,8 +72,11 @@ enum DiskHealthReader {
         process.standardOutput = output
         process.standardError = FileHandle.nullDevice
         try process.run()
-        let deadline = DispatchWorkItem { if process.isRunning { process.terminate() } }
-        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 12, execute: deadline)
+        // These commands only read data. Enforce the deadline even if a tool ignores SIGTERM.
+        let deadline = DispatchWorkItem {
+            if process.isRunning { _ = Darwin.kill(process.processIdentifier, SIGKILL) }
+        }
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + timeout, execute: deadline)
         defer { deadline.cancel() }
         let data = output.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()

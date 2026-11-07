@@ -78,3 +78,14 @@ non vide est validée par les fixtures. Pas de notarisation de distribution ni
 de campagne complète VoiceOver/clavier pendant cette QA de développement.
 Les versions macOS anciennes et le matériel Intel nécessitent une validation
 runtime distincte ; les contrôles de Mach-O ne la remplacent pas.
+
+## Vérification dans la branche d’accueil — 7 novembre 2026
+
+Le commit mas embarqué est réuni aux évolutions d’accueil et aux outils PNG/disques
+dans `codex/dashboard-summary-cards`. Le paquet `build/branch-integrated/MacCare.app`
+actualise la Dev installée, sans remplacer la copie quotidienne. mas 7.0.0,
+signature du composant, architecture arm64, licences et fonctionnement réel avec
+`PATH=/usr/bin:/bin` sont vérifiés. Le gestionnaire natif affiche **App Store :
+Aucune mise à jour détectée** ; les deux résultats Homebrew restent distincts.
+Les limites sur l’absence d’entrée App Store réelle restent applicables.
+Voir [la revue globale et les tests complets](branch-integrated-review.md).

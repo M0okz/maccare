@@ -167,3 +167,15 @@ Mes fichiers, diagnostic de santé dans Outils et sous-volet Stockage interne de
 la barre des menus. Aucune nouvelle santé dans Espace disque. La copie quotidienne
 et les autres Dev préexistantes ne sont pas remplacées. Voir
 [le fonctionnement et les vérifications](native-file-disk-tools.md).
+
+## Branche réunie et nouvelle Dev — 7 novembre 2026
+
+Les commits mas embarqué et outils natifs ajoutés à `codex/dashboard-summary-cards`
+sont vérifiés avec l’ensemble de l’accueil. Deux corrections de revue concernent
+la taille PNG réellement traitée et l’échéance des commandes disque. Le paquet
+`build/branch-integrated/MacCare.app` actualise `/Applications/MacCare Dev.app`
+(0.2.11, build local 1). 269 XCTest, 242 Swift Testing, 98 tests Rust et 19 tests
+Python passent, ainsi que les contrôles PowerUI et Sparkle. Les nouveaux parcours
+sont vérifiés dans la Dev installée et l’accueil est laissé ouvert. Aucun push
+ni nouvelle release dans cette intervention ; copie quotidienne préservée.
+Voir [la revue complète, les références et les limites](branch-integrated-review.md).

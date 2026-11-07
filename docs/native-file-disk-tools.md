@@ -138,3 +138,18 @@ Pas de promesse de détection de toute panne, ni de notation de durée de vie re
 Les PNG animés/APNG sont refusés explicitement pour borner le travail et la mémoire
 à une image fixe. Les profils colorimétriques variés et tous les types de PNG fixes
 nécessitent une campagne plus large que la fixture possédée de cette intervention.
+
+## Vérification dans la branche d’accueil — 7 novembre 2026
+
+La Dev réunie corrige deux cas limites : le résultat PNG présente les octets de
+l’entrée effectivement traitée si elle a changé après sélection ; l’échéance
+de lecture disque de 12 secondes impose l’arrêt même si le processus ignore
+SIGTERM. Deux tests ont reproduit les défauts avant correction, puis passent.
+Les commandes de diagnostic restent fixes et en lecture seule.
+
+Le paquet `build/branch-integrated/MacCare.app` est installé dans
+`/Applications/MacCare Dev.app`. Les deux sélecteurs PNG, la création d’une copie
+16 555 → 214 octets avec original intact, la lecture SMART dans Outils, le détail
+Stockage du volet et son lien vers Outils ont été revérifiés. La Dev est relancée
+sur l’accueil, les images de test retirées. Voir [la revue globale et ses
+limites](branch-integrated-review.md), qui complète les contrôles précédents.
