@@ -8,9 +8,8 @@ struct HomeActivityCard: View {
     @State private var memoryHovered = false
     @State private var cpuHovered = false
     @State private var networkHovered = false
-    @State private var readout = TrayNetworkReadout()
     private var metrics: TrayMetrics { store.snapshot.display }
-    private var wifi: TrayMetrics.WiFi? { readout.wifi ?? metrics.wifi }
+    private var wifi: TrayMetrics.WiFi? { store.snapshot.compactNetwork.wifi ?? metrics.wifi }
     private var networkPoints: [TrayHistoryPoint] {
         store.snapshot.traffic.samples.map { .init(time: $0.time, value: $0.received) }
     }
@@ -33,8 +32,6 @@ struct HomeActivityCard: View {
             }.frame(maxHeight: .infinity)
         }
         .modifier(HomeStatusCardStyle(tint: Theme.accent, expandsVertically: true))
-        .onAppear { readout.record(metrics) }
-        .onChange(of: metrics.sampledAt) { _ in readout.record(metrics) }
     }
 
     private var cpu: some View {

@@ -25,7 +25,7 @@ struct TrayHistoryChart: View {
     }
 }
 
-private struct TrayHistoryPlot: Shape {
+struct TrayHistoryPlot: Shape {
     let points: [TrayHistoryPoint]
     let end: TimeInterval
     let duration: TimeInterval
@@ -37,19 +37,36 @@ private struct TrayHistoryPlot: Shape {
     }
 
     func path(in rect: CGRect) -> Path {
-        let plotted = points.map {
-            CGPoint(x: rect.width * ($0.time - (end - duration)) / duration,
-                    y: rect.height * (1 - min(1, max(0, $0.value / max(1, maximum)))))
-        }
         return Path { path in
-            guard let first = plotted.first, let last = plotted.last else { return }
-            if filled { path.move(to: .init(x: first.x, y: rect.height)); path.addLine(to: first) }
-            else { path.move(to: first) }
-            for point in plotted.dropFirst() { path.addLine(to: point) }
-            if plotted.count == 1 && !filled {
-                path.addEllipse(in: CGRect(x: first.x - 2, y: first.y - 2, width: 4, height: 4))
+            var previousTime: TimeInterval?
+            var last: CGPoint?
+            var count = 0
+            func finishSegment() {
+                guard let last else { return }
+                if filled {
+                    path.addLine(to: .init(x: last.x, y: rect.height))
+                    path.closeSubpath()
+                } else if count == 1 {
+                    path.addEllipse(in: CGRect(x: last.x - 2, y: last.y - 2, width: 4, height: 4))
+                }
             }
-            if filled { path.addLine(to: .init(x: last.x, y: rect.height)); path.closeSubpath() }
+            for sample in points {
+                let point = CGPoint(x: rect.width * (sample.time - (end - duration)) / duration,
+                                    y: rect.height * (1 - min(1, max(0, sample.value / max(1, maximum)))))
+                if let previousTime, sample.time - previousTime > TrayHistoryPoint.maximumGap {
+                    finishSegment()
+                    last = nil
+                    count = 0
+                }
+                if last == nil {
+                    if filled { path.move(to: .init(x: point.x, y: rect.height)); path.addLine(to: point) }
+                    else { path.move(to: point) }
+                } else { path.addLine(to: point) }
+                last = point
+                count += 1
+                previousTime = sample.time
+            }
+            finishSegment()
         }
     }
 }

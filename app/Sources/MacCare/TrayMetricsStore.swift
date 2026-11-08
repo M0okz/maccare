@@ -2,6 +2,8 @@ import Combine
 import Foundation
 
 struct TrayHistoryPoint: Sendable {
+    static let maximumCount = 180
+    static let maximumGap: TimeInterval = 3
     let time: TimeInterval
     let value: Double
 }
@@ -16,6 +18,7 @@ struct TrayCPUHistory {
         points.removeAll { $0.time < cutoff }
         guard let value = metrics.cpu?.used, value.isFinite else { return }
         points.append(.init(time: metrics.sampledAt, value: min(1, max(0, value))))
+        if points.count > TrayHistoryPoint.maximumCount { points.removeFirst(points.count - TrayHistoryPoint.maximumCount) }
     }
 }
 
@@ -56,6 +59,7 @@ struct TrayMetricsSnapshot {
     var cpu = TrayCPUHistory()
     var traffic = WiFiTrafficHistory()
     var gpu = TrayGPUHistory()
+    var compactNetwork = TrayNetworkReadout()
 }
 
 /// Un seul suivi pour l’application, indépendant de la durée de vie du panneau.
@@ -68,6 +72,7 @@ final class TrayMetricsStore: ObservableObject {
     private var task: Task<Void, Never>?
     private var consumers: Set<Consumer> = []
     private var suspended = false
+    private var primingReadings = 0
     var isMonitoring: Bool { task != nil }
 
     /// La charge CPU exige deux relevés, et macOS met ses compteurs à jour par à-coups : on
@@ -88,8 +93,10 @@ final class TrayMetricsStore: ObservableObject {
 
     func start() {
         guard task == nil else { return }
+        primingReadings = 6
         let sampler = sampler
         task = Task { [weak self] in
+            guard !Task.isCancelled else { return }
             await sampler.reset()
             var reading = 0
             while !Task.isCancelled {
@@ -106,18 +113,35 @@ final class TrayMetricsStore: ObservableObject {
         task?.cancel()
         task = nil
         smoothing = .init()
-        snapshot = .init()
+        // Le cache appartient à l’application ; seul le suivi dépend de la visibilité.
+        snapshot.traffic.pause()
     }
 
     func record(_ sample: TrayMetrics) {
         var next = snapshot
         let elapsed = sample.sampledAt - next.raw.sampledAt
-        if elapsed > 3 || elapsed < 0 { next = .init(); smoothing = .init() }
+        if elapsed < 0 { next = .init() }
+        if elapsed > TrayHistoryPoint.maximumGap || elapsed < 0 { smoothing = .init() }
         next.raw = sample
         next.display = smoothing.apply(sample)
+        // Les compteurs repartent d’une base fraîche. Garder brièvement les chiffres
+        // affichés, sans ajouter de faux points ni intégrer le trafic de la pause.
+        if primingReadings > 0 {
+            primingReadings -= 1
+            if sample.cpu == nil { next.display.cpu = snapshot.display.cpu }
+            if let current = next.display.wifi, let cached = snapshot.display.wifi,
+               current.connected, cached.connected, current.interface == cached.interface,
+               current.address == cached.address, current.kind == cached.kind {
+                next.display.wifi = .init(interface: current.interface, powered: current.powered, connected: current.connected,
+                                linkRate: current.linkRate, received: current.received ?? cached.received,
+                                sent: current.sent ?? cached.sent, signalDBm: current.signalDBm,
+                                kind: current.kind, address: current.address)
+            }
+        }
         next.cpu.record(sample)
         next.gpu.record(sample)
         next.traffic.record(sample)
+        next.compactNetwork.record(next.display)
         snapshot = next
     }
 

@@ -102,13 +102,11 @@ actor TrayMetricsSampler {
     private var fans = TrayTimedCache<TrayFans?>(lifetime: 5)
 
     func reset() {
+        guard !Task.isCancelled else { return }
         cpuLoad.reset()
         previousNetwork = nil
-        link.clear()
-        interfaceTypes.clear()
-        cpuTemperature.clear()
-        gpuTemperature.clear()
-        fans.clear()
+        // Les lectures coûteuses gardent leur durée de validité (5 à 10 s), même
+        // lors d’un changement d’onglet. Leurs caches expirent sans minuterie.
     }
 
     func sample() -> TrayMetrics {

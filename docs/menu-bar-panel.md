@@ -1,5 +1,12 @@
 # Volet compact et présence dans le Dock
 
+## Cache des mesures — Dev du 8 novembre 2026
+
+La fermeture du volet suspend le suivi lorsqu’aucune autre vue visible ne le
+demande, tout en gardant les valeurs et courbes dans le store partagé. La reprise
+amorce les compteurs et distingue les pauses des périodes réellement observées.
+Voir [le fonctionnement et les limites](activity-metrics-cache.md).
+
 ## État au 6 novembre 2026
 
 Le volet décrit ici est publié dans [MacCare 0.2.10 (build 12)](https://github.com/M0okz/maccare/releases/tag/v0.2.10),

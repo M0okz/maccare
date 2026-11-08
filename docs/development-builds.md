@@ -1,5 +1,14 @@
 # Reconnaître un build de développement
 
+## Cache des mesures — Dev du 8 novembre 2026
+
+`build/metrics-cache/MacCare.app` porte l’identité MacCare Dev 0.2.14 (10), pour
+actualiser uniquement `/Applications/MacCare Dev.app`. Les derniers relevés et
+les courbes survivent aux fermetures de vues, avec arrêt du suivi hors visibilité.
+Voir [les tests, limites et preuves locales](activity-metrics-cache.md).
+Évolution locale non publiée sur `codex/helper-process-icons` ; la distribution
+publique reste 0.2.14 (16) et la copie quotidienne est préservée.
+
 ## App Store sans Homebrew — développement du 7 novembre 2026
 
 Le paquet `build/bundled-mas/MacCare.app` embarque mas 7.0.0, signé avec

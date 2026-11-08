@@ -50,7 +50,9 @@ des valeurs nulles. Le suivi CPU, mémoire et Wi-Fi est partagé entre la barre 
 menus, l’accueil et les fenêtres de détails. Chaque consommateur enregistre sa
 demande de suivi ; la disparition de l’un ne doit pas arrêter les autres. Une vue ne
 demande le suivi que lorsqu’elle affiche des valeurs : volet ouvert, ou fenêtre visible.
-Sans demande, aucun relevé n’a lieu, et les courbes repartent de zéro à la reprise.
+Sans demande, aucun relevé n’a lieu. En développement après 0.2.14, les dernières
+valeurs et les historiques bornés restent en mémoire ; les pauses coupent les
+tracés et ne comptent aucun trafic. Voir [le cycle de vie du cache](activity-metrics-cache.md).
 
 La protection batterie est facultative et démarre désactivée. L’assistant conserve
 un état de récupération et un bail surveillé ; il tente de restaurer la configuration
