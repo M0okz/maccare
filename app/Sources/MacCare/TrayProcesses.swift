@@ -117,6 +117,7 @@ final class TrayProcessController: ObservableObject {
     @Published private(set) var pending: Set<TrayProcess.Identity> = []
     @Published private(set) var message: String?
     private let sampler = TrayProcessSampler()
+    private let iconResolver = TrayProcessIconResolver()
     private var presentations: [TrayProcess.Identity: Presentation] = [:]
 
     func monitor() async {
@@ -141,7 +142,9 @@ final class TrayProcessController: ObservableObject {
     func presentation(for process: TrayProcess) -> Presentation {
         if let known = presentations[process.id] { return known }
         let app = NSRunningApplication(processIdentifier: process.id.pid)
-        let presentation = Presentation(name: app?.localizedName ?? process.name, icon: app?.icon)
+        let icon = iconResolver.icon(executable: process.executable,
+                                     registeredBundleURL: app?.bundleURL, registeredIcon: app?.icon)
+        let presentation = Presentation(name: app?.localizedName ?? process.name, icon: icon)
         presentations[process.id] = presentation
         return presentation
     }

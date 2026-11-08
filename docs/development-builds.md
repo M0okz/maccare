@@ -262,3 +262,14 @@ Ces changements sont publiés dans [MacCare 0.2.14 (build 16)](https://github.co
 Le [workflow de release](https://github.com/M0okz/maccare/actions/runs/42525327447) et les CI de branche, de PR et de fusion sont réussis. Le DMG public téléchargé est vérifié : signatures Developer ID des quatre exécutables arm64, tickets de notarisation app/DMG, Gatekeeper, versions du helper, licences et sources smartmontools. Les signatures Ed25519 du flux et du DMG sont validées avec la clé publique ; latest correspond à la release. DMG : 15928628 octets, SHA-256 `4b6e8060b9056975222acde00583f0ec10cb32b8843829f7eb7ef68020d9c9fd`. Le site public pointe vers ce paquet avec les mêmes taille et empreinte ; HTML identique aux sources, conteneur sain, copie temporaire supprimée.
 
 Les rendus ont été contrôlés dans les Dev précédentes à 1436 × 784. Les formats courts, le rail compact, les actions de fenêtre après agrandissement des boutons, le 14 pouces physique et une campagne complète VoiceOver/clavier ne sont pas déclarés testés dans ces passes. Aucune installation pendant la publication : la copie quotidienne et la Dev restent inchangées (Dev 0.2.13, build local 6). L’application de distribution n’a pas été lancée. Preuves : `build/release-0.2.14-qa/`, `build/battery-card-qa/`, `build/battery-health-badge-qa/` et `build/sidebar-spacing-qa/`.
+
+## Icônes des helpers — Dev 0.2.14 (build local 8)
+
+Branche `codex/helper-process-icons`, après la publication 0.2.14 (16). Paquet
+`build/helper-icons/MacCare.app`, installé dans `/Applications/MacCare Dev.app`,
+sans flux Sparkle, lancé avec `-battery.protection.resume NO`. Les helpers
+reprennent l’icône de leur application englobante ; les services restent
+représentés par le symbole générique. 18 tests ciblés, build et signatures
+strictes réussis. Contrôle natif des helpers Claude/Codex et vérification du
+vrai paquet Helium avec le même résolveur. [Détails et limites](process-icons.md).
+Aucune publication ; copie quotidienne préservée. Preuves : `build/helper-icons-qa/`.

@@ -286,3 +286,12 @@ Ces changements sont publiés dans [MacCare 0.2.14 (build 16)](https://github.co
 Le [workflow de release](https://github.com/M0okz/maccare/actions/runs/42525327447) et les CI de branche, de PR et de fusion sont réussis. Le DMG public téléchargé est vérifié : signatures Developer ID des quatre exécutables arm64, tickets de notarisation app/DMG, Gatekeeper, versions du helper, licences et sources smartmontools. Les signatures Ed25519 du flux et du DMG sont validées avec la clé publique ; latest correspond à la release. DMG : 15928628 octets, SHA-256 `4b6e8060b9056975222acde00583f0ec10cb32b8843829f7eb7ef68020d9c9fd`. Le site public pointe vers ce paquet avec les mêmes taille et empreinte ; HTML identique aux sources, conteneur sain, copie temporaire supprimée.
 
 Les rendus ont été contrôlés dans les Dev précédentes à 1436 × 784. Les formats courts, le rail compact, les actions de fenêtre après agrandissement des boutons, le 14 pouces physique et une campagne complète VoiceOver/clavier ne sont pas déclarés testés dans ces passes. Aucune installation pendant la publication : la copie quotidienne et la Dev restent inchangées (Dev 0.2.13, build local 6). L’application de distribution n’a pas été lancée. Preuves : `build/release-0.2.14-qa/`, `build/battery-card-qa/`, `build/battery-health-badge-qa/` et `build/sidebar-spacing-qa/`.
+
+## Icônes des helpers — développement après 0.2.14
+
+`TrayProcessController` délègue la résolution à `TrayProcessIconResolver` sur
+l’acteur principal. Le paquet application extérieur est déterminé depuis le
+chemin de l’exécutable ou le paquet enregistré auprès de macOS. Son icône sert
+aux helpers ; les vrais services système sans application restent génériques.
+Le cache par identité PID/démarrage, les noms et les actions sont conservés.
+[Contrats, vérifications et limites](process-icons.md). Travail non publié.
