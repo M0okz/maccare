@@ -131,7 +131,7 @@ de vitesse. [Données, disposition et validations](dashboard-cards.md).
 20 secondes au plus depuis la dernière lecture de chaque appareil. Le contrôleur
 stabilise leur ordre et leur identité de présentation malgré les relevés partiels
 ou les changements de numéro de source. Chargeur et accessoires restent mis à jour
-à chaque relevé de 5 secondes. En Dev, `TrayBatteryProcessCadence` limite les
+à chaque relevé de 5 secondes. Depuis la version 0.2.14, `TrayBatteryProcessCadence` limite les
 lectures de processus à 15 secondes après l’amorçage initial ; le sampler conserve
 la dernière mesure entre ces lectures. La validité des deltas est bornée à
 30 secondes pour ce sampler, sans changer le seuil par défaut des listes rapides.
@@ -278,3 +278,11 @@ centralisé pour la navigation et la page dédiée. `WindowConfigurator.Coordina
 conserve les dimensions originales des boutons AppKit et ajuste leurs cadres,
 sans changer leurs cibles/actions. Le coordinateur appartient à la fenêtre
 principale ; les autres surfaces gardent leur configuration. [Détails et limites](sidebar-spacing.md).
+
+## Publication 0.2.14 — 8 novembre 2026
+
+Ces changements sont publiés dans [MacCare 0.2.14 (build 16)](https://github.com/M0okz/maccare/releases/tag/v0.2.14), tag `v0.2.14` sur `6e6c22d13979f0821ec56f6f3ba57e383e14ab2b`, après fusion de la [PR #21](https://github.com/M0okz/maccare/pull/21). La branche `codex/battery-card-polish` est supprimée localement et sur le remote. Ce statut remplace celui de développement non livré des passes Batterie et navigation ci-dessus ; les validations et leurs limites datées sont conservées.
+
+Le [workflow de release](https://github.com/M0okz/maccare/actions/runs/42525327447) et les CI de branche, de PR et de fusion sont réussis. Le DMG public téléchargé est vérifié : signatures Developer ID des quatre exécutables arm64, tickets de notarisation app/DMG, Gatekeeper, versions du helper, licences et sources smartmontools. Les signatures Ed25519 du flux et du DMG sont validées avec la clé publique ; latest correspond à la release. DMG : 15928628 octets, SHA-256 `4b6e8060b9056975222acde00583f0ec10cb32b8843829f7eb7ef68020d9c9fd`. Le site public pointe vers ce paquet avec les mêmes taille et empreinte ; HTML identique aux sources, conteneur sain, copie temporaire supprimée.
+
+Les rendus ont été contrôlés dans les Dev précédentes à 1436 × 784. Les formats courts, le rail compact, les actions de fenêtre après agrandissement des boutons, le 14 pouces physique et une campagne complète VoiceOver/clavier ne sont pas déclarés testés dans ces passes. Aucune installation pendant la publication : la copie quotidienne et la Dev restent inchangées (Dev 0.2.13, build local 6). L’application de distribution n’a pas été lancée. Preuves : `build/release-0.2.14-qa/`, `build/battery-card-qa/`, `build/battery-health-badge-qa/` et `build/sidebar-spacing-qa/`.
