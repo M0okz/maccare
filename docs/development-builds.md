@@ -211,3 +211,11 @@ build Release, signatures, rendu normal et aperçu compact natif vérifiés.
 Pas de publication ou d’installation quotidienne. Le rendu sur l’autre Mac et
 le format réduit cible restent à confirmer visuellement. Voir [la politique,
 les contrôles et les limites](display-layout.md).
+
+## Publication 0.2.13 — 8 novembre 2026
+
+Cette adaptation est publiée dans [MacCare 0.2.13 (build 15)](https://github.com/M0okz/maccare/releases/tag/v0.2.13), tag `v0.2.13` sur `9a9dc5612dd9bf6b02c9438c3e721f2ca85efb2b`, après fusion de la [PR #20](https://github.com/M0okz/maccare/pull/20). La branche `codex/compact-interface` est supprimée localement et sur le remote. Ce statut remplace celui de développement non livré des notes précédentes ; les validations datées sont conservées.
+
+Le [workflow de release](https://github.com/M0okz/maccare/actions/runs/42512588574) est réussi, comme les CI de branche, de PR et de fusion. Le DMG public téléchargé est vérifié : signatures Developer ID des quatre exécutables arm64, notarisation et tickets app/DMG, Gatekeeper, versions du helper, licences et sources smartmontools. Les signatures Ed25519 du flux et du DMG sont validées avec la clé publique ; le flux latest correspond à la release. DMG : 15944980 octets, SHA-256 `0b790855ba2803ada5d33b1cea43c156bdc39dfebcc63719a6a9241c282e2a04`. Le site public propose ce paquet avec les mêmes taille et empreinte ; son HTML correspond aux sources et le conteneur est sain.
+
+Le rendu sur le MacBook Pro 14 pouces en « Plus d’espace » reste à confirmer physiquement ; le format réduit cible a été testé par géométrie, l’aperçu compact étant observé dans une fenêtre plus grande. Pas de validation réelle de déplacement entre écrans ni de campagne complète d’accessibilité. Aucune installation quotidienne effectuée : la copie quotidienne et la Dev 0.2.13 (3) sont préservées. L’application de distribution n’a pas été lancée dans cette livraison. Preuves : `build/release-0.2.13-qa/`.
