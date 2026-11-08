@@ -14,7 +14,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
         case .space: return "Espace disque"
         case .files: return "Mes fichiers"
         case .applications: return "Applications"
-        case .tools: return "Outils"
+        case .tools: return "Mes outils"
         }
     }
     var symbol: String {

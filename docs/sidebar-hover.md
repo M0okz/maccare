@@ -1,5 +1,10 @@
 # Survol des catégories — 6 novembre 2026
 
+Évolution Dev du 8 novembre : rayon porté à 12 points, lignes plus aérées et
+Mes outils placé dans le pied. [Disposition et contrôles](sidebar-spacing.md).
+Le comportement de survol ci-dessous est conservé ; les dimensions du 6 novembre
+restent un historique daté.
+
 Évolution locale non publiée, branche `codex/tray-storage-battery-details`, après
 `51e6b4d`. Paquet `build/sidebar-hover/MacCare.app`, installé dans
 `/Applications/MacCare Dev.app` (Dev 0.2.10, build 12).

@@ -21,10 +21,10 @@ private struct SidebarRowSurface<Label: View>: View {
     var body: some View {
         label
             .background {
-                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(Color.white.opacity(selected ? 0.13 : (highlighted ? 0.08 : 0)))
                     .overlay {
-                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .strokeBorder(Color.white.opacity(selected ? 0.08 : (highlighted ? 0.04 : 0)), lineWidth: 0.5)
                     }
                     .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: highlighted)

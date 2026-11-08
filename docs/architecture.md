@@ -268,3 +268,13 @@ Cette adaptation est publiée dans [MacCare 0.2.13 (build 15)](https://github.co
 Le [workflow de release](https://github.com/M0okz/maccare/actions/runs/42512588574) est réussi, comme les CI de branche, de PR et de fusion. Le DMG public téléchargé est vérifié : signatures Developer ID des quatre exécutables arm64, notarisation et tickets app/DMG, Gatekeeper, versions du helper, licences et sources smartmontools. Les signatures Ed25519 du flux et du DMG sont validées avec la clé publique ; le flux latest correspond à la release. DMG : 15944980 octets, SHA-256 `0b790855ba2803ada5d33b1cea43c156bdc39dfebcc63719a6a9241c282e2a04`. Le site public propose ce paquet avec les mêmes taille et empreinte ; son HTML correspond aux sources et le conteneur est sain.
 
 Le rendu sur le MacBook Pro 14 pouces en « Plus d’espace » reste à confirmer physiquement ; le format réduit cible a été testé par géométrie, l’aperçu compact étant observé dans une fenêtre plus grande. Pas de validation réelle de déplacement entre écrans ni de campagne complète d’accessibilité. Aucune installation quotidienne effectuée : la copie quotidienne et la Dev 0.2.13 (3) sont préservées. L’application de distribution n’a pas été lancée dans cette livraison. Preuves : `build/release-0.2.13-qa/`.
+
+## Navigation et commandes de fenêtre — Dev du 8 novembre 2026
+
+`Sidebar` sépare le groupe principal défilable du pied Mes outils. Les routes de
+`NavigationSection.primary` restent complètes ; tools est filtré uniquement de
+la liste visuelle supérieure et dessiné une fois dans le pied. Son titre est
+centralisé pour la navigation et la page dédiée. `WindowConfigurator.Coordinator`
+conserve les dimensions originales des boutons AppKit et ajuste leurs cadres,
+sans changer leurs cibles/actions. Le coordinateur appartient à la fenêtre
+principale ; les autres surfaces gardent leur configuration. [Détails et limites](sidebar-spacing.md).

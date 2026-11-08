@@ -17,7 +17,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .applicationsOverview: return "Applications"
         case .cleaningOverview: return "Nettoyage"
         case .filesOverview: return "Mes fichiers"
-        case .toolsOverview: return "Outils"
+        case .toolsOverview: return NavigationSection.tools.title
         case .performanceOverview: return "Performances"
         case .smartScan: return "Smart Scan"
         case .cleaning: return "Nettoyage"
@@ -259,21 +259,43 @@ struct RootView: View {
 struct WindowConfigurator: NSViewRepresentable {
     private static let sizeMigrationKey = "mainWindowSize1200x720Applied"
 
+    final class Coordinator {
+        private var nativeButtonSizes: [NSWindow.ButtonType: NSSize] = [:]
+
+        func configureWindowButtons(_ window: NSWindow) {
+            guard !window.styleMask.contains(.fullScreen),
+                  let close = window.standardWindowButton(.closeButton) else { return }
+            let originX = close.frame.minX
+            for (index, type) in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton].enumerated() {
+                guard let button = window.standardWindowButton(type) else { continue }
+                let nativeSize = nativeButtonSizes[type] ?? button.bounds.size
+                nativeButtonSizes[type] = nativeSize
+                let side = max(14, nativeSize.height)
+                let centerY = button.frame.midY
+                button.setFrameSize(NSSize(width: side, height: side))
+                button.setBoundsSize(nativeSize)
+                button.setFrameOrigin(NSPoint(x: originX + CGFloat(index) * (side + 8), y: centerY - side / 2))
+            }
+        }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
-        apply(to: view)
+        apply(to: view, coordinator: context.coordinator)
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) { apply(to: nsView) }
+    func updateNSView(_ nsView: NSView, context: Context) { apply(to: nsView, coordinator: context.coordinator) }
 
     /// Ne configure que la fenêtre qui héberge cette vue, jamais les dialogues ou le panneau de menu.
-    private func apply(to view: NSView, attempt: Int = 0) {
+    private func apply(to view: NSView, coordinator: Coordinator, attempt: Int = 0) {
         DispatchQueue.main.async {
             guard let window = view.window else {
                 if attempt < 30 {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        apply(to: view, attempt: attempt + 1)
+                        apply(to: view, coordinator: coordinator, attempt: attempt + 1)
                     }
                 }
                 return
@@ -294,6 +316,7 @@ struct WindowConfigurator: NSViewRepresentable {
             window.styleMask.insert(.fullSizeContentView)
             window.isMovableByWindowBackground = false
             window.backgroundColor = NSColor(Color(hex: "#160C2E"))
+            coordinator.configureWindowButtons(window)
             // Aligne aussi une fenêtre restaurée de l'ancienne version, une seule fois.
             // Les redimensionnements manuels suivants restent mémorisés par macOS.
             let layout = window.screen.map { MainWindowDisplayObserver.layout(on: $0) } ?? .standard
@@ -363,9 +386,13 @@ struct Sidebar: View {
     private var compact: Bool { focusedExploration && !expandedDuringExploration }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            ForEach(NavigationSection.primary) { row($0) }
-            Spacer(minLength: 24)
+        VStack(alignment: .leading, spacing: 10) {
+            ScrollView(.vertical) {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(NavigationSection.primary.filter { $0 != .tools }) { row($0) }
+                }
+            }
+            .scrollIndicators(.hidden)
             if focusedExploration {
                 Button { expandedDuringExploration.toggle() } label: {
                     Image(systemName: compact ? "sidebar.left" : "sidebar.leading")
@@ -378,10 +405,11 @@ struct Sidebar: View {
                     .accessibilityLabel(compact ? "Développer la navigation" : "Réduire la navigation")
                     .help(compact ? "Développer la navigation" : "Réduire la navigation")
             }
+            row(.tools)
         }
         .padding(.horizontal, 10)
-        .padding(.top, 58)   // réserve la ligne des boutons natifs, sans bloc de marque
-        .padding(.bottom, 20)
+        .padding(.top, 70)
+        .padding(.bottom, 44)
         .frame(width: compact ? 82 : 240)
         .animation(reduceMotion ? nil : Motion.easeInOut(0.25), value: compact)
         .frame(maxHeight: .infinity, alignment: .top)
@@ -402,7 +430,7 @@ struct Sidebar: View {
     private func row(_ m: NavigationSection) -> some View {
         let selected = (app.module ?? .dashboard).section == m
         return Button { app.select(m) } label: {
-            HStack(spacing: 11) {
+            HStack(spacing: 16) {
                 Image(systemName: m.symbol)
                     .accessibilityHidden(true)
                     .font(AppFont.emphasis)
@@ -415,7 +443,7 @@ struct Sidebar: View {
                     Spacer(minLength: 0)
                 }
             }
-            .padding(.horizontal, compact ? 0 : 12).padding(.vertical, 12)
+            .padding(.horizontal, compact ? 0 : 24).padding(.vertical, 14)
             .frame(maxWidth: .infinity, alignment: compact ? .center : .leading)
             .contentShape(Rectangle())
         }

@@ -245,3 +245,12 @@ Le format conserve la carte compacte. Cette passe reste sur
 
 Le nombre réel de cycles remplace aussi le trait de séparation, et le nom de
 l’application énergivore reprend le poids normal du texte.
+
+## Barre latérale aérée — Dev 0.2.13 (build local 6)
+
+Sur `codex/battery-card-polish`, la navigation gagne des espacements et une marge
+intérieure plus larges. Mes outils est fixé dans le pied ; ce titre est repris
+dans la page dédiée. Les boutons natifs de la fenêtre principale sont légèrement
+agrandis, leurs commandes conservées. Paquet `build/sidebar-spacing/MacCare.app`,
+non publié. 4 tests de navigation réussis. [Disposition et contrôles](sidebar-spacing.md) ;
+preuves dans `build/sidebar-spacing-qa/`.
