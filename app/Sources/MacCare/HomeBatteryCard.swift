@@ -81,33 +81,24 @@ struct HomeBatteryCard: View {
 
     private var accessories: some View {
         HStack(spacing: 10) {
-            TrayBatteryGauge(name: "Ce Mac", symbol: "laptopcomputer", percent: snapshot?.percent,
-                             diameter: accessoryDiameter, lineWidth: 3)
-            ForEach(0..<2, id: \.self) { index in
-                if index < telemetry.accessories.count {
-                    HomeBatteryAccessory(accessory: telemetry.accessories[index], diameter: accessoryDiameter)
-                } else {
-                    Color.clear.frame(width: accessoryDiameter + 4, height: accessoryDiameter + 4)
-                        .accessibilityHidden(true)
-                }
+            ForEach(Array(telemetry.accessories.prefix(3))) { accessory in
+                HomeBatteryAccessory(accessory: accessory, diameter: accessoryDiameter)
             }
         }
-        .frame(width: (accessoryDiameter + 4) * 3 + 20, height: accessoryDiameter + 4)
+        .frame(width: (accessoryDiameter + 4) * 3 + 20, height: accessoryDiameter + 4, alignment: .trailing)
         .transaction { $0.animation = nil }
     }
 
     private var consumer: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        Group {
             if let consumer = telemetry.consumer {
-                Label {
-                    Text(consumer.measuredPower ? "Processus le plus énergivore" : "Processus le plus actif CPU")
-                } icon: {
-                    Image(systemName: consumer.measuredPower ? "flame" : "cpu").accessibilityHidden(true)
-                }.font(AppFont.caption).foregroundStyle(Theme.muted)
                 HStack(spacing: 9) {
                     if let path = consumer.appBundlePath {
                         Image(nsImage: NSWorkspace.shared.icon(forFile: path))
                             .resizable().scaledToFit().frame(width: 26, height: 26).accessibilityHidden(true)
+                    } else {
+                        Image(systemName: "app.dashed").resizable().scaledToFit()
+                            .frame(width: 26, height: 26).foregroundStyle(Theme.muted).accessibilityHidden(true)
                     }
                     Text(consumer.name).font(AppFont.body.weight(.semibold)).lineLimit(1)
                         .truncationMode(.middle).help(consumer.name)
@@ -116,11 +107,11 @@ struct HomeBatteryCard: View {
                 }.frame(minHeight: 26)
                 .help(consumer.measuredPower ? "Estimation parmi les processus accessibles, pas la consommation totale de l’app." : "Puissance indisponible : repli sur la charge CPU, 100 % correspondant à un cœur.")
             } else {
-                Label("Processus énergivores", systemImage: "flame").font(AppFont.caption).foregroundStyle(Theme.muted)
                 Text(context.hasSampled ? "Consommation indisponible." : "Lecture des processus accessibles…")
                     .font(AppFont.secondary).foregroundStyle(Theme.muted)
             }
-        }.frame(minHeight: 45, alignment: .topLeading)
+        }.frame(minHeight: 45, alignment: .leading)
+            .transaction { $0.animation = nil }
     }
 
     private var powerDetail: String? {
@@ -143,7 +134,7 @@ struct HomeBatteryCard: View {
         var parts = [HomeBatteryPresentation.charge(snapshot), HomeBatteryPresentation.source(snapshot),
                      "État : \(HomeBatteryPresentation.condition(snapshot))"]
         if let powerDetail { parts.append(powerDetail) }
-        parts += telemetry.accessories.prefix(2).map { "\($0.name) : dernier niveau connu \($0.percent) %" }
+        parts += telemetry.accessories.prefix(3).map { "\($0.name) : dernier niveau connu \($0.percent) %" }
         if let consumer = telemetry.consumer {
             parts.append("\(consumer.measuredPower ? "Processus le plus énergivore" : "Processus le plus actif CPU") : \(consumer.name), \(consumer.formattedValue)")
         }

@@ -52,4 +52,54 @@ final class TrayBatteryTelemetryTests: XCTestCase {
         XCTAssertEqual(TrayBatteryTelemetry.leadingConsumer([measured])?.value, 1.2)
         XCTAssertEqual(TrayBatteryTelemetry.leadingConsumer([measured])?.measuredPower, true)
     }
+
+    func testMacCareAndItsHelpersCannotLeadThePowerOrCPUClassification() {
+        let app = process(name: "Other app", path: "/Applications/Other.app/Contents/MacOS/Other", watts: 0.4)
+        let excluded = [
+            process(name: "Renamed", path: "/tmp/custom", watts: 9, pid: getpid()),
+            process(name: "MacCare", path: "/Applications/MacCare.app/Contents/MacOS/MacCare", watts: 8),
+            process(name: "MacCare Dev", path: "/Applications/MacCare Dev.app/Contents/MacOS/MacCare", watts: 7),
+            process(name: "MacCareHelper", path: "/Library/PrivilegedHelperTools/org.maccare.helper", watts: 6),
+            process(name: "Updater", path: "/Applications/MacCare.app/Contents/Frameworks/Updater", watts: 5),
+            process(name: "MacCareHelper", path: "", watts: 4)
+        ]
+        XCTAssertEqual(TrayBatteryTelemetry.leadingConsumer(excluded + [app])?.name, "Other app")
+        XCTAssertNil(TrayBatteryTelemetry.leadingConsumer(excluded))
+        var cpuApp = app
+        cpuApp.energyWatts = nil
+        let cpuExcluded = excluded.map { process in var process = process; process.energyWatts = nil; return process }
+        XCTAssertEqual(TrayBatteryTelemetry.leadingConsumer(cpuExcluded + [cpuApp])?.name, "Other app")
+        XCTAssertNil(TrayBatteryTelemetry.leadingConsumer(cpuExcluded))
+        XCTAssertEqual(TrayBatteryTelemetry.leadingConsumer([process(name: "MacCare Notes", path: "/Applications/MacCare Notes.app/Contents/MacOS/Notes", watts: 1)])?.name, "MacCare Notes")
+    }
+
+    func testLongerBatteryMeasurementsRemainValidWithoutChangingTheFastProcessLists() {
+        XCTAssertEqual(TrayProcessSampler.power(current: 31_000_000_000, previous: 1_000_000_000, seconds: 15, maximumInterval: 30), 2)
+        XCTAssertEqual(TrayProcessSampler.cpuLoad(current: 16_000_000_000, previous: 1_000_000_000, seconds: 15, nanosecondsPerTick: 1, maximumInterval: 30), 100)
+        XCTAssertNil(TrayProcessSampler.power(current: 31_000_000_000, previous: 1_000_000_000, seconds: 15))
+        XCTAssertNil(TrayProcessSampler.power(current: 31_000_000_000, previous: 1_000_000_000, seconds: 31, maximumInterval: 30))
+    }
+
+    func testConsumerSamplingPrimesThenWaitsFifteenSecondsAndReprimesAfterASuspension() {
+        var cadence = TrayBatteryProcessCadence()
+        XCTAssertTrue(cadence.shouldSample(at: 100))
+        XCTAssertFalse(cadence.shouldSample(at: 100.5))
+        XCTAssertTrue(cadence.shouldSample(at: 101))
+        for time in [101.5, 106, 111, 115.9] { XCTAssertFalse(cadence.shouldSample(at: time)) }
+        XCTAssertTrue(cadence.shouldSample(at: 116))
+        XCTAssertFalse(cadence.shouldSample(at: 121))
+        XCTAssertTrue(cadence.shouldSample(at: 131))
+        XCTAssertTrue(cadence.shouldSample(at: 200))
+        XCTAssertTrue(cadence.shouldSample(at: 201))
+        XCTAssertFalse(cadence.shouldSample(at: 206))
+        XCTAssertTrue(cadence.shouldSample(at: 216))
+        XCTAssertTrue(cadence.shouldSample(at: 10))
+        XCTAssertTrue(cadence.shouldSample(at: 11))
+        XCTAssertFalse(cadence.shouldSample(at: 16))
+    }
+
+    private func process(name: String, path: String, watts: Double, pid: pid_t = 999_999) -> TrayProcess {
+        .init(id: .init(pid: pid, startedSeconds: 1, startedMicroseconds: 0), name: name,
+              userID: getuid(), memory: 1, cpuPercent: 80, executable: path, energyWatts: watts)
+    }
 }

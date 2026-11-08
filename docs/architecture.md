@@ -130,9 +130,15 @@ de vitesse. [Données, disposition et validations](dashboard-cards.md).
 `TrayBatteryAccessoryHistory` conserve les derniers niveaux connus pendant
 20 secondes au plus depuis la dernière lecture de chaque appareil. Le contrôleur
 stabilise leur ordre et leur identité de présentation malgré les relevés partiels
-ou les changements de numéro de source. Chargeur et processus restent mis à jour
-à chaque relevé. La carte d’accueil utilise trois emplacements d’anneaux à taille
-constante (ce Mac et deux accessoires), avec les détails au survol et accessibles.
+ou les changements de numéro de source. Chargeur et accessoires restent mis à jour
+à chaque relevé de 5 secondes. En Dev, `TrayBatteryProcessCadence` limite les
+lectures de processus à 15 secondes après l’amorçage initial ; le sampler conserve
+la dernière mesure entre ces lectures. La validité des deltas est bornée à
+30 secondes pour ce sampler, sans changer le seuil par défaut des listes rapides.
+MacCare et ses auxiliaires sont exclus du classement batterie et de son repli CPU.
+La carte d’accueil réserve une zone fixe à trois accessoires au maximum, sans
+anneau du Mac, avec les détails au survol et accessibles. Son processus est une
+ligne unique icône/nom/valeur. [État Dev et validations](dashboard-cards.md).
 
 La disposition d’accueil validée retire la carte disque autonome : un seul
 `HomeCleaningCard` occupe la première ligne, puis `HomeStatusCards` compose
