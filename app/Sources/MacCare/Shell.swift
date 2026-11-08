@@ -259,43 +259,21 @@ struct RootView: View {
 struct WindowConfigurator: NSViewRepresentable {
     private static let sizeMigrationKey = "mainWindowSize1200x720Applied"
 
-    final class Coordinator {
-        private var nativeButtonSizes: [NSWindow.ButtonType: NSSize] = [:]
-
-        func configureWindowButtons(_ window: NSWindow) {
-            guard !window.styleMask.contains(.fullScreen),
-                  let close = window.standardWindowButton(.closeButton) else { return }
-            let originX = close.frame.minX
-            for (index, type) in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton].enumerated() {
-                guard let button = window.standardWindowButton(type) else { continue }
-                let nativeSize = nativeButtonSizes[type] ?? button.bounds.size
-                nativeButtonSizes[type] = nativeSize
-                let side = max(14, nativeSize.height)
-                let centerY = button.frame.midY
-                button.setFrameSize(NSSize(width: side, height: side))
-                button.setBoundsSize(nativeSize)
-                button.setFrameOrigin(NSPoint(x: originX + CGFloat(index) * (side + 8), y: centerY - side / 2))
-            }
-        }
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator() }
-
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
-        apply(to: view, coordinator: context.coordinator)
+        apply(to: view)
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) { apply(to: nsView, coordinator: context.coordinator) }
+    func updateNSView(_ nsView: NSView, context: Context) { apply(to: nsView) }
 
     /// Ne configure que la fenêtre qui héberge cette vue, jamais les dialogues ou le panneau de menu.
-    private func apply(to view: NSView, coordinator: Coordinator, attempt: Int = 0) {
+    private func apply(to view: NSView, attempt: Int = 0) {
         DispatchQueue.main.async {
             guard let window = view.window else {
                 if attempt < 30 {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        apply(to: view, coordinator: coordinator, attempt: attempt + 1)
+                        apply(to: view, attempt: attempt + 1)
                     }
                 }
                 return
@@ -316,7 +294,6 @@ struct WindowConfigurator: NSViewRepresentable {
             window.styleMask.insert(.fullSizeContentView)
             window.isMovableByWindowBackground = false
             window.backgroundColor = NSColor(Color(hex: "#160C2E"))
-            coordinator.configureWindowButtons(window)
             // Aligne aussi une fenêtre restaurée de l'ancienne version, une seule fois.
             // Les redimensionnements manuels suivants restent mémorisés par macOS.
             let layout = window.screen.map { MainWindowDisplayObserver.layout(on: $0) } ?? .standard

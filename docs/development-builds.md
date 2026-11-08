@@ -273,3 +273,14 @@ représentés par le symbole générique. 18 tests ciblés, build et signatures
 strictes réussis. Contrôle natif des helpers Claude/Codex et vérification du
 vrai paquet Helium avec le même résolveur. [Détails et limites](process-icons.md).
 Aucune publication ; copie quotidienne préservée. Preuves : `build/helper-icons-qa/`.
+
+## Commandes de fenêtre natives — Dev 0.2.14 (build local 9)
+
+Paquet `build/native-window-controls/MacCare.app` installé uniquement dans
+`/Applications/MacCare Dev.app`, sans flux Sparkle et lancé avec
+`-battery.protection.resume NO`. Sur demande de Gregory, le forçage de taille et
+d’espacement des boutons fermer/réduire/agrandir est retiré. Le reste de la
+navigation et le correctif des icônes des helpers sont conservés sur
+`codex/helper-process-icons`. Ce retour visuel réversible ne reçoit pas de
+nouveau test métier ; contrôle du build, des signatures et du rendu natif dans
+`build/native-window-controls-qa/`. Aucune publication ; copie quotidienne préservée.

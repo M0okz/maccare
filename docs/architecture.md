@@ -295,3 +295,12 @@ chemin de l’exécutable ou le paquet enregistré auprès de macOS. Son icône 
 aux helpers ; les vrais services système sans application restent génériques.
 Le cache par identité PID/démarrage, les noms et les actions sont conservés.
 [Contrats, vérifications et limites](process-icons.md). Travail non publié.
+
+## Retour aux boutons AppKit natifs — Dev du 8 novembre 2026
+
+Le coordinateur de `WindowConfigurator` qui forçait les tailles et espacements
+des boutons de fenêtre est supprimé. Le configurateur conserve uniquement son
+rôle antérieur de barre de titre et de disposition de la fenêtre ; AppKit gère
+les boutons standard. La navigation aérée et le correctif d’icônes de helpers
+restent en place. Correctif Dev non publié sur `codex/helper-process-icons` ;
+[état et validations](sidebar-spacing.md).

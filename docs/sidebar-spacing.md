@@ -1,5 +1,25 @@
 # Barre latérale plus aérée — Dev du 8 novembre 2026
 
+## Retour à la taille native des commandes — Dev du 8 novembre 2026
+
+À la demande de Gregory, l’agrandissement des boutons fermer/réduire/agrandir
+est retiré en Dev. `WindowConfigurator` ne modifie plus leurs cadres, leurs
+bounds ni leur espacement ; le coordinateur dédié est supprimé. AppKit retrouve
+la maîtrise complète de leur taille, de leur forme et de leur placement natifs.
+La barre latérale aérée, ses marges et Mes outils restent ceux de la passe validée.
+La description de l’agrandissement publié dans la 0.2.14 ci-dessous reste historique.
+
+Paquet `build/native-window-controls/MacCare.app`, Dev 0.2.14 (build local 9),
+non publié, sur `codex/helper-process-icons`. Ce retour conserve aussi le correctif
+local des icônes des helpers. Build/signatures et contrôle natif consignés dans
+`build/native-window-controls-qa/`. Aucun nouveau test pour ce retrait visuel
+réversible. Contrôle natif sur l’accueil à 1436 × 784 : pastilles circulaires
+revenues à leur taille et espacement natifs, rôles fermer/réduire/plein écran
+présents. UUID compilé/paquet/installé concordants et signatures strictes réussies.
+La copie quotidienne conserve son empreinte ; sauvegarde temporaire Dev supprimée.
+Pas de campagne complète VoiceOver/clavier, de test sur l’autre Mac ni d’exercice
+des trois actions système dans cette passe.
+
 Disponible dans [MacCare 0.2.14 (build 16)](https://github.com/M0okz/maccare/releases/tag/v0.2.14). Les descriptions Dev ci-dessous restent un historique daté avec leurs limites de validation.
 
 Développement sur `codex/battery-card-polish`, non publié. La distribution
