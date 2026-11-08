@@ -98,6 +98,7 @@ final class SpaceExplorerTests: XCTestCase {
             XCTAssertLessThanOrEqual(packed.count, 16)
             XCTAssertEqual(packed.map(\.id), BubblePacker.pack(children.reversed(), in: size).map(\.id))
             for (index, bubble) in packed.enumerated() {
+                XCTAssertEqual(BubbleHitTest.path(at: bubble.center, in: packed), bubble.id)
                 XCTAssertGreaterThan(bubble.child.size_bytes, 0)
                 XCTAssertGreaterThanOrEqual(bubble.center.x - bubble.radius, 0)
                 XCTAssertLessThanOrEqual(bubble.center.x + bubble.radius, size.width)
@@ -109,5 +110,61 @@ final class SpaceExplorerTests: XCTestCase {
                 }
             }
         }
+    }
+
+    func testBubbleHoverFollowsVisibleCirclesInsteadOfTheirBoundingBoxes() {
+        let alpha = SpaceChild(path: "/QA/Alpha", size_bytes: 100, is_dir: true, measured: true)
+        let beta = SpaceChild(path: "/QA/Beta", size_bytes: 50, is_dir: true, measured: true)
+        let bubbles = [PackedBubble(child: alpha, center: .init(x: 60, y: 60), radius: 40),
+                       PackedBubble(child: beta, center: .init(x: 150, y: 70), radius: 20)]
+        XCTAssertEqual(BubbleHitTest.path(at: .init(x: 60, y: 60), in: bubbles), alpha.id)
+        XCTAssertEqual(BubbleHitTest.path(at: .init(x: 150, y: 70), in: bubbles), beta.id)
+        XCTAssertEqual(BubbleHitTest.path(at: .init(x: 100, y: 60), in: bubbles), alpha.id)
+        XCTAssertNil(BubbleHitTest.path(at: .init(x: 21, y: 21), in: bubbles), "Le coin du cadre et l’ombre ne sont pas la bulle")
+        XCTAssertNil(BubbleHitTest.path(at: .init(x: 110, y: 70), in: bubbles), "L’espace entre les bulles ne survole aucun dossier")
+        XCTAssertNil(BubbleHitTest.path(at: .init(x: -1, y: -1), in: bubbles))
+        XCTAssertNil(BubbleHitTest.path(at: .zero, in: []))
+    }
+
+    @MainActor func testSelectingABubbleDoesNotOpenItsFolderUntilExplicitActivation() async throws {
+        let fixture = Fixture()
+        let model = SpaceModel(measure: { path, _ in fixture.measure(path) })
+        model.load()
+        try await finish(model)
+        let start = model.currentPath
+        let child = try XCTUnwrap(model.children.first)
+        model.select(child)
+        XCTAssertEqual(model.currentPath, start)
+        XCTAssertEqual(model.selectedPath, child.id)
+        XCTAssertEqual(fixture.count, 1)
+        model.open(child)
+        try await finish(model)
+        XCTAssertEqual(model.currentPath, child.path)
+        XCTAssertEqual(fixture.count, 2)
+        XCTAssertNil(model.selectedPath)
+    }
+
+    @MainActor func testLateHoverExitsDoNotClearTheNewMapOrListTarget() async throws {
+        let model = SpaceModel(measure: { path, _ in
+            [SpaceChild(path: path + "/Alpha", size_bytes: 100, is_dir: true, measured: true),
+             SpaceChild(path: path + "/Beta", size_bytes: 50, is_dir: true, measured: true)]
+        })
+        model.load()
+        try await finish(model)
+        let alpha = model.children[0].id, beta = model.children[1].id
+        model.highlight(alpha, from: .row(alpha))
+        model.highlight(alpha, from: .map)
+        model.highlight(nil, from: .row(alpha))
+        XCTAssertEqual(model.highlightedPath, alpha)
+        model.highlight(alpha, from: .row(alpha))
+        model.highlight(nil, from: .map)
+        XCTAssertEqual(model.highlightedPath, alpha)
+        model.highlight(beta, from: .row(beta))
+        model.highlight(nil, from: .row(alpha))
+        XCTAssertEqual(model.highlightedPath, beta)
+        model.highlight(nil, from: .row(beta))
+        XCTAssertNil(model.highlightedPath)
+        model.highlight("/outside", from: .map)
+        XCTAssertNil(model.highlightedPath)
     }
 }

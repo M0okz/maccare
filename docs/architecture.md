@@ -310,3 +310,14 @@ rôle antérieur de barre de titre et de disposition de la fenêtre ; AppKit gè
 les boutons standard. La navigation aérée et le correctif d’icônes de helpers
 restent en place. Correctif Dev non publié sur `codex/helper-process-icons` ;
 [état et validations](sidebar-spacing.md).
+
+## Carte Espace disque — interactions du 9 novembre 2026
+
+`SpaceBubblesView` possède un seul suivi du pointeur dans les coordonnées de la
+carte. `BubbleHitTest` utilise les centres/rayons fournis par `BubblePacker` ;
+le chemin de survol est partagé avec la liste et publié seulement à son changement.
+`SpaceModel.HoverSource` identifie la carte ou la ligne qui possède ce survol ;
+les événements de sortie des anciennes sources sont ignorés.
+Les boutons sont sensibles au cercle, sélectionnent au clic simple et ouvrent
+les dossiers au double-clic ; leur action d’accessibilité garde l’ouverture directe.
+Voir [les comportements et preuves Dev](space-bubbles-interaction.md).

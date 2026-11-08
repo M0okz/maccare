@@ -239,7 +239,7 @@ struct SpaceView: View {
     private var map: some View {
         VStack(spacing: 8) {
             SpaceBubblesView(model: model, onMapHighlight: { mapHighlightedPath = $0 }, onRequestRemoval: requestRemoval)
-            Text("Cliquez sur un dossier pour l’ouvrir")
+            Text("Double-cliquez sur une bulle pour ouvrir le dossier")
                 .font(AppFont.caption).foregroundStyle(Theme.muted).multilineTextAlignment(.center)
         }
     }
@@ -283,7 +283,7 @@ struct SpaceView: View {
     }
 
     private func rowButton(_ child: SpaceChild) -> some View {
-        let highlighted = model.highlightedPath == child.id || model.selectedPath == child.id
+        let highlighted = (model.highlightedPath ?? model.selectedPath) == child.id
         return Button {
             if child.is_dir { model.open(child) } else { model.select(child) }
         } label: {
@@ -307,10 +307,10 @@ struct SpaceView: View {
         }
         .buttonStyle(.plain)
         .onHover { hover in
-            if hover { model.highlightedPath = child.id }
-            else if model.highlightedPath == child.id { model.highlightedPath = nil }
+            model.highlight(hover ? child.id : nil, from: .row(child.id))
         }
         .accessibilityLabel("\(child.name), \(child.sizeLabel)")
+        .accessibilityValue(model.highlightedPath == child.id ? "Survolé" : model.selectedPath == child.id ? "Sélectionné" : "")
         .accessibilityHint(child.is_dir ? "Ouvre ce dossier" : "Affiche les informations du fichier")
         .help("\(child.name) · \(child.sizeLabel)")
         .contextMenu {

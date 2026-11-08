@@ -68,6 +68,7 @@ struct SpaceBubblesView: View {
     @ObservedObject var model: SpaceModel
     var onMapHighlight: (String?) -> Void = { _ in }
     var onRequestRemoval: (SpaceChild) -> Void = { _ in }
+    @State private var hoveredPath: String?
 
     private let palette: [Color] = [
         Color(hex: "#9D6CFF"), Color(hex: "#C45CE0"), Color(hex: "#6A5FE0"),
@@ -85,16 +86,32 @@ struct SpaceBubblesView: View {
                     Text("Aucune taille représentable dans la carte. Consultez la liste.")
                         .font(AppFont.body).foregroundStyle(Theme.muted).multilineTextAlignment(.center)
                 }
-            }.frame(width: geo.size.width, height: geo.size.height)
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .contentShape(Rectangle())
+            .onContinuousHover { phase in
+                switch phase {
+                case .active(let location): updateHover(BubbleHitTest.path(at: location, in: bubbles))
+                case .ended: updateHover(nil)
+                }
+            }
+            .onChange(of: geo.size) { _ in updateHover(nil) }
         }
+        .onDisappear { updateHover(nil) }
+    }
+
+    private func updateHover(_ path: String?) {
+        guard hoveredPath != path else { return }
+        hoveredPath = path
+        model.highlight(path, from: .map)
+        onMapHighlight(path)
     }
 
     private func bubble(_ b: PackedBubble, color: Color) -> some View {
-        let highlighted = model.highlightedPath == b.id || model.selectedPath == b.id
+        let highlighted = (model.highlightedPath ?? model.selectedPath) == b.id
         let r = b.radius
         return Button {
-            if b.child.is_dir { model.open(b.child) }
-            else { model.select(b.child) }
+            model.select(b.child)
         } label: {
             ZStack {
                 Circle().fill(RadialGradient(colors: [color.shade(0.30), color.shade(-0.22)],
@@ -111,25 +128,24 @@ struct SpaceBubblesView: View {
                 }.foregroundStyle(.white).padding(5)
             }
             .frame(width: r * 2, height: r * 2)
+            .contentShape(Circle())
             .shadow(color: color.opacity(highlighted ? 0.65 : 0.3), radius: r * 0.2)
         }
         .buttonStyle(.plain)
-        .position(b.center)
-        .onHover { hovering in
-            if hovering {
-                model.highlightedPath = b.id
-                onMapHighlight(b.id)
-            } else if model.highlightedPath == b.id {
-                model.highlightedPath = nil
-                onMapHighlight(nil)
-            }
-        }
+        .contentShape(Circle())
+        .simultaneousGesture(TapGesture(count: 2).onEnded {
+            if b.child.is_dir { model.open(b.child) }
+        })
         .accessibilityLabel("\(b.child.name), \(b.child.sizeLabel)")
+        .accessibilityValue(model.highlightedPath == b.id ? "Survolé" : model.selectedPath == b.id ? "Sélectionné" : "")
         .accessibilityHint(b.child.is_dir ? "Ouvre ce dossier" : "Affiche les informations du fichier")
+        .accessibilityAction {
+            if b.child.is_dir { model.open(b.child) } else { model.select(b.child) }
+        }
         .contextMenu {
             Button("Afficher dans le Finder") { model.revealInFinder(b.child) }
             if model.canRemove(b.child) { Button(model.directDeleteLabel, role: .destructive) { onRequestRemoval(b.child) } }
         }
-        .help("\(b.child.name) · \(b.child.sizeLabel)")
+        .position(b.center)
     }
 }

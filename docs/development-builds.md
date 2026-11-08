@@ -1,5 +1,12 @@
 # Reconnaître un build de développement
 
+## Bulles Espace disque — Dev du 9 novembre 2026
+
+`build/space-bubbles/MacCare.app`, Dev 0.2.14 (13), actualise uniquement
+`/Applications/MacCare Dev.app`. Survol limité aux cercles et synchronisé avec
+la liste, infobulles retirées, clic simple pour sélectionner et double-clic
+pour ouvrir un dossier. Voir [les interactions et validations](space-bubbles-interaction.md).
+
 ## Température GPU M1 — Dev du 9 novembre 2026
 
 `build/gpu-temperature/MacCare.app`, Dev 0.2.14 (11), actualise seulement
