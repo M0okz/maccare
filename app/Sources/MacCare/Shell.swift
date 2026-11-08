@@ -211,6 +211,7 @@ final class AppState: ObservableObject {
 struct RootView: View {
     @ObservedObject var app: AppState
     @ObservedObject private var permissions: PermissionsModel
+    @State private var displayLayout = MainWindowLayout.standard
 
     init(app: AppState) {
         self.app = app
@@ -232,7 +233,7 @@ struct RootView: View {
                 .ignoresSafeArea(.container, edges: .top)
             }
         }
-        .frame(minWidth: 940, minHeight: 620)
+        .modifier(DisplayAdjustedContent(layout: displayLayout))
         .onAppear {
             app.permissions.recheck()
             app.systemClean.refreshStatus()
@@ -250,6 +251,7 @@ struct RootView: View {
         .foregroundStyle(Theme.fg)
         .lineSpacing(3)
         .background(WindowConfigurator())
+        .background(MainWindowDisplayObserver { displayLayout = $0 })
     }
 }
 
@@ -294,10 +296,21 @@ struct WindowConfigurator: NSViewRepresentable {
             window.backgroundColor = NSColor(Color(hex: "#160C2E"))
             // Aligne aussi une fenêtre restaurée de l'ancienne version, une seule fois.
             // Les redimensionnements manuels suivants restent mémorisés par macOS.
+            let layout = window.screen.map { MainWindowDisplayObserver.layout(on: $0) } ?? .standard
             if !UserDefaults.standard.bool(forKey: Self.sizeMigrationKey) {
-                window.setContentSize(NSSize(width: 1200, height: 720))
+                window.setContentSize(layout.preferredWindowSize)
                 window.center()
                 UserDefaults.standard.set(true, forKey: Self.sizeMigrationKey)
+            }
+            if layout.isCompact && !UserDefaults.standard.bool(forKey: MainWindowLayout.compactWindowMigrationKey),
+               !window.styleMask.contains(.fullScreen), !window.isMiniaturized {
+                let current = window.contentView?.frame.size ?? window.frame.size
+                let reduced = layout.reducedRestoredSize(current)
+                if reduced.width < current.width || reduced.height < current.height {
+                    window.setContentSize(reduced)
+                    window.center()
+                }
+                UserDefaults.standard.set(true, forKey: MainWindowLayout.compactWindowMigrationKey)
             }
         }
     }
