@@ -1,5 +1,71 @@
 # Accueil : bilan, batterie et santé
 
+## Simplification Batterie — Dev du 8 novembre 2026
+
+Évolution sur `codex/battery-card-polish`, non publiée. Les anneaux de l’accueil
+sont réservés à trois accessoires au maximum, alignés à droite dans une zone de
+taille fixe. Le Mac n’y figure plus puisque son niveau est déjà affiché en grand.
+La rétention des niveaux pendant 20 secondes reste inchangée. Les descriptions
+historiques ci-dessous conservent leur date et leur périmètre de livraison.
+
+Le titre visible « Processus le plus énergivore » est retiré de l’accueil. Une
+seule ligne conserve l’icône de l’application (ou une icône neutre), son nom et la
+puissance en watts. Le résumé accessible garde le sens de la mesure ; un repli
+CPU reste exprimé en pourcentage avec son explication au survol, sans inventer
+de watts. La ligne garde une hauteur stable, sans animation de remplacement.
+
+La télémétrie batterie partagée relit les processus toutes les 15 secondes,
+tandis que chargeur et accessoires gardent leurs lectures toutes les 5 secondes.
+Deux relevés initiaux rapprochés d’une seconde amorcent les compteurs ; une longue
+interruption réamorce ces compteurs. La mesure précédente est conservée entre
+les relevés. La limite de validité des deltas est portée à 30 secondes uniquement
+pour cet échantillonnage ; les listes CPU/mémoire gardent leurs paramètres.
+MacCare, MacCare Dev, leurs processus embarqués et le helper sont exclus du
+classement énergétique et de son repli CPU. Les listes générales ne sont pas filtrées.
+
+| Before | After | Why |
+| --- | --- | --- |
+| Anneau du Mac à côté de son grand pourcentage | Anneaux réservés aux accessoires | Supprimer la répétition |
+| Titre et ligne d’application séparés | Icône, nom et valeur sur une ligne | Alléger la lecture sans déplacer les cartes |
+| Classement renouvelé toutes les 5 secondes | Mesure moyenne à 15 secondes | Réduire les changements visuels et les lectures |
+| MacCare peut arriver en tête | MacCare et ses auxiliaires exclus | Mettre en avant les autres applications |
+
+Contrôles : 20 tests ciblés réussis (télémétrie, cadence, exclusion, accessoires
+et présentation batterie), build Release arm64 et signatures strictes du paquet
+Dev. Paquet `build/battery-card/MacCare.app`, Dev 0.2.13 (build local 4).
+Installé dans `/Applications/MacCare Dev.app` et contrôlé à 1436 × 784 points :
+anneaux AirPods/boîtier seuls, états avec et sans accessoires, ligne icône/nom/watts
+sans titre, bas des cartes alignés, accès Batterie puis retour à l’accueil et
+reprise de la mesure. Le résumé accessible conserve les niveaux et la qualification
+énergie/CPU. Pas de campagne complète VoiceOver/clavier, de contrôle sur le 14 pouces
+physique ni de test sur secteur. La cadence exacte est vérifiée par les tests,
+sans instrumentation native des appels système. La copie quotidienne conserve
+son empreinte et la sauvegarde temporaire de la Dev est supprimée. Preuves :
+`build/battery-card-qa/`. La distribution 0.2.13 (15) reste inchangée.
+
+## Badge Santé de la batterie — Dev du 8 novembre 2026
+
+Sur la même branche, le badge de l’accueil remplace « Aucune alerte » par
+« Santé : 98 % » avec la valeur réelle de `BatterySnapshot.healthPercent`,
+distincte du niveau de charge. Sans mesure ou sans batterie, il affiche
+« Santé : — ». Le résumé accessible inclut cette santé et conserve l’état
+signalé par macOS. La bulle d’aide explique qu’il s’agit de la capacité de charge
+restante par rapport à la capacité de conception. La cadence et les autres
+mesures ne changent pas. Le nombre réel de cycles remplace le trait de séparation
+(« Cycles : — » si inconnu). Le nom de l’app énergivore est en poids normal ;
+la ligne garde une hauteur compacte. Les cycles sont également présents dans le
+résumé accessible. Paquet Dev 0.2.13 (build local 5), non publié ;
+contrôles du build, de la signature et du rendu natif consignés dans
+`build/battery-health-badge-qa/`. Pas de nouveau test métier pour ce changement
+de texte alimenté par le modèle existant. Rendu natif à 1436 × 784 : badge
+« Santé : 82 % », 595 cycles, niveau de charge 58 % séparé, trait retiré, nom
+d’app en poids normal et cartes alignées. Résumé accessible relu. La copie
+quotidienne conserve son empreinte et la sauvegarde temporaire Dev est supprimée.
+Pas de campagne complète VoiceOver/clavier, de QA physique sur le 14 pouces ni
+de scénario natif de batterie absente pour cette passe.
+
+## Historique de livraison
+
 Disponible dans [MacCare 0.2.12 (build 14)](https://github.com/M0okz/maccare/releases/tag/v0.2.12), publiée le 7 novembre 2026. Les états Dev et les validations datées ci-dessous décrivent les paquets précédents et conservent leurs limites de QA.
 
 Intégration du 6 novembre 2026, après validation de la maquette. Branche locale

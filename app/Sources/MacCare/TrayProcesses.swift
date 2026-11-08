@@ -25,7 +25,7 @@ struct TrayProcess: Identifiable, Sendable, Equatable {
 actor TrayProcessSampler {
     private var previous: [TrayProcess.Identity: (cpu: UInt64, energy: UInt64?, time: TimeInterval)] = [:]
 
-    func sample(includeEnergy: Bool = false) -> [TrayProcess] {
+    func sample(includeEnergy: Bool = false, maximumInterval: TimeInterval = 10) -> [TrayProcess] {
         let count = proc_listallpids(nil, 0)
         guard count > 0 else { return [] }
         var pids = [pid_t](repeating: 0, count: Int(count) + 128)
@@ -43,7 +43,7 @@ actor TrayProcessSampler {
             let identity = Self.identity(pid, info)
             let cpu = info.ptinfo.pti_total_user + info.ptinfo.pti_total_system
             let prior = previous[identity]
-            let percent = Self.cpuLoad(current: cpu, previous: prior?.cpu, seconds: prior.map { now - $0.time }, nanosecondsPerTick: nanosecondsPerTick)
+            let percent = Self.cpuLoad(current: cpu, previous: prior?.cpu, seconds: prior.map { now - $0.time }, nanosecondsPerTick: nanosecondsPerTick, maximumInterval: maximumInterval)
             var nameBytes = [CChar](repeating: 0, count: 1024)
             let nameLength = proc_name(pid, &nameBytes, UInt32(nameBytes.count))
             let name = nameLength > 0 ? String(cString: nameBytes) : "Processus \(pid)"
@@ -73,7 +73,7 @@ actor TrayProcessSampler {
             }
             guard let footprint else { continue }
             let old = previous[identity]
-            let watts = Self.power(current: energy, previous: old?.energy, seconds: old.map { now - $0.time })
+            let watts = Self.power(current: energy, previous: old?.energy, seconds: old.map { now - $0.time }, maximumInterval: maximumInterval)
             next[identity] = (cpu, energy, now)
             result.append(.init(id: identity, name: name, userID: info.pbsd.pbi_uid,
                                 memory: footprint, cpuPercent: percent, executable: path, energyWatts: watts))
@@ -83,14 +83,14 @@ actor TrayProcessSampler {
     }
 
     /// Les compteurs proc_taskinfo suivent la base de temps Mach de l’hôte.
-    static func cpuLoad(current: UInt64, previous: UInt64?, seconds: TimeInterval?, nanosecondsPerTick: Double) -> Double? {
-        guard let previous, let seconds, seconds.isFinite, seconds > 0, seconds <= 10, current >= previous else { return nil }
+    static func cpuLoad(current: UInt64, previous: UInt64?, seconds: TimeInterval?, nanosecondsPerTick: Double, maximumInterval: TimeInterval = 10) -> Double? {
+        guard let previous, let seconds, seconds.isFinite, seconds > 0, seconds <= maximumInterval, current >= previous else { return nil }
         guard nanosecondsPerTick.isFinite, nanosecondsPerTick > 0 else { return nil }
         return Double(current - previous) * nanosecondsPerTick / 1_000_000_000 / seconds * 100
     }
 
-    static func power(current: UInt64?, previous: UInt64?, seconds: TimeInterval?) -> Double? {
-        guard let current, let previous, let seconds, seconds.isFinite, seconds > 0, seconds <= 10, current >= previous else { return nil }
+    static func power(current: UInt64?, previous: UInt64?, seconds: TimeInterval?, maximumInterval: TimeInterval = 10) -> Double? {
+        guard let current, let previous, let seconds, seconds.isFinite, seconds > 0, seconds <= maximumInterval, current >= previous else { return nil }
         let watts = Double(current - previous) / 1_000_000_000 / seconds
         return watts.isFinite ? watts : nil
     }

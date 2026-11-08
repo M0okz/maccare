@@ -67,6 +67,14 @@ struct TrayBatteryTelemetry: Sendable {
     }
 
     static func leadingConsumer(_ processes: [TrayProcess]) -> Consumer? {
+        let processes = processes.filter { process in
+            guard process.id.pid != getpid() else { return false }
+            let path = URL(fileURLWithPath: process.executable)
+            let ownExecutables = ["MacCare", "MacCareHelper", "org.maccare.helper"]
+            if ownExecutables.contains(path.lastPathComponent) { return false }
+            if process.executable.isEmpty && ownExecutables.contains(process.name) { return false }
+            return !path.pathComponents.contains(where: { $0 == "MacCare.app" || $0 == "MacCare Dev.app" })
+        }
         if let process = processes.filter({ ($0.energyWatts ?? 0) > 0 }).max(by: { ($0.energyWatts ?? 0) < ($1.energyWatts ?? 0) }), let watts = process.energyWatts {
             return .init(name: process.name, value: watts, measuredPower: true, executable: process.executable)
         }
@@ -79,6 +87,9 @@ struct TrayBatteryTelemetry: Sendable {
 
 actor TrayBatterySampler {
     private let processes = TrayProcessSampler()
+    private var processCadence = TrayBatteryProcessCadence()
+    private var consumer: TrayBatteryTelemetry.Consumer?
+    private var readingProcesses = false
 
     func read() async -> TrayBatteryTelemetry {
         var result = TrayBatteryTelemetry()
@@ -104,7 +115,14 @@ actor TrayBatterySampler {
             }
         }
         result.accessories.sort { $0.name == $1.name ? $0.id < $1.id : $0.name < $1.name }
-        result.consumer = TrayBatteryTelemetry.leadingConsumer(await processes.sample(includeEnergy: true))
+        if !readingProcesses && processCadence.shouldSample(at: ProcessInfo.processInfo.systemUptime) {
+            readingProcesses = true
+            let sample = await processes.sample(includeEnergy: true,
+                                               maximumInterval: TrayBatteryProcessCadence.maximumMeasurementInterval)
+            consumer = TrayBatteryTelemetry.leadingConsumer(sample)
+            readingProcesses = false
+        }
+        result.consumer = consumer
         return result
     }
     private func accessorySources() -> [TrayBatteryTelemetry.Accessory] {

@@ -13,7 +13,7 @@ struct ToolsOverviewView: View {
                     HStack(spacing: 32) {
                         artwork.frame(width: 170, height: 180)
                         VStack(alignment: .leading, spacing: 14) {
-                            Text("Outils").font(.system(size: 44, weight: .regular)).accessibilityAddTraits(.isHeader)
+                            Text(NavigationSection.tools.title).font(.system(size: 44, weight: .regular)).accessibilityAddTraits(.isHeader)
                             Text("Un souci à régler ? Choisissez ce dont votre Mac a besoin.")
                                 .font(.system(size: 18)).foregroundStyle(Theme.muted)
                                 .fixedSize(horizontal: false, vertical: true)

@@ -219,3 +219,38 @@ Cette adaptation est publiée dans [MacCare 0.2.13 (build 15)](https://github.co
 Le [workflow de release](https://github.com/M0okz/maccare/actions/runs/42512588574) est réussi, comme les CI de branche, de PR et de fusion. Le DMG public téléchargé est vérifié : signatures Developer ID des quatre exécutables arm64, notarisation et tickets app/DMG, Gatekeeper, versions du helper, licences et sources smartmontools. Les signatures Ed25519 du flux et du DMG sont validées avec la clé publique ; le flux latest correspond à la release. DMG : 15944980 octets, SHA-256 `0b790855ba2803ada5d33b1cea43c156bdc39dfebcc63719a6a9241c282e2a04`. Le site public propose ce paquet avec les mêmes taille et empreinte ; son HTML correspond aux sources et le conteneur est sain.
 
 Le rendu sur le MacBook Pro 14 pouces en « Plus d’espace » reste à confirmer physiquement ; le format réduit cible a été testé par géométrie, l’aperçu compact étant observé dans une fenêtre plus grande. Pas de validation réelle de déplacement entre écrans ni de campagne complète d’accessibilité. Aucune installation quotidienne effectuée : la copie quotidienne et la Dev 0.2.13 (3) sont préservées. L’application de distribution n’a pas été lancée dans cette livraison. Preuves : `build/release-0.2.13-qa/`.
+
+## Simplification Batterie — 8 novembre 2026, non publiée
+
+Branche `codex/battery-card-polish`. Paquet `build/battery-card/MacCare.app`,
+installé dans `/Applications/MacCare Dev.app`, version Dev 0.2.13 (build local 4),
+sans flux de mise à jour et lancé avec `-battery.protection.resume NO`.
+L’accueil réserve les anneaux aux accessoires et réduit le processus énergivore
+à sa ligne icône/nom/valeur. MacCare et ses auxiliaires sont exclus de ce
+classement. La lecture des processus passe de 5 à 15 secondes après amorçage ;
+chargeur et accessoires restent à 5 secondes. Build Release arm64, signatures
+strictes et 20 tests ciblés réussis. Rendu natif, alignement des cartes et accès
+Batterie/retour accueil vérifiés ; les limites restent explicites dans
+[les notes d’accueil](dashboard-cards.md). Aucun changement de distribution,
+aucun remplacement de la copie quotidienne. Preuves : `build/battery-card-qa/`.
+
+### Badge Santé — Dev 0.2.13 (build local 5)
+
+Le paquet `build/battery-health-badge/MacCare.app` remplace le badge « Aucune
+alerte » de l’accueil par « Santé : … % », issu du relevé réel. En absence de
+valeur : « Santé : — ». La santé est également ajoutée au résumé accessible.
+Le format conserve la carte compacte. Cette passe reste sur
+`codex/battery-card-polish`, non publiée. Contrôles :
+`build/battery-health-badge-qa/`, voir [les détails](dashboard-cards.md).
+
+Le nombre réel de cycles remplace aussi le trait de séparation, et le nom de
+l’application énergivore reprend le poids normal du texte.
+
+## Barre latérale aérée — Dev 0.2.13 (build local 6)
+
+Sur `codex/battery-card-polish`, la navigation gagne des espacements et une marge
+intérieure plus larges. Mes outils est fixé dans le pied ; ce titre est repris
+dans la page dédiée. Les boutons natifs de la fenêtre principale sont légèrement
+agrandis, leurs commandes conservées. Paquet `build/sidebar-spacing/MacCare.app`,
+non publié. 4 tests de navigation réussis. [Disposition et contrôles](sidebar-spacing.md) ;
+preuves dans `build/sidebar-spacing-qa/`.
