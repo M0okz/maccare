@@ -3,6 +3,9 @@
 Développement du 8 novembre 2026 sur `codex/compact-interface`, après 0.2.12.
 Dev **0.2.13 (build local 3)**, non publiée. La demande porte sur une échelle
 cohérente entre les Mac, avec conservation du rendu du Mac de développement.
+Configuration cible précisée par Gregory : MacBook Pro 14 pouces avec le réglage
+Moniteurs « Plus d’espace ». Ses dimensions logiques exactes n’ont pas été relevées
+sur l’appareil ; la politique lit directement l’espace visible de l’écran au lancement.
 
 ## Adaptation à l’espace utilisable
 
