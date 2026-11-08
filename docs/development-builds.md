@@ -1,5 +1,12 @@
 # Reconnaître un build de développement
 
+## Température GPU M1 — Dev du 9 novembre 2026
+
+`build/gpu-temperature/MacCare.app`, Dev 0.2.14 (11), actualise seulement
+`/Applications/MacCare Dev.app`. Repli SMC GPU M1 ajouté et testé sur pilotes
+simulés ; chemin HID maintenu sur le M1 local. Le relevé réel du M1 Max distant
+reste à confirmer. Voir [les preuves et limites](gpu-temperature-m1.md).
+
 ## Cache des mesures — Dev du 8 novembre 2026
 
 `build/metrics-cache/MacCare.app` porte l’identité MacCare Dev 0.2.14 (10), pour

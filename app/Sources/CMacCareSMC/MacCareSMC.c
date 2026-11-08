@@ -231,22 +231,7 @@ static int32_t sensorHIDTemperature(double *celsius, int gpu) {
     return 0;
 }
 
-int32_t maccare_cpu_temperature(double *celsius) {
-    if (!celsius) return kIOReturnBadArgument;
-    int32_t arm64 = 0; size_t size = sizeof(arm64);
-    sysctlbyname("hw.optional.arm64", &arm64, &size, NULL, 0);
-    char brand[128] = {0}; size = sizeof(brand);
-    sysctlbyname("machdep.cpu.brand_string", brand, &size, NULL, 0);
-    // Identités des capteurs documentées par le catalogue public de Stats.
-    // https://github.com/exelban/stats/blob/master/Modules/Sensors/values.swift
-    const char *intel[] = {"TCAD", "TC0D", "TC0E", "TC0F"};
-    const char *m1[] = {"Tp09", "Tp0T", "Tp01", "Tp05", "Tp0D", "Tp0H", "Tp0L", "Tp0P", "Tp0X", "Tp0b"};
-    const char **keys = intel; size_t count = sizeof(intel) / sizeof(*intel);
-    if (arm64) {
-        if (sensorHIDTemperature(celsius, 0) == 0) return 0;
-        if (!strstr(brand, "Apple M1")) return kIOReturnUnsupported;
-        keys = m1; count = sizeof(m1) / sizeof(*m1);
-    }
+static int32_t sensorSMCTemperature(const char *const *keys, size_t count, double *celsius) {
     io_connect_t connection = 0;
     io_service_t service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSMC"));
     if (!service) return kIOReturnNotFound;
@@ -271,9 +256,38 @@ int32_t maccare_cpu_temperature(double *celsius) {
     return 0;
 }
 
+int32_t maccare_cpu_temperature(double *celsius) {
+    if (!celsius) return kIOReturnBadArgument;
+    int32_t arm64 = 0; size_t size = sizeof(arm64);
+    sysctlbyname("hw.optional.arm64", &arm64, &size, NULL, 0);
+    char brand[128] = {0}; size = sizeof(brand);
+    sysctlbyname("machdep.cpu.brand_string", brand, &size, NULL, 0);
+    // Identités des capteurs documentées par le catalogue public de Stats.
+    // https://github.com/exelban/stats/blob/master/Modules/Sensors/values.swift
+    const char *intel[] = {"TCAD", "TC0D", "TC0E", "TC0F"};
+    const char *m1[] = {"Tp09", "Tp0T", "Tp01", "Tp05", "Tp0D", "Tp0H", "Tp0L", "Tp0P", "Tp0X", "Tp0b"};
+    const char **keys = intel; size_t count = sizeof(intel) / sizeof(*intel);
+    if (arm64) {
+        if (sensorHIDTemperature(celsius, 0) == 0) return 0;
+        if (!strstr(brand, "Apple M1")) return kIOReturnUnsupported;
+        keys = m1; count = sizeof(m1) / sizeof(*m1);
+    }
+    return sensorSMCTemperature(keys, count, celsius);
+}
+
 int32_t maccare_gpu_temperature(double *celsius) {
     if (!celsius) return kIOReturnBadArgument;
-    return sensorHIDTemperature(celsius, 1);
+    int32_t hidResult = sensorHIDTemperature(celsius, 1);
+    if (hidResult == 0) return 0;
+    int32_t arm64 = 0; size_t size = sizeof(arm64);
+    if (sysctlbyname("hw.optional.arm64", &arm64, &size, NULL, 0) || !arm64) return hidResult;
+    char brand[128] = {0}; size = sizeof(brand);
+    if (sysctlbyname("machdep.cpu.brand_string", brand, &size, NULL, 0) ||
+        strncmp(brand, "Apple M1", 8) || (brand[8] != '\0' && brand[8] != ' ')) return hidResult;
+    // M1, Pro, Max et Ultra : capteurs GPU uniquement, jamais une température CPU.
+    // Catalogue Stats a04bc5e629242c9a29a98ef32ed1f5f46a88c874, Sensors/values.swift.
+    const char *keys[] = {"Tg05", "Tg0D", "Tg0L", "Tg0T"};
+    return sensorSMCTemperature(keys, sizeof(keys) / sizeof(*keys), celsius);
 }
 
 static int fanValue(const SMCMessage *field, double *value) {

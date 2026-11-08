@@ -94,6 +94,14 @@ AppleSmartBatteryPack and temperature units):
 https://github.com/exelban/stats/blob/master/Modules/Battery/readers.swift
 Only interface/property semantics were consulted; no Stats implementation is bundled.
 
+GPU sensor identifiers for the M1 generation (`Tg05`, `Tg0D`, `Tg0L`, `Tg0T`)
+were cross-checked against the Stats sensor catalog, commit
+`a04bc5e629242c9a29a98ef32ed1f5f46a88c874`:
+https://github.com/exelban/stats/blob/a04bc5e629242c9a29a98ef32ed1f5f46a88c874/Modules/Sensors/values.swift
+The type-0 read-only SMC connection was checked against `SMC/smc.swift` in the
+same project. Only sensor identifiers and interface semantics were consulted;
+no additional Stats implementation is bundled.
+
 ## Native charge policy technical reference
 
 The root preference domain, its two manual charge-limit keys, the reload

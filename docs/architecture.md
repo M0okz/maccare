@@ -54,6 +54,10 @@ Sans demande, aucun relevé n’a lieu. En développement après 0.2.14, les der
 valeurs et les historiques bornés restent en mémoire ; les pauses coupent les
 tracés et ne comptent aucun trafic. Voir [le cycle de vie du cache](activity-metrics-cache.md).
 
+En Dev après 0.2.14, la température GPU possède aussi un repli SMC borné aux
+capteurs GPU connus de la famille M1 si HID n’en fournit aucun. Le cache de cinq
+secondes reste inchangé. Voir [les tests et limites matérielles](gpu-temperature-m1.md).
+
 La protection batterie est facultative et démarre désactivée. L’assistant conserve
 un état de récupération et un bail surveillé ; il tente de restaurer la configuration
 initiale à l’arrêt, à la veille ou à la perte de contact. Le backend dépend du Mac

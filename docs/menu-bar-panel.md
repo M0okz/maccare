@@ -1,5 +1,12 @@
 # Volet compact et présence dans le Dock
 
+## Température GPU M1 — Dev du 9 novembre 2026
+
+Après le signalement d’une température absente sur M1 Max, la lecture GPU HID
+dispose d’un repli SMC pour les quatre capteurs connus de la famille M1.
+Le cache de cinq secondes et le suivi lié à la visibilité restent inchangés.
+Voir [les tests et la limite de validation sur M1 Max](gpu-temperature-m1.md).
+
 ## Cache des mesures — Dev du 8 novembre 2026
 
 La fermeture du volet suspend le suivi lorsqu’aucune autre vue visible ne le
