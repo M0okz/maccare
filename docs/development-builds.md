@@ -233,3 +233,15 @@ strictes et 20 tests ciblés réussis. Rendu natif, alignement des cartes et acc
 Batterie/retour accueil vérifiés ; les limites restent explicites dans
 [les notes d’accueil](dashboard-cards.md). Aucun changement de distribution,
 aucun remplacement de la copie quotidienne. Preuves : `build/battery-card-qa/`.
+
+### Badge Santé — Dev 0.2.13 (build local 5)
+
+Le paquet `build/battery-health-badge/MacCare.app` remplace le badge « Aucune
+alerte » de l’accueil par « Santé : … % », issu du relevé réel. En absence de
+valeur : « Santé : — ». La santé est également ajoutée au résumé accessible.
+Le format conserve la carte compacte. Cette passe reste sur
+`codex/battery-card-polish`, non publiée. Contrôles :
+`build/battery-health-badge-qa/`, voir [les détails](dashboard-cards.md).
+
+Le nombre réel de cycles remplace aussi le trait de séparation, et le nom de
+l’application énergivore reprend le poids normal du texte.

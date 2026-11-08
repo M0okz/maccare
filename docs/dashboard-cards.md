@@ -43,6 +43,27 @@ sans instrumentation native des appels système. La copie quotidienne conserve
 son empreinte et la sauvegarde temporaire de la Dev est supprimée. Preuves :
 `build/battery-card-qa/`. La distribution 0.2.13 (15) reste inchangée.
 
+## Badge Santé de la batterie — Dev du 8 novembre 2026
+
+Sur la même branche, le badge de l’accueil remplace « Aucune alerte » par
+« Santé : 98 % » avec la valeur réelle de `BatterySnapshot.healthPercent`,
+distincte du niveau de charge. Sans mesure ou sans batterie, il affiche
+« Santé : — ». Le résumé accessible inclut cette santé et conserve l’état
+signalé par macOS. La bulle d’aide explique qu’il s’agit de la capacité de charge
+restante par rapport à la capacité de conception. La cadence et les autres
+mesures ne changent pas. Le nombre réel de cycles remplace le trait de séparation
+(« Cycles : — » si inconnu). Le nom de l’app énergivore est en poids normal ;
+la ligne garde une hauteur compacte. Les cycles sont également présents dans le
+résumé accessible. Paquet Dev 0.2.13 (build local 5), non publié ;
+contrôles du build, de la signature et du rendu natif consignés dans
+`build/battery-health-badge-qa/`. Pas de nouveau test métier pour ce changement
+de texte alimenté par le modèle existant. Rendu natif à 1436 × 784 : badge
+« Santé : 82 % », 595 cycles, niveau de charge 58 % séparé, trait retiré, nom
+d’app en poids normal et cartes alignées. Résumé accessible relu. La copie
+quotidienne conserve son empreinte et la sauvegarde temporaire Dev est supprimée.
+Pas de campagne complète VoiceOver/clavier, de QA physique sur le 14 pouces ni
+de scénario natif de batterie absente pour cette passe.
+
 ## Historique de livraison
 
 Disponible dans [MacCare 0.2.12 (build 14)](https://github.com/M0okz/maccare/releases/tag/v0.2.12), publiée le 7 novembre 2026. Les états Dev et les validations datées ci-dessous décrivent les paquets précédents et conservent leurs limites de QA.
