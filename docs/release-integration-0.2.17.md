@@ -45,13 +45,12 @@ non testés. L’énergie des démons et des appareils sur la durée n’est pas
 
 ## Documentation et accès de livraison
 
-Notes utilisateur : [0.2.17](release-notes/0.2.17.md). Outline et le suivi Vikunja
-restent en attente : le helper Homelab échoue avec son erreur masquée ; le
-bastion TCP 2222 est injoignable, y compris pour `cloud-docker-01`. Aucun jeton
-n’a été affiché, aucune authentification API Outline/Vikunja n’est confirmée.
-La publication GitHub utilise l’accès GitHub existant et reste indépendante.
-Le redéploiement du site exige le rétablissement de cet accès ; conserver la
-version réellement en ligne distincte des sources préparées.
+Notes utilisateur : [0.2.17](release-notes/0.2.17.md). Au moment de la publication,
+le bastion Homelab était injoignable et la synchronisation Outline/Vikunja ainsi
+que le redéploiement du site restaient bloqués avant authentification API.
+La reprise demandée ensuite par Gregory a rétabli les accès via les comptes de
+service existants. Le site est déployé et Outline synchronisé puis relu ; voir
+[la clôture vérifiée](release-0.2.17-completion.md). Aucun secret n’est journalisé.
 
 ## Publication et contrôle du paquet public
 
@@ -83,9 +82,10 @@ accessoires macOS étaient visibles ; la sonde séparée lisait les appareils,
 puis la relance les a affichés. Aucune cause n’est établie pour cette absence
 initiale ; ne pas transformer cette campagne en garantie de disponibilité continue.
 
-Le site est préparé dans les sources pour cette version, ses liens, sa taille,
-son empreinte et les guides concernés. **Redéploiement HTTPS et Outline en
-attente du bastion**, encore injoignable après publication. Les 10 pages et
-207 liens internes des sources passent les contrôles statiques. La relecture
-HTTPS depuis ce Mac expire après 20 secondes ; aucun état live n’est revendiqué. Voir
-[la note de reprise documentaire et site](outline-sync-pending-release-0.2.17.md).
+Le site et les neuf pages de documentation servent maintenant la 0.2.17, ses
+liens, sa taille et son empreinte. Les dix réponses HTTPS sont identiques aux
+sources `5e33750`, le conteneur est sain et les droits sont conservés. Les copies
+temporaires ciblées sont supprimées. Les 10 pages et 207 liens internes des
+sources avaient passé les contrôles statiques. Outline est mis à jour puis relu,
+avec contenu antérieur et emplacement préservés ; voir
+[la clôture et ses preuves](release-0.2.17-completion.md).

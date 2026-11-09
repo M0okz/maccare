@@ -215,8 +215,9 @@ quotidienne ; latest est identique au flux signé de la release.
 DMG : 16 049 174 octets, SHA-256
 `f787279babc1d33b67fc236fa2b726d1be153294cb014d2bd2c9438d6b7b332f`.
 Les copies installées sont préservées et la distribution n’est pas lancée.
-Les sources du site sont actualisées, mais son redéploiement et Outline restent
-en attente d’un bastion Homelab injoignable. Huit branches locales intégrées et
-trois distantes sont fermées ; le chantier Batterie commencé en parallèle est
-préservé. Voir [l’ensemble des preuves et limites](release-integration-0.2.17.md)
-et [les actions documentaires restantes](outline-sync-pending-release-0.2.17.md).
+Le site est redéployé et les dix fichiers HTML sont vérifiés identiques en HTTPS ;
+conteneur sain, droits conservés et copies temporaires supprimées. Outline est
+synchronisé puis relu après rétablissement des accès Homelab. Huit branches
+locales intégrées et trois distantes sont fermées ; le chantier Batterie commencé
+en parallèle est préservé. Voir [les preuves et limites](release-integration-0.2.17.md)
+et [la clôture du site et de la documentation](release-0.2.17-completion.md).
