@@ -165,20 +165,22 @@ static void readWatches(Device device, NSString *phoneID) {
     }
 }
 
-static void readDevice(Device device) {
+static BOOL readDevice(Device device) {
     // No pairing call or implicit Wi-Fi change; sessions require existing trust.
-    if (connectDevice(device) != 0) return;
+    if (connectDevice(device) != 0) return NO;
     BOOL session = NO;
+    BOOL batteryRead = NO;
     @try {
-        if (isPaired(device) != 1 || validatePairing(device) != 0 || startSession(device) != 0) return;
+        if (isPaired(device) != 1 || validatePairing(device) != 0 || startSession(device) != 0) return NO;
         session = YES;
         NSString *kind = stringValue(value(device, nil, @"DeviceClass"));
-        if (![@[@"iPhone", @"iPad"] containsObject:kind]) return;
+        if (![@[@"iPhone", @"iPad"] containsObject:kind]) return NO;
         NSString *identifier = stringValue(CFBridgingRelease(copyIdentifier(device)));
-        if (!identifier) return;
-        if (operation != ReadBattery) { readWiFi(device, identifier, kind); return; }
+        if (!identifier) return NO;
+        if (operation != ReadBattery) { readWiFi(device, identifier, kind); return NO; }
         NSNumber *level = percentage(value(device, @"com.apple.mobile.battery", @"BatteryCurrentCapacity"));
         if (level) {
+            batteryRead = YES;
             NSString *name = stringValue(value(device, nil, @"DeviceName")) ?: kind;
             emit(@{@"id": localID(identifier), @"name": name, @"kind": kind.lowercaseString,
                    @"percent": level, @"viaPhone": @NO});
@@ -188,6 +190,7 @@ static void readDevice(Device device) {
         if (session) stopSession(device);
         disconnectDevice(device);
     }
+    return batteryRead;
 }
 
 static BOOL collectReadings(void) {
@@ -200,7 +203,19 @@ static BOOL collectReadings(void) {
     collecting = NO;
     // Keep the observer owning discovery alive until all sessions finish.
     // Freeze the bounded device list while synchronous calls may pump the run loop.
-    for (NSValue *entry in devices) readDevice(entry.pointerValue);
+    NSArray<NSValue *> *ordered = [devices sortedArrayUsingComparator:^NSComparisonResult(NSValue *left, NSValue *right) {
+        BOOL leftUSB = interfaceType && interfaceType(left.pointerValue) == 1;
+        BOOL rightUSB = interfaceType && interfaceType(right.pointerValue) == 1;
+        return leftUSB == rightUSB ? NSOrderedSame : leftUSB ? NSOrderedAscending : NSOrderedDescending;
+    }];
+    NSMutableSet<NSString *> *sampled = [NSMutableSet new];
+    for (NSValue *entry in ordered) {
+        // The identifier is cached on the discovered reference; this adds no network round trip.
+        NSString *identifier = operation == ReadBattery ? stringValue(CFBridgingRelease(copyIdentifier(entry.pointerValue))) : nil;
+        if (identifier && [sampled containsObject:identifier]) continue;
+        // Keep the network fallback when the preferred USB reading fails.
+        if (readDevice(entry.pointerValue) && identifier) [sampled addObject:identifier];
+    }
     unsubscribe(subscription);
     for (NSValue *entry in devices) releaseDevice(entry.pointerValue);
     return YES;

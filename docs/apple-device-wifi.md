@@ -1,36 +1,40 @@
 # Gérer l'accès Wi-Fi des appareils Apple
 
-## Point de reprise — 9 novembre 2026 à 14 h, Europe/Paris
+## Reprise matérielle — 9 novembre 2026 après 14 h, Europe/Paris
 
-Gregory a différé les essais matériels, puis demandé une reprise à 14 h.
-L'automatisation ponctuelle `reprendre-les-tests-wi-fi-maccare` est créée dans
-ce chat, pour une seule occurrence. **Ne pas déclarer la fonction fiable ou
-livrée : la redécouverte après relance reste à valider.**
+Gregory a rebranché et déverrouillé l’iPhone sur le MacBook Pro M1. Le paquet
+MacCare Dev **0.2.16 (21)** a été reconstruit dans
+`build/apple-device-wifi-resume/MacCare.app`, puis lancé depuis ce chemin.
+L’automatisation ponctuelle de reprise a été consommée et supprimée.
+**Le test sans câble après relance reste en attente du débranchement.**
 
-La dernière synchronisation Outline est également à reprendre après un échec
-du helper d'accès Homelab : voir [la note de synchronisation](outline-sync-pending-apple-device-wifi.md).
+Cette reprise valide pour la première fois sur l’iPhone l’appel
+`AMDeviceSetWirelessBuddyFlags` de la correction. La lecture USB initiale donnait
+les flags `0x2` : accès Wi-Fi actif. L’activation explicite autorisée a envoyé
+les flags incluant `0x1 | 0x2`, puis confirmé l’état Wi-Fi actif par relecture
+(réponse complète, **1,981 s / 0,1686 s CPU**). Le bit d’initialisation est une
+commande de l’interface ; sa seule absence dans la lecture initiale ne prouve
+pas la cause de la redécouverte irrégulière du premier prototype.
 
-Le paquet Dev (20) montré à Gregory utilisait encore `AMDeviceSetValue` sur
-`EnableWifiConnections`. Son clic a bien changé la valeur, et un premier relevé
-réseau complet a suivi. Après une relance du paquet, le téléphone n'était plus
-découvert, même avec une fenêtre de découverte portée temporairement à 2,5 s.
-Cette sonde temporaire a été supprimée. L'enregistrement de ce Mac est une
-**hypothèse de cause**, pas un diagnostic matériel confirmé.
+La lecture batterie détectait le même iPhone sur USB et réseau et interrogeait
+deux fois le téléphone et sa Watch. La sonde privilégie maintenant USB et saute
+le second transport seulement après une lecture batterie réussie. Si USB échoue,
+le réseau reste un repli possible. Sur matériel : **iPhone 81 %, Watch 75 %**,
+une seule ligne par appareil, **1,283 s / 0,1052 s CPU**, contre
+**3,455 s / 0,2227 s CPU** avant dédoublonnage. Ces mesures concernent un appel
+ponctuel du processus, pas l’énergie totale du système.
 
-La correction présente dans les sources utilise désormais
-`AMDeviceGetWirelessBuddyFlags` et `AMDeviceSetWirelessBuddyFlags` : elle
-initialise l'identité sans fil de ce Mac approuvé lors de l'activation, au lieu
-de changer seulement une valeur globale sur l'iPhone. Les fixtures natives
-et la compilation C passent ; **cette variante n'a pas été essayée sur l'iPhone
-et doit être reconstruite dans le paquet avant tout nouveau clic**.
+Le paquet Dev affiche l’iPhone et la Watch dans la carte Batterie de l’Accueil,
+et « Accès Wi-Fi activé » avec le bouton « Désactiver l’accès Wi-Fi » dans
+Batterie → Réglages → Appareils Apple. Aucun clic de désactivation n’a été fait.
+Les copies `/Applications/MacCare.app` et `/Applications/MacCare Dev.app` sont
+préservées. La synchronisation Outline reste à reprendre après échec du helper
+Homelab : voir [la note de synchronisation](outline-sync-pending-apple-device-wifi.md).
 
-À 14 h : lire les consignes, rebrancher l'iPhone en USB avec Gregory, relever
-les flags sans imprimer de données de jumelage, reconstruire le paquet Dev,
-valider l'activation et sa relecture, débrancher, puis vérifier une lecture
-réseau après une vraie relance. Ne pas refaire un jumelage, ne pas activer de
-synchronisation de contenu, ne pas remplacer les apps installées. Les copies
-quotidienne et Dev installée gardent leurs empreintes de référence. Le réglage
-activé par Gregory est laissé en place ; aucun retour arrière silencieux.
+Le premier paquet Dev (20) montré à Gregory utilisait encore `AMDeviceSetValue`
+sur `EnableWifiConnections`. Un relevé sans câble avait fonctionné, puis la
+redécouverte après relance avait échoué, y compris avec une fenêtre temporaire
+à 2,5 s. Ce résultat ancien reste distinct du test de la nouvelle correction.
 
 Développement du 9 novembre 2026, **non livré**. Branche
 `codex/apple-device-wifi`, issue de `6b207f1`, dans le worktree
@@ -91,7 +95,19 @@ dans le parent**, sans augmenter la fréquence des lectures. Les appels sont
 effectués hors de l'interface et de l'exécuteur coopératif. Une acquisition déjà
 lancée reste bornée même si la vue ferme.
 
-## Vérifications
+## Vérifications de la reprise
+
+- Build Release arm64, helper natif et paquet Dev **0.2.16 (21)** signés
+  Apple Development ; aucune copie installée remplacée.
+- Nouvelle fixture native : découverte réseau avant USB du même identifiant,
+  un seul accès avec préférence USB. La fixture échouait avant correction,
+  puis passe sous ASan/UBSan ; un second cas valide le repli réseau après échec USB.
+- Preuves locales dans `build/apple-device-wifi-qa/` :
+  `resume-usb-configuration.json`, `resume-usb-batteries.json`,
+  `resume-usb-deduplicated.json`, `duplicate-discovery-red.log`,
+  `duplicate-discovery-green.log`, `resume-package.log`.
+
+## Vérifications antérieures — premier prototype
 
 - Build Release arm64 et paquet MacCare Dev **0.2.16 (20)** signés Apple
   Development, sans flux Sparkle. Paquet propre au worktree :
@@ -113,7 +129,7 @@ lancée reste bornée même si la vue ferme.
   en **3,931 s / 0,1725 s CPU** du processus, sans erreur.
 
 Le test de délai Swift final passe en environ 7,1 s ; les 28 tests ciblés passent.
-Le paquet montré est antérieur à la correction finale d'enregistrement de l'hôte.
+Le paquet (20) montré lors de ces essais antérieurs précède la correction WirelessBuddyFlags ; le paquet (21) de la reprise est décrit plus haut.
 
 Ces chiffres ne mesurent pas l'énergie des démons système ou l'autonomie du
 téléphone/de la Watch sur la durée. L'âge du registre Watch, l'accès après une

@@ -11,13 +11,16 @@ static BOOL wifiEnabled = YES;
 static int writes;
 static long storedFlags;
 static int32_t flagsStatus;
+static BOOL duplicateDiscovery;
+static Device failedDevice, firstConnected;
 static NSDictionary *lastRequest;
 static NSMutableArray *requests;
-static int32_t connected(Device d) { connects++; return subscriptionActive ? 0 : -1; }
+static int32_t connected(Device d) { connects++; if (!firstConnected) firstConnected = d; return subscriptionActive && d != failedDevice ? 0 : -1; }
 static void retained(Device d) { }
 static int32_t subscribed(DeviceCallback callback, uint32_t a, uint32_t b, void *context, void **subscription, CFDictionaryRef options) {
     subscriptionActive = YES; *subscription = (void *)1;
     DeviceEvent event = {.device = (Device)1, .message = 1};
+    if (duplicateDiscovery) { event.device = (Device)2; callback(&event, NULL); event.device = (Device)1; }
     callback(&event, NULL); return 0;
 }
 static int32_t unsubscribed(void *subscription) { subscriptionActive = NO; return 0; }
@@ -39,7 +42,7 @@ static CFTypeRef copied(Device d, CFStringRef domain, CFStringRef key) {
     assert([name isEqual:@"BatteryCurrentCapacity"]);
     return CFBridgingRetain(@80);
 }
-static int32_t interface(Device d) { return transport; }
+static int32_t interface(Device d) { return duplicateDiscovery ? (d == (Device)1 ? 1 : 2) : transport; }
 static int32_t wirelessFlags(Device d, long *flags) { *flags = storedFlags; return flagsStatus; }
 static int32_t setting(Device d, long flags) {
     assert((flags & ~0x3L) == (storedFlags & ~0x3L)); // No unrelated flags may change.
@@ -80,6 +83,7 @@ static void reset(void) {
     configureArguments(@[]); transport = 1; wifiEnabled = YES; writes = 0;
     storedFlags = 0x42; flagsStatus = 0; getWirelessFlags = wirelessFlags;
     startService = NULL;
+    duplicateDiscovery = NO; failedDevice = firstConnected = NULL;
 }
 int main(void) {
     @autoreleasepool {
@@ -109,6 +113,12 @@ int main(void) {
         retainDevice = retained; releaseDevice = retained;
         assert(collectReadings());
         assert(starts == 1 && stops == 1 && disconnects == 1 && !subscriptionActive);
+        reset(); duplicateDiscovery = YES; interfaceType = interface;
+        assert(collectReadings());
+        assert(connects == 1 && starts == 1 && firstConnected == (Device)1);
+        reset(); duplicateDiscovery = YES; failedDevice = (Device)1;
+        assert(collectReadings());
+        assert(connects == 2 && starts == 1 && firstConnected == (Device)1);
         reset(); setWirelessFlags = setting; interfaceType = interface;
         assert(wifiValue((Device)1, NULL).boolValue);
         flagsStatus = 1; assert(wifiValue((Device)1, NULL) == nil);
