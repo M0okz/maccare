@@ -211,11 +211,13 @@ final class AppState: ObservableObject {
 
 struct RootView: View {
     @ObservedObject var app: AppState
+    @ObservedObject var updater: AppUpdater
     @ObservedObject private var permissions: PermissionsModel
     @State private var displayLayout = MainWindowLayout.standard
 
-    init(app: AppState) {
+    init(app: AppState, updater: AppUpdater) {
         self.app = app
+        self.updater = updater
         self.permissions = app.permissions
     }
 
@@ -233,6 +235,9 @@ struct RootView: View {
                 }
                 .ignoresSafeArea(.container, edges: .top)
             }
+        }
+        .toolbar {
+            AppUpdateAvailabilityToolbar(updater: updater, isVisible: !permissions.needsOnboarding)
         }
         .modifier(DisplayAdjustedContent(layout: displayLayout))
         .onAppear {
@@ -283,11 +288,11 @@ struct WindowConfigurator: NSViewRepresentable {
             // AppKit conserve le dessin, les états actifs/inactifs, l’aide et les actions système.
             if window.toolbar == nil {
                 let toolbar = NSToolbar(identifier: "MacCareMainWindowToolbar")
-                toolbar.showsBaselineSeparator = false
-                toolbar.allowsUserCustomization = false
-                toolbar.displayMode = .iconOnly
                 window.toolbar = toolbar
             }
+            window.toolbar?.showsBaselineSeparator = false
+            window.toolbar?.allowsUserCustomization = false
+            window.toolbar?.displayMode = .iconOnly
             window.toolbarStyle = .unified
             window.titlebarAppearsTransparent = true
             window.titleVisibility = .hidden

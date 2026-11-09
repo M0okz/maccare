@@ -24,10 +24,10 @@ struct MacCareApp: App {
                 } else if let preview = TrayMetricPreview.requestedKind {
                     TrayMetricPreview(kind: preview, metricsStore: app.trayMetrics)
                 } else {
-                    RootView(app: app)
+                    RootView(app: app, updater: updater)
                 }
                 #else
-                RootView(app: app)
+                RootView(app: app, updater: updater)
                 #endif
             }
             .background(TraySceneLifecycle(app: app, delegate: delegate))
