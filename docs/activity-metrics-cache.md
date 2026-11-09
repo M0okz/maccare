@@ -2,8 +2,7 @@
 
 ## État — 9 novembre 2026
 
-**En développement, non livré** sur `codex/stable-metrics-history`, après la
-publication de [MacCare 0.2.15 (17)](https://github.com/M0okz/maccare/releases/tag/v0.2.15).
+**Livré dans [MacCare 0.2.16 (build 18)](https://github.com/M0okz/maccare/releases/tag/v0.2.16).** Branche de préparation `codex/stable-metrics-history`, désormais fusionnée et fermée.
 Cette évolution remplace le cache lié à la visibilité livré en 0.2.15.
 La copie quotidienne n’est pas remplacée par la Dev.
 

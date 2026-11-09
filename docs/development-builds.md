@@ -2,13 +2,13 @@
 
 ## Retrait des applications — Dev du 9 novembre 2026
 
-**En développement, non livré.** Paquet `build/applications-fix/MacCare.app`, MacCare Dev 0.2.15 (19), installé et vérifié. Les clics sur les lignes, la présélection du paquet et des données et la mise à la corbeille de deux applications factices ont été contrôlés dans l’interface native ; 541 tests réussissent. La copie quotidienne est préservée.
+**Fonctions livrées dans [MacCare 0.2.16 (build 18)](https://github.com/M0okz/maccare/releases/tag/v0.2.16) ; validation locale Dev 0.2.15 (19).** Paquet `build/applications-fix/MacCare.app`, MacCare Dev 0.2.15 (19), installé et vérifié. Les clics sur les lignes, la présélection du paquet et des données et la mise à la corbeille de deux applications factices ont été contrôlés dans l’interface native ; 541 tests réussissent. La copie quotidienne est préservée.
 
 Voir [le contrat, les tests et les limites](application-removal.md).
 
 ## Historique des métriques — Dev du 9 novembre 2026
 
-**En développement, non livré.** Branche `codex/stable-metrics-history`, non livrée. Le paquet `build/stable-metrics/MacCare.app` porte l’identité MacCare Dev 0.2.15 (18), sans flux Sparkle. Le suivi reste léger hors visibilité (cinq secondes), sans nouveaux relevés de température/ventilateurs/CoreWLAN. Les graphiques partagent une heure bornée en RAM, gardent dix minutes dans les cartes et relient les points réels. La copie quotidienne `/Applications/MacCare.app` reste distincte. Dev installée, 537 tests réussis ; contrôle natif de la continuité, des détails et des sélecteurs réussi après déverrouillage manuel.
+**Fonctions livrées dans [MacCare 0.2.16 (build 18)](https://github.com/M0okz/maccare/releases/tag/v0.2.16).** Ancienne branche de préparation `codex/stable-metrics-history`, fusionnée et fermée. Le paquet `build/stable-metrics/MacCare.app` porte l’identité MacCare Dev 0.2.15 (18), sans flux Sparkle. Le suivi reste léger hors visibilité (cinq secondes), sans nouveaux relevés de température/ventilateurs/CoreWLAN. Les graphiques partagent une heure bornée en RAM, gardent dix minutes dans les cartes et relient les points réels. La copie quotidienne `/Applications/MacCare.app` reste distincte. Dev installée, 537 tests réussis ; contrôle natif de la continuité, des détails et des sélecteurs réussi après déverrouillage manuel.
 
 Voir [le fonctionnement, les vérifications et leurs limites](activity-metrics-cache.md).
 

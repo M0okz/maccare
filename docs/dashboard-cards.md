@@ -1,8 +1,8 @@
 # Accueil : bilan, batterie et santé
 
-## Activité stable — Dev du 9 novembre 2026
+## Activité stable — MacCare 0.2.16
 
-**En développement, non livré.** Les courbes des cartes CPU, GPU et réseau couvrent dix minutes et continuent à être alimentées hors de l’accueil. L’ouverture des détails donne accès à dix minutes, trente minutes ou une heure, avec moyenne et pic, également pour la RAM. Le GPU est désormais un bouton ouvrant son détail. Les cartes conservent leur taille et leur composition ; les chiffres sont lissés sur cinq secondes et changent toutes les trois secondes. L’échelle réseau utilise des paliers avec baisse différée.
+**Livré dans [MacCare 0.2.16 (build 18)](https://github.com/M0okz/maccare/releases/tag/v0.2.16).** Les courbes des cartes CPU, GPU et réseau couvrent dix minutes et continuent à être alimentées hors de l’accueil. L’ouverture des détails donne accès à dix minutes, trente minutes ou une heure, avec moyenne et pic, également pour la RAM. Le GPU est désormais un bouton ouvrant son détail. Les cartes conservent leur taille et leur composition ; les chiffres sont lissés sur cinq secondes et changent toutes les trois secondes. L’échelle réseau utilise des paliers avec baisse différée.
 
 Voir [le fonctionnement, les vérifications et leurs limites](activity-metrics-cache.md).
 

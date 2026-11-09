@@ -166,3 +166,37 @@ L’application distribuée n’a pas été lancée. Voir les
 [notes et limites de cette version](release-notes/0.2.15.md).
 Preuves : `build/release-0.2.15-qa/` ; les téléchargements, montages et outils de
 travail temporaires sont nettoyés après les contrôles.
+
+
+## Publication 0.2.16 — 9 novembre 2026
+
+L’historique continu de l’activité, les chiffres lissés, les détails jusqu’à une
+heure et les corrections du gestionnaire Applications sont publiés dans
+[MacCare 0.2.16 (build 18)](https://github.com/M0okz/maccare/releases/tag/v0.2.16). La [PR #23](https://github.com/M0okz/maccare/pull/23) est fusionnée ; le tag
+`v0.2.16` vise `5109d72777bf859ddf80c4311d4039897664652c` et la branche de
+préparation est supprimée localement et sur GitHub.
+
+Les CI de branche, de PR et de fusion, puis le [workflow de publication](https://github.com/M0okz/maccare/actions/runs/42555458774), réussissent.
+La validation inclut 294 XCTest + 247 Swift Testing et 19 tests de packaging,
+les contrôles SMC/HID/PowerUI et les signatures Sparkle de la chaîne de CI.
+Le DMG public téléchargé est signé Developer ID, notarié et agrafé, de même que
+l’application embarquée. Gatekeeper accepte le paquet ; les quatre exécutables
+propres à l’app sont arm64. Version et canal du helper sont cohérents.
+Les signatures Ed25519 du flux et du DMG sont vérifiées avec la clé publique de
+la copie quotidienne ; latest correspond à cette release.
+
+DMG : 15978617 octets ; SHA-256 `00d5e17148e65f5fa5764812a5f05ed9e81ae60e95237c64a5ebc7b9e7819c25`.
+Le site public porte les nouveaux liens, taille et empreinte ; HTML identique
+aux sources après remplacement atomique avec propriétaire et droits préservés,
+conteneur sain et copie temporaire de retour arrière supprimée.
+
+Les contrôles natifs sont ceux des Dev 0.2.15 (18) et (19) : navigation et volet,
+sélecteurs d’historique, zones vides des lignes et deux désinstallations factices
+avec leurs préférences. Les limites de veille physique, collecte native d’une
+heure, VoiceOver complet et mesure énergétique prolongée restent explicites.
+Une application en cours n’est pas fermée automatiquement par le désinstalleur.
+Aucune installation pendant cette publication : la copie quotidienne reste en
+0.2.8 (10), la Dev en 0.2.15 (19), empreintes et signatures préservées.
+L’app de distribution n’a pas été lancée. Voir les [notes de version](release-notes/0.2.16.md).
+Preuves : `build/release-0.2.16-qa/`. Les téléchargements, montages et outils de
+travail temporaires sont nettoyés après vérification.

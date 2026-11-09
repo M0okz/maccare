@@ -1,8 +1,8 @@
 # Architecture de MacCare
 
-## Désinstallation — Dev du 9 novembre 2026
+## Désinstallation — MacCare 0.2.16
 
-**En développement, non livré.** `Remover.uninstall` traite le paquet choisi dans son dossier Applications avec une liste d’inclusion, puis ses données dans le dossier personnel. Le nettoyage générique reste inchangé. Le modèle agrège les comptes rendus et retire les paquets disparus du catalogue.
+**Livré dans [MacCare 0.2.16 (build 18)](https://github.com/M0okz/maccare/releases/tag/v0.2.16).** `Remover.uninstall` traite le paquet choisi dans son dossier Applications avec une liste d’inclusion, puis ses données dans le dossier personnel. Le nettoyage générique reste inchangé. Le modèle agrège les comptes rendus et retire les paquets disparus du catalogue.
 
 Voir [le contrat, les tests et les limites](application-removal.md).
 
@@ -55,14 +55,14 @@ et des préférences d’inclusion dans un scan.
 
 La télémétrie distingue les données indisponibles des valeurs nulles. Le suivi
 CPU/GPU, mémoire et réseau est partagé entre le volet, l’accueil et les détails.
-**En développement, non livré (9 novembre 2026)** : `TrayMetricsStore` garde une
+**Depuis MacCare 0.2.16** : `TrayMetricsStore` garde une
 seule boucle à une seconde avec une vue visible, cinq secondes sans vue visible.
 Les capteurs SMC/HID et CoreWLAN ne sont pas relus en arrière-plan. La navigation
 change la cadence sans réamorcer les compteurs. Le store conserve une heure en
 groupes de cinq secondes (moyenne et maximum), dix minutes dans les cartes.
 Les tracés relient les relevés réels sans coupure visuelle ; la veille suspend
-la collecte et n’ajoute ni mesure ni volume fictif. La version publique 0.2.15
-conserve son ancien arrêt des relevés hors visibilité. Voir [le cycle de vie,
+la collecte et n’ajoute ni mesure ni volume fictif. La version 0.2.15
+utilisait l’arrêt des relevés hors visibilité. Voir [le cycle de vie,
 les bornes mémoire et les limites](activity-metrics-cache.md).
 
 Depuis MacCare 0.2.15, la température GPU possède aussi un repli SMC borné aux

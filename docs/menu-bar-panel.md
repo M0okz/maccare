@@ -1,8 +1,8 @@
 # Volet compact et présence dans le Dock
 
-## Historique continu — Dev du 9 novembre 2026
+## Historique continu — MacCare 0.2.16
 
-**En développement, non livré.** Le volet réutilise un historique partagé sur dix minutes, conservé même fermé. Les chiffres CPU/GPU/RAM/réseau changent toutes les trois secondes et sont lissés sur cinq secondes. Les détails CPU/GPU/RAM/réseau offrent jusqu’à une heure avec moyenne et pic ; le GPU devient ouvrable comme le CPU. Les anciennes descriptions de suivi suspendu hors visibilité ci-dessous concernent la version publique précédente.
+**Livré dans [MacCare 0.2.16 (build 18)](https://github.com/M0okz/maccare/releases/tag/v0.2.16).** Le volet réutilise un historique partagé sur dix minutes, conservé même fermé. Les chiffres CPU/GPU/RAM/réseau changent toutes les trois secondes et sont lissés sur cinq secondes. Les détails CPU/GPU/RAM/réseau offrent jusqu’à une heure avec moyenne et pic ; le GPU devient ouvrable comme le CPU. Les anciennes descriptions de suivi suspendu hors visibilité ci-dessous concernent la version publique précédente.
 
 Voir [le fonctionnement, les vérifications et leurs limites](activity-metrics-cache.md).
 

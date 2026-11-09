@@ -2,9 +2,9 @@
 
 ## État — 9 novembre 2026
 
-**En développement, non livré** sur `codex/stable-metrics-history`. MacCare Dev
+**Livré dans [MacCare 0.2.16 (build 18)](https://github.com/M0okz/maccare/releases/tag/v0.2.16).** Branche de préparation `codex/stable-metrics-history`, désormais fusionnée et fermée. MacCare Dev
 0.2.15 (19) est installée dans `/Applications/MacCare Dev.app`, signée Apple
-Development sans flux Sparkle. La publication reste 0.2.15 (17) ; la copie
+Development sans flux Sparkle. La publication est 0.2.16 (18) ; la copie
 quotidienne `/Applications/MacCare.app` 0.2.8 (10) est préservée.
 
 ## Comportement
