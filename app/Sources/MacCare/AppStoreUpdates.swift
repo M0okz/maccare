@@ -33,6 +33,7 @@ enum AppStoreUpdates {
             let name: String
             let version: String
             let newVersion: String
+            let adamID: UInt64?
         }
         let decoder = JSONDecoder()
         return try output.split(whereSeparator: \.isNewline).compactMap { line in
@@ -41,7 +42,7 @@ enum AppStoreUpdates {
             guard !update.name.isEmpty, !update.version.isEmpty, !update.newVersion.isEmpty else {
                 throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "Mise à jour incomplète"))
             }
-            return OutdatedItem(name: update.name, detail: "\(update.version) → \(update.newVersion)")
+            return OutdatedItem(name: update.name, detail: "\(update.version) → \(update.newVersion)", storeID: update.adamID.flatMap { $0 > 0 ? $0 : nil })
         }
     }
 }

@@ -233,3 +233,8 @@ La base d’intégration est `origin/main` après la livraison de MacCare 0.2.19
 (`837c00f`). Une PR vers `main` prépare l’intégration ; aucune nouvelle version
 ni installation quotidienne n’est publiée par cette opération. Le code validé
 et les preuves de QA restent ceux détaillés dans la section précédente.
+
+
+## Installation depuis MacCare — développement suivant la 0.2.20
+
+Le gestionnaire reçoit désormais une action Mettre à jour qui exécute les mises à jour compatibles. Cette évolution reste non publiée ; elle remplace les liens seuls des étapes précédentes et ne change pas l’absence d’installation pendant une analyse. Voir [les mécanismes, vérifications et limites](application-update-installation.md).

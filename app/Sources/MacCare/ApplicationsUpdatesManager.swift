@@ -3,15 +3,16 @@ import AppKit
 
 struct ApplicationsUpdatesManager: View {
     @ObservedObject var model: UpdatesModel
+    @ObservedObject var installer: ApplicationUpdateInstaller
     let apps: [AppInfo]
     let onBack: () -> Void
     @ScaledMetric(relativeTo: .title) private var applicationTitleSize: CGFloat = 24
     @State private var selectedID: String?
+    @State private var quitRequest: ApplicationUpdateEntry?
     @State private var sort = ApplicationUpdateSort.recent
     @State private var query = ""
     @State private var showSearch = false
     @State private var lastOpened: [URL: Date] = [:]
-    @State private var copiedID: String?
     @FocusState private var searchFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -52,6 +53,17 @@ struct ApplicationsUpdatesManager: View {
             Divider()
             footer
         }
+        .confirmationDialog(quitRequest.map { "Quitter \($0.item.name) pour le mettre à jour ?" } ?? "Quitter l’application ?", isPresented: Binding(get: { quitRequest != nil }, set: { if !$0 { quitRequest = nil } }), titleVisibility: .visible) {
+            if let entry = quitRequest {
+                Button("Quitter et mettre à jour") { quitRequest = nil;installer.install(entry, apps: apps, quitIfRunning: true) }
+            }
+            Button("Annuler", role: .cancel) { quitRequest = nil }
+        } message: {
+            Text("Enregistrez vos documents. MacCare demande une fermeture normale ; il ne force jamais l’arrêt.")
+        }
+        .onChange(of: installer.lastCompletedID) { id in
+            if id != nil { model.checkApplications() }
+        }
         .task(id: apps.map(\.url)) {
             let urls = apps.map(\.url)
             let values = await Task.detached(priority: .utility) {
@@ -74,7 +86,7 @@ struct ApplicationsUpdatesManager: View {
                 Text("\(entries.count) \(pl(entries.count, "mise")) à jour").font(AppFont.secondary).monospacedDigit()
                 Spacer(minLength: 4)
                 Button { model.checkApplications() } label: { Image(systemName: "arrow.clockwise").frame(width: 32, height: 32) }
-                    .buttonStyle(.plain).disabled(model.isChecking).accessibilityLabel("Actualiser les mises à jour")
+                    .buttonStyle(.plain).disabled(model.isChecking || installer.isBusy).accessibilityLabel("Actualiser les mises à jour")
             }
             if showSearch {
                 TextField("Rechercher une application", text: $query).textFieldStyle(.roundedBorder)
@@ -85,6 +97,9 @@ struct ApplicationsUpdatesManager: View {
                     ScanActivityRing(lineWidth: 2).frame(width: 14, height: 14)
                     Text("Vérification en cours…").font(AppFont.secondary)
                 }
+            }
+            if let result = installer.lastResult {
+                Label(result, systemImage: "checkmark.circle.fill").font(AppFont.secondary).foregroundStyle(Theme.accentInk)
             }
             ScrollView {
                 LazyVStack(spacing: 6) {
@@ -177,30 +192,31 @@ struct ApplicationsUpdatesManager: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text(selected.map { "\($0.item.name) · 1 mise à jour examinée" } ?? "Aucune mise à jour sélectionnée")
                     .font(AppFont.body.weight(.semibold))
-                Text(copiedID != nil && copiedID == selected?.id ? "Commande copiée. Exécutez-la vous-même pour mettre à jour." : "Aucune installation automatique depuis MacCare.")
+                Text(selected.map { installer.states[$0.id]?.message ?? installer.unavailableReason(for: $0, apps: apps) ?? "La mise à jour commence lorsque vous cliquez sur Mettre à jour." } ?? "Choisissez une application à mettre à jour.")
                     .font(AppFont.secondary).foregroundStyle(Theme.muted)
             }
         } actions: {
             if let entry = selected {
-                if entry.source.key == "mas" {
-                    Button("Ouvrir l’App Store") { NSWorkspace.shared.open(AppStoreUpdates.storeURL) }
+                if case .downloading(let fraction) = installer.states[entry.id] {
+                    ProgressView(value: fraction).frame(width: 110).accessibilityLabel("Téléchargement de la mise à jour")
+                } else if installer.activeID == entry.id { ProgressView().controlSize(.small) }
+                if installer.canCancel {
+                    Button("Annuler") { installer.cancel() }.buttonStyle(.bordered)
+                }
+                if installer.hasPendingInstaller(entry.id) {
+                    Button("Vérifier l’installation") { installer.verifyInstaller(entry) }
+                        .buttonStyle(.borderedProminent).disabled(installer.isBusy)
+                } else {
+                    Button("Mettre à jour") {
+                        if installer.requiresQuit(entry, apps: apps) { quitRequest = entry }
+                        else { installer.install(entry, apps: apps) }
+                    }
                         .buttonStyle(.borderedProminent).controlSize(.large)
-                        .help("Ouvre l’App Store pour choisir les mises à jour à installer.")
-                } else if let url = entry.item.downloadURL {
-                    Button("Accéder au téléchargement") { NSWorkspace.shared.open(url) }
-                        .buttonStyle(.borderedProminent).controlSize(.large)
-                        .help("Ouvre la page de l’éditeur dans votre navigateur.")
-                } else if let url = entry.item.applicationURL {
-                    Button("Ouvrir pour mettre à jour") { NSWorkspace.shared.open(url) }
-                        .buttonStyle(.borderedProminent).controlSize(.large)
-                        .help("Ouvre l’application pour utiliser son mécanisme de mise à jour.")
-                } else if !entry.source.command.isEmpty {
-                    Button("Copier la commande") { model.copy(entry.source.command); copiedID = entry.id }
-                        .buttonStyle(.borderedProminent).controlSize(.large).help(entry.source.command)
+                        .disabled(installer.isBusy || model.isChecking || installer.unavailableReason(for: entry, apps: apps) != nil)
                 }
             } else {
                 Button("Vérifier les mises à jour") { model.checkApplications() }
-                    .buttonStyle(.borderedProminent).disabled(model.isChecking)
+                    .buttonStyle(.borderedProminent).disabled(model.isChecking || installer.isBusy)
             }
         }.padding(18).background(Theme.sidebar)
     }

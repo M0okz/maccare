@@ -12,6 +12,8 @@ struct OutdatedItem: Identifiable, Hashable, Sendable {
     var applicationURL: URL? = nil
     var downloadURL: URL? = nil
     var catalogToken: String? = nil
+    var artifact: ApplicationUpdateArtifact? = nil
+    var storeID: UInt64? = nil
     var id: String { (applicationURL?.path ?? name) + detail }
 }
 
