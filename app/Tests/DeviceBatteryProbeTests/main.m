@@ -6,6 +6,11 @@ static int paired, validationStatus, sessionStatus, connects, disconnects, start
 static BOOL isPhone = YES;
 static BOOL subscriptionActive = YES;
 static int messagesOnConnection;
+static int32_t transport = 1;
+static BOOL wifiEnabled = YES;
+static int writes;
+static long storedFlags;
+static int32_t flagsStatus;
 static NSDictionary *lastRequest;
 static NSMutableArray *requests;
 static int32_t connected(Device d) { connects++; return subscriptionActive ? 0 : -1; }
@@ -24,11 +29,21 @@ static int32_t sessionStopped(Device d) { stops++; return 0; }
 static CFStringRef identifier(Device d) { return CFRetain(CFSTR("test-phone-only")); }
 static CFTypeRef copied(Device d, CFStringRef domain, CFStringRef key) {
     NSString *name = (__bridge NSString *)key;
+    if (domain && CFEqual(domain, CFSTR("com.apple.mobile.wireless_lockdown"))) {
+        assert([name isEqual:@"EnableWifiConnections"]);
+        return CFBridgingRetain(wifiEnabled ? @1 : @0); // The real phone returns integer flags.
+    }
     if ([name isEqual:@"DeviceClass"]) return CFRetain(isPhone ? CFSTR("iPhone") : CFSTR("AppleTV"));
     if ([name isEqual:@"DeviceName"]) return CFRetain(CFSTR("iPhone QA"));
     assert(CFEqual(domain, CFSTR("com.apple.mobile.battery")));
     assert([name isEqual:@"BatteryCurrentCapacity"]);
     return CFBridgingRetain(@80);
+}
+static int32_t interface(Device d) { return transport; }
+static int32_t wirelessFlags(Device d, long *flags) { *flags = storedFlags; return flagsStatus; }
+static int32_t setting(Device d, long flags) {
+    assert((flags & ~0x3L) == (storedFlags & ~0x3L)); // No unrelated flags may change.
+    writes++; storedFlags = flags; wifiEnabled = (flags & 0x2) != 0; return 0;
 }
 static int32_t serviceStarted(Device d, CFStringRef name, void *options, void **connection) {
     assert(CFEqual(name, CFSTR("com.apple.companion_proxy")));
@@ -62,6 +77,8 @@ static void reset(void) {
     paired = 1; validationStatus = sessionStatus = 0;
     connects = disconnects = starts = stops = validations = serviceCloses = 0;
     isPhone = YES; subscriptionActive = YES; requests = [NSMutableArray new];
+    configureArguments(@[]); transport = 1; wifiEnabled = YES; writes = 0;
+    storedFlags = 0x42; flagsStatus = 0; getWirelessFlags = wirelessFlags;
     startService = NULL;
 }
 int main(void) {
@@ -92,6 +109,25 @@ int main(void) {
         retainDevice = retained; releaseDevice = retained;
         assert(collectReadings());
         assert(starts == 1 && stops == 1 && disconnects == 1 && !subscriptionActive);
+        reset(); setWirelessFlags = setting; interfaceType = interface;
+        assert(wifiValue((Device)1, NULL).boolValue);
+        flagsStatus = 1; assert(wifiValue((Device)1, NULL) == nil);
+        flagsStatus = 0;
+        readDevice((Device)1); assert(writes == 0); // Ordinary battery reads never configure the phone.
+        assert(!configureArguments(@[@"--set-wifi", @"bad-target", @"on"]));
+        assert(configureArguments(@[@"--set-wifi", localID(@"test-phone-only"), @"off"]));
+        readDevice((Device)1); assert(writes == 1 && !wifiEnabled && writeSucceeded);
+        assert(configureArguments(@[@"--set-wifi", localID(@"test-phone-only"), @"on"]));
+        readDevice((Device)1); assert(writes == 2 && storedFlags == 0x43 && writeSucceeded);
+        reset(); setWirelessFlags = setting; interfaceType = interface;
+        assert(configureArguments(@[@"--set-wifi", localID(@"test-phone-only"), @"off"]));
+        transport = 2; readDevice((Device)1); assert(writes == 0 && !writeSucceeded);
+        reset(); setWirelessFlags = setting; interfaceType = interface;
+        assert(configureArguments(@[@"--set-wifi", localID(@"another-phone"), @"off"]));
+        readDevice((Device)1); assert(writes == 0 && !targetFound);
+        reset(); paired = 0; setWirelessFlags = setting; interfaceType = interface;
+        assert(configureArguments(@[@"--set-wifi", localID(@"test-phone-only"), @"off"]));
+        readDevice((Device)1); assert(writes == 0 && starts == 0);
         fputs("Device battery trust, cleanup and protocol fixtures passed\n", stderr);
     }
 }

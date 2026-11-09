@@ -1,7 +1,7 @@
 import Foundation
 import Darwin
 
-/// One read-only subprocess; private MobileDevice calls cannot block or crash the app.
+/// One bounded subprocess; default battery reads never change device settings.
 enum MobileDeviceBatteryReader {
     struct Record: Decodable, Sendable {
         enum Kind: String, Decodable, Sendable { case iphone, ipad, watch }
@@ -23,6 +23,10 @@ enum MobileDeviceBatteryReader {
         var accessories: [TrayBatteryTelemetry.Accessory] = []
         var complete = false
     }
+    struct Output: Sendable {
+        var data = Data()
+        var exitedNormally = false
+    }
 
     static func parse(_ data: Data) -> Result {
         guard data.count <= 32_768, let text = String(data: data, encoding: .utf8) else { return Result() }
@@ -43,35 +47,43 @@ enum MobileDeviceBatteryReader {
 
     static func read(executable: URL? = Bundle.main.executableURL?.deletingLastPathComponent()
                      .appendingPathComponent("MacCareDeviceBatteryProbe")) async -> Result {
+        let output = await execute(arguments: [], executable: executable)
+        var result = parse(output.data)
+        result.complete = result.complete && output.exitedNormally
+        return result
+    }
+
+    static func execute(arguments: [String], executable: URL? = Bundle.main.executableURL?.deletingLastPathComponent()
+                        .appendingPathComponent("MacCareDeviceBatteryProbe")) async -> Output {
         guard !Task.isCancelled, let executable,
-              FileManager.default.isExecutableFile(atPath: executable.path) else { return Result() }
+              FileManager.default.isExecutableFile(atPath: executable.path) else { return Output() }
         // Foundation's synchronous process API runs outside the cooperative executor.
-        // A read already in flight finishes within five seconds; cancellation starts no further read.
+        // A read already in flight finishes within seven seconds; cancellation starts no further read.
         return await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .utility).async {
-                continuation.resume(returning: run(executable: executable))
+                continuation.resume(returning: run(executable: executable, arguments: arguments))
             }
         }
     }
 
-    private static func run(executable: URL) -> Result {
+    private static func run(executable: URL, arguments: [String]) -> Output {
         let process = Process()
         let output = Pipe()
         process.executableURL = executable
+        process.arguments = arguments
         process.standardOutput = output
         process.standardError = FileHandle.nullDevice
         process.standardInput = FileHandle.nullDevice
-        do { try process.run() } catch { return Result() }
+        do { try process.run() } catch { return Output() }
         // The child also has an alarm; this second deadline covers startup and unexpected hangs.
         let deadline = DispatchWorkItem {
             if process.isRunning { _ = Darwin.kill(process.processIdentifier, SIGKILL) }
         }
-        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 5, execute: deadline)
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 7, execute: deadline)
         defer { deadline.cancel() }
         let data = output.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
-        var result = parse(data)
-        result.complete = result.complete && process.terminationReason == .exit && process.terminationStatus == 0
-        return result
+        guard data.count <= 32_768 else { return Output() }
+        return .init(data: data, exitedNormally: process.terminationReason == .exit && process.terminationStatus == 0)
     }
 }

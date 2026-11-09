@@ -1,5 +1,18 @@
 # Reconnaître un build de développement
 
+## Option Wi-Fi des appareils — Dev du 9 novembre 2026
+
+**Non livré**, branche `codex/apple-device-wifi`, worktree
+`build/worktrees/apple-device-wifi`. Paquet Dev 0.2.16 (20) sous son propre
+`build/apple-device-wifi/MacCare.app`, sans installation. Carte Appareils Apple
+ouverte et montrée à Gregory ; activation sur son clic, état relu et batteries
+iPhone/Watch accessibles lors du premier relevé après débranchement, puis
+redécouverte irrégulière après relance. La correction WirelessBuddyFlags est
+préparée dans les sources, pas encore dans ce paquet ni vérifiée sur matériel.
+28 tests Swift ciblés et fixtures natives ; copies installées préservées.
+Reprise matérielle planifiée le 9 novembre à 14 h, heure de Paris.
+Voir [le contrôle et ses limites](apple-device-wifi.md).
+
 ## Appareils jumelés — développement du 9 novembre 2026
 
 **Non livré**, branche `codex/apple-device-batteries`. Nouveau lecteur mobile

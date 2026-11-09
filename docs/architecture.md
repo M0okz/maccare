@@ -1,5 +1,17 @@
 # Architecture de MacCare
 
+## Option Wi-Fi des appareils — développement du 9 novembre 2026
+
+**Non livré.** La sonde lit par défaut ; un mode séparé, ciblé par identifiant
+haché, configure l'accès sans fil de l'hôte approuvé par WirelessBuddyFlags,
+sur USB, en préservant les autres flags. Aucun jumelage automatique ni
+configuration au démarrage ou durant la surveillance. La vue
+publie la réussite uniquement après relecture conforme. Délais relevés à 6/7 s
+pour la latence réseau, sans nouvelle cadence ni application compagnon.
+La redécouverte après relance reste en validation matérielle ; reprise demandée
+le 9 novembre à 14 h. Le paquet montré utilisait le premier prototype SetValue.
+Voir [la frontière et les essais réels](apple-device-wifi.md).
+
 ## Lecture des appareils jumelés — développement du 9 novembre 2026
 
 **Non livré.** `MacCareDeviceBatteryProbe` est un exécutable utilisateur ponctuel,
