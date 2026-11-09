@@ -1,7 +1,7 @@
 # Analyse Applications sans outils de développement
 
-9 novembre 2026 — **correctif en développement, non livré**.
-Branche `codex/no-command-line-tools`, base `c682107` après la livraison 0.2.20.
+9–10 novembre 2026 — **correctif en développement, non livré**.
+Branche `codex/no-command-line-tools`, base initiale `c682107` après la livraison 0.2.20, puis intégration de `b73a43d`.
 Le numéro et la signature de la copie installée ne sont pas modifiés.
 
 ## Incident et cause
@@ -44,10 +44,13 @@ compilation dans les sources exécutées par le produit. Il est exécuté dans l
 CI et avant le build de distribution. Les scripts de construction/notarisation
 restent autorisés à utiliser la chaîne de développement sur les runners.
 
-Un chemin `lipo` existe encore dans le travail parallèle d’installation des mises
-à jour, non fusionné dans cette base. Le nouveau contrôle le détecte : ce
-consommateur devra réutiliser la lecture native avant sa livraison. Ses sources
-et son index Git n’ont pas été modifiés par cette intervention.
+La première CI de PR a détecté un deuxième appel dans le chemin d’installation
+des mises à jour, intégré à main pendant cette correction. Après intégration de
+main, `ApplicationUpdateArchive` réutilise aussi la lecture native. Un exécutable
+inconnu ou incompatible est refusé et la copie installée est conservée ; les
+contrôles de signature, d’éditeur et de Gatekeeper restent en place. Les tests
+couvrent également cette validation stricte. Aucun autre checkout ni son index
+Git n’a été modifié.
 
 ## Validation et limites
 

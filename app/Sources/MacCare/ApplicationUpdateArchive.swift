@@ -123,15 +123,7 @@ enum ApplicationUpdateArchive {
                     guard try teamID(at: staged) == team else { throw ApplicationUpdateFailure.refused("L’identité de l’éditeur a changé. L’application installée est conservée.") }
                 }.value
                 _ = try await ApplicationUpdateCommand.run("/usr/sbin/spctl", ["--assess", "--type", "execute", staged.path])
-                let arch = try await ApplicationUpdateCommand.run("/usr/bin/lipo", ["-archs", try executable(in: staged).path])
-                #if arch(arm64)
-                let supported = ["arm64", "arm64e", "x86_64", "x86_64h"]
-                #else
-                let supported = ["x86_64", "x86_64h"]
-                #endif
-                guard arch.split(whereSeparator: \.isWhitespace).contains(where: { supported.contains(String($0)) }) else {
-                    throw ApplicationUpdateFailure.refused("La nouvelle version ne prend pas en charge l’architecture de ce Mac.")
-                }
+                try validateArchitecture(at: executable(in: staged))
                 if mounted { _ = try await ApplicationUpdateCommand.run("/usr/bin/hdiutil", ["detach", "-quiet", unpacked.path]); mounted = false }
                 try Task.checkCancellation()
                 return .init(root: root, application: staged, package: nil, target: target, teamID: team)
@@ -140,6 +132,21 @@ enum ApplicationUpdateArchive {
                 throw error
             }
         } catch { try? FileManager.default.removeItem(at: root); throw error }
+    }
+
+    /// Reject unknown or unsupported payloads without launching a developer tool.
+    static func validateArchitecture(at executableURL: URL) throws {
+        guard let architectures = ExecutableArchitectures.read(at: executableURL) else {
+            throw ApplicationUpdateFailure.refused("L’architecture de la nouvelle version n’a pas pu être vérifiée. L’application installée est conservée.")
+        }
+        #if arch(arm64)
+        let supported: Set<String> = ["arm64", "x86_64"]
+        #else
+        let supported: Set<String> = ["x86_64"]
+        #endif
+        guard !architectures.isDisjoint(with: supported) else {
+            throw ApplicationUpdateFailure.refused("La nouvelle version ne prend pas en charge l’architecture de ce Mac.")
+        }
     }
 
     private static func executable(in app: URL) throws -> URL {

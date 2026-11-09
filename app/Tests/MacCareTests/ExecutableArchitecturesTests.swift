@@ -103,6 +103,27 @@ struct ExecutableArchitecturesTests {
         try withFile(data) { url in #expect(ExecutableArchitectures.read(at: url) == ["arm64"]) }
     }
 
+    @Test func updateValidationAcceptsSupportedFamiliesWithoutACommand() throws {
+        try withFile(thin(cpu: UInt32(CPU_TYPE_X86_64), subtype: 8)) { url in
+            try ApplicationUpdateArchive.validateArchitecture(at: url)
+        }
+        #if arch(arm64)
+        try withFile(thin(cpu: UInt32(CPU_TYPE_ARM64), subtype: 2)) { url in
+            try ApplicationUpdateArchive.validateArchitecture(at: url)
+        }
+        #endif
+    }
+
+    @Test func updateValidationRefusesUnknownAndUnsupportedPayloads() throws {
+        for data in [Data("not an executable".utf8), thin(cpu: UInt32(CPU_TYPE_POWERPC))] {
+            try withFile(data) { url in
+                #expect(throws: ApplicationUpdateFailure.self) {
+                    try ApplicationUpdateArchive.validateArchitecture(at: url)
+                }
+            }
+        }
+    }
+
     private func replace32(_ value: UInt32, in data: inout Data, at offset: Int) {
         var bytes = Data(); append32(value, to: &bytes, bigEndian: true)
         data.replaceSubrange(offset..<(offset + 4), with: bytes)
