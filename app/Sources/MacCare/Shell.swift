@@ -130,6 +130,7 @@ final class AppState: ObservableObject {
     let uninstall = UninstallModel()
     let applicationsAnalysis = ApplicationsAnalysisModel()
     let applicationsInsights = ApplicationsInsightsModel()
+    let applicationUpdateInstaller = ApplicationUpdateInstaller()
     let devJunk = DevJunkModel()
     let permissions = PermissionsModel()
     let startup = StartupModel()

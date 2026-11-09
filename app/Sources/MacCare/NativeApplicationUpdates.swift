@@ -8,15 +8,17 @@ struct InstalledUpdateApplication: Sendable {
     let version: String
     let appStore: Bool
 
-    static func inventory() -> [Self] {
-        AppCatalog.installedApps().compactMap { app in
-            guard let bundle = Bundle(url: app.url), let id = bundle.bundleIdentifier,
-                  let version = (bundle.object(forInfoDictionaryKey: "ArtCraftLauncherVersion") ??
-                                 bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString")) as? String else { return nil }
-            return Self(url: app.url, name: app.name, bundleID: id, version: version,
-                        appStore: FileManager.default.fileExists(atPath: app.url.appendingPathComponent("Contents/_MASReceipt/receipt").path))
-        }
+    static func read(_ app: AppInfo) -> Self? {
+        // Read the file again after replacement; Bundle caches an old Info.plist in-process.
+        guard let info = try? ApplicationUpdateTarget.info(at: app.url),
+              let id = info["CFBundleIdentifier"] as? String,
+              let version = ApplicationUpdateTarget.readVersion(info) else { return nil }
+        return Self(url: app.url, name: app.name, bundleID: id, version: version,
+                    appStore: FileManager.default.fileExists(atPath: app.url.appendingPathComponent("Contents/_MASReceipt/receipt").path))
     }
+
+    static func inventory() -> [Self] { AppCatalog.installedApps().compactMap(read) }
+
 }
 
 /// Only dotted numeric marketing versions are comparable automatically. Build identifiers,

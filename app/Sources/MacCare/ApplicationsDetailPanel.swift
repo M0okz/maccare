@@ -41,7 +41,7 @@ struct ApplicationsDetailPanel: View {
     var body: some View {
         Group {
             if detail == .updates && !includeAllUpdateSources {
-                ApplicationsUpdatesManager(model: app.updates, apps: uninstall.apps) { close() }
+                ApplicationsUpdatesManager(model: app.updates, installer: app.applicationUpdateInstaller, apps: uninstall.apps) { close() }
             } else if [.unused, .incompatible, .installers].contains(detail) {
                 ApplicationsInsightsManager(app: app, category: detail, onBack: close)
             } else {
