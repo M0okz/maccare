@@ -11,7 +11,8 @@ typedef struct __attribute__((packed)) { Device device; uint32_t message; } Devi
 typedef void (*DeviceCallback)(DeviceEvent *, void *);
 static int32_t (*subscribe)(DeviceCallback, uint32_t, uint32_t, void *, void **, CFDictionaryRef);
 static int32_t (*unsubscribe)(void *);
-static int32_t (*retainDevice)(Device), (*releaseDevice)(Device);
+// Ownership operations: ignore the return register, which is not an error-status contract.
+static void (*retainDevice)(Device), (*releaseDevice)(Device);
 static int32_t (*connectDevice)(Device), (*disconnectDevice)(Device), (*isPaired)(Device);
 static int32_t (*validatePairing)(Device), (*startSession)(Device), (*stopSession)(Device);
 static CFTypeRef (*copyValue)(Device, CFStringRef, CFStringRef);
@@ -21,6 +22,7 @@ static uint64_t (*sendMessage)(void *, CFPropertyListRef, CFPropertyListFormat);
 static uint64_t (*receiveMessage)(void *, CFPropertyListRef *, CFPropertyListFormat *);
 static void (*invalidateService)(void *);
 static NSMutableArray<NSValue *> *devices;
+static BOOL collecting;
 
 static void emit(NSDictionary *value) {
     NSData *data = [NSJSONSerialization dataWithJSONObject:value options:0 error:nil];
@@ -53,10 +55,11 @@ static NSString *localID(NSString *identifier) {
 }
 
 static void deviceEvent(DeviceEvent *event, void *context) {
-    if (!event || !event->device) return;
+    if (!collecting || !event || !event->device) return;
     NSValue *value = [NSValue valueWithPointer:event->device];
     if (event->message == 1 && ![devices containsObject:value] && devices.count < 4) {
-        if (retainDevice(event->device) == 0) [devices addObject:value];
+        retainDevice(event->device);
+        [devices addObject:value];
     } else if (event->message == 2 && [devices containsObject:value]) {
         [devices removeObject:value];
         releaseDevice(event->device);
@@ -76,8 +79,20 @@ static NSDictionary *exchange(void *service, NSDictionary *request) {
     return status == 0 && [object isKindOfClass:NSDictionary.class] ? object : nil;
 }
 
-static id watchValue(void *service, NSString *identifier, NSString *key) {
-    NSDictionary *response = exchange(service, @{@"Command": @"GetValueFromRegistry",
+static NSDictionary *companionRequest(Device device, NSDictionary *request) {
+    void *service = NULL;
+    if (startService(device, CFSTR("com.apple.companion_proxy"), NULL, &service) != 0 || !service) return nil;
+    @try {
+        // companion_proxy handles one request per service connection on the tested iPhone.
+        return exchange(service, request);
+    } @finally {
+        invalidateService(service);
+        CFRelease(service);
+    }
+}
+
+static id watchValue(Device device, NSString *identifier, NSString *key) {
+    NSDictionary *response = companionRequest(device, @{@"Command": @"GetValueFromRegistry",
         @"GetValueGizmoUDIDKey": identifier, @"GetValueKeyKey": key});
     id payload = response[@"RetrievedValueDictionary"];
     return [payload isKindOfClass:NSDictionary.class] ? payload[key] : payload;
@@ -85,25 +100,18 @@ static id watchValue(void *service, NSString *identifier, NSString *key) {
 
 static void readWatches(Device device, NSString *phoneID) {
     if (!startService || !sendMessage || !receiveMessage || !invalidateService) return;
-    void *service = NULL;
-    if (startService(device, CFSTR("com.apple.companion_proxy"), NULL, &service) != 0 || !service) return;
-    @try {
-        id registry = exchange(service, @{@"Command": @"GetDeviceRegistry"})[@"PairedDevicesArray"];
-        if (![registry isKindOfClass:NSArray.class]) return;
-        NSUInteger count = 0;
-        for (id item in registry) {
-            if (++count > 4) break;
-            NSString *identifier = stringValue(item);
-            if (!identifier) continue;
-            NSNumber *level = percentage(watchValue(service, identifier, @"BatteryCurrentCapacity"));
-            if (!level) continue;
-            NSString *name = stringValue(watchValue(service, identifier, @"DeviceName")) ?: @"Apple Watch";
-            emit(@{@"id": localID([phoneID stringByAppendingString:identifier]), @"name": name,
-                   @"kind": @"watch", @"percent": level, @"viaPhone": @YES});
-        }
-    } @finally {
-        invalidateService(service);
-        CFRelease(service);
+    id registry = companionRequest(device, @{@"Command": @"GetDeviceRegistry"})[@"PairedDevicesArray"];
+    if (![registry isKindOfClass:NSArray.class]) return;
+    NSUInteger count = 0;
+    for (id item in registry) {
+        if (++count > 4) break;
+        NSString *identifier = stringValue(item);
+        if (!identifier) continue;
+        NSNumber *level = percentage(watchValue(device, identifier, @"BatteryCurrentCapacity"));
+        if (!level) continue;
+        NSString *name = stringValue(watchValue(device, identifier, @"DeviceName")) ?: @"Apple Watch";
+        emit(@{@"id": localID([phoneID stringByAppendingString:identifier]), @"name": name,
+               @"kind": @"watch", @"percent": level, @"viaPhone": @YES});
     }
 }
 
@@ -131,6 +139,22 @@ static void readDevice(Device device) {
     }
 }
 
+static BOOL collectReadings(void) {
+    devices = [NSMutableArray new];
+    collecting = YES;
+    void *subscription = NULL;
+    NSDictionary *options = @{@"NotificationOptionSearchForPairedDevices": @YES};
+    if (subscribe(deviceEvent, 0, 0, NULL, &subscription, (__bridge CFDictionaryRef)options) != 0) { collecting = NO; return NO; }
+    CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.75, false);
+    collecting = NO;
+    // Keep the observer owning discovery alive until all sessions finish.
+    // Freeze the bounded device list while synchronous calls may pump the run loop.
+    for (NSValue *entry in devices) readDevice(entry.pointerValue);
+    unsubscribe(subscription);
+    for (NSValue *entry in devices) releaseDevice(entry.pointerValue);
+    return YES;
+}
+
 #ifndef MACCARE_BATTERY_PROBE_TEST
 int main(void) {
     @autoreleasepool {
@@ -152,16 +176,9 @@ int main(void) {
             !isPaired || !validatePairing || !startSession || !stopSession || !copyValue || !copyIdentifier) {
             emit(@{@"status": @"unavailable"}); return 0;
         }
-        devices = [NSMutableArray new];
-        void *subscription = NULL;
-        NSDictionary *options = @{@"NotificationOptionSearchForPairedDevices": @YES};
-        if (subscribe(deviceEvent, 0, 0, NULL, &subscription, (__bridge CFDictionaryRef)options) != 0) {
+        if (!collectReadings()) {
             emit(@{@"status": @"unavailable"}); return 0;
         }
-        CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.75, false);
-        // Stop discovery before synchronous reads; the retained device references remain valid.
-        unsubscribe(subscription);
-        for (NSValue *entry in devices) { readDevice(entry.pointerValue); releaseDevice(entry.pointerValue); }
         emit(@{@"status": @"complete"});
         alarm(0);
         // The system framework may have registered process-lifetime callbacks; leave it mapped until exit.

@@ -6,7 +6,8 @@ Aucune application, dépendance ou configuration de jumelage n'a été installé
 ou modifiée pour cette recherche.
 
 Suite locale : la variante native a été implémentée sans dépendance ajoutée
-sur `codex/apple-device-batteries`. Voir [le fonctionnement, les contrôles et
+sur `codex/apple-device-batteries`, puis validée en USB pour l'iPhone et le
+registre Watch avec les appareils de Gregory. Voir [le fonctionnement, les contrôles et
 les limites matérielles actuelles](../apple-device-batteries.md). Les pistes
 décrites plus bas restent des sources et propositions de l'étude initiale.
 

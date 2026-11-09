@@ -4,9 +4,18 @@
 
 static int paired, validationStatus, sessionStatus, connects, disconnects, starts, stops, validations, serviceCloses;
 static BOOL isPhone = YES;
+static BOOL subscriptionActive = YES;
+static int messagesOnConnection;
 static NSDictionary *lastRequest;
 static NSMutableArray *requests;
-static int32_t connected(Device d) { connects++; return 0; }
+static int32_t connected(Device d) { connects++; return subscriptionActive ? 0 : -1; }
+static void retained(Device d) { }
+static int32_t subscribed(DeviceCallback callback, uint32_t a, uint32_t b, void *context, void **subscription, CFDictionaryRef options) {
+    subscriptionActive = YES; *subscription = (void *)1;
+    DeviceEvent event = {.device = (Device)1, .message = 1};
+    callback(&event, NULL); return 0;
+}
+static int32_t unsubscribed(void *subscription) { subscriptionActive = NO; return 0; }
 static int32_t disconnected(Device d) { disconnects++; return 0; }
 static int32_t pairedStatus(Device d) { return paired; }
 static int32_t validated(Device d) { validations++; return validationStatus; }
@@ -25,6 +34,7 @@ static int32_t serviceStarted(Device d, CFStringRef name, void *options, void **
     assert(CFEqual(name, CFSTR("com.apple.companion_proxy")));
     assert(options == NULL);
     *connection = (void *)CFBridgingRetain(@{});
+    messagesOnConnection = 0;
     return 0;
 }
 static void serviceClosed(void *connection) { serviceCloses++; }
@@ -33,6 +43,7 @@ static uint64_t sent(void *connection, CFPropertyListRef object, CFPropertyListF
     NSString *command = lastRequest[@"Command"];
     assert([command isEqual:@"GetDeviceRegistry"] || [command isEqual:@"GetValueFromRegistry"]);
     [requests addObject:lastRequest];
+    if (messagesOnConnection++ > 0) return 1; // The registry service closes after one response.
     return 0;
 }
 static uint64_t received(void *connection, CFPropertyListRef *response, CFPropertyListFormat *format) {
@@ -50,7 +61,7 @@ static uint64_t received(void *connection, CFPropertyListRef *response, CFProper
 static void reset(void) {
     paired = 1; validationStatus = sessionStatus = 0;
     connects = disconnects = starts = stops = validations = serviceCloses = 0;
-    isPhone = YES; requests = [NSMutableArray new];
+    isPhone = YES; subscriptionActive = YES; requests = [NSMutableArray new];
     startService = NULL;
 }
 int main(void) {
@@ -72,11 +83,15 @@ int main(void) {
         reset(); startService = serviceStarted; invalidateService = serviceClosed;
         sendMessage = sent; receiveMessage = received;
         readDevice((Device)1);
-        assert(serviceCloses == 1 && requests.count == 3 && stops == 1 && disconnects == 1);
+        assert(serviceCloses == 3 && requests.count == 3 && stops == 1 && disconnects == 1);
         assert(percentage(@YES) == nil && percentage(@(-1)) == nil && percentage(@101) == nil);
         assert(percentage(@(NAN)) == nil && percentage(@0).intValue == 0);
         assert(percentage(@100).intValue == 100);
         assert(stringValue(@"   ") == nil && stringValue(@1) == nil);
+        reset(); subscribe = subscribed; unsubscribe = unsubscribed;
+        retainDevice = retained; releaseDevice = retained;
+        assert(collectReadings());
+        assert(starts == 1 && stops == 1 && disconnects == 1 && !subscriptionActive);
         fputs("Device battery trust, cleanup and protocol fixtures passed\n", stderr);
     }
 }

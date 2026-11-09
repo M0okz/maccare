@@ -5,8 +5,8 @@
 **Non livré.** Lecture bornée des iPhone/iPad déjà approuvés et essai du registre
 Watch de l'iPhone. Priorité aux appareils mobiles dans les trois anneaux ;
 liste complète dans le détail Batterie du volet. La Watch indique le dernier
-niveau connu par l'iPhone, avec l'heure de réception. Les essais physiques et
-énergétiques avec téléphone restent à faire.
+niveau connu par l'iPhone, avec l'heure de réception. La lecture USB iPhone et
+Watch est vérifiée ; accès sans câble et consommation prolongée restent à tester.
 Voir [fonctionnement, jumelage et limites](apple-device-batteries.md).
 
 ## Activité stable — MacCare 0.2.16

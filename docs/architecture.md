@@ -7,7 +7,8 @@ distinct du service privilégié. Il charge MobileDevice optionnellement et lit
 les seuls appareils déjà approuvés ; aucune commande de jumelage, de réglage
 Wi-Fi ou de contrôle de charge. Délais 4 s dans la sonde / 5 s dans le parent.
 Un acteur partage son acquisition entre les cartes visibles, avec cache RAM et
-espacement des échecs. Les mesures iPhone/Watch réelles restent à vérifier.
+espacement des échecs. Lecture USB iPhone/Watch vérifiée ; Wi-Fi et consommation
+prolongée restent à tester. Un canal compagnon est ouvert par requête.
 Voir [la frontière et ses validations](apple-device-batteries.md).
 
 ## Désinstallation — MacCare 0.2.16

@@ -1,8 +1,9 @@
 # Batteries des appareils jumelés
 
 État du 9 novembre 2026 : **développement local non livré**, branche
-`codex/apple-device-batteries`, issue de `258db00`. La présence du lecteur dans
-le code ne valide pas encore la lecture d'un iPhone ou d'une Watch physiques.
+`codex/apple-device-batteries`, issue de `258db00`. La lecture USB d'un iPhone
+et du niveau Watch conservé sur cet iPhone est vérifiée sur matériel ; les
+conditions non testées sont précisées ci-dessous.
 La copie quotidienne `/Applications/MacCare.app` n'est pas remplacée.
 
 ## Fonctionnement et préparation
@@ -67,8 +68,9 @@ coût énergétique de la fonction complète.
 Les scénarios simulés vérifient les barrières de confiance, les fermetures de
 session, les requêtes autorisées, les données incohérentes ou inconnues, la
 conservation d'un résultat iPhone si la Watch échoue, l'espacement, la concurrence,
-l'expiration et la provenance. Ces fixtures ne valident ni l'ABI privée avec
-appareil connecté, ni les réponses d'un iPhone réel.
+l'expiration et la provenance. Ces fixtures seules ne valident ni l'ABI privée
+avec appareil connecté, ni les réponses d'un iPhone réel. La lecture matérielle
+suivante les complète.
 
 Contrôles locaux réussis : **24 tests Swift ciblés**, **19 tests Python de
 packaging**, fixtures natives sous ASan/UBSan, build Release arm64, signature
@@ -80,10 +82,35 @@ d'accessibilité affiche les mesures réelles du Mac, sans appareil mobile
 inventé. Aucun parcours complet VoiceOver/clavier n'est revendiqué.
 
 La sonde du paquet signé a aussi terminé sans appareil en 1,509 s, dont
-0,0495 s de CPU. Les deux sondages suivant le branchement annoncé par Gregory
-n'ont pas reçu de résultat mobile ; le MacBook Pro M1/8 Go de l'agent ne voit
-pas encore de produit USB iPhone. La correspondance entre le Mac où le câble
-est branché et ce Mac de test reste à confirmer.
+0,0495 s de CPU. Les premiers sondages étaient vides : Gregory a ensuite
+confirmé un branchement sur l'autre Mac, puis corrigé le branchement vers le
+MacBook Pro M1/8 Go de test.
+
+**Lecture USB réelle après corrections : iPhone 78 %, Apple Watch 86 %,
+réponse complète sans erreur en 2,767 s, dont 0,1224 s de CPU dans la sonde.**
+Les données Watch proviennent du registre compagnon ; l'heure effective de sa
+mesure n'est pas connue. Les pourcentages n'ont pas été comparés aux écrans
+physiques par l'agent. Ce résultat ne mesure pas le coût des démons macOS ni
+l'énergie consommée par l'iPhone et la Watch sur la durée.
+
+Deux défauts du prototype ont été reproduits et corrigés :
+
+- le retour de `AMDeviceRetain` était interprété comme un code d'erreur,
+  écartant l'iPhone détecté. Les opérations de conservation n'utilisent plus
+  de valeur de retour comme statut. Les tests exercent la découverte complète ;
+  son observateur reste ouvert jusqu'à fermeture des sessions.
+- le service compagnon de l'iPhone testé ferme le canal après sa réponse.
+  Chaque requête utilise désormais son propre canal, immédiatement fermé et
+  libéré. La fixture refuse une seconde requête sur le même canal.
+
+Les régressions ont échoué avant correction, puis passent sous ASan/UBSan.
+Aucun journal de diagnostic temporaire n'est ajouté au produit.
+
+Après reconstruction/signature et relance de la seule copie de QA, l'accueil
+MacCare Dev affiche **iPhone 79 %, Watch 86 %, puis AirPods 97 %**. L'arbre
+natif du bouton Batterie inclut la provenance du niveau Watch et l'heure de
+réception. La priorité des trois anneaux est donc également vérifiée sur des
+appareils réels ; l'état du boîtier reste disponible dans le détail.
 
 Les exécutables installés sont restés identiques : quotidienne
 `78763818d09076720974baaa3d915c29728d37362f385ffd3615a8a645104133`, Dev
@@ -98,10 +125,10 @@ swift test --package-path app --build-system swiftbuild --arch arm64 -c release 
   --filter 'MobileDeviceBatteryTests|TrayBatteryControllerTests|TrayBatteryTelemetryTests'
 ```
 
-**Reste à vérifier sur matériel** : USB, Wi-Fi après débranchement, niveaux
-comparés aux appareils, fraîcheur Watch, téléphone verrouillé, perte/rétablissement
-réseau et consommation avec appareils connectés. Aucun de ces contrôles n'est
-déclaré réussi à ce stade. Voir [la recherche et ses sources primaires](research/apple-device-batteries.md).
+**Reste à vérifier sur matériel** : Wi-Fi après débranchement, niveaux comparés
+aux écrans des appareils, fraîcheur Watch, téléphone verrouillé,
+perte/rétablissement réseau et consommation prolongée avec appareils connectés.
+Voir [la recherche et ses sources primaires](research/apple-device-batteries.md).
 
 ## Composants
 

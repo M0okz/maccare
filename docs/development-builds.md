@@ -5,8 +5,8 @@
 **Non livré**, branche `codex/apple-device-batteries`. Nouveau lecteur mobile
 natif signé séparément dans le paquet Dev. Les copies installées quotidienne
 et Dev sont préservées ; le paquet de QA est préparé sous
-`build/apple-device-batteries/MacCare.app`. Les essais USB/Wi-Fi et énergétiques
-avec les appareils physiques restent à faire.
+`build/apple-device-batteries/MacCare.app`. Lecture USB iPhone/Watch vérifiée ;
+Wi-Fi et consommation prolongée restent à tester sur les appareils physiques.
 Voir [le fonctionnement et les commandes de validation](apple-device-batteries.md).
 
 ## Retrait des applications — Dev du 9 novembre 2026
