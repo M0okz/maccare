@@ -149,7 +149,7 @@ final class ApplicationUpdateInstallationTests: XCTestCase {
         try FileManager.default.removeItem(at:source.appendingPathComponent("escape"))
         try FileManager.default.createDirectory(at:source.appendingPathComponent("escape"),withIntermediateDirectories:true)
         try Data("must not escape".utf8).write(to:source.appendingPathComponent("escape/victim.txt"))
-        _ = try await ApplicationUpdateCommand.run("/usr/bin/zip", ["-r",archive.path,"escape/"], workingDirectory:source)
+        _ = try await ApplicationUpdateCommand.run("/usr/bin/zip", [archive.path,"escape/victim.txt"], workingDirectory:source)
         let listing = try await ApplicationUpdateCommand.run("/usr/bin/zipinfo", ["-l",archive.path])
         XCTAssertTrue(listing.split(separator:"\n").contains { $0.hasPrefix("l") }, "The adversarial fixture must contain a symlink")
         _ = try? await ApplicationUpdateCommand.run("/usr/bin/tar", ["-xf",archive.path,"-C",unpacked.path,"--no-same-owner"])
