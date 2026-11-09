@@ -10,7 +10,7 @@
   <key>CFBundleIdentifier</key><string>org.maccare.app</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleIconFile</key><string>MacCare</string>
-  <key>CFBundleShortVersionString</key><string>0.2.20</string>
+  <key>CFBundleShortVersionString</key><string>0.2.22</string>
   <key>CFBundleVersion</key><string>8</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>NSHighResolutionCapable</key><true/>
@@ -23,7 +23,7 @@
   <key>SURequireSignedFeed</key><true/>
   <key>SUScheduledCheckInterval</key><integer>86400</integer>
   <key>NSAppleEventsUsageDescription</key>
-  <string>MacCare lit la liste des éléments d'ouverture de session (via System Events) pour vous montrer ce qui se lance au démarrage. Rien n'est modifié.</string>
+  <string>MacCare lit les éléments d’ouverture de session et peut demander la fermeture d’une application avant sa mise à jour, uniquement lorsque vous choisissez cette action.</string>
   <key>NSDesktopFolderUsageDescription</key>
   <string>MacCare analyse le Bureau pour repérer les gros fichiers et les doublons. Rien n'est supprimé sans votre confirmation.</string>
   <key>NSDocumentsFolderUsageDescription</key>

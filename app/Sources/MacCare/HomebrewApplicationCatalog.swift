@@ -57,8 +57,17 @@ enum HomebrewApplicationCatalog {
                   let token = cask["token"] as? String else { return nil }
             return OutdatedItem(name: app.name, detail: "\(app.version) → \(version)",
                                 releaseNotes: "Version référencée dans le catalogue Homebrew. Consultez le site de l’éditeur pour les nouveautés et les conditions de mise à jour.",
-                                applicationURL: app.url, downloadURL: url, catalogToken: token)
+                                applicationURL: app.url, downloadURL: url, catalogToken: token, artifact: artifact(cask))
         }
+    }
+
+    private static func artifact(_ cask: [String: Any]) -> ApplicationUpdateArtifact? {
+        guard let raw = cask["url"] as? String, let url = URL(string: raw),
+              ApplicationUpdatePolicy.validDownloadURL(url),
+              ["zip", "dmg", "pkg"].contains(url.pathExtension.lowercased()) else { return nil }
+        let checksum = cask["sha256"] as? String
+        let valid = checksum.flatMap { $0.range(of: "^[a-fA-F0-9]{64}$", options: .regularExpression) != nil ? $0.lowercased() : nil }
+        return .init(url: url, sha256: valid)
     }
 
     private static func bundleIDs(_ artifacts: [[String: Any]]) -> Set<String> {

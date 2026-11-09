@@ -8,6 +8,7 @@ struct NetNewsWireRelease: Hashable {
     let date: String
     let bytes: UInt64
     let notes: String
+    var archiveURL: URL? = nil
 }
 
 final class NetNewsWireFeed: NSObject, XMLParserDelegate {
@@ -49,7 +50,7 @@ final class NetNewsWireFeed: NSObject, XMLParserDelegate {
         releases.append(.init(version: version, build: build,
                               minimumSystem: fields["sparkle:minimumSystemVersion", default: "0"].trimmingCharacters(in: .whitespacesAndNewlines),
                               date: fields["pubDate", default: ""].trimmingCharacters(in: .whitespacesAndNewlines),
-                              bytes: UInt64(enclosure["length"] ?? "") ?? 0, notes: notes))
+                              bytes: UInt64(enclosure["length"] ?? "") ?? 0, notes: notes, archiveURL: enclosure["url"].flatMap(URL.init(string:))))
     }
 
     static func latest(_ releases: [NetNewsWireRelease], installedBuild: String, systemVersion: String) -> NetNewsWireRelease? {
@@ -72,13 +73,14 @@ final class NetNewsWireFeed: NSObject, XMLParserDelegate {
 
     static func check() async -> (String, UpdateSource.State, [OutdatedItem]) {
         let paths = ["/Applications/NetNewsWire.app", NSHomeDirectory() + "/Applications/NetNewsWire.app"]
-        guard let bundle = paths.compactMap({ Bundle(path: $0) }).first,
-              let version = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
-              let build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String else {
+        guard let appURL = paths.map({ URL(fileURLWithPath: $0) }).first(where: { FileManager.default.fileExists(atPath: $0.path) }),
+              let info = try? ApplicationUpdateTarget.info(at: appURL),
+              let version = info["CFBundleShortVersionString"] as? String,
+              let build = info["CFBundleVersion"] as? String else {
             return ("netnewswire", .notInstalled, [])
         }
         // Les éditions App Store suivent leur propre canal.
-        guard !FileManager.default.fileExists(atPath: bundle.bundlePath + "/Contents/_MASReceipt/receipt") else {
+        guard !FileManager.default.fileExists(atPath: appURL.path + "/Contents/_MASReceipt/receipt") else {
             return ("netnewswire", .notInstalled, [])
         }
         do {
@@ -94,7 +96,7 @@ final class NetNewsWireFeed: NSObject, XMLParserDelegate {
             guard let release = latest(releases, installedBuild: build, systemVersion: systemVersion) else { return ("netnewswire", .ok, []) }
             return ("netnewswire", .ok, [.init(name: "NetNewsWire", detail: "\(version) → \(release.version)",
                 releaseNotes: notesSince(releases, installedBuild: build, throughBuild: release.build, systemVersion: systemVersion), publicationDate: release.date, downloadBytes: release.bytes,
-                applicationURL: bundle.bundleURL)])
+                applicationURL: appURL, artifact: release.archiveURL.flatMap { ApplicationUpdatePolicy.validDownloadURL($0) ? .init(url: $0) : nil })])
         } catch { return ("netnewswire", .error("Flux officiel indisponible : \(error.localizedDescription)"), []) }
     }
 }
