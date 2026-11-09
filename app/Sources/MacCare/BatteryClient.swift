@@ -14,9 +14,13 @@ protocol BatteryClient {
     func loadedHelperProtocolVersion() async throws -> Int?
     /// Replaces an older helper only after its battery restoration is confirmed.
     func updateHelper() async throws -> HelperUpdateResult
+    func repairHelper() async throws -> HelperUpdateResult
 }
 
 extension BatteryClient {
+    func repairHelper() async throws -> HelperUpdateResult {
+        throw HelperClient.HelperError.unavailable("la réparation de l’assistant n’est pas disponible")
+    }
     // Clients without protocol introspection report an unknown version. Their
     // normal request path remains responsible for validating its own transport.
     func loadedHelperProtocolVersion() async throws -> Int? { nil }
@@ -37,4 +41,5 @@ struct SystemBatteryClient: BatteryClient {
     func openApproval() { HelperClient.openApproval() }
     func loadedHelperProtocolVersion() async throws -> Int? { try await HelperClient.loadedProtocolVersion() }
     func updateHelper() async throws -> HelperUpdateResult { try await HelperClient.update() }
+    func repairHelper() async throws -> HelperUpdateResult { try await HelperClient.repairFailedRegistration() }
 }

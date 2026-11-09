@@ -1,5 +1,24 @@
 # Reconnaître un build de développement
 
+## Assistant système — correction du 9 novembre 2026
+
+**Développement non livré**, branche `codex/battery-cards`. L’interface Batterie
+par blocs est validée par Gregory. Le paquet de vérification des commandes est
+`build/helper-recovery-developer-id/MacCare.app`, signé Developer ID avec
+`MACCARE_DEVELOPER_ID=1` et `MACCARE_SIGN_IDENTITY`, tout en restant MacCare Dev.
+Le paquet Apple Development précédent ne convient pas au lancement du daemon
+privilégié. Voir [la réparation, les contrôles et les limites](helper-registration-recovery.md)
+et [Outline en attente](outline-sync-pending-helper-recovery.md).
+
+## Batterie par blocs — 9 novembre 2026
+
+**En développement, non livré**, branche `codex/battery-cards`, base `ddc711d`.
+Maquette validée : résumé compact et six cartes, palette verte existante,
+sous-vues dans le cadre clair intégré commun. Paquet dédié
+`build/battery-cards/MacCare.app`, sans remplacer les copies d’Applications.
+Voir [la refonte et les contrôles](battery-cards.md) et
+[la synchronisation Outline en attente](outline-sync-pending-battery-cards.md).
+
 ## Ensemble 0.2.17 — préparation du 9 novembre 2026
 
 Branches produit réunies sur `codex/release-0.2.17`, non publiées à ce stade.

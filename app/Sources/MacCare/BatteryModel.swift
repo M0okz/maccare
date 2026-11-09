@@ -244,6 +244,20 @@ final class BatteryModel: ObservableObject {
         if let issue { error = issue; return }
         await refresh(force: true)
     }
+    /// A user-requested registration repair never enables the charge controller.
+    func repairHelper() async {
+        guard !controlsBusy, !active else { return }
+        busy = true; error = nil
+        var issue: String?
+        do {
+            let result = try await client.repairHelper()
+            if !isTerminating, result == .requiresApproval { client.openApproval() }
+        } catch { issue = error.localizedDescription }
+        busy = false
+        guard !isTerminating else { return }
+        if let issue { error = issue; return }
+        await refresh(force: true)
+    }
     func openBatterySettings() {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.battery") else { return }
         NSWorkspace.shared.open(url)

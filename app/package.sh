@@ -77,12 +77,13 @@ if [ -z "$identity" ]; then
 fi
 
 # L'assistant et les outils Sparkle sont signés de l’intérieur vers l’extérieur.
-# La distribution active le runtime durci et conserve explicitement l’Automatisation.
+# Un paquet Dev Developer ID peut exercer le même assistant privilégié que la distribution.
+# L’identité native MacCare Dev reste indépendante de ce choix de signature.
 sign_options=(--force)
 app_options=(--identifier org.maccare.app)
-if [ "${MACCARE_DISTRIBUTION:-0}" = "1" ]; then
+if [ "${MACCARE_DISTRIBUTION:-0}" = "1" ] || [ "${MACCARE_DEVELOPER_ID:-0}" = "1" ]; then
     if [ -z "$identity" ] || ! security find-identity -v -p codesigning | grep -F "$identity" | grep -q 'Developer ID Application'; then
-        echo "La distribution exige une identité Developer ID Application valide." >&2
+        echo "Ce paquet exige une identité Developer ID Application valide." >&2
         exit 1
     fi
     sign_options+=(--timestamp)

@@ -34,8 +34,11 @@ directs aux mises à jour.
   confirmations des outils.
 
 Les modèles de nettoyage et d’optimisation, les règles de sélection et les
-confirmations d’action sont conservés. Les écrans spécialisés Batterie et
-Espace disque ainsi que la fenêtre native Réglages gardent leur navigation.
+confirmations d’action sont conservés. À cette étape, les écrans spécialisés Batterie et
+Espace disque ainsi que la fenêtre native Réglages gardaient leur navigation.
+La refonte Batterie par blocs du 9 novembre, en développement sur
+`codex/battery-cards`, réutilise désormais ce cadre intégré pour ses six
+sous-vues ; voir [son organisation et ses vérifications](battery-cards.md).
 
 ## Validation
 

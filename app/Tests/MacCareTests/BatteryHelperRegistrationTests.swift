@@ -10,12 +10,19 @@ struct BatteryHelperRegistrationTests {
         var status: SMAppService.Status = .requiresApproval
         var statusAfterRegistration: SMAppService.Status = .requiresApproval
         var registrationError: (any Error)?
+        var repairError: (any Error)?
         var calls: [String] = []
         var commands: [BatteryCommand] = []
         func register() throws {
             calls.append("register")
             status = statusAfterRegistration
             if let registrationError { throw registrationError }
+        }
+        func repairHelper() async throws -> HelperUpdateResult {
+            calls.append("repair")
+            if let repairError { throw repairError }
+            status = statusAfterRegistration
+            return status == .requiresApproval ? .requiresApproval : .ready
         }
         func openApproval() { calls.append("approval") }
         func snapshot() async -> BatterySnapshot {
@@ -106,4 +113,33 @@ struct BatteryHelperRegistrationTests {
         #expect(client.calls.isEmpty)
         #expect(client.commands.isEmpty)
     }
+    @Test func explicitRepairDoesNotActivateOrEraseTheSavedProtectionIntent() async throws {
+        let client = Client(); client.status = .enabled; client.statusAfterRegistration = .enabled
+        let (model, defaults, name) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: name) }
+        defaults.set(true, forKey: BatteryModel.resumeKey)
+        await model.repairHelper()
+        #expect(client.calls.first == "repair")
+        #expect(client.commands == [.status])
+        #expect(!model.active)
+        #expect(defaults.bool(forKey: BatteryModel.resumeKey))
+    }
+    @Test func aRepairFailureStaysVisibleWithoutSendingChargeCommands() async throws {
+        let client = Client(); client.status = .enabled
+        client.repairError = HelperClient.HelperError.unavailable("échec confirmé")
+        let (model, defaults, name) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: name) }
+        await model.repairHelper()
+        #expect(model.error?.contains("échec confirmé") == true)
+        #expect(client.commands.isEmpty)
+    }
+    @Test func aTerminatingAppCannotRepairTheRegistration() async throws {
+        let client = Client()
+        let (model, defaults, name) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: name) }
+        await model.prepareForTermination()
+        await model.repairHelper()
+        #expect(client.calls.isEmpty)
+    }
+
 }
