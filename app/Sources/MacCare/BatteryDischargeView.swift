@@ -27,7 +27,7 @@ struct BatteryDischargeView: View {
                     Label("Le contrôle de l’adaptateur n’est pas disponible avec le contrôleur actuellement détecté.", systemImage: "info.circle")
                         .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 } else if !model.active {
-                    Text("Activez d’abord la protection dans l’onglet Réglages.").foregroundStyle(.secondary)
+                    Text("Activez d’abord la protection dans Protection de la batterie.").foregroundStyle(.secondary)
                 }
                 Text("Si le secteur ne revient pas à l’arrivée, débranchez le câble puis rebranchez-le. C’est arrivé avec une alimentation de 30 W, pas avec un chargeur de 65 W.")
                     .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)

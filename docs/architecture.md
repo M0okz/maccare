@@ -110,6 +110,16 @@ essayé sur matériel ; les autres gardent les méthodes précédentes. Si le fi
 est remplacé pendant une restauration en attente, il se termine entre deux opérations et
 launchd le relance depuis le nouveau paquet, qui reprend le journal.
 
+### Réparation de l’enregistrement — développement du 9 novembre 2026
+
+Un service enregistré mais confirmé sans PID et en échec de configuration peut
+être réparé par une action explicite depuis Batterie. Le remplaçant signé
+Developer ID conserve le journal de récupération et doit répondre au protocole
+attendu ; un délai XPC seul ne permet pas ce retrait. Les mises à jour normales
+conservent la restauration préalable. Les Dev Apple Development n’interrogent
+pas le statut de ce daemon partagé. Voir [le diagnostic et les limites de cette
+correction non livrée](helper-registration-recovery.md).
+
 ## Fenêtres, barre des menus et Dock
 
 `TrayPanelController` présente un panneau natif indépendant de la fenêtre

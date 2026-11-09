@@ -32,10 +32,16 @@ enum HelperClient {
     /// `.notFound`. Observé sur macOS : un démon **jamais enregistré** est rapporté `.notFound` alors
     /// que son plist est bien dans le paquet ; `.notFound` ne signifie donc pas à lui seul « app mal
     /// placée ». L'interface distingue ce cas en vérifiant la présence du plist dans le paquet.
-    static var status: SMAppService.Status { service.status }
+    // Status queries themselves update macOS's parent-bundle association. Keep local
+    // Apple Development copies away from the shared Developer ID daemon registration.
+    private static let supportsSystemService = HelperLaunchFailure.packagedRecoveryIsValid(at: Bundle.main.bundleURL)
+    static var status: SMAppService.Status { supportsSystemService ? service.status : .notFound }
 
     static func register() throws {
         guard !AppInstallLocation.isTemporary else { throw HelperError.temporaryLocation }
+        guard HelperLaunchFailure.packagedRecoveryIsValid(at: Bundle.main.bundleURL) else {
+            throw HelperError.unavailable("cette version de développement ne permet pas d’activer l’assistant système ; utilisez un paquet MacCare signé Developer ID")
+        }
         try service.register()
     }
     @MainActor private static let serviceUpdater = HelperServiceUpdater(client: SystemHelperServiceLifecycle())
@@ -48,6 +54,11 @@ enum HelperClient {
     /// Performs one explicitly requested replacement, without activating protection.
     @MainActor static func update() async throws -> HelperUpdateResult {
         try await serviceUpdater.update()
+    }
+
+    /// Repairs only a launchd-confirmed failed registration; never activates protection.
+    @MainActor static func repairFailedRegistration() async throws -> HelperUpdateResult {
+        try await serviceUpdater.repairFailedRegistration()
     }
 
     /// Restores the old helper's charge state before explicitly removing its service.
@@ -182,6 +193,11 @@ protocol HelperServiceLifecycle {
     func restoreLegacyBattery() async throws
     func unregister() async throws
     func register() throws
+    func failedLaunchConfirmed() async -> Bool
+}
+
+extension HelperServiceLifecycle {
+    func failedLaunchConfirmed() async -> Bool { false }
 }
 
 /// Serializes explicit lifecycle actions while keeping identity checks read-only.
@@ -220,8 +236,33 @@ final class HelperServiceUpdater {
         guard client.status != .enabled else {
             throw HelperClient.HelperError.unavailable("l’arrêt de l’ancien assistant n’est pas confirmé ; vérifiez son état dans Réglages Système")
         }
-        // Finish the requested registration after a successful removal, even if
-        // the initiating view disappears. No detached task, sleep, or retry loop.
+        return try await registerReplacement()
+    }
+
+    /// Explicit repair is separate from normal updates: an XPC timeout alone is never permission.
+    func repairFailedRegistration() async throws -> HelperUpdateResult {
+        try beginMutation()
+        defer { mutationInProgress = false }
+        try Task.checkCancellation()
+        if client.status == .requiresApproval { return .requiresApproval }
+        guard client.status == .enabled, await client.failedLaunchConfirmed() else {
+            throw HelperClient.HelperError.unavailable("macOS ne confirme pas un échec de démarrage ; l’assistant est conservé")
+        }
+        try Task.checkCancellation()
+        guard client.status == .enabled, await client.failedLaunchConfirmed() else {
+            throw HelperClient.HelperError.unavailable("l’état de l’assistant a changé ; actualisez avant de réessayer")
+        }
+        try Task.checkCancellation()
+        // There is no running process to restore through XPC. Keep the root recovery journal:
+        // the replacement recovers it before it accepts any new protection command.
+        try await client.unregister()
+        guard client.status != .enabled else {
+            throw HelperClient.HelperError.unavailable("le retrait de l’enregistrement défaillant n’est pas confirmé")
+        }
+        return try await registerReplacement()
+    }
+
+    private func registerReplacement() async throws -> HelperUpdateResult {
         do { try client.register() }
         catch {
             guard registrationNeedsApproval(error) else { throw error }
@@ -315,6 +356,14 @@ private struct SystemHelperServiceLifecycle: HelperServiceLifecycle {
     func restoreLegacyBattery() async throws { try await LegacyBatteryHelper.restoreBeforeUnregister() }
     func unregister() async throws { try await HelperClient.service.unregister() }
     func register() throws { try HelperClient.register() }
+    func failedLaunchConfirmed() async -> Bool {
+        let bundle = Bundle.main.bundleURL
+        return await Task.detached(priority: .utility) {
+            guard HelperLaunchFailure.packagedRecoveryIsValid(at: bundle) else { return false }
+            let result = SystemTools.run("/bin/launchctl", ["print", "system/\(HelperIdentity.machService)"])
+            return result.ok && HelperLaunchFailure.isConfirmed(in: result.stdout)
+        }.value
+    }
 }
 
 /// Garantit qu'une continuation n'est reprise qu'une fois (réponse ou erreur, pas les deux).

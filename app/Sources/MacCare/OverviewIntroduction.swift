@@ -58,6 +58,6 @@ struct BatterySection<Content: View>: View {
         .buttonStyle(SecondaryActionButtonStyle())
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: Radius.card))
+        .background(Theme.bg.opacity(0.55), in: RoundedRectangle(cornerRadius: Radius.card))
     }
 }

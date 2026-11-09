@@ -44,6 +44,13 @@ struct HelperServiceUpdateTests {
         var disableReply = HelperServiceUpdateTests.response(active: false)
         var calls: [String] = []
         var commands: [(BatteryCommand, UUID?)] = []
+        var launchFailed = false
+        var launchFailures: [Bool] = []
+        func failedLaunchConfirmed() async -> Bool {
+            calls.append("launchFailure")
+            if !launchFailures.isEmpty { return launchFailures.removeFirst() }
+            return launchFailed
+        }
         private var registered = false
         private var versionReads = 0
 
@@ -290,4 +297,50 @@ struct HelperServiceUpdateTests {
         #expect(client.calls == ["version", "status", "disable", "version", "unregister"])
         #expect(!client.calls.contains("register"))
     }
+    @Test func anExplicitRepairCanReplaceAServiceThatCannotLaunch() async throws {
+        let client = Client(); client.launchFailed = true
+        #expect(try await HelperServiceUpdater(client: client).repairFailedRegistration() == .ready)
+        #expect(client.calls == ["launchFailure", "launchFailure", "unregister", "register", "version"])
+        #expect(client.commands.isEmpty)
+    }
+
+    @Test func anUnconfirmedLaunchFailureCannotPermitRepair() async {
+        let client = Client()
+        await #expect(throws: HelperClient.HelperError.self) {
+            try await HelperServiceUpdater(client: client).repairFailedRegistration()
+        }
+        #expect(client.calls == ["launchFailure"])
+        #expect(client.commands.isEmpty)
+    }
+
+    @Test func aChangedLaunchStateCannotPermitRepair() async {
+        let client = Client(); client.launchFailures = [true, false]
+        await #expect(throws: HelperClient.HelperError.self) {
+            try await HelperServiceUpdater(client: client).repairFailedRegistration()
+        }
+        #expect(client.calls == ["launchFailure", "launchFailure"])
+    }
+
+    @Test func failedRepairRemovalNeverRegistersAReplacement() async {
+        let client = Client(); client.launchFailed = true; client.unregisterError = Failure.unregister
+        await #expect(throws: Failure.self) {
+            try await HelperServiceUpdater(client: client).repairFailedRegistration()
+        }
+        #expect(!client.calls.contains("register"))
+    }
+
+    @Test func repairDoesNotReportReadyWithoutTheCurrentProtocol() async {
+        let client = Client(); client.launchFailed = true; client.versionAfterRegistration = 9
+        await #expect(throws: HelperClient.HelperError.self) {
+            try await HelperServiceUpdater(client: client).repairFailedRegistration()
+        }
+        #expect(client.calls.last == "version")
+    }
+
+    @Test func repairPreservesTheSystemApprovalStep() async throws {
+        let client = Client(); client.launchFailed = true; client.statusAfterRegistration = .requiresApproval
+        #expect(try await HelperServiceUpdater(client: client).repairFailedRegistration() == .requiresApproval)
+        #expect(client.calls == ["launchFailure", "launchFailure", "unregister", "register"])
+    }
+
 }
