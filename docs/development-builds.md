@@ -1,5 +1,12 @@
 # Reconnaître un build de développement
 
+## Préparation 0.2.18 — 9 novembre 2026
+
+Refonte Batterie et réparation de l’assistant, validées en Dev par Gregory.
+La publication est en préparation sur `codex/battery-cards`. Les validations
+locales sont documentées ci-dessous ; la référence de livraison sera mise à jour
+après publication du paquet signé et notarié.
+
 ## Assistant système — correction du 9 novembre 2026
 
 **Développement non livré**, branche `codex/battery-cards`. L’interface Batterie
