@@ -1,6 +1,6 @@
 # Intégration MacCare 0.2.17
 
-Préparation du 9 novembre 2026, **non publiée à ce stade**, branche
+Préparation du 9 novembre 2026, **publiée dans MacCare 0.2.17 (build 19)**, ancienne branche
 `codex/release-0.2.17`. Gregory demande de réunir tous les commits produit,
 fusionner main et fermer les branches pour une nouvelle release.
 
@@ -52,3 +52,40 @@ n’a été affiché, aucune authentification API Outline/Vikunja n’est confir
 La publication GitHub utilise l’accès GitHub existant et reste indépendante.
 Le redéploiement du site exige le rétablissement de cet accès ; conserver la
 version réellement en ligne distincte des sources préparées.
+
+## Publication et contrôle du paquet public
+
+La [PR #24](https://github.com/M0okz/maccare/pull/24) est fusionnée sur main au
+commit `22d72fab270e55320a008188c02963fffa83a000`. Les CI de branche
+[42629066003](https://github.com/M0okz/maccare/actions/runs/42629066003), de PR
+[42629106200](https://github.com/M0okz/maccare/actions/runs/42629106200) et de main
+[42630611537](https://github.com/M0okz/maccare/actions/runs/42630611537) réussissent.
+Le [workflow officiel](https://github.com/M0okz/maccare/actions/runs/42630770167)
+réussit et publie la release stable le 9 novembre à 14:09:53 UTC.
+
+Le DMG public téléchargé et son app sont signés Developer ID, notariés et
+agrafés ; Gatekeeper accepte l’app. Les cinq exécutables sont arm64, le helper
+porte la version 0.2.17, le build 19 et le canal distribution. Les manifestes
+et composants tiers sont présents. Les signatures Ed25519 du flux et du DMG
+sont vérifiées avec la clé publique de la copie quotidienne ; le flux latest
+est identique au flux signé de la release. L’app distribuée n’est pas lancée.
+
+DMG : **16 049 174 octets**, SHA-256
+`f787279babc1d33b67fc236fa2b726d1be153294cb014d2bd2c9438d6b7b332f`.
+Les deux copies installées gardent leurs empreintes de référence. Huit branches
+locales et trois distantes intégrées sont supprimées, leurs worktrees conservés
+détachés. Le nouveau chantier `codex/battery-cards`, apparu pendant la livraison,
+reste en cours et préservé ; il ne fait pas partie du tag figé de la 0.2.17.
+
+Après relance de la Dev intégrée, les ronds natifs affichent iPhone 84 % et
+Watch 74 %, reçus à 14:57. Lors du premier affichage intégré, seuls les
+accessoires macOS étaient visibles ; la sonde séparée lisait les appareils,
+puis la relance les a affichés. Aucune cause n’est établie pour cette absence
+initiale ; ne pas transformer cette campagne en garantie de disponibilité continue.
+
+Le site est préparé dans les sources pour cette version, ses liens, sa taille,
+son empreinte et les guides concernés. **Redéploiement HTTPS et Outline en
+attente du bastion**, encore injoignable après publication. Les 10 pages et
+207 liens internes des sources passent les contrôles statiques. La relecture
+HTTPS depuis ce Mac expire après 20 secondes ; aucun état live n’est revendiqué. Voir
+[la note de reprise documentaire et site](outline-sync-pending-release-0.2.17.md).

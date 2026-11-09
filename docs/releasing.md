@@ -200,3 +200,23 @@ Aucune installation pendant cette publication : la copie quotidienne reste en
 L’app de distribution n’a pas été lancée. Voir les [notes de version](release-notes/0.2.16.md).
 Preuves : `build/release-0.2.16-qa/`. Les téléchargements, montages et outils de
 travail temporaires sont nettoyés après vérification.
+
+
+## Publication 0.2.17 — 9 novembre 2026
+
+[MacCare 0.2.17 (build 19)](https://github.com/M0okz/maccare/releases/tag/v0.2.17)
+est publié après la PR #24, tag `v0.2.17` sur `22d72fa`. Les CI de branche,
+PR et fusion, puis le workflow officiel `42630770167`, réussissent.
+Le DMG public est vérifié : signatures Developer ID et Ed25519 du DMG/flux,
+notarisation et agrafage app/DMG, Gatekeeper, cinq exécutables arm64 et helper
+cohérent avec la distribution. La clé Sparkle correspond à celle de la copie
+quotidienne ; latest est identique au flux signé de la release.
+
+DMG : 16 049 174 octets, SHA-256
+`f787279babc1d33b67fc236fa2b726d1be153294cb014d2bd2c9438d6b7b332f`.
+Les copies installées sont préservées et la distribution n’est pas lancée.
+Les sources du site sont actualisées, mais son redéploiement et Outline restent
+en attente d’un bastion Homelab injoignable. Huit branches locales intégrées et
+trois distantes sont fermées ; le chantier Batterie commencé en parallèle est
+préservé. Voir [l’ensemble des preuves et limites](release-integration-0.2.17.md)
+et [les actions documentaires restantes](outline-sync-pending-release-0.2.17.md).

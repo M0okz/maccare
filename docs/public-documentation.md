@@ -1,5 +1,20 @@
 # Documentation publique du site
 
+## Sources 0.2.17 — redéploiement en attente
+
+MacCare 0.2.17 (build 19) est publié sur GitHub. Les sources du site portent les
+nouveaux liens, taille, SHA-256 et références de version des guides. Le catalogue
+hybride est livré ; les guides Batterie et Confidentialité précisent les batteries
+mobiles, l’accès Wi-Fi USB explicite et les alertes facultatives iPhone/iPad.
+Les limites Watch et disponibilité restent explicites.
+
+Le bastion Homelab étant toujours injoignable, ces changements ne sont pas
+redéployés. La publication HTTPS précédente ci-dessous reste distincte de cet
+état source. [Suivi de livraison et accès](release-integration-0.2.17.md).
+
+## Publication HTTPS antérieure — référence 0.2.16
+
+
 État vérifié le 9 novembre 2026 : **publié sur le site**
 https://maccare.homeblack.fr/documentation/.
 Le téléchargement reste MacCare 0.2.16 ; le catalogue hybride de mises à jour
