@@ -129,6 +129,7 @@ final class AppState: ObservableObject {
     let simulators = SimulatorsModel()
     let uninstall = UninstallModel()
     let applicationsAnalysis = ApplicationsAnalysisModel()
+    let applicationsInsights = ApplicationsInsightsModel()
     let devJunk = DevJunkModel()
     let permissions = PermissionsModel()
     let startup = StartupModel()

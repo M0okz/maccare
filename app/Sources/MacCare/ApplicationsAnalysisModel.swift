@@ -12,12 +12,13 @@ final class ApplicationsAnalysisModel: ObservableObject {
         phase = .introduction
     }
 
-    func analyze(uninstall: UninstallModel, updates: UpdatesModel) {
+    func analyze(uninstall: UninstallModel, updates: UpdatesModel, insights: ApplicationsInsightsModel? = nil) {
         guard phase != .inventory else { return }
         phase = .inventory
         Task {
             await uninstall.refreshApps()
             uninstall.scanLeftovers()
+            insights?.scan(apps: uninstall.apps)
             updates.checkApplications()
             // Le bilan apparaît dès que l’inventaire est prêt. Les contrôles plus longs y progressent.
             phase = .summary

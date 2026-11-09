@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Le bilan reste monté sous le gestionnaire intégré, avec les mêmes modèles.
 enum ApplicationsDetail: String, Identifiable {
-    case installed, updates, leftovers, startup
+    case installed, updates, leftovers, startup, unused, incompatible, installers
     var id: String { rawValue }
     var title: String {
         switch self {
@@ -10,6 +10,9 @@ enum ApplicationsDetail: String, Identifiable {
         case .updates: return "Mises à jour"
         case .leftovers: return "Données d’applications supprimées"
         case .startup: return "À l’ouverture du Mac"
+        case .unused: return "Applications peu utilisées"
+        case .incompatible: return "Applications incompatibles"
+        case .installers: return "Fichiers d’installation"
         }
     }
 }
@@ -32,12 +35,15 @@ struct ApplicationsDetailPanel: View {
         case .installed, .leftovers: return uninstall.isCleaning
         case .startup: return startup.busyPath != nil
         case .updates: return false
+        case .unused, .incompatible, .installers: return app.applicationsInsights.isRemoving
         }
     }
     var body: some View {
         Group {
             if detail == .updates && !includeAllUpdateSources {
                 ApplicationsUpdatesManager(model: app.updates, apps: uninstall.apps) { close() }
+            } else if [.unused, .incompatible, .installers].contains(detail) {
+                ApplicationsInsightsManager(app: app, category: detail, onBack: close)
             } else {
                 VStack(spacing: 0) {
                     ScreenToolbar(title: "Gestionnaire Applications") {
@@ -60,6 +66,7 @@ struct ApplicationsDetailPanel: View {
                             PerformanceStartupManager(model: startup, permissions: app.permissions, category: startupCategory)
                                 .id(startupCategory)
                         case .updates: UpdatesView(model: app.updates)
+                        case .unused, .incompatible, .installers: EmptyView()
                         }
                     }.frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
