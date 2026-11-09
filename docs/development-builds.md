@@ -457,3 +457,8 @@ ne remplace pas les copies installées. Voir [le bilan de livraison](release-int
 
 Les huit pages Outline concernées sont mises à jour et relues ; les dix pages
 HTML publiques correspondent exactement aux sources déployées.
+
+
+## Livraison 0.2.20 — 9 novembre 2026
+
+[MacCare 0.2.20 (build 22)](https://github.com/M0okz/maccare/releases/tag/v0.2.20) est publié après PR #28 : bilan Applications enrichi, vérification parallèle et rappel global ouvrant le changelog. La refonte Batterie livrée en 0.2.19 est conservée. [Contrôles, empreinte et limites](release-integration-0.2.20.md). Aucune copie installée n’est remplacée.

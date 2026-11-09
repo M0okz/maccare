@@ -1,5 +1,10 @@
 # Rappel de mise à jour de MacCare
 
+**Publié dans [MacCare 0.2.20 (build 22)](https://github.com/M0okz/maccare/releases/tag/v0.2.20) le 9 novembre 2026.**
+Ce statut remplace les mentions de développement non livré des étapes ci-dessous.
+Les validations datées et leurs limites sont conservées.
+
+
 9 novembre 2026 — **préparé en développement, non publié et non installé**.
 Branche `codex/update-availability`, base produit `253abdc` (après PR #27).
 La copie quotidienne reste MacCare 0.2.19 (21).

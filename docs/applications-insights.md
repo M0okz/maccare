@@ -1,5 +1,10 @@
 # Bilan Applications : catégories à examiner et aperçu des mises à jour
 
+**Publié dans [MacCare 0.2.20 (build 22)](https://github.com/M0okz/maccare/releases/tag/v0.2.20) le 9 novembre 2026.**
+Ce statut remplace les mentions de développement non livré des étapes ci-dessous.
+Les validations datées et leurs limites sont conservées.
+
+
 9 novembre 2026 — **proposition visuelle validée par Gregory ; préparation pour la prochaine release**.
 Branche `codex/applications-insights`, base `22d72fab270e55320a008188c02963fffa83a000`.
 Checkout isolé sous `build/worktrees/applications-insights`, pour préserver les

@@ -232,3 +232,8 @@ ci-dessous. Les validations et leurs limites sont conservées. La publication
 ne remplace pas les copies installées. Voir [le bilan de livraison](release-integration-0.2.19.md).
 
 DMG final : 16112155 octets, SHA-256 `6430fda069ac0f16455b2e9d9707762b3b8224670d73c7dbf3818cd7f1fc3a4e`.
+
+
+## Publication 0.2.20 — 9 novembre 2026
+
+[MacCare 0.2.20 (build 22)](https://github.com/M0okz/maccare/releases/tag/v0.2.20) est publié depuis `708e28b` après PR #28. Le workflow officiel, la vérification publique du DMG et du flux Sparkle, le site et la relecture Outline sont validés. [Preuves et limites](release-integration-0.2.20.md). Les copies installées restent préservées.

@@ -59,3 +59,6 @@ Validation et état de publication : [documentation publique](../docs/public-doc
 Les guides ont pour référence **0.2.19** depuis le 9 novembre 2026 : refonte
 Batterie, réparation d’assistant et priorités d’accessoires. Les références
 à l’introduction du catalogue en 0.2.17 restent historiques.
+
+
+Les guides prennent **0.2.20** comme référence depuis le 9 novembre 2026 : bilan Applications, seuil de 30 jours, incompatibilités, installateurs, vérification parallèle et rappel de mise à jour de MacCare. Les références aux introductions en 0.2.17 et 0.2.19 restent historiques.
