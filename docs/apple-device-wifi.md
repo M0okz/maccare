@@ -126,3 +126,13 @@ Composants : `MobileDeviceWiFiView`, `MobileDeviceWiFiModel`,
 `MobileDeviceBatteryReader.execute`, modes du lecteur natif et tests associés.
 L'option de connexion Wi-Fi est persistante sur l'appareil ; les relevés
 MacCare restent en mémoire uniquement.
+
+## Extension de notifications préparée séparément
+
+La branche `codex/device-battery-alerts`, basée sur `5f76971`, prépare les
+[alertes de batterie faible](device-low-battery-alerts.md) demandées après
+correction de Gregory, avec réglage désactivé par défaut et seuil ajustable.
+La demande d’extinction/indisponibilité est remplacée entièrement. Aucun
+lecteur, réglage Wi-Fi ni paquet du worktree d’origine n’est modifié ; la
+reprise matérielle et ses limites restent celles décrites ci-dessus. La Watch
+sans date de mesure fiable ne déclenche pas d’alerte de niveau actuel.

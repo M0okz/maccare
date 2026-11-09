@@ -4,12 +4,12 @@ struct AdditionalAlertReminder {
     let kind: AdditionalAlertKind
     let defaults: UserDefaults
     init(_ kind: AdditionalAlertKind, defaults: UserDefaults = .standard) { self.kind = kind; self.defaults = defaults }
-    var enabled: Bool { defaults.object(forKey: kind.enabledKey) as? Bool ?? true }
+    var enabled: Bool { defaults.object(forKey: kind.enabledKey) as? Bool ?? kind.enabledByDefault }
     private var prefix: String { "additionalAlert.\(kind.rawValue)" }
     func shouldPresent(at date: Date = Date()) -> Bool {
         guard enabled else { return false }
         if let until = defaults.object(forKey: prefix + ".snoozedUntil") as? Date, date < until { return false }
-        if kind != .cycle, let last = defaults.object(forKey: prefix + ".lastShown") as? Date,
+        if kind != .cycle && kind != .deviceBattery, let last = defaults.object(forKey: prefix + ".lastShown") as? Date,
            date.timeIntervalSince(last) < 86_400 { return false }
         return true
     }
