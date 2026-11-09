@@ -73,7 +73,7 @@ final class MobileDeviceBatteryTests: XCTestCase {
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
         let start = ProcessInfo.processInfo.systemUptime
         let result = await MobileDeviceBatteryReader.read(executable: executable)
-        XCTAssertLessThan(ProcessInfo.processInfo.systemUptime - start, 8)
+        XCTAssertLessThan(ProcessInfo.processInfo.systemUptime - start, 10)
         XCTAssertFalse(result.complete)
         XCTAssertEqual(result.accessories.first?.percent, 77)
     }

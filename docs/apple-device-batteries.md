@@ -6,6 +6,19 @@ et du niveau Watch conservé sur cet iPhone est vérifiée sur matériel ; les
 conditions non testées sont précisées ci-dessous.
 La copie quotidienne `/Applications/MacCare.app` n'est pas remplacée.
 
+## Extension Wi-Fi — développement du 9 novembre 2026
+
+La carte **Batterie → Réglages → Appareils Apple** gère désormais l'option de
+connexion sans câble, uniquement sur clic explicite et avec USB connecté.
+Activation du premier prototype par Gregory et premier relevé iPhone/Watch
+sans câble vérifiés ; redécouverte après relance irrégulière. La correction
+d'enregistrement du Mac reste à valider avec l'iPhone à la reprise de 14 h. Les
+délais passent à six secondes dans la sonde et sept dans le parent pour
+laisser une marge à la latence réseau mesurée, sans cadence plus rapide.
+Voir [le parcours, les frontières et les limites de validation](apple-device-wifi.md).
+Cette extension remplace les limites Wi-Fi et les délais 4/5 s de l'état
+antérieur décrit dans les sections ci-dessous.
+
 ## Fonctionnement et préparation
 
 MacCare conserve ses lectures IOKit/HID pour les accessoires que macOS expose.
@@ -18,8 +31,8 @@ sonde. Pour une Watch associée, elle essaie le registre compagnon de l'iPhone.
    dans le Finder et sur l'appareil.
 2. Pour un accès ultérieur sans câble, activer explicitement dans le Finder
    « Afficher cet iPhone lorsqu'il est connecté au Wi-Fi », puis appliquer.
-   L'appareil doit ensuite être joignable sur le réseau local. MacCare
-   n'active pas cette option à la place de la personne.
+   L'appareil doit ensuite être joignable sur le réseau local. La carte
+   Appareils Apple permet aussi de l'activer, à la demande explicite de la personne.
 3. Ouvrir l'accueil ou le volet de la barre des menus. Une tentative infructueuse
    est espacée de cinq minutes ; relancer la Dev permet une tentative immédiate
    pendant la validation.

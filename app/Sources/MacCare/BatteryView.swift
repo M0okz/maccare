@@ -26,7 +26,7 @@ struct BatteryView: View {
                             case 1: BatteryDischargeView(model: model)
                             case 2: BatterySchedulesView(model: model)
                             case 3: BatteryHistoryView(model: model)
-                            default: protection(snapshot); BatteryProfilesView(model: model)
+                            default: protection(snapshot); BatteryProfilesView(model: model); MobileDeviceWiFiView()
                             }
                         }
                         else { unavailable }
