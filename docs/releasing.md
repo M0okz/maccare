@@ -130,3 +130,39 @@ Ces changements sont publiés dans [MacCare 0.2.14 (build 16)](https://github.co
 Le [workflow de release](https://github.com/M0okz/maccare/actions/runs/42525327447) et les CI de branche, de PR et de fusion sont réussis. Le DMG public téléchargé est vérifié : signatures Developer ID des quatre exécutables arm64, tickets de notarisation app/DMG, Gatekeeper, versions du helper, licences et sources smartmontools. Les signatures Ed25519 du flux et du DMG sont validées avec la clé publique ; latest correspond à la release. DMG : 15928628 octets, SHA-256 `4b6e8060b9056975222acde00583f0ec10cb32b8843829f7eb7ef68020d9c9fd`. Le site public pointe vers ce paquet avec les mêmes taille et empreinte ; HTML identique aux sources, conteneur sain, copie temporaire supprimée.
 
 Les rendus ont été contrôlés dans les Dev précédentes à 1436 × 784. Les formats courts, le rail compact, les actions de fenêtre après agrandissement des boutons, le 14 pouces physique et une campagne complète VoiceOver/clavier ne sont pas déclarés testés dans ces passes. Aucune installation pendant la publication : la copie quotidienne et la Dev restent inchangées (Dev 0.2.13, build local 6). L’application de distribution n’a pas été lancée. Preuves : `build/release-0.2.14-qa/`, `build/battery-card-qa/`, `build/battery-health-badge-qa/` et `build/sidebar-spacing-qa/`.
+
+
+## Publication 0.2.15 — 9 novembre 2026
+
+Les correctifs d’icônes de helpers, de boutons natifs, de cache des mesures,
+de température GPU M1 et d’interactions de la carte Espace disque sont publiés
+sur [MacCare 0.2.15 (build 17)](https://github.com/M0okz/maccare/releases/tag/v0.2.15).
+Le tag `v0.2.15` vise `d9969323a471e8517dc82dd9b9d81489f655d1b7`, après fusion de la
+[PR #22](https://github.com/M0okz/maccare/pull/22). La branche
+`codex/helper-process-icons` est supprimée localement et sur GitHub.
+
+Les CI de branche, de PR et de fusion sont réussis, ainsi que le
+[workflow de publication](https://github.com/M0okz/maccare/actions/runs/42538011402).
+Les contrôles locaux incluent 285 XCTest, 247 Swift Testing, 19 tests de
+packaging, les pilotes SMC/HID simulés sous ASan/UBSan et la cryptographie Sparkle.
+
+Le DMG public téléchargé est vérifié : signatures Developer ID, tickets Apple
+app/DMG, Gatekeeper, quatre exécutables arm64, version/canal du helper, licences
+et sources smartmontools. Les signatures Ed25519 du flux et du DMG sont valides
+avec la clé publique de la copie quotidienne ; latest correspond à la release.
+DMG : 15933396 octets ; SHA-256 `f6aabdffe2af849e94b60ea7bab3aa9fdee24a7ff36615455e768ec42f9a5d11`.
+
+Le site public pointe vers ce paquet avec les mêmes version, taille et empreinte.
+Le HTML HTTPS est identique aux sources et le conteneur est sain. Le seul fichier
+HTML est remplacé de façon atomique en conservant ses droits ; la copie de
+retour arrière est supprimée après vérification.
+
+Les vérifications natives restent celles de la Dev 0.2.14 (13), à 1436 × 784 points.
+La lecture réelle GPU du M1 Max, le survol à la souris physique, une campagne
+complète VoiceOver, multi-écran et veille matérielle ne sont pas déclarés validés.
+Aucune installation pendant la publication : la copie quotidienne reste en
+0.2.8 (10), la Dev en 0.2.14 (13), empreintes et signatures préservées.
+L’application distribuée n’a pas été lancée. Voir les
+[notes et limites de cette version](release-notes/0.2.15.md).
+Preuves : `build/release-0.2.15-qa/` ; les téléchargements, montages et outils de
+travail temporaires sont nettoyés après les contrôles.

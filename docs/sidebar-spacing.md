@@ -1,5 +1,7 @@
 # Barre latérale plus aérée — Dev du 8 novembre 2026
 
+Disponible dans [MacCare 0.2.15 (build 17)](https://github.com/M0okz/maccare/releases/tag/v0.2.15). Les mentions Dev/non livré ci-dessous conservent l’historique des vérifications antérieures à cette publication et leurs limites. Voir [la livraison et ses contrôles](releasing.md).
+
 ## Retour à la taille native des commandes — Dev du 8 novembre 2026
 
 À la demande de Gregory, l’agrandissement des boutons fermer/réduire/agrandir

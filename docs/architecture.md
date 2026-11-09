@@ -1,5 +1,7 @@
 # Architecture de MacCare
 
+Disponible dans [MacCare 0.2.15 (build 17)](https://github.com/M0okz/maccare/releases/tag/v0.2.15). Les mentions Dev/non livré ci-dessous conservent l’historique des vérifications antérieures à cette publication et leurs limites. Voir [la livraison et ses contrôles](releasing.md).
+
 ## Source App Store autonome
 
 `UpdatesModel` délègue à `AppStoreUpdates` la vérification en lecture seule par
@@ -50,11 +52,11 @@ des valeurs nulles. Le suivi CPU, mémoire et Wi-Fi est partagé entre la barre 
 menus, l’accueil et les fenêtres de détails. Chaque consommateur enregistre sa
 demande de suivi ; la disparition de l’un ne doit pas arrêter les autres. Une vue ne
 demande le suivi que lorsqu’elle affiche des valeurs : volet ouvert, ou fenêtre visible.
-Sans demande, aucun relevé n’a lieu. En développement après 0.2.14, les dernières
+Sans demande, aucun relevé n’a lieu. Depuis MacCare 0.2.15, les dernières
 valeurs et les historiques bornés restent en mémoire ; les pauses coupent les
 tracés et ne comptent aucun trafic. Voir [le cycle de vie du cache](activity-metrics-cache.md).
 
-En Dev après 0.2.14, la température GPU possède aussi un repli SMC borné aux
+Depuis MacCare 0.2.15, la température GPU possède aussi un repli SMC borné aux
 capteurs GPU connus de la famille M1 si HID n’en fournit aucun. Le cache de cinq
 secondes reste inchangé. Voir [les tests et limites matérielles](gpu-temperature-m1.md).
 

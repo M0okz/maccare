@@ -1,5 +1,7 @@
 # Température GPU M1 — Dev du 9 novembre 2026
 
+Disponible dans [MacCare 0.2.15 (build 17)](https://github.com/M0okz/maccare/releases/tag/v0.2.15). Les mentions Dev/non livré ci-dessous conservent l’historique des vérifications antérieures à cette publication et leurs limites. Voir [la livraison et ses contrôles](releasing.md).
+
 Correction locale non publiée sur `codex/helper-process-icons`, après MacCare
 0.2.14 (16). Paquet `build/gpu-temperature/MacCare.app`, Dev 0.2.14 (11).
 

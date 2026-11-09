@@ -1,5 +1,7 @@
 # Reconnaître un build de développement
 
+Disponible dans [MacCare 0.2.15 (build 17)](https://github.com/M0okz/maccare/releases/tag/v0.2.15). Les mentions Dev/non livré ci-dessous conservent l’historique des vérifications antérieures à cette publication et leurs limites. Voir [la livraison et ses contrôles](releasing.md).
+
 ## Bulles Espace disque — Dev du 9 novembre 2026
 
 `build/space-bubbles/MacCare.app`, Dev 0.2.14 (13), actualise uniquement

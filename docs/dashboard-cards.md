@@ -1,5 +1,7 @@
 # Accueil : bilan, batterie et santé
 
+Disponible dans [MacCare 0.2.15 (build 17)](https://github.com/M0okz/maccare/releases/tag/v0.2.15). Les mentions Dev/non livré ci-dessous conservent l’historique des vérifications antérieures à cette publication et leurs limites. Voir [la livraison et ses contrôles](releasing.md).
+
 ## Cache d’activité — Dev du 8 novembre 2026
 
 Après la publication 0.2.14, les valeurs et courbes d’activité restent en mémoire
@@ -7,7 +9,6 @@ au changement d’onglet ou à la fermeture du volet. Le suivi reste lié à la
 visibilité, sans nouveau relevé en arrière-plan. Les pauses et l’expiration des
 anciens points restent réelles. Voir [le fonctionnement et les limites](activity-metrics-cache.md).
 
-Disponible dans [MacCare 0.2.14 (build 16)](https://github.com/M0okz/maccare/releases/tag/v0.2.14). Les descriptions Dev ci-dessous restent un historique daté avec leurs limites de validation.
 
 ## Simplification Batterie — Dev du 8 novembre 2026
 
