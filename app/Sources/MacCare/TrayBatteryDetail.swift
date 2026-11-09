@@ -71,8 +71,10 @@ struct TrayBatteryDetail: View {
                         TrayBatteryGauge(name: accessory.name, symbol: accessory.symbol, percent: accessory.percent)
                             .accessibilityHidden(true)
                         TrayDetailRow(title: accessory.name, value: "\(accessory.percent) %")
+                            .help(accessory.levelDescription)
                     }
                     .accessibilityElement(children: .combine)
+                    .accessibilityValue(accessory.levelDescription)
                 }
             }
         }

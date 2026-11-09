@@ -83,7 +83,7 @@ struct HomeBatteryCard: View {
 
     private var accessories: some View {
         HStack(spacing: 10) {
-            ForEach(Array(telemetry.accessories.prefix(3))) { accessory in
+            ForEach(Array(telemetry.featuredAccessories.prefix(3))) { accessory in
                 HomeBatteryAccessory(accessory: accessory, diameter: accessoryDiameter)
             }
         }
@@ -144,7 +144,7 @@ struct HomeBatteryCard: View {
                      "État : \(HomeBatteryPresentation.condition(snapshot))"]
         if let cycles = snapshot?.cycles { parts.append("\(cycles) \(cycles == 1 ? "cycle" : "cycles")") }
         if let powerDetail { parts.append(powerDetail) }
-        parts += telemetry.accessories.prefix(3).map { "\($0.name) : dernier niveau connu \($0.percent) %" }
+        parts += telemetry.featuredAccessories.prefix(3).map { "\($0.name) : \($0.levelDescription)" }
         if let consumer = telemetry.consumer {
             parts.append("\(consumer.measuredPower ? "Processus le plus énergivore" : "Processus le plus actif CPU") : \(consumer.name), \(consumer.formattedValue)")
         }

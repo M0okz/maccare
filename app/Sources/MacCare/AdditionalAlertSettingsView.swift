@@ -5,13 +5,18 @@ struct AdditionalAlertSettingsView: View {
     let kind: AdditionalAlertKind
     let menuBarShown: Bool
     @AppStorage private var enabled: Bool
+    @AppStorage(DeviceLowBatteryPolicy.thresholdKey) private var threshold = 20
     init(kind: AdditionalAlertKind, menuBarShown: Bool) {
         self.kind = kind; self.menuBarShown = menuBarShown
-        _enabled = AppStorage(wrappedValue: true, kind.enabledKey)
+        _enabled = AppStorage(wrappedValue: kind.enabledByDefault, kind.enabledKey)
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Toggle(kind.title, isOn: $enabled)
+            if kind == .deviceBattery {
+                Stepper("Seuil de batterie faible : \(threshold) %", value: $threshold, in: 5...50, step: 5)
+                    .disabled(!enabled)
+            }
             Text(detail).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             if kind == .cycle && !BatteryCycle.calibrationAvailable {
                 Text("L’étalonnage reste désactivé dans cette version. Les fins de décharge et de recharge ponctuelle à 100 % sont signalées.")
@@ -27,6 +32,7 @@ struct AdditionalAlertSettingsView: View {
     }
     private var detail: String {
         switch kind {
+        case .deviceBattery: return "Désactivé par défaut. Une alerte signale un iPhone ou iPad dont un relevé direct de moins de trois minutes atteint le seuil choisi. Une seule alerte par épisode ; un niveau remonté de cinq points au-dessus du seuil réarme l’appareil. Le dernier niveau Watch connu par l’iPhone et les accessoires sans date fiable ne déclenchent pas d’alerte. Les lectures sont partagées : au plus une par minute, deux en économie d’énergie, cinq après absence ou échec. Aucun scan Bluetooth permanent."
         case .cpu: return "Une charge globale d’au moins 85 % pendant deux minutes déclenche une alerte. Les applications proposées peuvent être quittées normalement."
         case .protection: return "L’alerte apparaît si une protection attendue n’est plus confirmée pendant 30 secondes. Les pauses de charge normales et une désactivation volontaire ne déclenchent rien."
         case .cycle: return "Une notification signale chaque opération observée terminée avec succès, une fois la protection et le secteur confirmés. Les annulations et interruptions ne sont pas annoncées comme réussies."

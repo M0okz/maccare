@@ -43,6 +43,8 @@ jobs:
         run: bash app/Tests/PowerUIBridgeTests/run.sh
       - name: Tester les lectures GPU et la frontière SMC sur pilotes simulés
         run: bash app/Tests/SMCWireTests/run.sh
+      - name: Tester la lecture des appareils jumelés sans connexion réelle
+        run: bash app/Tests/DeviceBatteryProbeTests/run.sh
       - name: Construire depuis les sources
         run: bash app/build.sh
       - name: Tests Swift

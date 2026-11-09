@@ -4,7 +4,7 @@ struct DevJunkView: View {
     @ObservedObject var model: DevJunkModel
 
     var body: some View {
-        CleaningManagerLayout {
+        ManagerBrowserLayout {
             VStack(alignment: .leading, spacing: Space.l) {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Caches de développement").font(AppFont.emphasis).accessibilityAddTraits(.isHeader)

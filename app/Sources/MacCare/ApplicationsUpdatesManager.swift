@@ -19,7 +19,7 @@ struct ApplicationsUpdatesManager: View {
         ApplicationUpdatePresentation.entries(sources: model.sources, apps: apps, query: query, sort: sort, lastOpened: lastOpened)
     }
     private var selected: ApplicationUpdateEntry? { entries.first { $0.id == selectedID } ?? entries.first }
-    private var sources: [UpdateSource] { model.sources.filter { ["cask", "mas", "netnewswire"].contains($0.key) } }
+    private var sources: [UpdateSource] { model.sources.filter { $0.isApplicationSource } }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -108,6 +108,8 @@ struct ApplicationsUpdatesManager: View {
                         Text("Aucun résultat pour cette recherche.").font(AppFont.secondary).foregroundStyle(Theme.muted).padding(.vertical, 12)
                     }
                     DisclosureGroup("État des sources") {
+                        Text("Le catalogue reconnaît les éditions compatibles. Certaines applications et versions ne peuvent pas être comparées automatiquement.")
+                            .font(AppFont.secondary).foregroundStyle(Theme.muted)
                         ForEach(sources) { source in
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(source.title).font(AppFont.secondary.weight(.semibold))
@@ -184,6 +186,10 @@ struct ApplicationsUpdatesManager: View {
                     Button("Ouvrir l’App Store") { NSWorkspace.shared.open(AppStoreUpdates.storeURL) }
                         .buttonStyle(.borderedProminent).controlSize(.large)
                         .help("Ouvre l’App Store pour choisir les mises à jour à installer.")
+                } else if let url = entry.item.downloadURL {
+                    Button("Accéder au téléchargement") { NSWorkspace.shared.open(url) }
+                        .buttonStyle(.borderedProminent).controlSize(.large)
+                        .help("Ouvre la page de l’éditeur dans votre navigateur.")
                 } else if let url = entry.item.applicationURL {
                     Button("Ouvrir pour mettre à jour") { NSWorkspace.shared.open(url) }
                         .buttonStyle(.borderedProminent).controlSize(.large)

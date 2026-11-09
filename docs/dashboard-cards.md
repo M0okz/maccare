@@ -1,5 +1,14 @@
 # Accueil : bilan, batterie et santé
 
+## Appareils jumelés — développement du 9 novembre 2026
+
+**Non livré.** Lecture bornée des iPhone/iPad déjà approuvés et essai du registre
+Watch de l'iPhone. Priorité aux appareils mobiles dans les trois anneaux ;
+liste complète dans le détail Batterie du volet. La Watch indique le dernier
+niveau connu par l'iPhone, avec l'heure de réception. La lecture USB iPhone et
+Watch est vérifiée ; accès sans câble et consommation prolongée restent à tester.
+Voir [fonctionnement, jumelage et limites](apple-device-batteries.md).
+
 ## Activité stable — MacCare 0.2.16
 
 **Livré dans [MacCare 0.2.16 (build 18)](https://github.com/M0okz/maccare/releases/tag/v0.2.16).** Les courbes des cartes CPU, GPU et réseau couvrent dix minutes et continuent à être alimentées hors de l’accueil. L’ouverture des détails donne accès à dix minutes, trente minutes ou une heure, avec moyenne et pic, également pour la RAM. Le GPU est désormais un bouton ouvrant son détail. Les cartes conservent leur taille et leur composition ; les chiffres sont lissés sur cinq secondes et changent toutes les trois secondes. L’échelle réseau utilise des paliers avec baisse différée.

@@ -26,7 +26,7 @@ struct BatteryView: View {
                             case 1: BatteryDischargeView(model: model)
                             case 2: BatterySchedulesView(model: model)
                             case 3: BatteryHistoryView(model: model)
-                            default: protection(snapshot); BatteryProfilesView(model: model)
+                            default: protection(snapshot); BatteryProfilesView(model: model); MobileDeviceWiFiView()
                             }
                         }
                         else { unavailable }
@@ -60,7 +60,7 @@ struct BatteryView: View {
                 Text("Lecture seule des contrôles de batterie. Aucun réglage de charge n’est modifié.").font(.callout)
                 ScrollView { Text(diagnostics).font(.system(.body, design: .monospaced)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
                 Button("Fermer") { showingDiagnostics = false }.keyboardShortcut(.cancelAction)
-            }.padding(24).frame(width: 700, height: 480)
+            }.padding(24).frame(width: 700, height: 480).modifier(ManagerSheetStyle())
         }
         .onChange(of: model.error) { errorFocused = $0 != nil }
     }

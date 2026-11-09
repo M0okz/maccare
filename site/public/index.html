@@ -30,6 +30,7 @@
       <a class="nav-link" href="#visite">Visite</a>
       <a class="nav-link" href="#surete">Sûreté</a>
       <a class="nav-link" href="#questions">Questions</a>
+      <a class="nav-link nav-documentation" href="documentation/">Documentation</a>
       <a class="button button-small" href="#telecharger">Télécharger</a>
     </nav>
   </div>
@@ -137,8 +138,10 @@
           <ul>
             <li>Désinstallation avec ses résidus, passés en revue.</li>
             <li>Données oubliées par des apps déjà supprimées.</li>
-            <li>Mises à jour disponibles et autorisations accordées.</li>
+            <li>Mises à jour Homebrew, App Store et NetNewsWire, avec les actions adaptées.</li>
           </ul>
+          <p class="panel-note"><strong>En développement :</strong> un catalogue hybride pour reconnaître aussi les apps téléchargées chez leur éditeur, sans installer Homebrew. <a href="documentation/mises-a-jour.html#catalogue">Découvrir le catalogue et sa couverture</a>.</p>
+          <p class="panel-note"><a href="documentation/applications.html">Comprendre la désinstallation et les données associées</a>.</p>
         </div>
       </article>
       <article class="panel" role="tabpanel" id="panel-espace" aria-labelledby="tab-espace" data-panel="espace">
@@ -222,6 +225,20 @@
   </div>
 </section>
 
+<section id="documentation" class="documentation-section">
+  <div class="wrap">
+    <div class="documentation-heading">
+      <div><p class="section-eyebrow">Documentation</p><h2>Comprendre avant d’agir.</h2><p class="section-lead">Des parcours concrets pour découvrir les fonctions de MacCare, choisir les accès utiles et lire les résultats.</p></div>
+      <a class="button button-ghost" href="documentation/">Parcourir les guides <span aria-hidden="true">→</span></a>
+    </div>
+    <ul class="documentation-cards">
+      <li><a href="documentation/demarrer.html"><span class="section-eyebrow">Premiers pas</span><h3>Votre première analyse.</h3><p>Installation, autorisations et choix des actions.</p><span class="guide-link">Commencer <span aria-hidden="true">→</span></span></a></li>
+      <li><a href="documentation/applications.html"><span class="section-eyebrow">Applications</span><h3>Une app, ses données, vos choix.</h3><p>Comprendre la désinstallation et les données oubliées.</p><span class="guide-link">Lire le guide <span aria-hidden="true">→</span></span></a></li>
+      <li><a href="documentation/mises-a-jour.html"><span class="section-eyebrow">Mises à jour</span><h3>Des sources qui se complètent.</h3><p>Les sources disponibles et le catalogue hybride en développement, avec sa couverture réelle.</p><span class="guide-link">Comprendre le catalogue <span aria-hidden="true">→</span></span></a></li>
+    </ul>
+  </div>
+</section>
+
 <section id="questions" class="faq">
   <div class="wrap faq-grid">
     <h2>Avant d’installer.</h2>
@@ -253,6 +270,14 @@
       <details>
         <summary>Quelles connexions réseau fait-il&nbsp;?</summary>
         <p>Il contacte GitHub pour ses propres mises à jour, ce que vous pouvez désactiver dans les réglages. La recherche de mises à jour de vos apps interroge leurs sources, et le test Internet utilise Cloudflare lorsque vous le lancez.</p>
+      </details>
+      <details>
+        <summary>Le catalogue limite-t-il les apps que je peux désinstaller&nbsp;?</summary>
+        <p>Non. MacCare recense directement les apps installées et recherche leurs données associées. Le catalogue hybride en développement sert à la recherche de mises à jour ; ses fiches ne sont pas exécutées pour désinstaller une app. <a href="documentation/applications.html#catalogue">Comprendre la différence</a>.</p>
+      </details>
+      <details>
+        <summary>Où trouver la documentation&nbsp;?</summary>
+        <p>Les <a href="documentation/">guides MacCare</a> expliquent l’installation, les applications, les mises à jour, le nettoyage, la batterie, les performances, le stockage et la confidentialité. Les fonctions en développement y sont signalées.</p>
       </details>
       <details>
         <summary>Combien d’espace vais-je récupérer&nbsp;?</summary>
@@ -292,7 +317,7 @@
 <footer class="site-footer">
   <div class="wrap footer-row">
     <a class="brand" href="./"><img src="assets/icon-64.png" width="22" height="22" alt="" loading="lazy">MacCare</a>
-    <p>Licence MIT · <a href="https://github.com/M0okz/maccare">GitHub</a> · Découvrez aussi <a href="https://picta.homeblack.fr/">Picta</a> et <a href="https://warpgatesh.homeblack.fr/">WarpgateSH</a></p>
+    <p>Licence MIT · <a href="documentation/">Documentation</a> · <a href="https://github.com/M0okz/maccare">GitHub</a> · Découvrez aussi <a href="https://picta.homeblack.fr/">Picta</a> et <a href="https://warpgatesh.homeblack.fr/">WarpgateSH</a></p>
     <p class="legal">Mac et macOS sont des marques d’Apple Inc. MacCare est un projet indépendant.</p>
   </div>
 </footer>

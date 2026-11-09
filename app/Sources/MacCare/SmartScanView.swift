@@ -60,7 +60,7 @@ struct SmartScanView: View {
     // MARK: Résultats
 
     private var results: some View {
-        CleaningManagerLayout {
+        ManagerBrowserLayout {
             VStack(alignment: .leading, spacing: 14) {
                 Text("Résultats de l’analyse").font(AppFont.emphasis).accessibilityAddTraits(.isHeader)
                 Text("Examinez une catégorie, puis cochez les éléments à nettoyer. Les catégories sûres sont présélectionnées.")

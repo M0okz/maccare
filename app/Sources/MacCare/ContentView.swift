@@ -6,7 +6,7 @@ struct CleaningView: View {
     @ObservedObject var model: ReviewModel
 
     var body: some View {
-        CleaningManagerLayout {
+        ManagerBrowserLayout {
             VStack(alignment: .leading, spacing: 14) {
                 Text("Par catégorie").font(AppFont.emphasis).accessibilityAddTraits(.isHeader)
                 Text("Choisissez une catégorie, puis examinez les éléments avant de les cocher.")

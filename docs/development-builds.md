@@ -1,5 +1,56 @@
 # Reconnaître un build de développement
 
+## Ensemble 0.2.17 — préparation du 9 novembre 2026
+
+Branches produit réunies sur `codex/release-0.2.17`, non publiées à ce stade.
+La nouvelle correction WirelessBuddyFlags est reconstruite et validée en USB
+puis sans câble après deux relances. Les entrées précédentes ci-dessous restent
+datées ; voir [l’intégration, les tests et limites actuels](release-integration-0.2.17.md).
+
+## Sous-vues standardisées — préparation du 9 novembre 2026
+
+**Validé en Dev par l’utilisateur, non publié**, pour la prochaine release sur
+`codex/apple-device-batteries`. Les sous-vues Applications, PNG et Santé des
+disques ainsi que les feuilles secondaires réutilisent les composants
+communs. Compilation Release arm64, signature stricte et 26 tests ciblés
+réussis ; les copies quotidiennes restent distinctes.
+
+Voir [la composition partagée, les contrôles et leurs limites](standardized-subviews.md).
+
+## Batterie faible des appareils — 9 novembre 2026
+
+**Non livré**, branche `codex/device-battery-alerts`, base Wi-Fi `5f76971`,
+worktree isolé `build/worktrees/device-battery-alerts`. Option Menu désactivée
+par défaut et seuil de 20 % réglable (5–50 %). Une alerte par épisode, conservée
+après relance ; réarmement par relevé frais à seuil + 5 points. iPhone/iPad
+joints directement avec niveau de trois minutes au plus ; Watch sans date de
+mesure fiable exclue. Aucun détecteur d’extinction ou d’indisponibilité.
+41 tests Swift ciblés réussis, aperçu fictif clair/sombre vérifié, copies
+installées inchangées. [Contrat et limites](device-low-battery-alerts.md) et
+[Outline en attente](outline-sync-pending-device-battery.md).
+
+## Option Wi-Fi des appareils — Dev du 9 novembre 2026
+
+**Non livré**, branche `codex/apple-device-wifi`, worktree
+`build/worktrees/apple-device-wifi`. Paquet Dev 0.2.16 (20) sous son propre
+`build/apple-device-wifi/MacCare.app`, sans installation. Carte Appareils Apple
+ouverte et montrée à Gregory ; activation sur son clic, état relu et batteries
+iPhone/Watch accessibles lors du premier relevé après débranchement, puis
+redécouverte irrégulière après relance. La correction WirelessBuddyFlags est
+préparée dans les sources, pas encore dans ce paquet ni vérifiée sur matériel.
+28 tests Swift ciblés et fixtures natives ; copies installées préservées.
+Reprise matérielle planifiée le 9 novembre à 14 h, heure de Paris.
+Voir [le contrôle et ses limites](apple-device-wifi.md).
+
+## Appareils jumelés — développement du 9 novembre 2026
+
+**Non livré**, branche `codex/apple-device-batteries`. Nouveau lecteur mobile
+natif signé séparément dans le paquet Dev. Les copies installées quotidienne
+et Dev sont préservées ; le paquet de QA est préparé sous
+`build/apple-device-batteries/MacCare.app`. Lecture USB iPhone/Watch vérifiée ;
+Wi-Fi et consommation prolongée restent à tester sur les appareils physiques.
+Voir [le fonctionnement et les commandes de validation](apple-device-batteries.md).
+
 ## Retrait des applications — Dev du 9 novembre 2026
 
 **Fonctions livrées dans [MacCare 0.2.16 (build 18)](https://github.com/M0okz/maccare/releases/tag/v0.2.16) ; validation locale Dev 0.2.15 (19).** Paquet `build/applications-fix/MacCare.app`, MacCare Dev 0.2.15 (19), installé et vérifié. Les clics sur les lignes, la présélection du paquet et des données et la mise à la corbeille de deux applications factices ont été contrôlés dans l’interface native ; 541 tests réussissent. La copie quotidienne est préservée.
@@ -321,3 +372,20 @@ navigation et le correctif des icônes des helpers sont conservés sur
 `codex/helper-process-icons`. Ce retour visuel réversible ne reçoit pas de
 nouveau test métier ; contrôle du build, des signatures et du rendu natif dans
 `build/native-window-controls-qa/`. Aucune publication ; copie quotidienne préservée.
+
+
+## Catalogue hybride Applications — 9 novembre 2026
+
+**Développement local non livré.** La source Catalogue d’applications consulte le
+catalogue public Homebrew sans installation de Homebrew ; ArtCraft Launcher
+est suivi sur son dépôt GitHub officiel et NetNewsWire conserve son flux Sparkle.
+Correspondances locales par identifiant et paquet, comparaison prudente des
+versions, doublons regroupés et lien vers le téléchargement. Aucun inventaire
+transmis ni installation automatique. Détails et limites :
+[application-update-catalog.md](application-update-catalog.md).
+
+Paquet signé `build/native-updates/MacCare.app`, MacCare Dev 0.2.16 (7).
+29 tests ciblés et vérifications réseau réussis ; parcours natif Applications
+validé avec douze résultats, dont onze du catalogue. ArtCraft non installé,
+cas ancien simulé vérifié sur la vraie API. Copie quotidienne inchangée.
+Preuves : `build/native-updates-validation.json`.

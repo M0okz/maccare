@@ -1,5 +1,28 @@
 # Architecture de MacCare
 
+## Option Wi-Fi des appareils — développement du 9 novembre 2026
+
+**Non livré.** La sonde lit par défaut ; un mode séparé, ciblé par identifiant
+haché, configure l'accès sans fil de l'hôte approuvé par WirelessBuddyFlags,
+sur USB, en préservant les autres flags. Aucun jumelage automatique ni
+configuration au démarrage ou durant la surveillance. La vue
+publie la réussite uniquement après relecture conforme. Délais relevés à 6/7 s
+pour la latence réseau, sans nouvelle cadence ni application compagnon.
+La redécouverte après relance reste en validation matérielle ; reprise demandée
+le 9 novembre à 14 h. Le paquet montré utilisait le premier prototype SetValue.
+Voir [la frontière et les essais réels](apple-device-wifi.md).
+
+## Lecture des appareils jumelés — développement du 9 novembre 2026
+
+**Non livré.** `MacCareDeviceBatteryProbe` est un exécutable utilisateur ponctuel,
+distinct du service privilégié. Il charge MobileDevice optionnellement et lit
+les seuls appareils déjà approuvés ; aucune commande de jumelage, de réglage
+Wi-Fi ou de contrôle de charge. Délais 4 s dans la sonde / 5 s dans le parent.
+Un acteur partage son acquisition entre les cartes visibles, avec cache RAM et
+espacement des échecs. Lecture USB iPhone/Watch vérifiée ; Wi-Fi et consommation
+prolongée restent à tester. Un canal compagnon est ouvert par requête.
+Voir [la frontière et ses validations](apple-device-batteries.md).
+
 ## Désinstallation — MacCare 0.2.16
 
 **Livré dans [MacCare 0.2.16 (build 18)](https://github.com/M0okz/maccare/releases/tag/v0.2.16).** `Remover.uninstall` traite le paquet choisi dans son dossier Applications avec une liste d’inclusion, puis ses données dans le dossier personnel. Le nettoyage générique reste inchangé. Le modèle agrège les comptes rendus et retire les paquets disparus du catalogue.

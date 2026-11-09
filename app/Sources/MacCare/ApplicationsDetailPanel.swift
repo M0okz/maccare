@@ -18,10 +18,14 @@ struct ApplicationsDetailPanel: View {
     @ObservedObject var app: AppState
     @ObservedObject private var uninstall: UninstallModel
     @ObservedObject private var startup: StartupModel
+    @State private var startupCategory: PerformanceCategory = .login
     let detail: ApplicationsDetail
+    var includeAllUpdateSources = false
+    var onBack: (() -> Void)?
 
-    init(app: AppState, detail: ApplicationsDetail) {
+    init(app: AppState, detail: ApplicationsDetail, includeAllUpdateSources: Bool = false, onBack: (() -> Void)? = nil) {
         self.app = app; uninstall = app.uninstall; startup = app.startup; self.detail = detail
+        self.includeAllUpdateSources = includeAllUpdateSources; self.onBack = onBack
     }
     private var writing: Bool {
         switch detail {
@@ -32,26 +36,39 @@ struct ApplicationsDetailPanel: View {
     }
     var body: some View {
         Group {
-            if detail == .updates {
+            if detail == .updates && !includeAllUpdateSources {
                 ApplicationsUpdatesManager(model: app.updates, apps: uninstall.apps) { close() }
             } else {
                 VStack(spacing: 0) {
                     ScreenToolbar(title: "Gestionnaire Applications") {
                         Button { close() } label: { Label("Retour", systemImage: "chevron.left") }
                             .buttonStyle(ToolbarActionButtonStyle()).keyboardShortcut(.cancelAction).disabled(writing)
-                    } trailing: { EmptyView() }
+                    } trailing: {
+                        if detail == .startup {
+                            Picker("Catégorie de démarrage", selection: $startupCategory) {
+                                Text("À la connexion").tag(PerformanceCategory.login)
+                                Text("En arrière-plan").tag(PerformanceCategory.background)
+                            }.labelsHidden().accessibilityLabel("Catégorie de démarrage").frame(width: 225).disabled(writing)
+                        }
+                    }
                         .padding(.horizontal, 24).frame(height: 56)
                     Divider()
                     Group {
                         switch detail {
                         case .installed, .leftovers: UninstallView(model: uninstall)
-                        case .startup: StartupView(model: startup, permissions: app.permissions)
-                        case .updates: EmptyView()
+                        case .startup:
+                            PerformanceStartupManager(model: startup, permissions: app.permissions, category: startupCategory)
+                                .id(startupCategory)
+                        case .updates: UpdatesView(model: app.updates)
                         }
                     }.frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
         }.modifier(ManagerPanelStyle())
     }
-    private func close() { if !writing { app.applicationsDetail = nil } }
+    private func close() {
+        guard !writing else { return }
+        if let onBack { onBack() }
+        else { app.applicationsDetail = nil }
+    }
 }

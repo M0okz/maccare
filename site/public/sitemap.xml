@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://maccare.homeblack.fr/</loc></url>
+  <url><loc>https://maccare.homeblack.fr/documentation/</loc></url>
+  <url><loc>https://maccare.homeblack.fr/documentation/applications.html</loc></url>
+  <url><loc>https://maccare.homeblack.fr/documentation/batterie.html</loc></url>
+  <url><loc>https://maccare.homeblack.fr/documentation/confidentialite.html</loc></url>
+  <url><loc>https://maccare.homeblack.fr/documentation/demarrer.html</loc></url>
+  <url><loc>https://maccare.homeblack.fr/documentation/fichiers-et-stockage.html</loc></url>
+  <url><loc>https://maccare.homeblack.fr/documentation/mises-a-jour.html</loc></url>
+  <url><loc>https://maccare.homeblack.fr/documentation/nettoyage.html</loc></url>
+  <url><loc>https://maccare.homeblack.fr/documentation/performances.html</loc></url>
 </urlset>

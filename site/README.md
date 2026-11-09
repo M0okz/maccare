@@ -37,3 +37,19 @@ La rubrique Mes fichiers n’en a pas pour cette raison : son écran d’accueil
 le dossier personnel. Les captures actuelles viennent d’une préversion de la 0.2.2,
 en définition standard (1291 × 728), et certains écrans ont changé depuis. Le site le
 signale. Refaire ces captures depuis une version publiée, puis retirer la mention.
+
+## Documentation publique
+
+L’espace <https://maccare.homeblack.fr/documentation/> contient un index et huit
+guides utilisateur sous `public/documentation/`. Ils partagent les styles du
+site, complétés par `public/documentation.css`, sans script ni dépendance.
+Les accès figurent dans la navigation, l’accueil et le pied de page.
+
+Conserver les distinctions entre version publiée et développement : le catalogue
+hybride est actuellement documenté **en développement, non livré dans 0.2.16**.
+Son nombre de fiches ne doit devenir ni un nombre d’apps reconnues garanti ni
+un nombre d’apps désinstallables. Le désinstalleur ne dépend pas de ce catalogue.
+Après une livraison, relire les versions de référence, statuts et liens dans tous
+les guides, ainsi que `public/sitemap.xml`.
+
+Validation et état de publication : [documentation publique](../docs/public-documentation.md).

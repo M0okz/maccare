@@ -8,6 +8,10 @@ let package = Package(
         .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.10.1"),
     ],
     targets: [
+        // Sonde utilisateur ponctuelle : aucune élévation, jumelage ou application iOS.
+        .executableTarget(name: "MacCareDeviceBatteryProbe",
+                          cSettings: [.unsafeFlags(["-fobjc-arc"])],
+                          linkerSettings: [.linkedFramework("Foundation")]),
         // Cible C qui expose la frontière du moteur Rust (en-tête + modulemap).
         .target(name: "CMacCareCore"),
         .systemLibrary(name: "CSQLite", pkgConfig: "sqlite3"),

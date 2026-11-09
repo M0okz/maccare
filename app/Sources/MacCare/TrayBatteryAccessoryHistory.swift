@@ -21,20 +21,24 @@ struct TrayBatteryAccessoryHistory {
         for accessory in accessories {
             // Le numéro de source IOPS peut changer entre deux listes ou lors du repli HID.
             let candidates = entries.indices.filter {
-                !updated.contains($0) && entries[$0].accessory.name == accessory.name && entries[$0].accessory.symbol == accessory.symbol
+                !updated.contains($0) && entries[$0].accessory.name == accessory.name && entries[$0].accessory.symbol == accessory.symbol &&
+                    (entries[$0].sourceID.hasPrefix("mobile:") == accessory.id.hasPrefix("mobile:"))
             }
             let sameSource = candidates.first { entries[$0].sourceID == accessory.id }
             let uniqueName = accessories.filter { $0.name == accessory.name && $0.symbol == accessory.symbol }.count == 1
-            let match = sameSource ?? (uniqueName && candidates.count == 1 ? candidates.first : nil)
+            let match = sameSource ?? (!accessory.id.hasPrefix("mobile:") && uniqueName && candidates.count == 1 ? candidates.first : nil)
             if let match {
                 let stableID = entries[match].accessory.id
                 entries[match] = .init(accessory: .init(id: stableID, name: accessory.name, symbol: accessory.symbol, percent: accessory.percent),
                                        sourceID: accessory.id, lastSeen: time)
+                entries[match].accessory.receivedAt = accessory.receivedAt
+                entries[match].accessory.viaPhone = accessory.viaPhone
                 updated.insert(match)
             } else {
                 sequence += 1
                 let stable = TrayBatteryTelemetry.Accessory(id: "accessory:\(sequence)", name: accessory.name,
-                                                            symbol: accessory.symbol, percent: accessory.percent)
+                                                            symbol: accessory.symbol, percent: accessory.percent,
+                                                            receivedAt: accessory.receivedAt, viaPhone: accessory.viaPhone)
                 entries.append(.init(accessory: stable, sourceID: accessory.id, lastSeen: time))
                 updated.insert(entries.count - 1)
             }

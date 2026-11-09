@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Même composition que le gestionnaire Performances : navigateur, détail et actions fixes.
-struct CleaningManagerLayout<Browser: View, Detail: View, Footer: View>: View {
+struct ManagerBrowserLayout<Browser: View, Detail: View, Footer: View>: View {
     @ViewBuilder let browser: () -> Browser
     @ViewBuilder let detail: () -> Detail
     @ViewBuilder let footer: () -> Footer
