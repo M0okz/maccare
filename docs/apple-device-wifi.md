@@ -6,7 +6,7 @@ Gregory a rebranché et déverrouillé l’iPhone sur le MacBook Pro M1. Le paqu
 MacCare Dev **0.2.16 (21)** a été reconstruit dans
 `build/apple-device-wifi-resume/MacCare.app`, puis lancé depuis ce chemin.
 L’automatisation ponctuelle de reprise a été consommée et supprimée.
-**Le test sans câble après relance reste en attente du débranchement.**
+**Les essais sans câble et après deux relances complètes passent sur ce Mac et cet iPhone.**
 
 Cette reprise valide pour la première fois sur l’iPhone l’appel
 `AMDeviceSetWirelessBuddyFlags` de la correction. La lecture USB initiale donnait
@@ -30,6 +30,28 @@ Batterie → Réglages → Appareils Apple. Aucun clic de désactivation n’a �
 Les copies `/Applications/MacCare.app` et `/Applications/MacCare Dev.app` sont
 préservées. La synchronisation Outline reste à reprendre après échec du helper
 Homelab : voir [la note de synchronisation](outline-sync-pending-apple-device-wifi.md).
+
+Après le débranchement confirmé par Gregory, deux processus neufs lisent
+`usbConnected: false`, `wifiEnabled: true`, `canConfigure: false`. Les batteries
+sont complètes et sans doublon : **iPhone 86 %, Watch 75 %**. Premier relevé
+réseau : **3,696 s / 0,2043 s CPU**. Après arrêt complet de notre Dev, un nouveau
+processus indépendant obtient les mêmes niveaux en **2,701 s / 0,2011 s CPU**.
+Les lectures de l’état Wi-Fi durent respectivement **2,508 s / 0,1606 s CPU**
+et **1,689 s / 0,1015 s CPU**. Aucune erreur sur ces quatre appels.
+
+Deux relances complètes de notre paquet Dev, avec disparition vérifiée de son
+processus entre les lancements, affichent à nouveau les ronds téléphone et
+Watch, avec les reçus **14:28**, puis **14:29**. Les relevés mobiles du store
+sont en RAM ; la relance ne réutilise donc pas ces valeurs de la précédente
+instance. Dans la carte Appareils Apple, l’accès Wi-Fi est actif, le bouton
+Désactiver est grisé et le texte demande le câble USB pour modifier l’accès.
+Les autres instances MacCare en cours d’utilisation n’ont pas été arrêtées.
+
+Le défaut de redécouverte observé le matin ne se reproduit pas pendant cette
+campagne après utilisation de WirelessBuddyFlags. Cela valide ce scénario
+précis ; une longue veille, un redémarrage du Mac ou de l’iPhone, un changement
+de réseau et l’âge réel du registre Watch restent à vérifier. Le reçu de 14:29
+est l’heure de réception par le Mac, pas la date de mesure native de la Watch.
 
 Le premier paquet Dev (20) montré à Gregory utilisait encore `AMDeviceSetValue`
 sur `EnableWifiConnections`. Un relevé sans câble avait fonctionné, puis la
@@ -105,7 +127,9 @@ lancée reste bornée même si la vue ferme.
 - Preuves locales dans `build/apple-device-wifi-qa/` :
   `resume-usb-configuration.json`, `resume-usb-batteries.json`,
   `resume-usb-deduplicated.json`, `duplicate-discovery-red.log`,
-  `duplicate-discovery-green.log`, `resume-package.log`.
+  `duplicate-discovery-green.log`, `resume-package.log`,
+  `resume-wifi-unplugged-state.json`, `resume-wifi-unplugged-batteries.json`,
+  `resume-wifi-cold-state.json`, `resume-wifi-cold-batteries.json`.
 
 ## Vérifications antérieures — premier prototype
 
@@ -131,7 +155,7 @@ lancée reste bornée même si la vue ferme.
 Le test de délai Swift final passe en environ 7,1 s ; les 28 tests ciblés passent.
 Le paquet (20) montré lors de ces essais antérieurs précède la correction WirelessBuddyFlags ; le paquet (21) de la reprise est décrit plus haut.
 
-Ces chiffres ne mesurent pas l'énergie des démons système ou l'autonomie du
+Les chiffres des deux campagnes ne mesurent pas l'énergie des démons système ou l'autonomie du
 téléphone/de la Watch sur la durée. L'âge du registre Watch, l'accès après une
 longue veille, les autres versions iOS/macOS et un parcours VoiceOver/clavier
 complet ne sont pas validés. Le niveau Watch reste le dernier connu par

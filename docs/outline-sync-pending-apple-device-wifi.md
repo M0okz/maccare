@@ -27,9 +27,15 @@ correction WirelessBuddyFlags maintenant appliquée et relue sur l’iPhone en U
 Ajouter le dédoublonnage des transports : une lecture par téléphone/Watch,
 1,283 s et 0,1052 s CPU pour le relevé USB réel, iPhone 81 % et Watch 75 %.
 Le paquet Dev (21) reconstruit montre les niveaux et l’accès Wi-Fi actif.
-Le débranchement puis la redécouverte après relance restent à vérifier. Ne pas
+Le débranchement puis deux relances complètes passent : iPhone 86 %, Watch
+75 %, connexion réseau seule confirmée, UI relue après chaque nouveau lancement.
+Relevés natifs distincts : 3,696 s / 0,2043 s CPU, puis 2,701 s / 0,2011 s CPU
+avec notre Dev arrêtée. L’état Wi-Fi reste actif et le bouton de modification
+est désactivé sans USB. Le défaut du matin ne se reproduit pas dans ce scénario ;
+longue veille, redémarrage des appareils et changement de réseau restent non testés. Ne pas
 présenter la fonction comme livrée ni la fiabilité réseau comme établie.
-Compléter les résultats réseau uniquement après réalisation, puis relire les pages.
+Les preuves réseau sont dans `build/apple-device-wifi-qa/resume-wifi-*.json`.
+Préserver les validations anciennes datées et relire les pages après écriture.
 
 Les pages gardent pour l'instant la note antérieure sur `6b207f1` ; elles ne
 doivent pas servir de preuve de la dernière correction préparée.
