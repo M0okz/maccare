@@ -8,7 +8,7 @@ struct SystemCleanView: View {
     @State private var confirming = false
 
     var body: some View {
-        CleaningManagerLayout {
+        ManagerBrowserLayout {
             VStack(alignment: .leading, spacing: Space.l) {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Nettoyage système").font(AppFont.emphasis).accessibilityAddTraits(.isHeader)

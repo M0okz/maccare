@@ -3,6 +3,7 @@ import SwiftUI
 struct DiskHealthCard: View {
     @ObservedObject var model: DiskHealthModel
     let volumePath: String
+    var showsRefresh = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -15,8 +16,10 @@ struct DiskHealthCard: View {
                         .font(AppFont.secondary).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 8)
-                Button("Actualiser") { Task { await model.refresh(at: volumePath) } }
-                    .buttonStyle(.borderless).font(AppFont.secondary).disabled(model.isLoading)
+                if showsRefresh {
+                    Button("Actualiser") { Task { await model.refresh(at: volumePath) } }
+                        .buttonStyle(.borderless).font(AppFont.secondary).disabled(model.isLoading)
+                }
             }
             if let report = model.report {
                 ViewThatFits(in: .horizontal) {

@@ -1,5 +1,15 @@
 # Reconnaître un build de développement
 
+## Sous-vues standardisées — préparation du 9 novembre 2026
+
+**Validé en Dev par l’utilisateur, non publié**, pour la prochaine release sur
+`codex/apple-device-batteries`. Les sous-vues Applications, PNG et Santé des
+disques ainsi que les feuilles secondaires réutilisent les composants
+communs. Compilation Release arm64, signature stricte et 26 tests ciblés
+réussis ; les copies quotidiennes restent distinctes.
+
+Voir [la composition partagée, les contrôles et leurs limites](standardized-subviews.md).
+
 ## Appareils jumelés — développement du 9 novembre 2026
 
 **Non livré**, branche `codex/apple-device-batteries`. Nouveau lecteur mobile

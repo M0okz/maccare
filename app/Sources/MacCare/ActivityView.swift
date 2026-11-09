@@ -45,6 +45,6 @@ struct ActivityView: View {
         }
         .padding(Space.xl)
         .frame(minWidth: 560, idealWidth: 640, minHeight: 260, idealHeight: 440)
-        .preferredColorScheme(.dark)
+        .modifier(ManagerSheetStyle())
     }
 }

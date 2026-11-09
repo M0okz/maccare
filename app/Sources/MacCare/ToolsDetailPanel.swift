@@ -67,7 +67,6 @@ struct ToolManagerFooter<Summary: View, Actions: View>: View {
 /// Le panneau est clair même si l'apparence globale de la fenêtre principale est sombre.
 struct ToolConfirmationStyle: ViewModifier {
     func body(content: Content) -> some View {
-        content.foregroundStyle(Theme.fg).background(Color.white)
-            .environment(\.colorScheme, .light).preferredColorScheme(.light).tint(Theme.accent)
+        content.modifier(ManagerSheetStyle())
     }
 }

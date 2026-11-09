@@ -457,16 +457,6 @@ struct DetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if app.module?.section == .applications && app.module != .applicationsOverview {
-                HStack {
-                    Button { app.module = .applicationsOverview } label: {
-                        Label(app.applicationsAnalysis.phase == .summary ? "Bilan des applications" : "Applications", systemImage: "chevron.left")
-                    }
-                    .buttonStyle(SecondaryActionButtonStyle()).font(AppFont.body)
-                    Spacer()
-                }
-                .padding(.horizontal, Space.xl).padding(.top, Space.l)
-            }
             SectionNavigationView(module: $app.module)
             ZStack {
                 Group {
@@ -484,8 +474,14 @@ struct DetailView: View {
                     case .imageOptimization: PNGOptimizationView(model: app.pngOptimization) { app.module = .filesOverview }
                     case .largeFiles: FilesManagerView(app: app, category: .large)
                     case .duplicates: FilesManagerView(app: app, category: .duplicates)
-                    case .uninstall: UninstallView(model: app.uninstall)
-                    case .updates: UpdatesView(model: app.updates)
+                    case .uninstall:
+                        ApplicationsDetailPanel(app: app, detail: app.uninstall.showingLeftovers ? .leftovers : .installed) {
+                            app.module = .applicationsOverview
+                        }
+                    case .updates:
+                        ApplicationsDetailPanel(app: app, detail: .updates, includeAllUpdateSources: true) {
+                            app.module = .applicationsOverview
+                        }
                     case .startup, .privacy, .maintenance, .screenCleaning, .aiClutter, .applicationPermissions, .diskHealth:
                         ToolsDetailPanel(app: app, module: app.module ?? .toolsOverview)
                     }
