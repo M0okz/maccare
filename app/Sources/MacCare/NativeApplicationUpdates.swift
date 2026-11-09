@@ -53,25 +53,42 @@ enum NativeApplicationUpdates {
     }
 
     static func check(apps: [InstalledUpdateApplication]? = nil,
-                      fetch: (URL, Int) async throws -> Data = { try await read($0, limit: $1) }) async -> (String, UpdateSource.State, [OutdatedItem]) {
+                      fetch: @escaping @Sendable (URL, Int) async throws -> Data = { try await read($0, limit: $1) }) async -> (String, UpdateSource.State, [OutdatedItem]) {
         let installed = (apps ?? InstalledUpdateApplication.inventory()).filter { !$0.appStore }
         guard !installed.isEmpty else { return (key, .notInstalled, []) }
-        var items: [OutdatedItem] = []
-        var failures: [String] = []
-        do {
-            let data = try await fetch(catalogURL, 32_000_000)
-            items = try HomebrewApplicationCatalog.updates(data: data, apps: installed)
-        } catch { failures.append("Catalogue Homebrew indisponible. Réessayez la vérification.") }
-        // Known official sources take precedence over the community catalog.
-        for source in OfficialGitHubApplication.catalog {
-            let matches = installed.filter { $0.bundleID == source.bundleID }
-            guard !matches.isEmpty else { continue }
-            items.removeAll { item in matches.contains { $0.url == item.applicationURL } }
-            do {
-                let data = try await fetch(source.apiURL, 2_000_000)
-                items += try source.updates(data: data, apps: matches)
-            } catch { failures.append("\(source.name) : versions officielles indisponibles. Réessayez la vérification.") }
+        let official = OfficialGitHubApplication.catalog.filter { source in installed.contains { $0.bundleID == source.bundleID } }
+        let officialURLs = Set(installed.filter { app in official.contains { $0.bundleID == app.bundleID } }.map(\.url))
+        // Reserve official apps up front: a slower or failed official feed must not
+        // accidentally expose the community catalog's competing version.
+        let catalogApps = installed.filter { !officialURLs.contains($0.url) }
+        let results = await withTaskGroup(of: (Int, [OutdatedItem], String?).self) { group in
+            group.addTask {
+                do {
+                    let data = try await fetch(catalogURL, 32_000_000)
+                    return (0, try HomebrewApplicationCatalog.updates(data: data, apps: catalogApps), nil)
+                } catch { return (0, [], "Catalogue Homebrew indisponible. Réessayez la vérification.") }
+            }
+            // Bound request concurrency if the official registry grows.
+            var next = 0
+            func addOfficial(_ index: Int) {
+                let source = official[index]
+                let matches = installed.filter { $0.bundleID == source.bundleID }
+                group.addTask {
+                    do {
+                        let data = try await fetch(source.apiURL, 2_000_000)
+                        return (index + 1, try source.updates(data: data, apps: matches), nil)
+                    } catch { return (index + 1, [], "\(source.name) : versions officielles indisponibles. Réessayez la vérification.") }
+                }
+            }
+            while next < min(3, official.count) { addOfficial(next); next += 1 }
+            var results: [(Int, [OutdatedItem], String?)] = []
+            for await result in group {
+                results.append(result)
+                if next < official.count { addOfficial(next); next += 1 }
+            }
+            return results.sorted { $0.0 < $1.0 }
         }
-        return (key, failures.isEmpty ? .ok : .error(failures.joined(separator: " ")), items)
+        let failures = results.compactMap { $0.2 }
+        return (key, failures.isEmpty ? .ok : .error(failures.joined(separator: " ")), results.flatMap { $0.1 })
     }
 }

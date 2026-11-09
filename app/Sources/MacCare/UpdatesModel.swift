@@ -3,7 +3,7 @@ import SwiftUI
 import AppKit
 
 /// Un paquet/app obsolète détecté par un gestionnaire.
-struct OutdatedItem: Identifiable, Hashable {
+struct OutdatedItem: Identifiable, Hashable, Sendable {
     let name: String
     let detail: String
     var releaseNotes: String? = nil
@@ -16,8 +16,8 @@ struct OutdatedItem: Identifiable, Hashable {
 }
 
 /// Un gestionnaire de mises à jour et son état.
-struct UpdateSource: Identifiable {
-    enum State: Equatable { case notInstalled, checking, ok, error(String) }
+struct UpdateSource: Identifiable, Sendable {
+    enum State: Equatable, Sendable { case notInstalled, checking, ok, error(String) }
     let key: String
     let title: String
     let command: String          // commande à exécuter soi-même pour mettre à jour
@@ -77,32 +77,60 @@ final class UpdatesModel: ObservableObject {
             UpdateSource(key: "mas", title: "App Store", command: ""),
             UpdateSource(key: "macos", title: "macOS", command: "softwareupdate -ia"),
         ].filter { !applicationsOnly || $0.isApplicationSource }
-        let keys = sources.map(\.key)
+        let definitions = sources
         Task.detached(priority: .userInitiated) {
             let token = PowerAssertion.beginUserActivity("MacCare · mises à jour")
             defer { PowerAssertion.end(token) }
             let brew = SystemTools.locate("brew")
-            for key in keys {
-                let result: (String, UpdateSource.State, [OutdatedItem])
-                switch key {
-                case NativeApplicationUpdates.key: result = await NativeApplicationUpdates.check()
-                case "netnewswire": result = await NetNewsWireFeed.check()
-                case "brew": result = Self.brewOutdated(brew, cask: false)
-                case "cask": result = Self.brewOutdated(brew, cask: true)
-                case "mas": result = AppStoreUpdates.check()
-                default: result = Self.macosOutdated()
-                }
-                await MainActor.run {
-                    if let i = self.sources.firstIndex(where: { $0.key == result.0 }) {
-                        self.sources[i].state = result.1
-                        self.sources[i].items = result.2
-                        self.sources = Self.removingCatalogDuplicates(self.sources)
-                    }
-                }
-            }
+            await Self.checkConcurrently(sources: definitions, using: { key in
+                await Self.checkSource(key, brew: brew)
+            }, didUpdate: { self.sources = $0 })
             await MainActor.run {
                 self.isChecking = false
                 self.hasChecked = true
+            }
+        }
+    }
+
+    typealias CheckResult = (String, UpdateSource.State, [OutdatedItem])
+
+    /// Each provider finishes independently. Keep raw results so duplicate suppression is
+    /// recomputed from all evidence, regardless of the order in which providers finish.
+    nonisolated static func checkConcurrently(
+        sources: [UpdateSource],
+        using check: @escaping @Sendable (String) async -> CheckResult,
+        didUpdate: @MainActor ([UpdateSource]) -> Void
+    ) async {
+        await withTaskGroup(of: CheckResult.self) { group in
+            for source in sources { group.addTask { await check(source.key) } }
+            var rawSources = sources
+            for await result in group {
+                guard let index = rawSources.firstIndex(where: { $0.key == result.0 }) else { continue }
+                rawSources[index].state = result.1
+                rawSources[index].items = result.2
+                await didUpdate(removingCatalogDuplicates(rawSources))
+            }
+        }
+    }
+
+    nonisolated private static func checkSource(_ key: String, brew: String?) async -> CheckResult {
+        switch key {
+        case NativeApplicationUpdates.key: return await NativeApplicationUpdates.check()
+        case "netnewswire": return await NetNewsWireFeed.check()
+        default:
+            // Process.waitUntilExit is blocking: use a worker queue rather than occupy
+            // a Swift cooperative executor thread while another provider needs to run.
+            return await withCheckedContinuation { continuation in
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let result: CheckResult
+                    switch key {
+                    case "brew": result = brewOutdated(brew, cask: false)
+                    case "cask": result = brewOutdated(brew, cask: true)
+                    case "mas": result = AppStoreUpdates.check()
+                    default: result = macosOutdated()
+                    }
+                    continuation.resume(returning: result)
+                }
             }
         }
     }
