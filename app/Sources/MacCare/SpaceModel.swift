@@ -20,7 +20,9 @@ final class SpaceModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var hasMeasured = false
     @Published private(set) var lastMeasuredAt: Date?
-    @Published var highlightedPath: String?
+    @Published private(set) var highlightedPath: String?
+    enum HoverSource: Equatable { case map, row(String) }
+    private var hoverSource: HoverSource?
     @Published private(set) var selectedPath: String?
     /// Progression en direct de la mesure en cours (entrées lues, octets comptés).
     @Published private(set) var liveEntries: UInt64 = 0
@@ -202,6 +204,18 @@ final class SpaceModel: ObservableObject {
     func select(_ child: SpaceChild) {
         guard children.contains(where: { $0.id == child.id }) else { return }
         selectedPath = child.id
+    }
+
+    /// Une sortie tardive de la liste ne doit pas effacer le survol acquis par la carte.
+    func highlight(_ path: String?, from source: HoverSource) {
+        if let path {
+            guard children.contains(where: { $0.id == path }) else { return }
+            hoverSource = source
+            if highlightedPath != path { highlightedPath = path }
+        } else if hoverSource == source {
+            hoverSource = nil
+            if highlightedPath != nil { highlightedPath = nil }
+        }
     }
 
     func open(_ child: SpaceChild) {

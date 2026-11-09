@@ -11,6 +11,7 @@ int32_t maccare_charge_write(int32_t backend, uint8_t value);
 int32_t maccare_battery_temperature(double *celsius);
 // Maximum des capteurs CPU connus, lecture seule ; indisponible sur les modèles non reconnus.
 int32_t maccare_cpu_temperature(double *celsius);
+// GPU HID, puis maximum des capteurs GPU SMC connus de la famille M1, en lecture seule.
 int32_t maccare_gpu_temperature(double *celsius);
 typedef struct {
     uint32_t count;

@@ -81,5 +81,6 @@ struct TrayGPUHistory {
         points.removeAll { $0.time < metrics.sampledAt - TrayCPUHistory.duration - 1 }
         guard let value = metrics.gpu?.fraction, value.isFinite else { return }
         points.append(.init(time: metrics.sampledAt, value: min(1, max(0, value))))
+        if points.count > TrayHistoryPoint.maximumCount { points.removeFirst(points.count - TrayHistoryPoint.maximumCount) }
     }
 }

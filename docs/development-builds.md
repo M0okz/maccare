@@ -1,5 +1,28 @@
 # Reconnaître un build de développement
 
+## Bulles Espace disque — Dev du 9 novembre 2026
+
+`build/space-bubbles/MacCare.app`, Dev 0.2.14 (13), actualise uniquement
+`/Applications/MacCare Dev.app`. Survol limité aux cercles et synchronisé avec
+la liste, infobulles retirées, clic simple pour sélectionner et double-clic
+pour ouvrir un dossier. Voir [les interactions et validations](space-bubbles-interaction.md).
+
+## Température GPU M1 — Dev du 9 novembre 2026
+
+`build/gpu-temperature/MacCare.app`, Dev 0.2.14 (11), actualise seulement
+`/Applications/MacCare Dev.app`. Repli SMC GPU M1 ajouté et testé sur pilotes
+simulés ; chemin HID maintenu sur le M1 local. Le relevé réel du M1 Max distant
+reste à confirmer. Voir [les preuves et limites](gpu-temperature-m1.md).
+
+## Cache des mesures — Dev du 8 novembre 2026
+
+`build/metrics-cache/MacCare.app` porte l’identité MacCare Dev 0.2.14 (10), pour
+actualiser uniquement `/Applications/MacCare Dev.app`. Les derniers relevés et
+les courbes survivent aux fermetures de vues, avec arrêt du suivi hors visibilité.
+Voir [les tests, limites et preuves locales](activity-metrics-cache.md).
+Évolution locale non publiée sur `codex/helper-process-icons` ; la distribution
+publique reste 0.2.14 (16) et la copie quotidienne est préservée.
+
 ## App Store sans Homebrew — développement du 7 novembre 2026
 
 Le paquet `build/bundled-mas/MacCare.app` embarque mas 7.0.0, signé avec
@@ -262,3 +285,25 @@ Ces changements sont publiés dans [MacCare 0.2.14 (build 16)](https://github.co
 Le [workflow de release](https://github.com/M0okz/maccare/actions/runs/42525327447) et les CI de branche, de PR et de fusion sont réussis. Le DMG public téléchargé est vérifié : signatures Developer ID des quatre exécutables arm64, tickets de notarisation app/DMG, Gatekeeper, versions du helper, licences et sources smartmontools. Les signatures Ed25519 du flux et du DMG sont validées avec la clé publique ; latest correspond à la release. DMG : 15928628 octets, SHA-256 `4b6e8060b9056975222acde00583f0ec10cb32b8843829f7eb7ef68020d9c9fd`. Le site public pointe vers ce paquet avec les mêmes taille et empreinte ; HTML identique aux sources, conteneur sain, copie temporaire supprimée.
 
 Les rendus ont été contrôlés dans les Dev précédentes à 1436 × 784. Les formats courts, le rail compact, les actions de fenêtre après agrandissement des boutons, le 14 pouces physique et une campagne complète VoiceOver/clavier ne sont pas déclarés testés dans ces passes. Aucune installation pendant la publication : la copie quotidienne et la Dev restent inchangées (Dev 0.2.13, build local 6). L’application de distribution n’a pas été lancée. Preuves : `build/release-0.2.14-qa/`, `build/battery-card-qa/`, `build/battery-health-badge-qa/` et `build/sidebar-spacing-qa/`.
+
+## Icônes des helpers — Dev 0.2.14 (build local 8)
+
+Branche `codex/helper-process-icons`, après la publication 0.2.14 (16). Paquet
+`build/helper-icons/MacCare.app`, installé dans `/Applications/MacCare Dev.app`,
+sans flux Sparkle, lancé avec `-battery.protection.resume NO`. Les helpers
+reprennent l’icône de leur application englobante ; les services restent
+représentés par le symbole générique. 18 tests ciblés, build et signatures
+strictes réussis. Contrôle natif des helpers Claude/Codex et vérification du
+vrai paquet Helium avec le même résolveur. [Détails et limites](process-icons.md).
+Aucune publication ; copie quotidienne préservée. Preuves : `build/helper-icons-qa/`.
+
+## Commandes de fenêtre natives — Dev 0.2.14 (build local 9)
+
+Paquet `build/native-window-controls/MacCare.app` installé uniquement dans
+`/Applications/MacCare Dev.app`, sans flux Sparkle et lancé avec
+`-battery.protection.resume NO`. Sur demande de Gregory, le forçage de taille et
+d’espacement des boutons fermer/réduire/agrandir est retiré. Le reste de la
+navigation et le correctif des icônes des helpers sont conservés sur
+`codex/helper-process-icons`. Ce retour visuel réversible ne reçoit pas de
+nouveau test métier ; contrôle du build, des signatures et du rendu natif dans
+`build/native-window-controls-qa/`. Aucune publication ; copie quotidienne préservée.

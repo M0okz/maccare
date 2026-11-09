@@ -50,7 +50,13 @@ des valeurs nulles. Le suivi CPU, mémoire et Wi-Fi est partagé entre la barre 
 menus, l’accueil et les fenêtres de détails. Chaque consommateur enregistre sa
 demande de suivi ; la disparition de l’un ne doit pas arrêter les autres. Une vue ne
 demande le suivi que lorsqu’elle affiche des valeurs : volet ouvert, ou fenêtre visible.
-Sans demande, aucun relevé n’a lieu, et les courbes repartent de zéro à la reprise.
+Sans demande, aucun relevé n’a lieu. En développement après 0.2.14, les dernières
+valeurs et les historiques bornés restent en mémoire ; les pauses coupent les
+tracés et ne comptent aucun trafic. Voir [le cycle de vie du cache](activity-metrics-cache.md).
+
+En Dev après 0.2.14, la température GPU possède aussi un repli SMC borné aux
+capteurs GPU connus de la famille M1 si HID n’en fournit aucun. Le cache de cinq
+secondes reste inchangé. Voir [les tests et limites matérielles](gpu-temperature-m1.md).
 
 La protection batterie est facultative et démarre désactivée. L’assistant conserve
 un état de récupération et un bail surveillé ; il tente de restaurer la configuration
@@ -286,3 +292,32 @@ Ces changements sont publiés dans [MacCare 0.2.14 (build 16)](https://github.co
 Le [workflow de release](https://github.com/M0okz/maccare/actions/runs/42525327447) et les CI de branche, de PR et de fusion sont réussis. Le DMG public téléchargé est vérifié : signatures Developer ID des quatre exécutables arm64, tickets de notarisation app/DMG, Gatekeeper, versions du helper, licences et sources smartmontools. Les signatures Ed25519 du flux et du DMG sont validées avec la clé publique ; latest correspond à la release. DMG : 15928628 octets, SHA-256 `4b6e8060b9056975222acde00583f0ec10cb32b8843829f7eb7ef68020d9c9fd`. Le site public pointe vers ce paquet avec les mêmes taille et empreinte ; HTML identique aux sources, conteneur sain, copie temporaire supprimée.
 
 Les rendus ont été contrôlés dans les Dev précédentes à 1436 × 784. Les formats courts, le rail compact, les actions de fenêtre après agrandissement des boutons, le 14 pouces physique et une campagne complète VoiceOver/clavier ne sont pas déclarés testés dans ces passes. Aucune installation pendant la publication : la copie quotidienne et la Dev restent inchangées (Dev 0.2.13, build local 6). L’application de distribution n’a pas été lancée. Preuves : `build/release-0.2.14-qa/`, `build/battery-card-qa/`, `build/battery-health-badge-qa/` et `build/sidebar-spacing-qa/`.
+
+## Icônes des helpers — développement après 0.2.14
+
+`TrayProcessController` délègue la résolution à `TrayProcessIconResolver` sur
+l’acteur principal. Le paquet application extérieur est déterminé depuis le
+chemin de l’exécutable ou le paquet enregistré auprès de macOS. Son icône sert
+aux helpers ; les vrais services système sans application restent génériques.
+Le cache par identité PID/démarrage, les noms et les actions sont conservés.
+[Contrats, vérifications et limites](process-icons.md). Travail non publié.
+
+## Retour aux boutons AppKit natifs — Dev du 8 novembre 2026
+
+Le coordinateur de `WindowConfigurator` qui forçait les tailles et espacements
+des boutons de fenêtre est supprimé. Le configurateur conserve uniquement son
+rôle antérieur de barre de titre et de disposition de la fenêtre ; AppKit gère
+les boutons standard. La navigation aérée et le correctif d’icônes de helpers
+restent en place. Correctif Dev non publié sur `codex/helper-process-icons` ;
+[état et validations](sidebar-spacing.md).
+
+## Carte Espace disque — interactions du 9 novembre 2026
+
+`SpaceBubblesView` possède un seul suivi du pointeur dans les coordonnées de la
+carte. `BubbleHitTest` utilise les centres/rayons fournis par `BubblePacker` ;
+le chemin de survol est partagé avec la liste et publié seulement à son changement.
+`SpaceModel.HoverSource` identifie la carte ou la ligne qui possède ce survol ;
+les événements de sortie des anciennes sources sont ignorés.
+Les boutons sont sensibles au cercle, sélectionnent au clic simple et ouvrent
+les dossiers au double-clic ; leur action d’accessibilité garde l’ouverture directe.
+Voir [les comportements et preuves Dev](space-bubbles-interaction.md).

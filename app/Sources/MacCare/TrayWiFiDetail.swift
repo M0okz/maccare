@@ -8,26 +8,32 @@ struct WiFiTrafficHistory {
     private var interface: String?
     private var previousTime: TimeInterval?
 
+    mutating func pause() { previousTime = nil }
+
     mutating func record(_ metrics: TrayMetrics) {
-        guard let wifi = metrics.wifi, wifi.connected,
-              let received = wifi.received, let sent = wifi.sent,
-              received.isFinite, sent.isFinite, received >= 0, sent >= 0 else {
+        guard let wifi = metrics.wifi, wifi.connected else {
             self = .init()
             return
         }
         let identity = "\(wifi.kind.rawValue):\(wifi.interface):\(wifi.address ?? "")"
         if interface != identity { self = .init(); interface = identity }
+        samples.removeAll { $0.time < metrics.sampledAt - 121 }
+        guard let received = wifi.received, let sent = wifi.sent,
+              received.isFinite, sent.isFinite, received >= 0, sent >= 0 else {
+            pause()
+            return
+        }
         if let previousTime {
             let elapsed = metrics.sampledAt - previousTime
             // Un intervalle après veille ne décrit pas un débit instantané fiable.
-            if elapsed > 0 && elapsed <= 10 {
+            if elapsed > 0 && elapsed <= TrayHistoryPoint.maximumGap {
                 receivedBytes += received * elapsed
                 sentBytes += sent * elapsed
-            } else if elapsed > 10 { self = .init(); interface = identity }
+            }
         }
         previousTime = metrics.sampledAt
         samples.append(.init(time: metrics.sampledAt, received: received, sent: sent))
-        samples.removeAll { $0.time < metrics.sampledAt - 121 }
+        if samples.count > 512 { samples.removeFirst(samples.count - 512) }
     }
 }
 
