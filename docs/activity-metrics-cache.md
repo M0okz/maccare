@@ -76,12 +76,27 @@ Apple Development sans flux Sparkle, est installé dans `/Applications/MacCare D
 Sa signature, son binaire et le processus lancé ont été contrôlés. La copie
 quotidienne 0.2.8 (10), son empreinte et sa signature sont préservées.
 
-Le contrôle visuel natif reste **en attente** : l’outil a constaté un Mac verrouillé,
-avec déverrouillage automatique suspendu après une entrée physique. Le
-déverrouillage manuel a été demandé ; aucun contrôle visuel réussi n’est revendiqué.
-Les sélecteurs natifs gardent leurs libellés ; les graphiques exposent durée,
-moyenne et pic sous forme textuelle. Le respect de Réduire les animations est
-conservé. Le parcours VoiceOver et le clavier restent à vérifier en session native.
+Après déverrouillage manuel, le contrôle natif de la Dev 0.2.15 (18) est
+**réussi** le 9 novembre. Les courbes CPU/GPU/réseau restent continues à l’accueil
+après les allers-retours Applications/Accueil. Le détail CPU sur une heure
+conserve le pic historique de 100 % (moyenne observée évoluant de 7 à 10 %),
+y compris après fermeture du détail et du volet, passage dans Applications sans
+métriques affichées, puis réouverture du volet. Les anciens points restent
+visibles au lieu de recommencer la courbe.
+
+Les détails GPU sur trente minutes, RAM et réseau sur une heure ont été ouverts.
+Moyenne/pic, sélecteurs et disposition des deux cartes réseau sont visibles sans
+débordement. Cette validation porte sur le changement d’échelle et l’historique
+accumulé pendant la session, pas sur une collecte native complète d’une heure.
+Les libellés de durée/moyenne/pic sont exposés dans l’arbre d’accessibilité ;
+Échap ferme le détail surgissant puis le volet. Aucun parcours VoiceOver ou
+clavier complet n’est revendiqué.
+
+Observation courte de l’application entière, onglet Applications et volet fermé :
+0,24 seconde CPU en 26,16 secondes, soit environ 0,92 % d’un cœur. Ce relevé `ps`
+ne dispose pas de référence avant changement et n’isole pas le coût de la seule
+collecte ; il ne prouve pas une consommation nulle. Preuve :
+`build/stable-metrics-qa/background-observation.json`.
 
 Aucune campagne matérielle de veille, de consommation énergétique prolongée,
 de multi-écran ou de VoiceOver n’est déduite des tests automatisés.

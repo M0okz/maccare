@@ -148,7 +148,7 @@ final class TrayPanelController: NSObject {
         panel.setFrame(frame, display: false)
         panel.alphaValue = 0
         statusItem?.button?.highlight(true)
-        // Les mesures ne tournent que volet ouvert : fermé, il n’affiche rien.
+        // Le volet demande les relevés rapides ; fermé, le suivi léger continue.
         app.trayMetrics.setMonitoring(for: .menuBar, enabled: true)
         installEventMonitors()
         panel.makeKeyAndOrderFront(nil)
