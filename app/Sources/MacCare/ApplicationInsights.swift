@@ -34,7 +34,16 @@ enum ApplicationInsightPolicy {
             return "Architecture non prise en charge : " + architectures.sorted().joined(separator: ", ")
         }
         let usable = architectures.map { $0.intersection(supported) } ?? []
-        let values: [String?] = usable.isEmpty ? [minimum] : usable.map { perArchitecture[$0] ?? minimum }
+        let values: [String?] = usable.isEmpty ? [minimum] : usable.flatMap { architecture -> [String?] in
+            var requirements = [perArchitecture[architecture] ?? minimum]
+            // The native reader returns CPU families, not subtypes. Only claim a
+            // blocker when every declared variant of that family needs a newer OS.
+            let variant = architecture == "arm64" ? "arm64e" : architecture == "x86_64" ? "x86_64h" : nil
+            if let variant, let requirement = perArchitecture[variant] {
+                requirements.append(requirement)
+            }
+            return requirements
+        }
         guard values.allSatisfy({ $0 != nil }) else { return nil }
         let requirements = values.compactMap { $0 }
         guard !requirements.isEmpty,
@@ -78,11 +87,7 @@ enum ApplicationInsightsReader {
                 let days = Int(now.timeIntervalSince(used) / 86_400)
                 result.unused.append(.init(app: app, detail: "Aucune ouverture enregistrée depuis \(days) jours", lastUsed: used))
             }
-            var architectures: Set<String>?
-            if let executable = bundle.executableURL {
-                let output = SystemTools.run("/usr/bin/lipo", ["-archs", executable.path])
-                if output.ok { architectures = Set(output.stdout.split(whereSeparator: \.isWhitespace).map(String.init)) }
-            }
+            let architectures = bundle.executableURL.flatMap { ExecutableArchitectures.read(at: $0) }
             if architectures == nil { result.unknownCompatibility += 1 }
             let minimum = bundle.object(forInfoDictionaryKey: "LSMinimumSystemVersion") as? String
             let perArch = bundle.object(forInfoDictionaryKey: "LSMinimumSystemVersionByArchitecture") as? [String: String] ?? [:]
