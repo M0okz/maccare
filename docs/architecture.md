@@ -1,5 +1,11 @@
 # Architecture de MacCare
 
+## Désinstallation — Dev du 9 novembre 2026
+
+**En développement, non livré.** `Remover.uninstall` traite le paquet choisi dans son dossier Applications avec une liste d’inclusion, puis ses données dans le dossier personnel. Le nettoyage générique reste inchangé. Le modèle agrège les comptes rendus et retire les paquets disparus du catalogue.
+
+Voir [le contrat, les tests et les limites](application-removal.md).
+
 Disponible dans [MacCare 0.2.15 (build 17)](https://github.com/M0okz/maccare/releases/tag/v0.2.15). Les mentions Dev/non livré ci-dessous conservent l’historique des vérifications antérieures à cette publication et leurs limites. Voir [la livraison et ses contrôles](releasing.md).
 
 ## Source App Store autonome

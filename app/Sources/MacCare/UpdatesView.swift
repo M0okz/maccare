@@ -48,7 +48,7 @@ struct UpdatesView: View {
                                                 Text(item.name).font(AppFont.body.weight(.medium))
                                                 Text(item.detail).font(AppFont.caption).foregroundStyle(Theme.muted)
                                             }
-                                            .frame(maxWidth: .infinity, alignment: .leading).padding(10)
+                                            .frame(maxWidth: .infinity, alignment: .leading).padding(10).contentShape(Rectangle())
                                             .background(selectedItemID == item.id ? Theme.surface : Color.clear,
                                                         in: RoundedRectangle(cornerRadius: 8))
                                         }.buttonStyle(.plain)
