@@ -1,5 +1,12 @@
 # Reconnaître un build de développement
 
+## Ensemble 0.2.17 — préparation du 9 novembre 2026
+
+Branches produit réunies sur `codex/release-0.2.17`, non publiées à ce stade.
+La nouvelle correction WirelessBuddyFlags est reconstruite et validée en USB
+puis sans câble après deux relances. Les entrées précédentes ci-dessous restent
+datées ; voir [l’intégration, les tests et limites actuels](release-integration-0.2.17.md).
+
 ## Sous-vues standardisées — préparation du 9 novembre 2026
 
 **Validé en Dev par l’utilisateur, non publié**, pour la prochaine release sur
