@@ -10,7 +10,9 @@ struct OutdatedItem: Identifiable, Hashable {
     var publicationDate: String? = nil
     var downloadBytes: UInt64? = nil
     var applicationURL: URL? = nil
-    var id: String { name + detail }
+    var downloadURL: URL? = nil
+    var catalogToken: String? = nil
+    var id: String { (applicationURL?.path ?? name) + detail }
 }
 
 /// Un gestionnaire de mises à jour et son état.
@@ -22,10 +24,11 @@ struct UpdateSource: Identifiable {
     var state: State = .checking
     var items: [OutdatedItem] = []
     var id: String { key }
+    var isApplicationSource: Bool { ["cask", "mas", "netnewswire", NativeApplicationUpdates.key].contains(key) }
 }
 
-/// Vérifie les mises à jour en **lecture seule** via Homebrew, mas embarqué et softwareupdate.
-/// MacCare ne lance jamais les mises à jour lui-même : il affiche la liste et la commande à copier.
+/// Vérifie les mises à jour en lecture seule via le catalogue public, les sources officielles,
+/// Homebrew, mas embarqué et softwareupdate. Affiche un lien ou une commande, sans installation.
 @MainActor
 final class UpdatesModel: ObservableObject {
     @Published private(set) var sources: [UpdateSource] = []
@@ -67,12 +70,13 @@ final class UpdatesModel: ObservableObject {
         isChecking = true
         copiedCommand = nil
         sources = [
+            UpdateSource(key: NativeApplicationUpdates.key, title: "Catalogue d’applications", command: ""),
             UpdateSource(key: "netnewswire", title: "NetNewsWire · Sparkle", command: ""),
             UpdateSource(key: "brew", title: "Homebrew", command: "brew upgrade"),
             UpdateSource(key: "cask", title: "Homebrew (apps)", command: "brew upgrade --cask"),
             UpdateSource(key: "mas", title: "App Store", command: ""),
             UpdateSource(key: "macos", title: "macOS", command: "softwareupdate -ia"),
-        ].filter { !applicationsOnly || ["cask", "mas", "netnewswire"].contains($0.key) }
+        ].filter { !applicationsOnly || $0.isApplicationSource }
         let keys = sources.map(\.key)
         Task.detached(priority: .userInitiated) {
             let token = PowerAssertion.beginUserActivity("MacCare · mises à jour")
@@ -81,6 +85,7 @@ final class UpdatesModel: ObservableObject {
             for key in keys {
                 let result: (String, UpdateSource.State, [OutdatedItem])
                 switch key {
+                case NativeApplicationUpdates.key: result = await NativeApplicationUpdates.check()
                 case "netnewswire": result = await NetNewsWireFeed.check()
                 case "brew": result = Self.brewOutdated(brew, cask: false)
                 case "cask": result = Self.brewOutdated(brew, cask: true)
@@ -91,6 +96,7 @@ final class UpdatesModel: ObservableObject {
                     if let i = self.sources.firstIndex(where: { $0.key == result.0 }) {
                         self.sources[i].state = result.1
                         self.sources[i].items = result.2
+                        self.sources = Self.removingCatalogDuplicates(self.sources)
                     }
                 }
             }
@@ -98,6 +104,18 @@ final class UpdatesModel: ObservableObject {
                 self.isChecking = false
                 self.hasChecked = true
             }
+        }
+    }
+
+    /// A catalog match knows the actual bundle version; suppress the duplicate CLI receipt row.
+    nonisolated static func removingCatalogDuplicates(_ sources: [UpdateSource]) -> [UpdateSource] {
+        let tokens = Set(sources.filter { $0.key == NativeApplicationUpdates.key }.flatMap { $0.items.compactMap(\.catalogToken) })
+        let urls = Set(sources.filter { $0.key == "netnewswire" }.flatMap { $0.items.compactMap(\.applicationURL) })
+        return sources.map { source in
+            var source = source
+            if source.key == "cask" { source.items.removeAll { tokens.contains($0.name) } }
+            if source.key == NativeApplicationUpdates.key { source.items.removeAll { $0.applicationURL.map(urls.contains) ?? false } }
+            return source
         }
     }
 

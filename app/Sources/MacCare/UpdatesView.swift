@@ -5,7 +5,7 @@ struct UpdatesView: View {
     @ObservedObject var model: UpdatesModel
     var applicationsOnly = false
     private var sources: [UpdateSource] {
-        applicationsOnly ? model.sources.filter { ["cask", "mas", "netnewswire"].contains($0.key) } : model.sources
+        applicationsOnly ? model.sources.filter { $0.isApplicationSource } : model.sources
     }
     @State private var selectedItemID: String?
 
@@ -16,7 +16,7 @@ struct UpdatesView: View {
                     title: "Mises à jour",
                     subtitle: applicationsOnly
                         ? "Consultez les mises à jour de vos applications et leurs notes de version. Aucune installation automatique."
-                        : "État des mises à jour via Homebrew, l’App Store, Sparkle (NetNewsWire) et macOS. Ouvrez l’application concernée ou copiez la commande proposée. Aucune installation automatique."
+                        : "Consultez le catalogue d’applications, les sources officielles, Homebrew, l’App Store et macOS. Ouvrez le téléchargement ou copiez la commande proposée. Aucune installation automatique."
                 )
                 HStack(spacing: Space.m) {
                     PrimaryButton(title: "Vérifier", systemImage: "arrow.triangle.2.circlepath", tint: ModuleColor.updates) { if applicationsOnly { model.checkApplications() } else { model.check() } }
@@ -72,8 +72,12 @@ struct UpdatesView: View {
                                     Button("Ouvrir l’App Store") { NSWorkspace.shared.open(AppStoreUpdates.storeURL) }
                                         .buttonStyle(.borderedProminent)
                                         .help("Ouvre l’App Store pour choisir les mises à jour à installer.")
+                                } else if let url = entry.item.downloadURL {
+                                    Button("Accéder au téléchargement") { NSWorkspace.shared.open(url) }
+                                        .buttonStyle(.borderedProminent)
+                                        .help("Ouvre la page de l’éditeur dans votre navigateur.")
                                 } else if let url = entry.item.applicationURL {
-                                    Button("Ouvrir NetNewsWire pour mettre à jour") { NSWorkspace.shared.open(url) }
+                                    Button("Ouvrir pour mettre à jour") { NSWorkspace.shared.open(url) }
                                         .buttonStyle(.borderedProminent)
                                 } else if !entry.source.command.isEmpty {
                                     Button("Copier la commande : \(entry.source.command)") { model.copy(entry.source.command) }

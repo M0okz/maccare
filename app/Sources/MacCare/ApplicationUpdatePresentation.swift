@@ -26,6 +26,7 @@ struct ApplicationUpdateEntry: Identifiable {
         case "cask": return "Homebrew"
         case "mas": return "App Store"
         case "netnewswire": return "Sparkle"
+        case NativeApplicationUpdates.key: return item.catalogToken == nil ? "Éditeur · GitHub" : "Catalogue Homebrew"
         default: return source.title
         }
     }
@@ -42,7 +43,7 @@ enum ApplicationUpdateSort: String, CaseIterable, Identifiable {
 enum ApplicationUpdatePresentation {
     static func entries(sources: [UpdateSource], apps: [AppInfo], query: String, sort: ApplicationUpdateSort,
                         lastOpened: [URL: Date]) -> [ApplicationUpdateEntry] {
-        sources.filter { ["cask", "mas", "netnewswire"].contains($0.key) }
+        sources.filter { $0.isApplicationSource }
             .flatMap { source in source.items.map { ApplicationUpdateEntry(source: source, item: $0) } }
             .filter { query.isEmpty || $0.item.name.localizedCaseInsensitiveContains(query) || $0.sourceName.localizedCaseInsensitiveContains(query) }
             .sorted { a, b in

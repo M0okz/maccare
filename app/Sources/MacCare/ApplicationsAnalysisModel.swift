@@ -28,7 +28,7 @@ final class ApplicationsAnalysisModel: ObservableObject {
 /// Un contrôle indisponible ou en échec ne doit jamais être annoncé « aucune mise à jour ».
 struct ApplicationUpdateSummary {
     let sources: [UpdateSource]
-    private var appSources: [UpdateSource] { sources.filter { ["cask", "mas", "netnewswire"].contains($0.key) } }
+    private var appSources: [UpdateSource] { sources.filter { $0.isApplicationSource } }
     var count: Int { appSources.reduce(0) { $0 + $1.items.count } }
     var checking: Bool { appSources.contains { $0.state == .checking } }
     var hasErrors: Bool {

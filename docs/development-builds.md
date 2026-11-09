@@ -330,3 +330,20 @@ navigation et le correctif des icônes des helpers sont conservés sur
 `codex/helper-process-icons`. Ce retour visuel réversible ne reçoit pas de
 nouveau test métier ; contrôle du build, des signatures et du rendu natif dans
 `build/native-window-controls-qa/`. Aucune publication ; copie quotidienne préservée.
+
+
+## Catalogue hybride Applications — 9 novembre 2026
+
+**Développement local non livré.** La source Catalogue d’applications consulte le
+catalogue public Homebrew sans installation de Homebrew ; ArtCraft Launcher
+est suivi sur son dépôt GitHub officiel et NetNewsWire conserve son flux Sparkle.
+Correspondances locales par identifiant et paquet, comparaison prudente des
+versions, doublons regroupés et lien vers le téléchargement. Aucun inventaire
+transmis ni installation automatique. Détails et limites :
+[application-update-catalog.md](application-update-catalog.md).
+
+Paquet signé `build/native-updates/MacCare.app`, MacCare Dev 0.2.16 (7).
+29 tests ciblés et vérifications réseau réussis ; parcours natif Applications
+validé avec douze résultats, dont onze du catalogue. ArtCraft non installé,
+cas ancien simulé vérifié sur la vraie API. Copie quotidienne inchangée.
+Preuves : `build/native-updates-validation.json`.

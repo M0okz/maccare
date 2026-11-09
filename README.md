@@ -5,6 +5,7 @@ avec un moteur de scan et de nettoyage en Rust. La première distribution cible
 les Mac Apple Silicon, à partir de macOS 13.
 
 Site et téléchargement : <https://maccare.homeblack.fr/>, sources dans [site/](site/README.md).
+Guides utilisateur : <https://maccare.homeblack.fr/documentation/>.
 
 ## Fonctions
 
