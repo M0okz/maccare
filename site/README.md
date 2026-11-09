@@ -54,3 +54,8 @@ Après une livraison, relire les versions de référence, statuts et liens dans 
 les guides, ainsi que `public/sitemap.xml`.
 
 Validation et état de publication : [documentation publique](../docs/public-documentation.md).
+
+
+Les guides ont pour référence **0.2.19** depuis le 9 novembre 2026 : refonte
+Batterie, réparation d’assistant et priorités d’accessoires. Les références
+à l’introduction du catalogue en 0.2.17 restent historiques.

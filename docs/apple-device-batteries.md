@@ -164,7 +164,7 @@ séparément, puis le paquet ; la distribution contrôle aussi son architecture.
 La CI exécute les fixtures natives sous ASan/UBSan.
 
 
-## Cercles d’accessoires — préparation 0.2.19
+## Cercles d’accessoires — livraison 0.2.19
 
 Même sélection à l’accueil et dans le volet : trois accessoires au maximum.
 Le téléphone occupe la première place disponible réservée, l’Apple Watch la

@@ -24,7 +24,7 @@ Maquette validée : résumé compact et six cartes, palette verte existante,
 sous-vues dans le cadre clair intégré commun. Paquet dédié
 `build/battery-cards/MacCare.app`, sans remplacer les copies d’Applications.
 Voir [la refonte et les contrôles](battery-cards.md) et
-[la synchronisation Outline en attente](outline-sync-pending-battery-cards.md).
+[la reprise de synchronisation Outline](outline-sync-pending-battery-cards.md).
 
 ## Publication 0.2.17 — 9 novembre 2026
 
@@ -437,3 +437,23 @@ Tests ciblés : 28 XCTest réussis sur les décodeurs, priorités, caches et his
 La classification macOS/HID est testée sur des propriétés contrôlées ; aucun
 accessoire HID/IOPS ne renvoyait de batterie lors du relevé local. Les vérifications
 visuelles et de distribution sont consignées après leur exécution.
+
+Validation locale finale 0.2.19 : build Release arm64 et paquet Dev Apple Development
+valides, 333 XCTest (un test réseau facultatif ignoré), 259 Swift Testing, 19 tests
+Python et signatures Sparkle réussis. Accueil Dev observé avec boîtier AirPods 81 %
+puis écouteurs 82 %. Le volet utilise le même classement et trois accessoires ;
+son icône de statut n’a pas été accessible à l’automatisation native disponible.
+Les labels et valeurs accessibles existants sont conservés ; aucune campagne
+VoiceOver complète ni reconnexion physique de souris n’est revendiquée.
+
+
+## Livraison 0.2.19 — 9 novembre 2026
+
+Publié dans [MacCare 0.2.19 (build 21)](https://github.com/M0okz/maccare/releases/tag/v0.2.19),
+tag sur `c89d666c30680a2c23e4c061ea45b732ae3e4fd7`, [workflow réussi](https://github.com/M0okz/maccare/actions/runs/42644912784).
+Ce statut remplace les mentions de développement non livré des notes datées
+ci-dessous. Les validations et leurs limites sont conservées. La publication
+ne remplace pas les copies installées. Voir [le bilan de livraison](release-integration-0.2.19.md).
+
+Les huit pages Outline concernées sont mises à jour et relues ; les dix pages
+HTML publiques correspondent exactement aux sources déployées.

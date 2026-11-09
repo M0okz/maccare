@@ -1,4 +1,8 @@
-# Outline en attente — Batterie par blocs
+# Outline rétabli — Batterie par blocs
+
+Synchronisation terminée le 9 novembre 2026 : huit pages relues et mises à jour
+pour la livraison 0.2.19, contenu antérieur, collection et parents conservés.
+Le blocage initial ci-dessous est historique.
 
 9 novembre 2026, branche `codex/battery-cards`, base `ddc711d`.
 Voir [la refonte et ses vérifications](battery-cards.md).

@@ -1,5 +1,13 @@
 # Sous-vues des gestionnaires
 
+## Livraison 0.2.19 — 9 novembre 2026
+
+Publié dans [MacCare 0.2.19 (build 21)](https://github.com/M0okz/maccare/releases/tag/v0.2.19),
+tag sur `c89d666c30680a2c23e4c061ea45b732ae3e4fd7`, [workflow réussi](https://github.com/M0okz/maccare/actions/runs/42644912784).
+Ce statut remplace les mentions de développement non livré des notes datées
+ci-dessous. Les validations et leurs limites sont conservées. La publication
+ne remplace pas les copies installées. Voir [le bilan de livraison](release-integration-0.2.19.md).
+
 ## Livraison 0.2.17 — 9 novembre 2026
 
 Cette évolution est publiée dans [MacCare 0.2.17 (build 19)](https://github.com/M0okz/maccare/releases/tag/v0.2.17),

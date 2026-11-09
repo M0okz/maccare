@@ -221,3 +221,14 @@ synchronisé puis relu après rétablissement des accès Homelab. Huit branches
 locales intégrées et trois distantes sont fermées ; le chantier Batterie commencé
 en parallèle est préservé. Voir [les preuves et limites](release-integration-0.2.17.md)
 et [la clôture du site et de la documentation](release-0.2.17-completion.md).
+
+
+## Livraison 0.2.19 — 9 novembre 2026
+
+Publié dans [MacCare 0.2.19 (build 21)](https://github.com/M0okz/maccare/releases/tag/v0.2.19),
+tag sur `c89d666c30680a2c23e4c061ea45b732ae3e4fd7`, [workflow réussi](https://github.com/M0okz/maccare/actions/runs/42644912784).
+Ce statut remplace les mentions de développement non livré des notes datées
+ci-dessous. Les validations et leurs limites sont conservées. La publication
+ne remplace pas les copies installées. Voir [le bilan de livraison](release-integration-0.2.19.md).
+
+DMG final : 16112155 octets, SHA-256 `6430fda069ac0f16455b2e9d9707762b3b8224670d73c7dbf3818cd7f1fc3a4e`.
