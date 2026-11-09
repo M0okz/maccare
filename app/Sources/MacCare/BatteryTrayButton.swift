@@ -40,8 +40,7 @@ struct BatteryTrayButton: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         HStack(spacing: 3) {
-                            TrayBatteryGauge(name: "Ce Mac", symbol: "laptopcomputer", percent: snapshot.percent)
-                            ForEach(Array(telemetry.featuredAccessories.prefix(2))) { accessory in
+                            ForEach(Array(telemetry.featuredAccessories.prefix(3))) { accessory in
                                 TrayBatteryGauge(name: accessory.name, symbol: accessory.symbol, percent: accessory.percent)
                                     .help("\(accessory.name) · \(accessory.levelDescription)")
                                     .accessibilityValue(accessory.levelDescription)

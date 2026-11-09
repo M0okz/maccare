@@ -20,6 +20,68 @@ final class TrayBatteryTelemetryTests: XCTestCase {
         XCTAssertEqual(TrayBatteryTelemetry.accessory(id: 4, properties: ["Product": "Showcase Keyboard", "BatteryPercent": 72])?.symbol, "keyboard")
     }
 
+    func testCirclesReservePhoneAndWatchAndRotateTheLowestRemainingDevice() {
+        let phone = device("phone", "iphone", 95), watch = device("watch", "applewatch", 90)
+        let mouse = device("mouse", "computermouse", 10), airpodsCase = device("case", "airpods.chargingcase", 20)
+        let pods = device("pods", "headphones", 70)
+        var telemetry = TrayBatteryTelemetry(accessories: [pods, airpodsCase, mouse, watch, phone])
+        XCTAssertEqual(telemetry.featuredAccessories.prefix(3).map(\.id), ["phone", "watch", "mouse"])
+        telemetry.accessories = [phone, watch, pods, device("mouse", "computermouse", 50), airpodsCase]
+        XCTAssertEqual(telemetry.featuredAccessories.prefix(3).map(\.id), ["phone", "watch", "case"])
+        XCTAssertEqual(telemetry.featuredAccessories.count, 5, "The detail retains every device")
+    }
+
+    func testMissingReservedDevicesUseLowestBatteryWithoutEmptyOrDuplicateCircles() {
+        let watch = device("watch", "applewatch", 90), phone = device("phone", "iphone", 95)
+        let mouse = device("mouse", "computermouse", 10), box = device("case", "airpods.chargingcase", 20)
+        let tablet = device("tablet", "ipad", 1)
+        for (input, expected) in [
+            ([watch, mouse, box], ["mouse", "watch", "case"]),
+            ([phone, mouse, box], ["phone", "mouse", "case"]),
+            ([box, mouse, tablet], ["tablet", "mouse", "case"]),
+            ([watch], ["watch"]), ([], []), ([mouse, mouse], ["mouse"])
+        ] {
+            XCTAssertEqual(TrayBatteryTelemetry(accessories: input).featuredAccessories.prefix(3).map(\.id), expected)
+        }
+    }
+
+    func testEqualBatteryLevelsKeepDeterministicOrderWhenSamplingOrderChanges() {
+        let a = device("a", "computermouse", 0), b = device("b", "airpods.chargingcase", 0)
+        XCTAssertEqual(TrayBatteryTelemetry(accessories: [b, a]).featuredAccessories.map(\.id), ["a", "b"])
+        XCTAssertEqual(TrayBatteryTelemetry(accessories: [a, b]).featuredAccessories.map(\.id), ["a", "b"])
+    }
+
+    func testMouseTypeSurvivesRenamingAndPowerSourceConversion() {
+        XCTAssertEqual(TrayBatteryTelemetry.powerSourceAccessory(id: 1, properties: [
+            "Name": "Mon périphérique", "Current Capacity": 15, "Max Capacity": 100,
+            "Accessory Category": "Mouse"
+        ])?.symbol, "computermouse")
+        XCTAssertEqual(TrayBatteryTelemetry.accessory(id: 2, properties: [
+            "Product": "Personnalisé", "BatteryPercent": 15, "PrimaryUsagePage": 1, "PrimaryUsage": 2
+        ])?.symbol, "computermouse")
+        XCTAssertEqual(TrayBatteryTelemetry.accessory(id: 3, properties: [
+            "Product": "MX Master 3S", "BatteryPercent": 15
+        ])?.symbol, "computermouse")
+        XCTAssertEqual(TrayBatteryTelemetry.powerSourceAccessory(id: 4, properties: [
+            "Name": "Mes écouteurs", "Current Capacity": 15, "Max Capacity": 100,
+            "Accessory Category": "Audio Battery Case"
+        ])?.symbol, "airpods.chargingcase")
+        XCTAssertEqual(TrayBatteryTelemetry.powerSourceAccessory(id: 7, properties: [
+            "Name": "AirPods", "Current Capacity": 10, "Max Capacity": 100,
+            "Accessory Category": "Headphone", "Part Identifier": "Case"
+        ])?.symbol, "airpods.chargingcase")
+        XCTAssertEqual(TrayBatteryTelemetry.accessory(id: 5, properties: [
+            "Product": "Inconnu", "BatteryPercent": 15
+        ])?.symbol, "battery.100percent")
+        XCTAssertEqual(TrayBatteryTelemetry.accessory(id: 6, properties: [
+            "Product": "Clavier", "BatteryPercent": 15, "PrimaryUsagePage": 12, "PrimaryUsage": 2
+        ])?.symbol, "keyboard", "A usage value alone does not establish a mouse")
+    }
+
+    private func device(_ id: String, _ symbol: String, _ percent: Int) -> TrayBatteryTelemetry.Accessory {
+        .init(id: id, name: id, symbol: symbol, percent: percent)
+    }
+
     func testProcessPowerUsesNanojoulesAndRequiresTwoCoherentReadings() {
         XCTAssertEqual(TrayProcessSampler.power(current: 5_000_000_000, previous: 1_000_000_000, seconds: 2), 2)
         XCTAssertNil(TrayProcessSampler.power(current: 1, previous: nil, seconds: 1))

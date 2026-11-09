@@ -18,7 +18,7 @@ La copie quotidienne `/Applications/MacCare.app` n'est pas remplacée.
 
 ## Extension Wi-Fi — développement du 9 novembre 2026
 
-La carte **Batterie → Réglages → Appareils Apple** gère désormais l'option de
+La carte **Batterie → Appareils Apple** gère désormais l'option de
 connexion sans câble, uniquement sur clic explicite et avec USB connecté.
 Activation du premier prototype par Gregory et premier relevé iPhone/Watch
 sans câble vérifiés ; redécouverte après relance irrégulière. La correction
@@ -162,3 +162,23 @@ fusionne les sources ; `TrayBatteryAccessoryHistory` conserve la provenance et
 distingue deux appareils mobiles de même nom. Le packaging signe la sonde
 séparément, puis le paquet ; la distribution contrôle aussi son architecture.
 La CI exécute les fixtures natives sous ASan/UBSan.
+
+
+## Cercles d’accessoires — préparation 0.2.19
+
+Même sélection à l’accueil et dans le volet : trois accessoires au maximum.
+Le téléphone occupe la première place disponible réservée, l’Apple Watch la
+seconde. Les places manquantes et le troisième cercle sont remplis avec les
+appareils restants par niveau croissant, boîtier des AirPods compris. Aucune
+place vide n’est affichée. Les égalités utilisent l’identifiant stable pour
+éviter les permutations à chaque lecture. Le détail du volet conserve la liste
+complète, dans cet ordre. L’iPad reste un appareil ordinaire pour cette sélection.
+
+La catégorie `Accessory Category` de macOS et le couple HID page/usage sont
+conservés lors de la conversion des sources d’alimentation. Ils donnent notamment
+l’icône de souris même si son nom ne contient ni « mouse » ni « souris ».
+Référence des catégories : [IOPSKeysPrivate.h Apple](https://github.com/apple-oss-distributions/IOKitUser/blob/main/ps.subproj/IOPSKeysPrivate.h).
+
+La lecture locale du 9 novembre ne renvoyait aucune batterie d’accessoire HID/IOPS :
+la classification des souris est donc vérifiée par les tests du décodeur, sans
+revendiquer une reconnexion physique de la souris de Gregory.

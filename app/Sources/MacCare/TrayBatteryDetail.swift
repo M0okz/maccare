@@ -66,7 +66,7 @@ struct TrayBatteryDetail: View {
             if !telemetry.accessories.isEmpty {
                 Divider().overlay(.white.opacity(0.1))
                 Text("Accessoires").font(.headline).accessibilityAddTraits(.isHeader)
-                ForEach(telemetry.accessories) { accessory in
+                ForEach(telemetry.featuredAccessories) { accessory in
                     HStack(spacing: 10) {
                         TrayBatteryGauge(name: accessory.name, symbol: accessory.symbol, percent: accessory.percent)
                             .accessibilityHidden(true)
