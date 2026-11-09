@@ -15,13 +15,14 @@ final class TrayMetricsStoreTests: XCTestCase {
 
     func testCPUHistoryHasARealBoundedTimeWindow() {
         var history = TrayCPUHistory()
-        for second in 0...100 { history.record(sample(Double(second))) }
-        XCTAssertEqual(history.points.first?.time, 59)
-        XCTAssertEqual(history.points.last?.time, 100)
-        XCTAssertEqual(history.points.count, 42, "40 secondes et un segment de bord, pas un historique étiré")
+        for second in 0...7200 { history.record(sample(Double(second))) }
+        XCTAssertEqual(history.points.first?.time, 3604)
+        XCTAssertEqual(history.points.last?.time, 7200)
+        XCTAssertEqual(history.points.count, TrayHistoryPoint.maximumCount)
+        XCTAssertEqual(TrayMetricHistory.window(history.points, duration: 600).count, 122)
     }
 
-    func testClosingTheLastConsumerKeepsCachedValuesAndHistoryWithoutMonitoring() {
+    func testClosingTheLastConsumerKeepsBackgroundMonitoring() {
         let store = TrayMetricsStore()
         let dashboard = TrayMetricsStore.Consumer.dashboard(UUID())
         store.setMonitoring(for: dashboard, enabled: true)
@@ -30,17 +31,18 @@ final class TrayMetricsStoreTests: XCTestCase {
         let displayedCPU = store.snapshot.display.cpu?.used
         store.setMonitoring(for: dashboard, enabled: false)
 
-        XCTAssertFalse(store.isMonitoring)
+        defer { store.stop() }
+        XCTAssertTrue(store.isMonitoring)
         XCTAssertEqual(store.snapshot.display.cpu?.used, displayedCPU)
-        XCTAssertEqual(store.snapshot.cpu.points.count, 2)
-        XCTAssertEqual(store.snapshot.traffic.samples.count, 2)
-        XCTAssertEqual(store.snapshot.gpu.points.count, 2)
+        XCTAssertEqual(store.snapshot.cpu.points.count, 1)
+        XCTAssertEqual(store.snapshot.traffic.samples.count, 1)
+        XCTAssertEqual(store.snapshot.gpu.points.count, 1)
         XCTAssertEqual(store.snapshot.display.memory?.used, 600)
         XCTAssertEqual(store.snapshot.display.fans?.fastest, 1000)
 
         store.setMonitoring(for: .menuBar, enabled: true)
         XCTAssertEqual(store.snapshot.display.cpu?.used, displayedCPU)
-        XCTAssertEqual(store.snapshot.cpu.points.count, 2)
+        XCTAssertEqual(store.snapshot.cpu.points.count, 1)
         store.setMonitoring(for: .menuBar, enabled: false)
     }
 
@@ -51,7 +53,8 @@ final class TrayMetricsStoreTests: XCTestCase {
         let displayed = try XCTUnwrap(store.snapshot.display.cpu?.used)
         XCTAssertGreaterThan(displayed, 0.2)
         XCTAssertLessThan(displayed, 0.8)
-        XCTAssertEqual(store.snapshot.cpu.points.last?.value, 0.8)
+        XCTAssertEqual(store.snapshot.cpu.points.last?.value, 0.5)
+        XCTAssertEqual(store.snapshot.cpu.points.last?.peak, 0.8)
         XCTAssertEqual(store.snapshot.raw.wifi?.received, 5000)
         XCTAssertEqual(store.snapshot.traffic.receivedBytes, 5000)
         XCTAssertLessThan(try XCTUnwrap(store.snapshot.display.wifi?.received), 5000)
@@ -69,12 +72,12 @@ final class TrayMetricsStoreTests: XCTestCase {
         XCTAssertTrue(store.snapshot.traffic.samples.isEmpty)
     }
 
-    func testSamplingGapDoesNotDrawALineAcrossSuspension() {
+    func testHistoryConnectsRealMeasurementsAcrossVisibilityChanges() {
         let store = TrayMetricsStore()
         store.record(sample(10))
         store.record(sample(11))
         store.record(sample(30, cpu: 0.8))
-        XCTAssertEqual(store.snapshot.cpu.points.count, 3)
+        XCTAssertEqual(store.snapshot.cpu.points.count, 2)
         XCTAssertEqual(store.snapshot.display.cpu?.used, 0.8)
         XCTAssertEqual(store.snapshot.traffic.receivedBytes, 1000)
         var segments = 0
@@ -82,7 +85,7 @@ final class TrayMetricsStoreTests: XCTestCase {
             .path(in: .init(x: 0, y: 0, width: 400, height: 100)).forEach {
                 if case .move = $0 { segments += 1 }
             }
-        XCTAssertEqual(segments, 2, "La pause reste un trou, sans segment inventé")
+        XCTAssertEqual(segments, 1, "Relier les relevés réels sans interruption visuelle")
     }
 
     func testResumeKeepsCachedCPUAndNetworkOnlyWhileCountersPrime() {
@@ -100,11 +103,11 @@ final class TrayMetricsStoreTests: XCTestCase {
         XCTAssertNil(store.snapshot.raw.wifi?.received)
         XCTAssertEqual(store.snapshot.display.cpu?.used, 0.2)
         XCTAssertEqual(store.snapshot.display.wifi?.received, 1000)
-        XCTAssertEqual(store.snapshot.cpu.points.count, 2)
-        XCTAssertEqual(store.snapshot.traffic.samples.count, 2)
+        XCTAssertEqual(store.snapshot.cpu.points.count, 1)
+        XCTAssertEqual(store.snapshot.traffic.samples.count, 1)
         XCTAssertEqual(store.snapshot.traffic.receivedBytes, 1000)
         store.record(sample(13, cpu: 0.7, received: 3000))
-        XCTAssertEqual(store.snapshot.cpu.points.last?.value, 0.7)
+        XCTAssertEqual(store.snapshot.cpu.points.last?.peak, 0.7)
         XCTAssertEqual(store.snapshot.traffic.receivedBytes, 1000, "Ne pas compter le trafic pendant la pause")
         for second in 14...20 {
             var unavailable = priming
@@ -114,7 +117,7 @@ final class TrayMetricsStoreTests: XCTestCase {
         XCTAssertNil(store.snapshot.display.cpu, "Une panne de lecture ne conserve pas une fausse valeur indéfiniment")
     }
 
-    func testSuspendPreservesCacheAndResumeRespectsRemainingConsumers() {
+    func testSuspendPreservesCacheAndResumeReturnsToBackground() {
         let store = TrayMetricsStore()
         let dashboard = TrayMetricsStore.Consumer.dashboard(UUID())
         store.setMonitoring(for: dashboard, enabled: true)
@@ -129,8 +132,10 @@ final class TrayMetricsStoreTests: XCTestCase {
         XCTAssertTrue(store.isMonitoring)
         store.setMonitoring(for: dashboard, enabled: false)
         store.resume()
-        XCTAssertFalse(store.isMonitoring)
+        XCTAssertTrue(store.isMonitoring)
+        XCTAssertFalse(store.isForeground)
         XCTAssertEqual(store.snapshot.cpu.points.count, 1)
+        store.stop()
     }
 
     func testSharedCompactNetworkCacheSurvivesNavigationAndInvalidatesOnNewConnection() {
@@ -153,10 +158,10 @@ final class TrayMetricsStoreTests: XCTestCase {
     func testHistoryCacheHasAHardBoundAndExpiresOldMeasurements() {
         let store = TrayMetricsStore()
         for index in 0..<10_000 { store.record(sample(10 + Double(index) / 10_000)) }
-        XCTAssertLessThanOrEqual(store.snapshot.cpu.points.count, 180)
-        XCTAssertLessThanOrEqual(store.snapshot.gpu.points.count, 180)
-        XCTAssertLessThanOrEqual(store.snapshot.traffic.samples.count, 512)
-        store.record(sample(1000))
+        XCTAssertLessThanOrEqual(store.snapshot.cpu.points.count, TrayHistoryPoint.maximumCount)
+        XCTAssertLessThanOrEqual(store.snapshot.gpu.points.count, TrayHistoryPoint.maximumCount)
+        XCTAssertLessThanOrEqual(store.snapshot.traffic.samples.count, TrayHistoryPoint.maximumCount)
+        store.record(sample(5000))
         XCTAssertEqual(store.snapshot.cpu.points.count, 1)
         XCTAssertEqual(store.snapshot.traffic.samples.count, 1)
     }
@@ -164,7 +169,7 @@ final class TrayMetricsStoreTests: XCTestCase {
     func testWiFiWindowUsesTimeInsteadOfTheOldTwoSecondCadence() {
         var history = WiFiTrafficHistory()
         for second in 0...130 { history.record(sample(Double(second))) }
-        XCTAssertEqual(history.samples.first?.time, 9)
+        XCTAssertEqual(history.samples.first?.time, 4)
         XCTAssertEqual(history.samples.last?.time, 130)
         XCTAssertEqual(history.receivedBytes, 130_000)
     }
@@ -186,11 +191,11 @@ final class TrayMetricsStoreTests: XCTestCase {
 
     func testLiveMonitoringWorksWithoutAViewAndCancelsOnStop() async throws {
         let store = TrayMetricsStore()
-        store.start()
+        store.setMonitoring(for: .menuBar, enabled: true)
         store.start()
         defer { store.stop() }
         try await Task.sleep(for: .milliseconds(3300))
-        XCTAssertGreaterThanOrEqual(store.snapshot.cpu.points.count, 2)
+        XCTAssertGreaterThanOrEqual(store.snapshot.cpu.points.count, 1)
         XCTAssertNotNil(store.snapshot.display.memory)
         store.stop()
         XCTAssertFalse(store.isMonitoring)
@@ -200,5 +205,132 @@ final class TrayMetricsStoreTests: XCTestCase {
         XCTAssertEqual(store.snapshot.cpu.points.count, historyCount)
         XCTAssertEqual(store.snapshot.raw.sampledAt, stoppedAt)
         XCTAssertNotNil(store.snapshot.display.cpu)
+    }
+}
+
+private actor MetricsSamplerProbe: TrayMetricsSampling {
+    private(set) var modes: [Bool] = []
+    private(set) var resets = 0
+    func reset() { resets += 1 }
+    func sample(includeSensors: Bool) -> TrayMetrics {
+        modes.append(includeSensors)
+        return .init(sampledAt: Double(modes.count * 5), cpu: .init(user: 0.2, system: 0))
+    }
+}
+
+private actor MetricsSleepProbe {
+    private(set) var delays: [Duration] = []
+    private let entered: @Sendable (Int) -> Void
+    init(entered: @escaping @Sendable (Int) -> Void) { self.entered = entered }
+    func sleep(_ delay: Duration) async throws {
+        delays.append(delay)
+        entered(delays.count)
+        try await Task.sleep(for: .seconds(3600))
+    }
+}
+
+extension TrayMetricsStoreTests {
+    func testOneSamplerChangesCadenceWithoutResettingOnNavigation() async throws {
+        let sampler = MetricsSamplerProbe()
+        let events = (1...4).map { expectation(description: "Délai de suivi \($0)") }
+        let sleeper = MetricsSleepProbe { index in
+            if index <= events.count { events[index - 1].fulfill() }
+        }
+        let store = TrayMetricsStore(sampler: sampler, sleep: { try await sleeper.sleep($0) })
+        defer { store.stop() }
+        store.start()
+        store.start()
+        await fulfillment(of: [events[0]], timeout: 3)
+        let firstDelays = await sleeper.delays
+        XCTAssertEqual(firstDelays, [.seconds(5)])
+        store.setMonitoring(for: .menuBar, enabled: true)
+        await fulfillment(of: [events[1]], timeout: 3)
+        store.setMonitoring(for: .menuBar, enabled: false)
+        await fulfillment(of: [events[2]], timeout: 3)
+        let modes = await sampler.modes
+        let resets = await sampler.resets
+        let delays = await sleeper.delays
+        XCTAssertEqual(modes, [false, true, false])
+        XCTAssertEqual(resets, 1)
+        XCTAssertEqual(delays, [.seconds(5), .seconds(1), .seconds(5)])
+        XCTAssertEqual(store.snapshot.cpu.points.count, 3)
+        store.suspend()
+        XCTAssertFalse(store.isMonitoring)
+        store.resume()
+        await fulfillment(of: [events[3]], timeout: 3)
+        let resumedResets = await sampler.resets
+        XCTAssertEqual(resumedResets, 2, "La veille réamorce les compteurs, la navigation ne le fait pas")
+        store.stop()
+        store.resume()
+        XCTAssertFalse(store.isMonitoring)
+    }
+
+    func testAggregationKeepsPeaksWithoutInventingSamples() throws {
+        var history = TrayMetricHistory()
+        history.record(time: 10, value: 0.1)
+        history.record(time: 11, value: 0.9)
+        history.record(time: 14, value: 0.2)
+        history.record(time: 20, value: nil)
+        history.record(time: 25, value: 0.4)
+        XCTAssertEqual(history.points.count, 2)
+        XCTAssertEqual(history.points.first?.time, 14)
+        XCTAssertEqual(try XCTUnwrap(history.points.first?.value), 0.4, accuracy: 0.00001)
+        let stats = TrayMetricHistory.statistics(history.points, duration: 600)
+        XCTAssertEqual(try XCTUnwrap(stats.average), 0.4, accuracy: 0.00001)
+        XCTAssertEqual(stats.peak, 0.9)
+    }
+
+    func testCompactCPUAndGPUSlowDownButPressureAndTemperatureStayImmediate() throws {
+        let store = TrayMetricsStore()
+        store.record(sample(10, cpu: 0.2))
+        var next = sample(11, cpu: 0.8)
+        next.cpu?.temperature = 90
+        next.memory?.pressure = .critical
+        store.record(next)
+        XCTAssertEqual(store.snapshot.compact.metrics.cpu?.used, 0.2)
+        XCTAssertEqual(store.snapshot.compact.metrics.gpu?.fraction, 0.2)
+        XCTAssertEqual(store.snapshot.compact.metrics.memory?.pressure, .critical)
+        XCTAssertEqual(store.snapshot.compact.metrics.cpu?.temperature, 90)
+        XCTAssertEqual(try XCTUnwrap(store.snapshot.display.gpu?.fraction), 0.2 + 0.6 * (1 - exp(-1.0 / 5)), accuracy: 0.00001)
+        store.record(sample(13, cpu: 0.8))
+        XCTAssertGreaterThan(try XCTUnwrap(store.snapshot.compact.metrics.cpu?.used), 0.2)
+        XCTAssertEqual(store.snapshot.cpu.points.last?.peak, 0.8)
+        store.record(sample(14, connected: false))
+        XCTAssertFalse(store.snapshot.compact.metrics.wifi?.connected ?? true)
+        store.record(.init(sampledAt: 14.5))
+        XCTAssertNil(store.snapshot.compact.metrics.wifi)
+    }
+
+    func testBackgroundNetworkCounterAndVolumesCoverRealFiveSecondIntervals() {
+        var counter = TrayNetworkCounter()
+        func reading(_ time: Double, received: UInt32, address: String = "10.0.0.1") -> TrayNetworkCounter.Reading {
+            .init(name: "en0", address: address, received: received, sent: received / 2, time: time)
+        }
+        XCTAssertNil(counter.rates(reading(10, received: 1000)).received)
+        XCTAssertEqual(counter.rates(reading(15, received: 26_000)).received, 5000)
+        XCTAssertNil(counter.rates(reading(20, received: 30_000, address: "10.0.0.2")).received)
+        XCTAssertNil(counter.rates(reading(100, received: 50_000, address: "10.0.0.2")).received)
+        var history = WiFiTrafficHistory()
+        history.record(sample(10, received: 1000))
+        history.record(sample(15, received: 5000))
+        XCTAssertEqual(history.receivedBytes, 25_000)
+        history.pause()
+        history.record(sample(100, received: 10_000))
+        XCTAssertEqual(history.receivedBytes, 25_000)
+    }
+
+    func testNetworkScaleResistsSmallVariationsAndOnlyShrinksAfterAQuietMinute() {
+        var scale = TrayNetworkScale()
+        scale.record(peak: 1_000_000, time: 10)
+        let high = scale.maximum
+        scale.record(peak: 1_010_000, time: 11)
+        XCTAssertEqual(scale.maximum, high)
+        scale.record(peak: 1000, time: 20)
+        scale.record(peak: 1000, time: 79)
+        XCTAssertEqual(scale.maximum, high)
+        scale.record(peak: 1000, time: 80)
+        XCTAssertLessThan(scale.maximum, high)
+        scale.record(peak: 10_000_000, time: 81)
+        XCTAssertGreaterThan(scale.maximum, high)
     }
 }

@@ -1,5 +1,11 @@
 # Reconnaître un build de développement
 
+## Historique des métriques — Dev du 9 novembre 2026
+
+**En développement, non livré.** Branche `codex/stable-metrics-history`, non livrée. Le paquet `build/stable-metrics/MacCare.app` porte l’identité MacCare Dev 0.2.15 (18), sans flux Sparkle. Le suivi reste léger hors visibilité (cinq secondes), sans nouveaux relevés de température/ventilateurs/CoreWLAN. Les graphiques partagent une heure bornée en RAM, gardent dix minutes dans les cartes et relient les points réels. La copie quotidienne `/Applications/MacCare.app` reste distincte. Dev installée, 537 tests réussis ; contrôle visuel en attente du déverrouillage manuel du Mac.
+
+Voir [le fonctionnement, les vérifications et leurs limites](activity-metrics-cache.md).
+
 Disponible dans [MacCare 0.2.15 (build 17)](https://github.com/M0okz/maccare/releases/tag/v0.2.15). Les mentions Dev/non livré ci-dessous conservent l’historique des vérifications antérieures à cette publication et leurs limites. Voir [la livraison et ses contrôles](releasing.md).
 
 ## Bulles Espace disque — Dev du 9 novembre 2026

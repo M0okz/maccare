@@ -47,14 +47,17 @@ et des préférences d’inclusion dans un scan.
 
 ## Batterie et télémétrie
 
-La télémétrie utilise les interfaces macOS et distingue les données indisponibles
-des valeurs nulles. Le suivi CPU, mémoire et Wi-Fi est partagé entre la barre des
-menus, l’accueil et les fenêtres de détails. Chaque consommateur enregistre sa
-demande de suivi ; la disparition de l’un ne doit pas arrêter les autres. Une vue ne
-demande le suivi que lorsqu’elle affiche des valeurs : volet ouvert, ou fenêtre visible.
-Sans demande, aucun relevé n’a lieu. Depuis MacCare 0.2.15, les dernières
-valeurs et les historiques bornés restent en mémoire ; les pauses coupent les
-tracés et ne comptent aucun trafic. Voir [le cycle de vie du cache](activity-metrics-cache.md).
+La télémétrie distingue les données indisponibles des valeurs nulles. Le suivi
+CPU/GPU, mémoire et réseau est partagé entre le volet, l’accueil et les détails.
+**En développement, non livré (9 novembre 2026)** : `TrayMetricsStore` garde une
+seule boucle à une seconde avec une vue visible, cinq secondes sans vue visible.
+Les capteurs SMC/HID et CoreWLAN ne sont pas relus en arrière-plan. La navigation
+change la cadence sans réamorcer les compteurs. Le store conserve une heure en
+groupes de cinq secondes (moyenne et maximum), dix minutes dans les cartes.
+Les tracés relient les relevés réels sans coupure visuelle ; la veille suspend
+la collecte et n’ajoute ni mesure ni volume fictif. La version publique 0.2.15
+conserve son ancien arrêt des relevés hors visibilité. Voir [le cycle de vie,
+les bornes mémoire et les limites](activity-metrics-cache.md).
 
 Depuis MacCare 0.2.15, la température GPU possède aussi un repli SMC borné aux
 capteurs GPU connus de la famille M1 si HID n’en fournit aucun. Le cache de cinq

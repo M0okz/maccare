@@ -77,14 +77,15 @@ final class TrayEnergyTests: XCTestCase {
         XCTAssertEqual(controller.presentation(for: second).name, "nouveau")
     }
 
-    @MainActor func testHiddenConsumersStopTheMeasures() {
+    @MainActor func testHiddenConsumersReleaseFastSensorMonitoring() {
         let store = TrayMetricsStore()
         defer { store.stop() }
         let id = UUID()
         store.setMonitoring(for: .activityDetail(id), enabled: true)
         XCTAssertTrue(store.isMonitoring)
         store.setMonitoring(for: .activityDetail(id), enabled: false)
-        XCTAssertFalse(store.isMonitoring, "Une fenêtre masquée ne doit plus maintenir les mesures")
+        XCTAssertTrue(store.isMonitoring)
+        XCTAssertFalse(store.isForeground, "Une fenêtre masquée ne maintient plus les lectures rapides ni les capteurs")
     }
 }
 
@@ -96,7 +97,7 @@ final class TrayMetricsStartTests: XCTestCase {
         XCTAssertEqual(TrayMetricsStore.nextDelay(hasCPU: false, reading: 6), .seconds(1), "Sans compteurs CPU, pas de relecture rapide sans fin")
     }
 
-    @MainActor func testLastConsumerStopsMeasuresAndAnotherKeepsThemRunning() {
+    @MainActor func testLastConsumerReleasesFastMonitoringAndAnotherKeepsItRunning() {
         let store = TrayMetricsStore()
         defer { store.stop() }
         let window = TrayMetricsStore.Consumer.activityDetail(UUID())
@@ -105,7 +106,8 @@ final class TrayMetricsStartTests: XCTestCase {
         store.setMonitoring(for: .menuBar, enabled: false)
         XCTAssertTrue(store.isMonitoring, "Fermer le volet ne doit pas priver une fenêtre visible de ses mesures")
         store.setMonitoring(for: window, enabled: false)
-        XCTAssertFalse(store.isMonitoring)
+        XCTAssertTrue(store.isMonitoring)
+        XCTAssertFalse(store.isForeground)
     }
 }
 

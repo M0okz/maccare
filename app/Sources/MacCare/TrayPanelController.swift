@@ -77,6 +77,7 @@ final class TrayPanelController: NSObject {
         workspaceObservers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.app.trayMetrics.resume(); self?.storageAlert.resume(); self?.memoryAlert.resume(); self?.additionalAlerts.resume(); self?.syncVisibility() }
         })
+        app.trayMetrics.start()
         syncVisibility()
     }
 
@@ -267,6 +268,7 @@ final class TrayPanelController: NSObject {
     }
 
     func shutdown() {
+        app.trayMetrics.stop()
         storageAlert.shutdown()
         memoryAlert.shutdown()
         additionalAlerts.shutdown()

@@ -8,10 +8,10 @@ struct HomeActivityCard: View {
     @State private var memoryHovered = false
     @State private var cpuHovered = false
     @State private var networkHovered = false
-    private var metrics: TrayMetrics { store.snapshot.display }
+    private var metrics: TrayMetrics { store.snapshot.compact.metrics }
     private var wifi: TrayMetrics.WiFi? { store.snapshot.compactNetwork.wifi ?? metrics.wifi }
     private var networkPoints: [TrayHistoryPoint] {
-        store.snapshot.traffic.samples.map { .init(time: $0.time, value: $0.received) }
+        store.snapshot.traffic.received.points
     }
 
     var body: some View {
@@ -53,27 +53,31 @@ struct HomeActivityCard: View {
             }
         }
         .buttonStyle(HomeActivityMetricButtonStyle()).onHover { cpuHovered = $0 }
-        .help("Charge globale et température maximale des capteurs CPU disponibles. Historique sur 40 secondes.")
+        .help("Charge globale et température maximale des capteurs CPU disponibles. Historique sur 10 minutes, partagé avec le volet.")
         .accessibilityElement(children: .combine).accessibilityHint("Ouvrir l’historique CPU et les processus")
     }
 
     private var gpu: some View {
-        HomeActivityTile {
-            HStack {
-                metricLabel("GPU", symbol: "display")
-                Spacer(minLength: 4)
-                badge(temperature(metrics.gpu?.temperature), color: Theme.accentInk)
-                    .accessibilityLabel("Température du GPU : \(temperature(metrics.gpu?.temperature))")
+        Button { openWindow(id: HomeActivityWindow.id(for: .gpu)) } label: {
+            HomeActivityTile {
+                HStack {
+                    metricLabel("GPU", symbol: "display")
+                    Spacer(minLength: 4)
+                    badge(temperature(metrics.gpu?.temperature), color: Theme.accentInk)
+                        .accessibilityLabel("Température du GPU : \(temperature(metrics.gpu?.temperature))")
+                }
+                Text(metrics.gpu?.fraction.map { "\(Int(($0 * 100).rounded())) %" } ?? "—")
+                    .font(.title2.weight(.semibold)).monospacedDigit()
+                Spacer(minLength: 0)
+                TrayHistoryChart(points: store.snapshot.gpu.points, color: Theme.accentInk, filled: true)
+                    .frame(height: 24).accessibilityHidden(true)
+                detail(gpuState)
             }
-            Text(metrics.gpu?.fraction.map { "\(Int(($0 * 100).rounded())) %" } ?? "—")
-                .font(.title2.weight(.semibold)).monospacedDigit()
-            Spacer(minLength: 0)
-            TrayHistoryChart(points: store.snapshot.gpu.points, color: Theme.accentInk, filled: true)
-                .frame(height: 24).accessibilityHidden(true)
-            detail(gpuState)
+            .accessibilityElement(children: .combine)
+            .help(metrics.gpu?.model ?? "Mesures du GPU indisponibles")
         }
-        .accessibilityElement(children: .combine)
-        .help(metrics.gpu?.model ?? "Mesures du GPU indisponibles")
+        .buttonStyle(HomeActivityMetricButtonStyle())
+        .accessibilityHint("Ouvrir l’historique GPU")
     }
 
     private var memory: some View {
@@ -140,7 +144,7 @@ struct HomeActivityCard: View {
                     .truncationMode(.middle)
                 Spacer(minLength: 0)
                 TrayHistoryChart(points: wifi?.connected == true ? networkPoints : [], color: ModuleColor.space,
-                                 maximum: max(1, networkPoints.map(\.value).max() ?? 1), filled: true)
+                                 maximum: store.snapshot.networkScale.maximum, filled: true)
                     .frame(height: 24).modifier(HomeActivityGlow(active: networkHovered, color: ModuleColor.space))
                     .accessibilityHidden(true)
                 detail("↑ \(NetworkRateFormat.megabits(wifi?.sent))")

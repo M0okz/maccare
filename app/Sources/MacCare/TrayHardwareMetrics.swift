@@ -74,13 +74,13 @@ struct TrayFans: Sendable {
 }
 
 struct TrayGPUHistory {
-    private(set) var points: [TrayHistoryPoint] = []
+    private var history = TrayMetricHistory()
+    var points: [TrayHistoryPoint] { history.points }
     private var id: UInt64?
     mutating func record(_ metrics: TrayMetrics) {
-        if id != metrics.gpu?.id { points = []; id = metrics.gpu?.id }
-        points.removeAll { $0.time < metrics.sampledAt - TrayCPUHistory.duration - 1 }
-        guard let value = metrics.gpu?.fraction, value.isFinite else { return }
-        points.append(.init(time: metrics.sampledAt, value: min(1, max(0, value))))
-        if points.count > TrayHistoryPoint.maximumCount { points.removeFirst(points.count - TrayHistoryPoint.maximumCount) }
+        if let gpu = metrics.gpu {
+            if id != gpu.id { history = .init(); id = gpu.id }
+        }
+        history.record(time: metrics.sampledAt, value: metrics.gpu?.fraction.map { $0.isFinite ? min(1, max(0, $0)) : $0 })
     }
 }

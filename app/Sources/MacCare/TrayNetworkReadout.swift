@@ -16,3 +16,29 @@ struct TrayNetworkReadout {
         updatedAt = metrics.sampledAt
     }
 }
+
+/// Les nombres des cartes changent toutes les trois secondes. Les capteurs,
+/// indisponibilités et changements d’état sont répercutés dès le prochain relevé.
+struct TrayMetricsReadout {
+    private(set) var metrics = TrayMetrics()
+    private(set) var network = TrayNetworkReadout()
+    private var updatedAt: TimeInterval?
+
+    mutating func record(_ next: TrayMetrics) {
+        network.record(next)
+        defer { metrics.wifi = network.wifi }
+        let elapsed = updatedAt.map { next.sampledAt - $0 } ?? .infinity
+        if elapsed >= 3 || elapsed < 0 {
+            metrics = next
+            updatedAt = next.sampledAt
+            return
+        }
+        if metrics.cpu == nil || next.cpu == nil { metrics.cpu = next.cpu }
+        else { metrics.cpu?.temperature = next.cpu?.temperature }
+        if metrics.gpu?.id != next.gpu?.id || metrics.gpu?.fraction == nil || next.gpu?.fraction == nil { metrics.gpu = next.gpu }
+        else { metrics.gpu?.temperature = next.gpu?.temperature }
+        if metrics.memory?.total != next.memory?.total { metrics.memory = next.memory }
+        else { metrics.memory?.pressure = next.memory?.pressure }
+        metrics.fans = next.fans
+    }
+}

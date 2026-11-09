@@ -2,7 +2,11 @@ import SwiftUI
 
 struct WiFiTrafficHistory {
     struct Sample { let time: TimeInterval; let received: Double; let sent: Double }
-    private(set) var samples: [Sample] = []
+    private(set) var received = TrayMetricHistory()
+    private(set) var sent = TrayMetricHistory()
+    var samples: [Sample] {
+        zip(received.points, sent.points).map { .init(time: $0.time, received: $0.value, sent: $1.value) }
+    }
     private(set) var receivedBytes: Double = 0
     private(set) var sentBytes: Double = 0
     private var interface: String?
@@ -11,18 +15,27 @@ struct WiFiTrafficHistory {
     mutating func pause() { previousTime = nil }
 
     mutating func record(_ metrics: TrayMetrics) {
-        guard let wifi = metrics.wifi, wifi.connected else {
+        guard let wifi = metrics.wifi else {
+            received.record(time: metrics.sampledAt, value: nil)
+            sent.record(time: metrics.sampledAt, value: nil)
+            pause()
+            return
+        }
+        guard wifi.connected else {
             self = .init()
             return
         }
         let identity = "\(wifi.kind.rawValue):\(wifi.interface):\(wifi.address ?? "")"
         if interface != identity { self = .init(); interface = identity }
-        samples.removeAll { $0.time < metrics.sampledAt - 121 }
         guard let received = wifi.received, let sent = wifi.sent,
               received.isFinite, sent.isFinite, received >= 0, sent >= 0 else {
+            self.received.record(time: metrics.sampledAt, value: nil)
+            self.sent.record(time: metrics.sampledAt, value: nil)
             pause()
             return
         }
+        self.received.record(time: metrics.sampledAt, value: received)
+        self.sent.record(time: metrics.sampledAt, value: sent)
         if let previousTime {
             let elapsed = metrics.sampledAt - previousTime
             // Un intervalle après veille ne décrit pas un débit instantané fiable.
@@ -32,8 +45,6 @@ struct WiFiTrafficHistory {
             }
         }
         previousTime = metrics.sampledAt
-        samples.append(.init(time: metrics.sampledAt, received: received, sent: sent))
-        if samples.count > 512 { samples.removeFirst(samples.count - 512) }
     }
 }
 
@@ -42,18 +53,20 @@ struct TrayWiFiDetail: View {
     private var metrics: TrayMetrics { metricsStore.snapshot.display }
     private var traffic: WiFiTrafficHistory { metricsStore.snapshot.traffic }
     @StateObject private var test = InternetSpeedTest()
+    @State private var historyDuration: TimeInterval = 600
     private let muted = Color.white.opacity(0.73)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             connection
+            TrayHistoryRangePicker(duration: $historyDuration)
             HStack(alignment: .top, spacing: 10) {
-                trafficCard(title: "Téléchargement", symbol: "arrow.down", points: traffic.samples.map { .init(time: $0.time, value: $0.received) },
+                trafficCard(title: "Téléchargement", symbol: "arrow.down", points: traffic.received.points,
                             total: traffic.receivedBytes, current: metrics.wifi?.received, color: .cyan)
-                trafficCard(title: "Envoi", symbol: "arrow.up", points: traffic.samples.map { .init(time: $0.time, value: $0.sent) },
+                trafficCard(title: "Envoi", symbol: "arrow.up", points: traffic.sent.points,
                             total: traffic.sentBytes, current: metrics.wifi?.sent, color: .pink)
             }
-            Text("Trafic de l’interface réseau principale, échanges locaux compris · 2 dernières minutes. Débits lissés, courbes réelles. Volumes depuis l’activation du suivi.")
+            Text("Trafic de l’interface réseau principale, échanges locaux compris · historique jusqu’à une heure. Débits lissés, moyennes sur cinq secondes et pics conservés. Volumes depuis le début du suivi de cette connexion.")
                 .font(.caption2).foregroundStyle(muted).fixedSize(horizontal: false, vertical: true)
             speedTest
         }
@@ -97,19 +110,19 @@ struct TrayWiFiDetail: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             Text("\(humanSize(UInt64(total))) transférés").monospacedDigit()
                 .font(.system(size: 10)).foregroundStyle(muted)
-            TrayHistoryChart(points: points, duration: 120, color: color,
-                             maximum: trafficCeiling(points.map(\.value).max() ?? 1), filled: true)
-                .frame(height: 65).accessibilityLabel("Historique de débit sur deux minutes")
-            Text("Pic : \(NetworkRateFormat.megabits(points.map(\.value).max()))").font(.system(size: 10)).foregroundStyle(muted)
+            TrayHistoryDetail(points: points, duration: historyDuration, color: color,
+                              maximum: trafficCeiling(points), network: true)
         }
         .padding(12).frame(maxWidth: .infinity, alignment: .leading)
         .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
     }
 
-    private func trafficCeiling(_ peak: Double) -> Double {
-        // Paliers avec de la marge : l’échelle ne change pas pour chaque petit pic.
-        let magnitude = pow(10, floor(log10(max(1, peak))))
-        return ([2.0, 5, 10, 20].first { $0 * magnitude >= peak * 1.15 } ?? 20) * magnitude
+    private func trafficCeiling(_ points: [TrayHistoryPoint]) -> Double {
+        let peak = TrayMetricHistory.window(points, duration: historyDuration).map(\.peak).max() ?? 0
+        // Paliers partagés ; le détail peut couvrir une période plus longue que la carte.
+        var scale = metricsStore.snapshot.networkScale
+        scale.record(peak: peak, time: metrics.sampledAt)
+        return scale.maximum
     }
 
     private var speedTest: some View {

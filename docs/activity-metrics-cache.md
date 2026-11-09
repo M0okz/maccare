@@ -1,47 +1,92 @@
-# Cache des mesures d’activité — Dev du 8 novembre 2026
+# Historique partagé de l’activité du Mac
 
-Disponible dans [MacCare 0.2.15 (build 17)](https://github.com/M0okz/maccare/releases/tag/v0.2.15). Les mentions Dev/non livré ci-dessous conservent l’historique des vérifications antérieures à cette publication et leurs limites. Voir [la livraison et ses contrôles](releasing.md).
+## État — 9 novembre 2026
 
-État local non publié sur `codex/helper-process-icons`, après la version publique
-0.2.14 (16). Paquet Dev : `build/metrics-cache/MacCare.app`, 0.2.14 (10).
+**En développement, non livré** sur `codex/stable-metrics-history`, après la
+publication de [MacCare 0.2.15 (17)](https://github.com/M0okz/maccare/releases/tag/v0.2.15).
+Cette évolution remplace le cache lié à la visibilité livré en 0.2.15.
+La copie quotidienne n’est pas remplacée par la Dev.
 
-## Comportement
+## Continuité et cadence
 
-`AppState` possède un unique `TrayMetricsStore`, partagé par l’accueil, le volet
-et les fenêtres de détails. Fermer le volet, changer d’onglet ou masquer la
-fenêtre arrête le suivi lorsque le dernier consommateur disparaît, sans effacer
-les dernières valeurs ni les courbes. La veille garde aussi ce cache en mémoire.
-Il disparaît à la fermeture complète de l’application ; aucun fichier ni
-préférence ne stocke ces mesures.
+`AppState` possède un seul `TrayMetricsStore`, partagé par l’accueil, le volet
+et les fenêtres de détails. Il démarre avec l’application. Les vues visibles
+signalent uniquement le besoin de relevés rapides ; leur fermeture ne remet ni
+les compteurs ni les historiques à zéro.
 
-À la reprise, les compteurs CPU/réseau prennent une nouvelle référence pour ne
-pas calculer une moyenne sur toute la pause. Les chiffres précédents restent
-affichés pendant six relevés au maximum, uniquement pour amorcer ces compteurs ;
-ils ne créent aucun point fictif ni volume réseau. Une lecture qui reste
-indisponible finit donc par afficher son état habituel d’indisponibilité.
+- Vue d’activité visible : un relevé par seconde ; capteurs CPU/GPU et
+  ventilateurs relus au maximum toutes les cinq secondes.
+- Aucune vue d’activité visible : un relevé léger toutes les cinq secondes pour
+  CPU, GPU, RAM et trafic de l’interface principale. Aucune nouvelle lecture
+  SMC/HID de température ou de ventilateurs, ni interrogation CoreWLAN ; les
+  dernières métadonnées de liaison et de capteurs sont conservées.
+- Le changement de visibilité réveille la même boucle sans réamorcer les compteurs.
+- Veille réelle : arrêt des lectures. Au réveil, les compteurs CPU/réseau prennent
+  une nouvelle référence ; aucun volume ni échantillon n’est inventé pendant la veille.
+- Les courbes relient les points réellement mesurés, y compris de part et d’autre
+  d’une fermeture de vue ou d’une suspension. Cette liaison visuelle ne représente
+  pas des mesures collectées pendant la veille. Un changement d’interface/adresse
+  ou de carte GPU démarre une nouvelle série pour ne pas mélanger les appareils.
+- Quitter complètement MacCare arrête le suivi et libère l’historique.
 
-Les heures des relevés restent réelles : CPU/GPU couvrent 40 secondes, réseau
-deux minutes. Les anciennes mesures expirent au prochain relevé, et une pause
-de plus de trois secondes coupe la courbe au lieu de relier les deux périodes.
-Une longue absence laisse donc progressivement place aux nouvelles mesures.
-Une nouvelle interface, adresse ou carte GPU invalide l’historique concerné.
+## Affichage stable et historique
 
-## Coût et limites
+Les chiffres CPU, GPU, RAM et réseau sont lissés avec une constante de cinq
+secondes. Les nombres des cartes sont actualisés toutes les trois secondes ;
+le détail garde sa cadence normale. Pression mémoire, température,
+indisponibilité et identité de connexion sont traitées séparément. Les relevés
+bruts et les alertes ne sont pas remplacés par les chiffres lissés.
 
-- Aucun nouveau timer, service, abonnement ou relevé en arrière-plan.
-- Arrêt du suivi quand aucun consommateur n’est visible ; une fenêtre de détail
-  visible continue à demander les relevés partagés.
-- Maximum de 180 points par courbe CPU/GPU et 512 points réseau, soit 872 points.
-  Les courbes se redessinent aux relevés, sans animation continue.
-- Les caches de liaison et de capteurs gardent leur validité de 5 à 10 secondes
-  lors de la navigation, sans forcer une relecture à chaque retour.
-- Les chiffres réseau compacts appartiennent aussi au store : la cadence de
-  trois secondes reste stable après recréation de la carte. Le détail réseau
-  garde sa cadence normale.
-- Les volumes réseau incluent seulement les intervalles observés. Aucun débit
-  ni volume n’est estimé pendant une pause.
+Les courbes des cartes couvrent dix minutes. Les détails CPU, GPU, RAM et réseau
+proposent dix minutes, trente minutes ou une heure, avec moyenne et pic.
+Chaque groupe de cinq secondes conserve la moyenne des relevés et leur maximum
+pour les statistiques : un pic court reste donc compté dans le maximum.
+Le graphique représente les moyennes, à leurs heures réelles, sans étirement
+artificiel au premier lancement.
 
-## Vérification
+L’échelle réseau monte par paliers, avec une marge au-dessus du pic. Elle ne
+redescend qu’après une minute de demande nettement plus faible. La carte tient
+compte de sa fenêtre de dix minutes ; le détail élargit l’échelle si son historique
+plus long le nécessite. Le changement de connexion réinitialise cette échelle.
+
+## Coût borné
+
+CPU, GPU, RAM, réception et envoi conservent au maximum 721 points chacun :
+3 605 points au total, soit environ 85 Kio de valeurs numériques, hors structures
+et vues. Aucun fichier, base de données, préférence ni collecte par processus en
+arrière-plan n’est ajouté. Le suivi léger utilise la boucle existante ; les
+courbes se dessinent à l’arrivée des relevés sans animation de défilement continue.
+Cela limite le coût sans prétendre qu’une collecte a un coût nul.
+
+Composants : `TrayMetricHistory`, `TrayMetricsStore`, `TrayMetricsSampler`,
+`TrayMetricsReadout`, `TrayHistoryChart`, `TrayHistoryDetail`, `HomeActivityCard`,
+`TrayMetricDetail`, `TrayWiFiDetail` et cycle de vie `TrayPanelController`.
+
+## Vérification de cette évolution
+
+Les deux régressions initiales ont été reproduites : arrêt au dernier consommateur
+et découpe du tracé après trois secondes. Les contrôles couvrent la boucle unique,
+les cadences 1/5 secondes, l’absence de réinitialisation pendant la navigation,
+la suspension/reprise, les volumes réels à cinq secondes, deux heures de données
+synthétiques, les bornes mémoire, les moyennes/pics, le lissage CPU/GPU et les
+paliers d’échelle réseau. Les résultats du paquet et du contrôle natif sont
+consignés dans `build/stable-metrics-qa/`. La suite complète comporte 290 tests
+XCTest et 247 tests Swift Testing, tous réussis. Le paquet Dev 0.2.15 (18), signé
+Apple Development sans flux Sparkle, est installé dans `/Applications/MacCare Dev.app`.
+Sa signature, son binaire et le processus lancé ont été contrôlés. La copie
+quotidienne 0.2.8 (10), son empreinte et sa signature sont préservées.
+
+Le contrôle visuel natif reste **en attente** : l’outil a constaté un Mac verrouillé,
+avec déverrouillage automatique suspendu après une entrée physique. Le
+déverrouillage manuel a été demandé ; aucun contrôle visuel réussi n’est revendiqué.
+Les sélecteurs natifs gardent leurs libellés ; les graphiques exposent durée,
+moyenne et pic sous forme textuelle. Le respect de Réduire les animations est
+conservé. Le parcours VoiceOver et le clavier restent à vérifier en session native.
+
+Aucune campagne matérielle de veille, de consommation énergétique prolongée,
+de multi-écran ou de VoiceOver n’est déduite des tests automatisés.
+
+## Archive : validation du cache initial livré en 0.2.15
 
 Le 9 novembre, 33 tests ciblés réussissent. La Dev 0.2.14 (10), signée Apple
 Development sans flux de mise à jour, est installée et ouverte dans
