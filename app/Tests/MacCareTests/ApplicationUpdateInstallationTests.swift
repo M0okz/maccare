@@ -116,6 +116,11 @@ final class ApplicationUpdateInstallationTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath:root.appendingPathComponent("injected").path))
     }
 
+    func testAppStoreSigningRequirementCompilesAsAnInlineExpression() async throws {
+        // Use the system parser: a missing '=' is treated as a filename and fails here.
+        _ = try await ApplicationUpdateCommand.run("/usr/bin/csreq", ["-r", ApplicationUpdateCommand.appStoreSigningRequirement, "-t"])
+    }
+
     func testPrivilegedAppStoreCommandRejectsAnUnsignedToolBeforeExecution() async throws {
         let root = try temporary();defer { try? FileManager.default.removeItem(at:root) }
         let tool = root.appendingPathComponent("mas")

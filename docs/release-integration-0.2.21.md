@@ -1,19 +1,9 @@
-# Préparation de MacCare 0.2.21
+# MacCare 0.2.21 — remplacée par 0.2.22
 
-9 novembre 2026 — publication demandée par Gregory pour livrer le correctif
-de la PR #29 et permettre l’installation depuis le gestionnaire Applications.
+9 novembre 2026 — PR #29 fusionnée sur `0bfbe6b4bc7e98ca77864741d76c95f68178dec4`, après quatre contrôles verts. La CI de fusion et le workflow officiel `42713722898` réussissent. Le tag `v0.2.21` reste inchangé, build 23.
 
-La version passe à 0.2.21 sur `codex/application-update-installation` avant
-la dernière passe CI. Le tag ne sera créé qu’après réussite des contrôles et
-fusion de la PR. La chaîne officielle reconstruit, teste, signe et notarie
-l’app et le DMG, puis génère les signatures Sparkle et publie les assets vérifiés.
+La vérification du DMG public a trouvé une erreur dans le parcours App Store : la chaîne de signature était transmise à `codesign --test-requirement` sans préfixe `=`. Le système la prenait pour le chemin d’un fichier et refusait l’opération avant l’installation. L’identité et la signature Developer ID du composant embarqué sont correctes. Le passage de la même expression avec `=` réussit sur ce même binaire.
 
-[Notes utilisateur](release-notes/0.2.21.md).
-[Détails de l’installation et limites de QA](application-update-installation.md).
-Les tests locaux précédents comptent 359 XCTest (trois cas réseau facultatifs
-ignorés), 259 Swift Testing et 19 tests Python des outils de release sans échec.
-Les deux tests d’archives signées ont été exécutés séparément, dont PhotoCraft
-0.21.0 → 0.22.0. Une installation sur les apps personnelles n’est pas revendiquée.
+La 0.2.21 est écartée de la distribution stable au profit de la 0.2.20 pendant la préparation de la 0.2.22. Le correctif et un test de compilation par `csreq` sont ajoutés à cette prochaine version ; une réussite CI seule ne suffit pas à certifier cet argument d’exécution. Le site n’a pas été déployé en 0.2.21. Les copies installées sont préservées.
 
-Le site et Outline seront actualisés et relus après vérification des assets
-publics. Aucun remplacement ni lancement des copies quotidiennes n’est demandé.
+Preuves : `build/release-0.2.21-qa/`, en particulier `public-verification.log` ; le DMG est démonté après le contrôle. Aucun appel App Store privilégié ni installation personnelle n’a été exécuté.
