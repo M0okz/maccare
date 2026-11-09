@@ -57,9 +57,10 @@ final class HomeStatusTests: XCTestCase {
         store.setMonitoring(for: first, enabled: false)
         XCTAssertTrue(store.isMonitoring)
         store.setMonitoring(for: second, enabled: false)
-        XCTAssertFalse(store.isMonitoring)
+        XCTAssertTrue(store.isMonitoring)
+        XCTAssertFalse(store.isForeground)
     }
-    @MainActor func testSleepSuspendsSharedMonitoringAndWakeRespectsDemand() {
+    @MainActor func testSleepSuspendsSharedMonitoringAndWakeReturnsToBackground() {
         let store = TrayMetricsStore(), home = TrayMetricsStore.Consumer.dashboard(UUID())
         defer { store.stop() }
         store.setMonitoring(for: home, enabled: true)
@@ -73,10 +74,11 @@ final class HomeStatusTests: XCTestCase {
         store.setMonitoring(for: home, enabled: false)
         store.setMonitoring(for: .menuBar, enabled: false)
         store.resume()
-        XCTAssertFalse(store.isMonitoring)
+        XCTAssertTrue(store.isMonitoring)
+        XCTAssertFalse(store.isForeground)
     }
 
-    @MainActor func testActivityWindowsKeepMonitoringUntilTheLastConsumerCloses() {
+    @MainActor func testActivityWindowsKeepFastMonitoringUntilTheLastConsumerCloses() {
         let store = TrayMetricsStore()
         let home = TrayMetricsStore.Consumer.dashboard(UUID())
         let windows = (0..<3).map { _ in TrayMetricsStore.Consumer.activityDetail(UUID()) }
@@ -96,6 +98,7 @@ final class HomeStatusTests: XCTestCase {
         store.resume()
         XCTAssertTrue(store.isMonitoring)
         store.setMonitoring(for: windows[2], enabled: false)
-        XCTAssertFalse(store.isMonitoring)
+        XCTAssertTrue(store.isMonitoring)
+        XCTAssertFalse(store.isForeground)
     }
 }

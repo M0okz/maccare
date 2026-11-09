@@ -8,7 +8,7 @@ struct UninstallDetailPresentation {
     let directDelete: Bool
 
     static func initialSelection(app: AppInfo, items: [ScanItem]) -> Set<String> {
-        Set(items.filter { $0.url.standardizedFileURL.path == app.url.standardizedFileURL.path }.map(\.id))
+        Set(items.map(\.id))
     }
 
     private func isApplication(_ item: ScanItem) -> Bool {

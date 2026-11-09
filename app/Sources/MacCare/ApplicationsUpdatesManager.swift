@@ -99,7 +99,7 @@ struct ApplicationsUpdatesManager: View {
                                 }.frame(maxWidth: .infinity, alignment: .leading)
                                 Image(systemName: entry.source.key == "netnewswire" ? "sparkles" : "arrow.up.circle")
                                     .foregroundStyle(Theme.accent).accessibilityHidden(true)
-                            }.padding(10).frame(maxWidth: .infinity, alignment: .leading)
+                            }.padding(10).frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
                                 .background(selected?.id == entry.id ? Theme.accent.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: 9))
                         }.buttonStyle(.plain).accessibilityLabel("Examiner la mise à jour de \(entry.item.name)")
                             .accessibilityAddTraits(selected?.id == entry.id ? .isSelected : [])

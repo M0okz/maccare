@@ -66,6 +66,7 @@ struct UninstallView: View {
                                     Spacer(minLength: 0)
                                 }
                                 .padding(10).frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
                                 .background(model.selectedApp == app ? Theme.surface : Color.clear,
                                             in: RoundedRectangle(cornerRadius: 8))
                             }
@@ -100,7 +101,7 @@ struct UninstallView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(leftover.item.url.lastPathComponent).font(AppFont.secondary).lineLimit(2)
                                 Text(humanSize(leftover.item.size_bytes)).font(AppFont.caption).foregroundStyle(Theme.muted)
-                            }.frame(maxWidth: .infinity, alignment: .leading)
+                            }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
                         }.buttonStyle(.plain)
                             .accessibilityLabel("Examiner \(leftover.item.url.lastPathComponent)")
                             .accessibilityAddTraits(focusedLeftover?.id == leftover.id ? [.isSelected] : [])
@@ -144,7 +145,7 @@ struct UninstallView: View {
                 title: model.selectedApp?.name ?? "Désinstalleur",
                 subtitle: model.selectedApp == nil
                     ? "Choisissez une application pour examiner son paquet et ses données associées."
-                    : "Les données associées sont conservées par défaut. Cochez celles que vous souhaitez retirer."
+                    : "L’application et ses données sont cochées. Décochez les éléments que vous souhaitez conserver."
             )
             if let app = model.selectedApp {
                 HStack(spacing: Space.m) {
@@ -270,7 +271,7 @@ struct UninstallView: View {
                             Text("\(detail.associatedItems.count) \(pl(detail.associatedItems.count, "élément"))")
                                 .font(AppFont.secondary).foregroundStyle(Theme.muted)
                         }
-                        Text("Préférences, caches et autres fichiers détectés. Cochez uniquement les données à retirer.")
+                        Text("Préférences, caches et autres fichiers détectés. Décochez les données à conserver.")
                             .font(AppFont.secondary).foregroundStyle(Theme.muted)
                         if detail.associatedItems.isEmpty {
                             Text("Aucune donnée associée détectée.")
@@ -289,7 +290,19 @@ struct UninstallView: View {
         VStack(spacing: 0) {
             ForEach(Array(items.enumerated()), id: \.element.id) { idx, item in
                 if idx > 0 { Rectangle().fill(Theme.hairline).frame(height: 1) }
-                ItemRow(item: item, on: model.selection.contains(item.id)) { toggle(item) }
+                Toggle(isOn: Binding(get: { model.selection.contains(item.id) }, set: { _ in toggle(item) })) {
+                    HStack(spacing: 10) {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(item.displayName).font(AppFont.body)
+                            Text(item.path).font(AppFont.caption).foregroundStyle(Theme.faint)
+                                .lineLimit(1).truncationMode(.middle)
+                        }
+                        Spacer(minLength: 8)
+                        Text(humanSize(item.size_bytes)).font(AppFont.body).monospacedDigit().foregroundStyle(Theme.muted)
+                    }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+                }
+                .toggleStyle(.checkbox).padding(.horizontal, 14).padding(.vertical, 9)
+                .disabled(model.isCleaning || model.isScanning)
                     .contextMenu {
                         Button("Afficher dans le Finder") {
                             NSWorkspace.shared.activateFileViewerSelecting([item.url])

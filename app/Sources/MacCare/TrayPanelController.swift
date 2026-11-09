@@ -77,6 +77,7 @@ final class TrayPanelController: NSObject {
         workspaceObservers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.app.trayMetrics.resume(); self?.storageAlert.resume(); self?.memoryAlert.resume(); self?.additionalAlerts.resume(); self?.syncVisibility() }
         })
+        app.trayMetrics.start()
         syncVisibility()
     }
 
@@ -147,7 +148,7 @@ final class TrayPanelController: NSObject {
         panel.setFrame(frame, display: false)
         panel.alphaValue = 0
         statusItem?.button?.highlight(true)
-        // Les mesures ne tournent que volet ouvert : fermé, il n’affiche rien.
+        // Le volet demande les relevés rapides ; fermé, le suivi léger continue.
         app.trayMetrics.setMonitoring(for: .menuBar, enabled: true)
         installEventMonitors()
         panel.makeKeyAndOrderFront(nil)
@@ -267,6 +268,7 @@ final class TrayPanelController: NSObject {
     }
 
     func shutdown() {
+        app.trayMetrics.stop()
         storageAlert.shutdown()
         memoryAlert.shutdown()
         additionalAlerts.shutdown()

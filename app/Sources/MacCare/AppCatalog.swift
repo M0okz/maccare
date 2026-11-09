@@ -45,8 +45,7 @@ struct AppInfo: Identifiable, Hashable {
             L("Preferences", name),
         ]
 
-        // Le bundle lui-même (sous /Applications il sera refusé par les gardes ; sous
-        // ~/Applications il est supprimable).
+        // Le paquet choisi est retiré dans son propre périmètre Applications.
         paths.append(url.path)
 
         // Déduplique en conservant l'ordre.
@@ -57,15 +56,14 @@ struct AppInfo: Identifiable, Hashable {
 
 /// Recense les applications installées dans /Applications et ~/Applications.
 enum AppCatalog {
+    static var applicationDirectories: [String] {
+        ["/Applications", (NSHomeDirectory() as NSString).appendingPathComponent("Applications")]
+    }
     static func installedApps() -> [AppInfo] {
-        let dirs = [
-            "/Applications",
-            (NSHomeDirectory() as NSString).appendingPathComponent("Applications"),
-        ]
         let fm = FileManager.default
         var apps: [AppInfo] = []
 
-        for dir in dirs {
+        for dir in applicationDirectories {
             guard let entries = try? fm.contentsOfDirectory(atPath: dir) else { continue }
             for entry in entries where entry.hasSuffix(".app") {
                 let url = URL(fileURLWithPath: dir).appendingPathComponent(entry)

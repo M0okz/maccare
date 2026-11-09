@@ -1,27 +1,6 @@
 import Combine
 import Foundation
 
-struct TrayHistoryPoint: Sendable {
-    static let maximumCount = 180
-    static let maximumGap: TimeInterval = 3
-    let time: TimeInterval
-    let value: Double
-}
-
-struct TrayCPUHistory {
-    static let duration: TimeInterval = 40
-    private(set) var points: [TrayHistoryPoint] = []
-
-    mutating func record(_ metrics: TrayMetrics) {
-        // Un seul point antérieur au bord gauche sert à tracer le segment coupé.
-        let cutoff = metrics.sampledAt - Self.duration - 1
-        points.removeAll { $0.time < cutoff }
-        guard let value = metrics.cpu?.used, value.isFinite else { return }
-        points.append(.init(time: metrics.sampledAt, value: min(1, max(0, value))))
-        if points.count > TrayHistoryPoint.maximumCount { points.removeFirst(points.count - TrayHistoryPoint.maximumCount) }
-    }
-}
-
 /// Lissage de présentation uniquement : les courbes et volumes gardent les relevés bruts.
 struct TrayMetricsSmoothing {
     private var previous: TrayMetrics?
@@ -31,11 +10,15 @@ struct TrayMetricsSmoothing {
         defer { previous = result }
         guard let previous else { return result }
         let elapsed = raw.sampledAt - previous.sampledAt
-        guard elapsed > 0, elapsed <= 3 else { return result }
-        let weight = 1 - exp(-elapsed / 1.5)
+        guard elapsed > 0, elapsed <= TrayHistoryPoint.maximumGap else { return result }
+        let weight = 1 - exp(-elapsed / 5)
         func blend(_ old: Double, _ new: Double) -> Double { old + (new - old) * weight }
         if let old = previous.cpu, let new = raw.cpu {
             result.cpu = .init(user: blend(old.user, new.user), system: blend(old.system, new.system), temperature: new.temperature)
+        }
+        if let old = previous.gpu, let new = raw.gpu, old.id == new.id, let oldValue = old.fraction, let value = new.fraction {
+            result.gpu = .init(id: new.id, model: new.model, cores: new.cores,
+                               fraction: blend(oldValue, value), temperature: new.temperature)
         }
         if let old = previous.memory, let new = raw.memory, old.total == new.total {
             result.memory = .init(total: new.total,
@@ -59,7 +42,10 @@ struct TrayMetricsSnapshot {
     var cpu = TrayCPUHistory()
     var traffic = WiFiTrafficHistory()
     var gpu = TrayGPUHistory()
-    var compactNetwork = TrayNetworkReadout()
+    var compact = TrayMetricsReadout()
+    var compactNetwork: TrayNetworkReadout { compact.network }
+    var memory = TrayMetricHistory()
+    var networkScale = TrayNetworkScale()
 }
 
 /// Un seul suivi pour l’application, indépendant de la durée de vie du panneau.
@@ -68,52 +54,78 @@ final class TrayMetricsStore: ObservableObject {
     enum Consumer: Hashable { case menuBar, dashboard(UUID), activityDetail(UUID) }
     @Published private(set) var snapshot = TrayMetricsSnapshot()
     private var smoothing = TrayMetricsSmoothing()
-    private let sampler = TrayMetricsSampler()
+    private let sampler: any TrayMetricsSampling
+    private let sleep: @Sendable (Duration) async throws -> Void
+    private var sleeper: Task<Void, Never>?
+    private var requested = false
     private var task: Task<Void, Never>?
     private var consumers: Set<Consumer> = []
     private var suspended = false
     private var primingReadings = 0
     var isMonitoring: Bool { task != nil }
+    var isForeground: Bool { !consumers.isEmpty }
+
+    init(sampler: any TrayMetricsSampling = TrayMetricsSampler(),
+         sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }) {
+        self.sampler = sampler
+        self.sleep = sleep
+    }
 
     /// La charge CPU exige deux relevés, et macOS met ses compteurs à jour par à-coups : on
     /// relit vite tant qu’elle manque, pour qu’un volet tout juste ouvert affiche ses valeurs.
-    nonisolated static func nextDelay(hasCPU: Bool, reading: Int) -> Duration {
-        !hasCPU && reading < 6 ? .milliseconds(250) : .seconds(1)
+    nonisolated static func nextDelay(hasCPU: Bool, reading: Int, foreground: Bool = true) -> Duration {
+        !hasCPU && reading < 6 ? .milliseconds(250) : foreground ? .seconds(1) : .seconds(5)
     }
 
     func setMonitoring(for consumer: Consumer, enabled: Bool) {
-        if enabled { consumers.insert(consumer) } else { consumers.remove(consumer) }
+        let wasForeground = isForeground
+        if enabled { consumers.insert(consumer); requested = true } else { consumers.remove(consumer) }
         reconcileMonitoring()
+        // Réveiller la boucle existante sans réinitialiser les compteurs.
+        if wasForeground != isForeground { sleeper?.cancel() }
     }
-    func suspend() { suspended = true; stop() }
+    func suspend() { suspended = true; reconcileMonitoring() }
     func resume() { suspended = false; reconcileMonitoring() }
     private func reconcileMonitoring() {
-        if !suspended && !consumers.isEmpty { start() } else { stop() }
+        if requested && !suspended { startLoop() } else { halt() }
     }
 
-    func start() {
+    func start() { requested = true; reconcileMonitoring() }
+
+    private func startLoop() {
         guard task == nil else { return }
         primingReadings = 6
         let sampler = sampler
+        let sleep = sleep
         task = Task { [weak self] in
             guard !Task.isCancelled else { return }
             await sampler.reset()
             var reading = 0
             while !Task.isCancelled {
-                let sample = await sampler.sample()
+                guard let foreground = self?.isForeground else { return }
+                let sample = await sampler.sample(includeSensors: foreground)
                 guard !Task.isCancelled else { return }
                 self?.record(sample)
                 reading += 1
-                do { try await Task.sleep(for: Self.nextDelay(hasCPU: sample.cpu != nil, reading: reading)) } catch { return }
+                let delay = Self.nextDelay(hasCPU: sample.cpu != nil, reading: reading, foreground: self?.isForeground == true)
+                // Annuler ce délai réveille la boucle lors d’un changement de visibilité.
+                let sleeper = Task<Void, Never> { do { try await sleep(delay) } catch {} }
+                self?.sleeper = sleeper
+                await sleeper.value
+                guard !Task.isCancelled else { return }
+                self?.sleeper = nil
             }
         }
     }
 
-    func stop() {
+    func stop() { requested = false; halt() }
+
+    private func halt() {
         task?.cancel()
         task = nil
+        sleeper?.cancel()
+        sleeper = nil
         smoothing = .init()
-        // Le cache appartient à l’application ; seul le suivi dépend de la visibilité.
         snapshot.traffic.pause()
     }
 
@@ -122,6 +134,10 @@ final class TrayMetricsStore: ObservableObject {
         let elapsed = sample.sampledAt - next.raw.sampledAt
         if elapsed < 0 { next = .init() }
         if elapsed > TrayHistoryPoint.maximumGap || elapsed < 0 { smoothing = .init() }
+        if let network = sample.wifi,
+           network.interface != next.raw.wifi?.interface || network.address != next.raw.wifi?.address || network.kind != next.raw.wifi?.kind {
+            next.networkScale = .init()
+        }
         next.raw = sample
         next.display = smoothing.apply(sample)
         // Les compteurs repartent d’une base fraîche. Garder brièvement les chiffres
@@ -141,9 +157,12 @@ final class TrayMetricsStore: ObservableObject {
         next.cpu.record(sample)
         next.gpu.record(sample)
         next.traffic.record(sample)
-        next.compactNetwork.record(next.display)
+        next.memory.record(time: sample.sampledAt, value: sample.memory?.fraction)
+        next.compact.record(next.display)
+        let cardTraffic = TrayMetricHistory.window(next.traffic.received.points, duration: TrayMetricHistory.cardDuration)
+        next.networkScale.record(peak: cardTraffic.map(\.peak).max() ?? 0, time: sample.sampledAt)
         snapshot = next
     }
 
-    deinit { task?.cancel() }
+    deinit { task?.cancel(); sleeper?.cancel() }
 }

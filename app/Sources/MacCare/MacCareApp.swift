@@ -52,6 +52,7 @@ struct MacCareApp: App {
 
         HomeActivityWindow(kind: .memory, store: app.trayMetrics)
         HomeActivityWindow(kind: .cpu, store: app.trayMetrics)
+        HomeActivityWindow(kind: .gpu, store: app.trayMetrics)
         HomeActivityWindow(kind: .wifi, store: app.trayMetrics)
 
         Settings {

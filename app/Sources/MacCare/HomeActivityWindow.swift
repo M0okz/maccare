@@ -8,6 +8,7 @@ struct HomeActivityWindow: Scene {
         switch kind {
         case .memory: return "home-activity-memory"
         case .cpu: return "home-activity-cpu"
+        case .gpu: return "home-activity-gpu"
         case .wifi: return "home-activity-network"
         }
     }
@@ -16,6 +17,7 @@ struct HomeActivityWindow: Scene {
         switch kind {
         case .memory: return "RAM — MacCare"
         case .cpu: return "CPU — MacCare"
+        case .gpu: return "GPU — MacCare"
         case .wifi: return "Réseau — MacCare"
         }
     }

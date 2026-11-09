@@ -12,12 +12,13 @@ struct TrayHistoryChart: View {
 
     var body: some View {
         let end = points.last?.time ?? 0
+        let visible = TrayMetricHistory.window(points, duration: duration, end: end)
         ZStack {
             if filled {
-                TrayHistoryPlot(points: points, end: end, duration: duration, maximum: maximum, filled: true)
+                TrayHistoryPlot(points: visible, end: end, duration: duration, maximum: maximum, filled: true)
                     .fill(LinearGradient(colors: [color.opacity(0.25), color.opacity(0.01)], startPoint: .top, endPoint: .bottom))
             }
-            TrayHistoryPlot(points: points, end: end, duration: duration, maximum: maximum)
+            TrayHistoryPlot(points: visible, end: end, duration: duration, maximum: maximum)
                 .stroke(color, style: StrokeStyle(lineWidth: 1.7, lineCap: .round, lineJoin: .round))
         }
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.8), value: maximum)
@@ -38,7 +39,6 @@ struct TrayHistoryPlot: Shape {
 
     func path(in rect: CGRect) -> Path {
         return Path { path in
-            var previousTime: TimeInterval?
             var last: CGPoint?
             var count = 0
             func finishSegment() {
@@ -53,18 +53,12 @@ struct TrayHistoryPlot: Shape {
             for sample in points {
                 let point = CGPoint(x: rect.width * (sample.time - (end - duration)) / duration,
                                     y: rect.height * (1 - min(1, max(0, sample.value / max(1, maximum)))))
-                if let previousTime, sample.time - previousTime > TrayHistoryPoint.maximumGap {
-                    finishSegment()
-                    last = nil
-                    count = 0
-                }
                 if last == nil {
                     if filled { path.move(to: .init(x: point.x, y: rect.height)); path.addLine(to: point) }
                     else { path.move(to: point) }
                 } else { path.addLine(to: point) }
                 last = point
                 count += 1
-                previousTime = sample.time
             }
             finishSegment()
         }

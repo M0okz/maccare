@@ -11,14 +11,14 @@ final class UninstallDetailTests: XCTestCase {
                  identity: FileIdentity(device: 1, inode: 1), owner: nil)
     }
 
-    func testInitialSelectionPreservesAssociatedData() {
+    func testInitialSelectionIncludesApplicationAndAssociatedData() {
         let items = [item("app", path: "/QA/./Example.app"),
                      item("data", path: "/QA/Library/Example.app"),
                      item("helper", path: "/QA/Example.app/Contents/Helpers/Helper.app")]
-        XCTAssertEqual(UninstallDetailPresentation.initialSelection(app: app, items: items), ["app"])
+        XCTAssertEqual(UninstallDetailPresentation.initialSelection(app: app, items: items), ["app", "data", "helper"])
         let detail = UninstallDetailPresentation(app: app, items: items, selection: ["app"], directDelete: false)
         XCTAssertTrue(detail.consequence.contains("Les données associées seront conservées."))
-        XCTAssertTrue(UninstallDetailPresentation.initialSelection(app: app, items: Array(items.dropFirst())).isEmpty)
+        XCTAssertEqual(UninstallDetailPresentation.initialSelection(app: app, items: Array(items.dropFirst())), ["data", "helper"])
     }
 
     func testOnlyExactBundlePathIsClassifiedAsApplication() {

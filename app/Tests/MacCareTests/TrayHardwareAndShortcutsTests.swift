@@ -35,12 +35,12 @@ final class TrayHardwareAndShortcutsTests: XCTestCase {
         for time in 0..<100 {
             history.record(.init(sampledAt: Double(time), gpu: .init(id: 1, model: "Test", cores: 8, fraction: 0.2)))
         }
-        XCTAssertLessThanOrEqual(history.points.count, 42)
+        XCTAssertLessThanOrEqual(history.points.count, TrayHistoryPoint.maximumCount)
         history.record(.init(sampledAt: 101, gpu: .init(id: 2, model: "Other", cores: 10, fraction: 0.5)))
         XCTAssertEqual(history.points.count, 1)
         XCTAssertEqual(history.points.first?.value, 0.5)
         history.record(.init(sampledAt: 102))
-        XCTAssertTrue(history.points.isEmpty)
+        XCTAssertEqual(history.points.count, 1, "Une lecture absente ne détruit pas l’historique GPU")
     }
     func testShortcutSlotsKeepOrderAndAllowZeroThroughFour() {
         XCTAssertEqual(TrayShortcuts.slots(TrayShortcuts.defaults).compactMap { $0 }, [.cleaningOverview, .performanceOverview, .space, .maintenance])

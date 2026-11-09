@@ -84,14 +84,39 @@ struct TrayTimedCache<Value> {
         return value
     }
 
+    var cachedValue: Value? { stored?.value }
     mutating func clear() { stored = nil }
 }
 
 /// Deux relevés de compteurs sont nécessaires pour les débits et la charge CPU.
 /// Les lectures CoreWLAN et Mach restent hors du thread de l’interface.
-actor TrayMetricsSampler {
+protocol TrayMetricsSampling: Sendable {
+    func reset() async
+    func sample(includeSensors: Bool) async -> TrayMetrics
+}
+
+struct TrayNetworkCounter {
+    struct Reading {
+        let name: String
+        let address: String?
+        let received: UInt32
+        let sent: UInt32
+        let time: TimeInterval
+    }
+    private var previous: Reading?
+
+    mutating func rates(_ current: Reading) -> (received: Double?, sent: Double?) {
+        defer { previous = current }
+        guard let previous, previous.name == current.name, previous.address == current.address,
+              current.time > previous.time, current.time - previous.time <= TrayHistoryPoint.maximumGap else { return (nil, nil) }
+        let elapsed = current.time - previous.time
+        return (Double(current.received &- previous.received) / elapsed, Double(current.sent &- previous.sent) / elapsed)
+    }
+}
+
+actor TrayMetricsSampler: TrayMetricsSampling {
     private var cpuLoad = CPULoadCounter()
-    private var previousNetwork: (name: String, address: String?, received: UInt32, sent: UInt32, time: TimeInterval)?
+    private var networkCounter = TrayNetworkCounter()
     private struct WiFiLink { let name: String; let powered: Bool; let rate: Double; let rssi: Int }
     /// Chaque lecture CoreWLAN sollicite un service système ; l’état de liaison varie peu.
     private var link = TrayTimedCache<WiFiLink?>(lifetime: 5)
@@ -104,27 +129,28 @@ actor TrayMetricsSampler {
     func reset() {
         guard !Task.isCancelled else { return }
         cpuLoad.reset()
-        previousNetwork = nil
+        networkCounter = .init()
         // Les lectures coûteuses gardent leur durée de validité (5 à 10 s), même
         // lors d’un changement d’onglet. Leurs caches expirent sans minuterie.
     }
 
-    func sample() -> TrayMetrics {
+    func sample(includeSensors: Bool = true) -> TrayMetrics {
         let host = mach_host_self()
         defer { mach_port_deallocate(mach_task_self_, host) }
         var cpu = cpuLoad.read()
-        cpu?.temperature = cpuTemperature.value(now: ProcessInfo.processInfo.systemUptime) {
+        cpu?.temperature = includeSensors ? cpuTemperature.value(now: ProcessInfo.processInfo.systemUptime) {
             var temperature: Double = 0
             return maccare_cpu_temperature(&temperature) == 0 ? temperature : nil
-        }
+        } : cpuTemperature.cachedValue ?? nil
         let now = ProcessInfo.processInfo.systemUptime
         var gpu = TrayGPU.current()
-        gpu?.temperature = gpuTemperature.value(now: now) {
+        gpu?.temperature = includeSensors ? gpuTemperature.value(now: now) {
             var temperature: Double = 0
             return maccare_gpu_temperature(&temperature) == 0 ? temperature : nil
-        }
-        return TrayMetrics(gpu: gpu, fans: fans.value(now: now) { TrayFans.current() },
-                           cpu: cpu, memory: memory(host: host), wifi: network())
+        } : gpuTemperature.cachedValue ?? nil
+        return TrayMetrics(sampledAt: now, gpu: gpu,
+                           fans: includeSensors ? fans.value(now: now) { TrayFans.current() } : fans.cachedValue ?? nil,
+                           cpu: cpu, memory: memory(host: host), wifi: network(includeLink: includeSensors))
     }
 
     private func memory(host: host_t) -> TrayMetrics.Memory? {
@@ -144,28 +170,23 @@ actor TrayMetricsSampler {
                      compressed: UInt64(info.compressor_page_count) * UInt64(pageSize), pressure: MemoryPressureLevel.current())
     }
 
-    private func network() -> TrayMetrics.Network? {
+    private func network(includeLink: Bool) -> TrayMetrics.Network? {
         let now = ProcessInfo.processInfo.systemUptime
-        let cached = link.value(now: now) {
+        let cached = includeLink ? link.value(now: now) {
             guard let interface = CWWiFiClient.shared().interface(), let name = interface.interfaceName else { return nil }
             return WiFiLink(name: name, powered: interface.powerOn(), rate: interface.transmitRate(), rssi: interface.rssiValue())
-        }
+        } : link.cachedValue ?? nil
         let types = interfaceTypes.value(now: now) { NetworkInterfaceSample.interfaceTypes() }
         guard let current = NetworkInterfaceSample.current(types: types, wifiName: cached?.name) else {
-            previousNetwork = nil
+            networkCounter = .init()
             return nil
         }
-        var received: Double?, sent: Double?
-        if let previousNetwork, previousNetwork.name == current.name, previousNetwork.address == current.address,
-           now > previousNetwork.time, now - previousNetwork.time <= 3 {
-            received = Double(current.received &- previousNetwork.received) / (now - previousNetwork.time)
-            sent = Double(current.sent &- previousNetwork.sent) / (now - previousNetwork.time)
-        }
-        previousNetwork = (current.name, current.address, current.received, current.sent, now)
+        let rates = networkCounter.rates(.init(name: current.name, address: current.address,
+                                              received: current.received, sent: current.sent, time: now))
         let wireless = current.kind == .wifi
         return .init(interface: current.name, powered: wireless ? cached?.powered ?? true : true,
                      connected: current.address != nil, linkRate: wireless ? cached?.rate ?? 0 : 0,
-                     received: received, sent: sent,
+                     received: rates.received, sent: rates.sent,
                      signalDBm: wireless && cached?.rssi != 0 ? cached?.rssi : nil,
                      kind: current.kind, address: current.address)
     }

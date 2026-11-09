@@ -14,9 +14,8 @@ struct MenuBarView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var entered = false
     @AppStorage(TrayShortcuts.key) private var shortcuts = TrayShortcuts.defaults
-    private var metrics: TrayMetrics { metricsStore.snapshot.display }
-    @State private var networkReadout = TrayNetworkReadout()
-    private var networkRates: TrayMetrics.WiFi? { networkReadout.wifi ?? metrics.wifi }
+    private var metrics: TrayMetrics { metricsStore.snapshot.compact.metrics }
+    private var networkRates: TrayMetrics.WiFi? { metricsStore.snapshot.compactNetwork.wifi ?? metrics.wifi }
     @StateObject private var batteryContext = TrayBatteryController()
     @State private var showingHealth = false
     @State private var detail: TrayDetailSelection?
@@ -45,8 +44,6 @@ struct MenuBarView: View {
         .background(TrayBackdrop())
         .tint(highlight)
         .preferredColorScheme(.dark)
-        .onAppear { networkReadout.record(metrics) }
-        .onChange(of: metrics.sampledAt) { _ in networkReadout.record(metrics) }
         .popover(item: $detail, arrowEdge: .leading) { selected in
             switch selected {
             case .activity(let kind): TrayMetricDetail(kind: kind, metricsStore: metricsStore)
@@ -212,19 +209,21 @@ struct MenuBarView: View {
     }
 
     private var gpuCard: some View {
-        TrayMetricTile(title: "GPU", symbol: "display", value: metrics.gpu?.fraction.map { "\(Int(($0 * 100).rounded())) %" } ?? "—") {
-            Text(gpuStatus).lineLimit(1)
-        } indicator: {
-            VStack(alignment: .trailing, spacing: 3) {
-                Text(metrics.gpu?.temperature.map { "\(Int($0.rounded())) °C" } ?? "— °C")
-                    .font(.caption2.weight(.medium)).foregroundStyle(highlight).monospacedDigit()
-                TrayHistoryChart(points: metricsStore.snapshot.gpu.points, color: highlight)
-                    .frame(width: 36, height: 12).accessibilityHidden(true)
+        Button { detail = .activity(.gpu) } label: {
+            TrayMetricTile(title: "GPU", symbol: "display", value: metrics.gpu?.fraction.map { "\(Int(($0 * 100).rounded())) %" } ?? "—") {
+                Text(gpuStatus).lineLimit(1)
+            } indicator: {
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text(metrics.gpu?.temperature.map { "\(Int($0.rounded())) °C" } ?? "— °C")
+                        .font(.caption2.weight(.medium)).foregroundStyle(highlight).monospacedDigit()
+                    TrayHistoryChart(points: metricsStore.snapshot.gpu.points, color: highlight)
+                        .frame(width: 36, height: 12).accessibilityHidden(true)
+                }
             }
         }
-        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: TrayAppearance.cardRadius))
-        .overlay(RoundedRectangle(cornerRadius: TrayAppearance.cardRadius).strokeBorder(.white.opacity(0.09)))
+        .buttonStyle(TrayTileStyle())
         .accessibilityElement(children: .combine)
+        .accessibilityHint("Afficher l’historique GPU")
         .help(metrics.gpu?.model ?? "Mesures du GPU indisponibles")
     }
 

@@ -14,8 +14,8 @@ final class UninstallModel: ObservableObject {
     @Published var statusMessage: String?
     @Published var lastReport: RemovalReport?
 
-    /// Les résidus peuvent se trouver sous ~/Library et le bundle sous ~/Applications : la racine
-    /// de confinement est le dossier personnel. Les gardes protègent le reste (Keychains, etc.).
+    /// Les résidus d’applications déjà supprimées restent dans le dossier personnel.
+    /// Le paquet installé utilise son propre périmètre dans Remover.uninstall.
     private let scopeRoot = NSHomeDirectory()
 
     private var directDelete: Bool { UserDefaults.standard.bool(forKey: "directDelete") }
@@ -59,7 +59,7 @@ final class UninstallModel: ObservableObject {
                 switch result {
                 case .success(let found):
                     self.residuals = found.sorted { $0.size_bytes > $1.size_bytes }
-                    // Les données associées nécessitent un choix explicite.
+                    // Le paquet et ses données sont cochés ; chacun reste décochable.
                     self.selection = UninstallDetailPresentation.initialSelection(app: app, items: found)
                 case .failure(let err):
                     self.residuals = []
@@ -133,53 +133,24 @@ final class UninstallModel: ObservableObject {
 
     func cleanSelected() {
         let chosen = selectedItems
-        guard !chosen.isEmpty else { return }
+        guard !chosen.isEmpty, !isCleaning, let app = selectedApp else { return }
         isCleaning = true
         statusMessage = nil
 
-        let input = PlanInput(
-            scope_root: scopeRoot,
-            items: chosen.map { PlanItem(path: $0.path, identity: $0.identity) }
-        )
         let direct = directDelete
 
         Task.detached(priority: .userInitiated) {
             let token = PowerAssertion.beginUserActivity("MacCare · désinstalleur")
             defer { PowerAssertion.end(token) }
-            let outcome: Result<RemovalReport, Error> = {
-                var report = RemovalReport(direct: direct)
-                do {
-                    if direct {
-                        for r in try Engine.executeRemoval(input) {
-                            if r.removed { report.removed += 1 }
-                            else if !r.allowed { report.refused.append((r.path, r.refusal ?? "refusé")) }
-                            else if let e = r.error { report.failed.append((r.path, e)) }
-                        }
-                    } else {
-                        let decisions = try Engine.planRemoval(input)
-                        let allowed = Set(decisions.filter(\.allowed).map(\.path))
-                        for d in decisions where !d.allowed {
-                            report.refused.append((d.path, d.refusal ?? "refusé"))
-                        }
-                        for item in chosen where allowed.contains(item.path) {
-                            do {
-                                try FileManager.default.trashItem(at: item.url, resultingItemURL: nil)
-                                report.removed += 1
-                            } catch {
-                                report.failed.append((item.path, error.localizedDescription))
-                            }
-                        }
-                    }
-                    return .success(report)
-                } catch {
-                    return .failure(error)
-                }
-            }()
+            let outcome: Result<RemovalReport, Error>
+            do { outcome = .success(try Remover.uninstall(chosen, app: app, direct: direct)) }
+            catch { outcome = .failure(error) }
 
             await MainActor.run {
                 switch outcome {
                 case .success(let report):
                     self.lastReport = report
+                    if !FileManager.default.fileExists(atPath: app.url.path) { self.apps.removeAll { $0.id == app.id } }
                     self.isCleaning = false
                     self.scanResiduals(keepReport: true)
                 case .failure(let err):
