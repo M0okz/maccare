@@ -112,6 +112,6 @@ swift build --package-path app --build-system swiftbuild --arch "$(uname -m)" -c
 
 products="$(swift build --package-path app --build-system swiftbuild --arch "$(uname -m)" -c release --show-bin-path)"
 bin="$products/MacCare"
-test -x "$bin" && test -x "$products/MacCareHelper"
+test -x "$bin" && test -x "$products/MacCareHelper" && test -x "$products/MacCareDeviceBatteryProbe"
 echo "==> OK : $bin"
 echo "    Lancer avec : $bin"

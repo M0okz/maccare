@@ -1,5 +1,13 @@
 # Volet compact et présence dans le Dock
 
+## Appareils jumelés — développement du 9 novembre 2026
+
+**Non livré.** La carte Batterie partage avec l'accueil une acquisition lente
+des iPhone/iPad déjà approuvés et du dernier niveau Watch connu par l'iPhone.
+Les deux anneaux accessoires privilégient téléphone et montre ; le détail
+conserve les autres appareils. Aucun suivi mobile ajouté hors visibilité.
+Voir [fonctionnement, vérifications et limites](apple-device-batteries.md).
+
 ## Historique continu — MacCare 0.2.16
 
 **Livré dans [MacCare 0.2.16 (build 18)](https://github.com/M0okz/maccare/releases/tag/v0.2.16).** Le volet réutilise un historique partagé sur dix minutes, conservé même fermé. Les chiffres CPU/GPU/RAM/réseau changent toutes les trois secondes et sont lissés sur cinq secondes. Les détails CPU/GPU/RAM/réseau offrent jusqu’à une heure avec moyenne et pic ; le GPU devient ouvrable comme le CPU. Les anciennes descriptions de suivi suspendu hors visibilité ci-dessous concernent la version publique précédente.

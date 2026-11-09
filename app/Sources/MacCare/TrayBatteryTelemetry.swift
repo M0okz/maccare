@@ -9,6 +9,14 @@ struct TrayBatteryTelemetry: Sendable {
         let name: String
         let symbol: String
         let percent: Int
+        var receivedAt: Date? = nil
+        var viaPhone = false
+
+        var levelDescription: String {
+            let level = viaPhone ? "Dernier niveau connu par l’iPhone : \(percent) %" : "Dernier niveau connu : \(percent) %"
+            guard let receivedAt else { return level }
+            return level + " · reçu à " + receivedAt.formatted(.dateTime.hour().minute())
+        }
     }
     struct Consumer: Sendable {
         let name: String
@@ -31,6 +39,24 @@ struct TrayBatteryTelemetry: Sendable {
     var adapterWatts: Double?
     var accessories: [Accessory] = []
     var consumer: Consumer?
+
+    /// Small cards prioritize the remote devices the Mac user cannot otherwise inspect at a glance.
+    var featuredAccessories: [Accessory] {
+        guard accessories.contains(where: { ["iphone", "ipad", "applewatch"].contains($0.symbol) }) else { return accessories }
+        func priority(_ symbol: String) -> Int {
+            switch symbol {
+            case "iphone", "ipad": return 0
+            case "applewatch": return 1
+            case "headphones": return 2
+            case "airpods.chargingcase": return 4
+            default: return 3
+            }
+        }
+        return accessories.enumerated().sorted {
+            let left = priority($0.element.symbol), right = priority($1.element.symbol)
+            return left == right ? $0.offset < $1.offset : left < right
+        }.map(\.element)
+    }
 
     static func adapterPower(_ details: [String: Any]) -> Double? {
         guard let value = details[kIOPSPowerAdapterWattsKey] as? NSNumber,
@@ -114,6 +140,10 @@ actor TrayBatterySampler {
                 }
             }
         }
+        // Native accessories stay first. Trusted phones and their Watch use a shared, slow cache.
+        let mobile = await MobileDeviceBatteryStore.shared.accessories()
+        let existing = Set(result.accessories.map { $0.name.lowercased() })
+        result.accessories += mobile.filter { !existing.contains($0.name.lowercased()) }
         result.accessories.sort { $0.name == $1.name ? $0.id < $1.id : $0.name < $1.name }
         if !readingProcesses && processCadence.shouldSample(at: ProcessInfo.processInfo.systemUptime) {
             readingProcesses = true

@@ -17,7 +17,8 @@ cd "$repo_root"
 products="$(swift build --package-path app --build-system swiftbuild --arch "$(uname -m)" -c release --show-bin-path)"
 bin="$products/MacCare"
 helper_bin="$products/MacCareHelper"
-if [ ! -x "$bin" ] || [ ! -x "$helper_bin" ]; then
+probe_bin="$products/MacCareDeviceBatteryProbe"
+if [ ! -x "$bin" ] || [ ! -x "$helper_bin" ] || [ ! -x "$probe_bin" ]; then
     echo "Binaire introuvable : lancez d'abord app/build.sh" >&2
     exit 1
 fi
@@ -50,6 +51,7 @@ cp "$assets/MacCare.icns" "$app/Contents/Resources/MacCare.icns"
 # Assistant privilégié (nettoyage système) : l'exécutable vit dans le paquet et le plist launchd
 # est enregistré par SMAppService.daemon (voir docs/architecture.md). Il disparaît avec l'app.
 cp "$helper_bin" "$app/Contents/MacOS/MacCareHelper"
+cp "$probe_bin" "$app/Contents/MacOS/MacCareDeviceBatteryProbe"
 cp app/Helper/org.maccare.helper.plist "$app/Contents/Library/LaunchDaemons/org.maccare.helper.plist"
 python3 app/release/configure_helper.py "$app"
 # Règles de nettoyage au format ouvert : lues par l'app au démarrage (voir CleaningCategory.swift).
@@ -97,6 +99,8 @@ if [ -n "$identity" ]; then
     done
     codesign "${sign_options[@]}" --sign "$identity" --identifier org.maccare.helper --options runtime \
         "$app/Contents/MacOS/MacCareHelper"
+    codesign "${sign_options[@]}" --sign "$identity" --identifier org.maccare.device-battery-probe --options runtime \
+        "$app/Contents/MacOS/MacCareDeviceBatteryProbe"
     codesign "${sign_options[@]}" --sign "$identity" --identifier org.maccare.mas --options runtime \
         "$app/Contents/Helpers/mas"
     codesign "${sign_options[@]}" --sign "$identity" --identifier org.maccare.smartctl --options runtime \
@@ -107,6 +111,7 @@ else
     echo "    Les autorisations macOS ne tiendront pas d'un build à l'autre ;"
     echo "    l'assistant de nettoyage système ne pourra pas être activé (exigence de signature)."
     codesign --force --sign - --identifier org.maccare.helper "$app/Contents/MacOS/MacCareHelper"
+    codesign --force --sign - --identifier org.maccare.device-battery-probe --options runtime "$app/Contents/MacOS/MacCareDeviceBatteryProbe"
     codesign --force --sign - --identifier org.maccare.mas --options runtime "$app/Contents/Helpers/mas"
     codesign --force --sign - --identifier org.maccare.smartctl --options runtime "$app/Contents/Helpers/smartctl"
     codesign --force --sign - --identifier org.maccare.app "$app"

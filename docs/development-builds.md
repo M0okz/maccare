@@ -1,5 +1,14 @@
 # Reconnaître un build de développement
 
+## Appareils jumelés — développement du 9 novembre 2026
+
+**Non livré**, branche `codex/apple-device-batteries`. Nouveau lecteur mobile
+natif signé séparément dans le paquet Dev. Les copies installées quotidienne
+et Dev sont préservées ; le paquet de QA est préparé sous
+`build/apple-device-batteries/MacCare.app`. Les essais USB/Wi-Fi et énergétiques
+avec les appareils physiques restent à faire.
+Voir [le fonctionnement et les commandes de validation](apple-device-batteries.md).
+
 ## Retrait des applications — Dev du 9 novembre 2026
 
 **Fonctions livrées dans [MacCare 0.2.16 (build 18)](https://github.com/M0okz/maccare/releases/tag/v0.2.16) ; validation locale Dev 0.2.15 (19).** Paquet `build/applications-fix/MacCare.app`, MacCare Dev 0.2.15 (19), installé et vérifié. Les clics sur les lignes, la présélection du paquet et des données et la mise à la corbeille de deux applications factices ont été contrôlés dans l’interface native ; 541 tests réussissent. La copie quotidienne est préservée.

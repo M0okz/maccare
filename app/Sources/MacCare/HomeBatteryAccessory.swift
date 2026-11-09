@@ -7,6 +7,7 @@ struct HomeBatteryAccessory: View {
     var body: some View {
         TrayBatteryGauge(name: accessory.name, symbol: accessory.symbol, percent: accessory.percent,
                          diameter: diameter, lineWidth: 3)
-            .help("\(accessory.name) · dernier niveau connu : \(accessory.percent) %")
+            .help("\(accessory.name) · \(accessory.levelDescription)")
+            .accessibilityValue(accessory.levelDescription)
     }
 }

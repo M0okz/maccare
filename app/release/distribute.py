@@ -45,7 +45,7 @@ def main():
     app = output / 'MacCare.app'
     run('bash', 'app/package.sh', str(app))
     info = plistlib.loads((app / 'Contents/Info.plist').read_bytes())
-    for binary in ['MacOS/MacCare', 'MacOS/MacCareHelper', 'Helpers/mas', 'Helpers/smartctl']:
+    for binary in ['MacOS/MacCare', 'MacOS/MacCareHelper', 'MacOS/MacCareDeviceBatteryProbe', 'Helpers/mas', 'Helpers/smartctl']:
         arch = run('lipo', '-archs', str(app / 'Contents' / binary), capture_output=True, text=True).stdout.split()
         if arch != ['arm64']:
             raise RuntimeError('La distribution actuelle doit cibler uniquement Apple Silicon.')

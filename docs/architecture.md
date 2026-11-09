@@ -1,5 +1,15 @@
 # Architecture de MacCare
 
+## Lecture des appareils jumelés — développement du 9 novembre 2026
+
+**Non livré.** `MacCareDeviceBatteryProbe` est un exécutable utilisateur ponctuel,
+distinct du service privilégié. Il charge MobileDevice optionnellement et lit
+les seuls appareils déjà approuvés ; aucune commande de jumelage, de réglage
+Wi-Fi ou de contrôle de charge. Délais 4 s dans la sonde / 5 s dans le parent.
+Un acteur partage son acquisition entre les cartes visibles, avec cache RAM et
+espacement des échecs. Les mesures iPhone/Watch réelles restent à vérifier.
+Voir [la frontière et ses validations](apple-device-batteries.md).
+
 ## Désinstallation — MacCare 0.2.16
 
 **Livré dans [MacCare 0.2.16 (build 18)](https://github.com/M0okz/maccare/releases/tag/v0.2.16).** `Remover.uninstall` traite le paquet choisi dans son dossier Applications avec une liste d’inclusion, puis ses données dans le dossier personnel. Le nettoyage générique reste inchangé. Le modèle agrège les comptes rendus et retire les paquets disparus du catalogue.
