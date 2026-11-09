@@ -10,6 +10,18 @@ réussis ; les copies quotidiennes restent distinctes.
 
 Voir [la composition partagée, les contrôles et leurs limites](standardized-subviews.md).
 
+## Batterie faible des appareils — 9 novembre 2026
+
+**Non livré**, branche `codex/device-battery-alerts`, base Wi-Fi `5f76971`,
+worktree isolé `build/worktrees/device-battery-alerts`. Option Menu désactivée
+par défaut et seuil de 20 % réglable (5–50 %). Une alerte par épisode, conservée
+après relance ; réarmement par relevé frais à seuil + 5 points. iPhone/iPad
+joints directement avec niveau de trois minutes au plus ; Watch sans date de
+mesure fiable exclue. Aucun détecteur d’extinction ou d’indisponibilité.
+41 tests Swift ciblés réussis, aperçu fictif clair/sombre vérifié, copies
+installées inchangées. [Contrat et limites](device-low-battery-alerts.md) et
+[Outline en attente](outline-sync-pending-device-battery.md).
+
 ## Option Wi-Fi des appareils — Dev du 9 novembre 2026
 
 **Non livré**, branche `codex/apple-device-wifi`, worktree
