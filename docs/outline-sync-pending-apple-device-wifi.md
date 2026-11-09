@@ -1,4 +1,12 @@
-# Synchronisation Outline en attente — appareils Wi-Fi
+# Synchronisation Outline clôturée — appareils Wi-Fi
+
+**Synchronisé et relu le 9 novembre 2026**, lors de la clôture de MacCare 0.2.17.
+Le texte ci-dessous conserve l’état historique du blocage et les éléments à
+reporter ; il ne décrit plus une action en attente. Les fonctions sont publiées,
+les limites datées restent valides. Voir [la clôture et ses preuves](release-0.2.17-completion.md).
+
+## Historique de la demande de synchronisation
+
 
 9 novembre 2026. État source : correction WirelessBuddyFlags et dédoublonnage USB/réseau, branche `codex/apple-device-wifi`.
 Le [point de reprise](apple-device-wifi.md) est la référence locale actuelle.

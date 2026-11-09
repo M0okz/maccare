@@ -1,5 +1,24 @@
 # Documentation publique du site
 
+## Publication HTTPS 0.2.17 et synchronisation Outline — 9 novembre 2026
+
+MacCare 0.2.17 (build 19) est publié sur GitHub. Les sources du site portent les
+nouveaux liens, taille, SHA-256 et références de version des guides. Le catalogue
+hybride est livré ; les guides Batterie et Confidentialité précisent les batteries
+mobiles, l’accès Wi-Fi USB explicite et les alertes facultatives iPhone/iPad.
+Les limites Watch et disponibilité restent explicites.
+
+L’accès Homelab est rétabli et les dix fichiers HTML sont déployés sur le
+conteneur existant. Leurs dix réponses HTTPS correspondent exactement aux
+SHA-256 des sources `5e33750`. Conteneur sain, propriétaires et modes 0644
+conservés ; CSS, images, scripts et configuration nginx inchangés. Les copies
+temporaires de retour arrière sont supprimées après contrôle. Les pages Outline
+concernées sont mises à jour puis relues, avec leur contenu et leur emplacement
+préservés. [Clôture et preuves](release-0.2.17-completion.md).
+
+## Publication HTTPS antérieure — référence 0.2.16
+
+
 État vérifié le 9 novembre 2026 : **publié sur le site**
 https://maccare.homeblack.fr/documentation/.
 Le téléchargement reste MacCare 0.2.16 ; le catalogue hybride de mises à jour

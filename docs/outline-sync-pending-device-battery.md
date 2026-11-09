@@ -1,4 +1,12 @@
-# Synchronisation Outline en attente — batterie faible des appareils
+# Synchronisation Outline clôturée — batterie faible des appareils
+
+**Synchronisé et relu le 9 novembre 2026**, lors de la clôture de MacCare 0.2.17.
+Le texte ci-dessous conserve l’état historique du blocage et les éléments à
+reporter ; il ne décrit plus une action en attente. Les fonctions sont publiées,
+les limites datées restent valides. Voir [la clôture et ses preuves](release-0.2.17-completion.md).
+
+## Historique de la demande de synchronisation
+
 
 9 novembre 2026, branche `codex/device-battery-alerts`, base `5f76971`.
 Référence : [contrat et vérifications](device-low-battery-alerts.md).

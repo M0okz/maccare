@@ -1,5 +1,15 @@
 # Alertes de batterie faible des appareils
 
+## Livraison 0.2.17 — 9 novembre 2026
+
+Cette évolution est publiée dans [MacCare 0.2.17 (build 19)](https://github.com/M0okz/maccare/releases/tag/v0.2.17),
+tag `v0.2.17` sur `22d72fa`, après fusion de la [PR #24](https://github.com/M0okz/maccare/pull/24).
+Ce statut remplace les mentions de développement non livré des notes datées
+ci-dessous, dont les validations et limites sont conservées. Les copies
+installées ne sont pas remplacées pendant cette livraison. Voir
+[l’intégration et les contrôles de distribution](release-integration-0.2.17.md).
+
+
 Développement du 9 novembre 2026, **non livré**, branche
 `codex/device-battery-alerts`, basée sur `5f76971` de `codex/apple-device-wifi`.
 Worktree : `build/worktrees/device-battery-alerts`. La correction de Gregory

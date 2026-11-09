@@ -46,7 +46,8 @@ site, complétés par `public/documentation.css`, sans script ni dépendance.
 Les accès figurent dans la navigation, l’accueil et le pied de page.
 
 Conserver les distinctions entre version publiée et développement : le catalogue
-hybride est actuellement documenté **en développement, non livré dans 0.2.16**.
+hybride est livré dans **MacCare 0.2.17**. Les guides sont déployés et vérifiés
+en HTTPS, identiques aux sources de cette version.
 Son nombre de fiches ne doit devenir ni un nombre d’apps reconnues garanti ni
 un nombre d’apps désinstallables. Le désinstalleur ne dépend pas de ce catalogue.
 Après une livraison, relire les versions de référence, statuts et liens dans tous

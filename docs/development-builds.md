@@ -19,6 +19,12 @@ sous-vues dans le cadre clair intégré commun. Paquet dédié
 Voir [la refonte et les contrôles](battery-cards.md) et
 [la synchronisation Outline en attente](outline-sync-pending-battery-cards.md).
 
+## Publication 0.2.17 — 9 novembre 2026
+
+Les branches réunies ci-dessous sont publiées dans [MacCare 0.2.17 (build 19)](https://github.com/M0okz/maccare/releases/tag/v0.2.17).
+Ce statut remplace leur état de préparation, avec les limites datées conservées.
+[Contrôles et état des accès documentaires](release-integration-0.2.17.md).
+
 ## Ensemble 0.2.17 — préparation du 9 novembre 2026
 
 Branches produit réunies sur `codex/release-0.2.17`, non publiées à ce stade.
