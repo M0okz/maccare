@@ -76,7 +76,7 @@ simultanés du checkout principal ne sont pas copiés dans ce worktree.
 
 ## Parcours
 
-Dans **Batterie → Réglages**, la carte **Appareils Apple** lit les appareils déjà
+Depuis 0.2.19, dans **Batterie → Appareils Apple**, le panneau lit les appareils déjà
 approuvés et leur état Wi-Fi. Un bouton propose **Activer l'accès Wi-Fi** ou
 **Désactiver l'accès Wi-Fi** selon cet état. Il est nécessaire de brancher le
 câble USB et de déverrouiller l'appareil pour modifier le réglage. Le premier

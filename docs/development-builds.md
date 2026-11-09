@@ -421,3 +421,19 @@ Paquet signé `build/native-updates/MacCare.app`, MacCare Dev 0.2.16 (7).
 validé avec douze résultats, dont onze du catalogue. ArtCraft non installé,
 cas ancien simulé vérifié sur la vraie API. Copie quotidienne inchangée.
 Preuves : `build/native-updates-validation.json`.
+
+
+## Préparation 0.2.19 — cercles et volet, 9 novembre 2026
+
+La release 0.2.18 a été annulée avant publication (workflow 42640631269),
+sans artefact public ; son tag demeure immuable. 0.2.19 reprend la refonte
+Batterie et le correctif d’assistant validés, puis ajoute trois cercles dans
+le volet, les réservations téléphone/Watch, les replis vers les batteries les
+plus faibles et la classification macOS/HID des souris. Sources :
+`TrayBatteryTelemetry`, `BatteryTrayButton`, `TrayBatteryDetail`.
+Les copies installées et le service actif restent ceux de la validation précédente.
+
+Tests ciblés : 28 XCTest réussis sur les décodeurs, priorités, caches et historique.
+La classification macOS/HID est testée sur des propriétés contrôlées ; aucun
+accessoire HID/IOPS ne renvoyait de batterie lors du relevé local. Les vérifications
+visuelles et de distribution sont consignées après leur exécution.

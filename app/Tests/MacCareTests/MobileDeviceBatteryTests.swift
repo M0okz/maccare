@@ -30,7 +30,7 @@ final class MobileDeviceBatteryTests: XCTestCase {
         XCTAssertTrue(result.accessories.first?.levelDescription.contains("connu par l’iPhone") == true)
     }
 
-    func testCompactCardsKeepPhoneAndWatchVisibleAlongsideHeadphones() {
+    func testCompactCardsKeepPhoneAndWatchVisibleAlongsideLowestBattery() {
         let devices: [TrayBatteryTelemetry.Accessory] = [
             .init(id: "1", name: "AirPods", symbol: "headphones", percent: 80),
             .init(id: "2", name: "Boîtier", symbol: "airpods.chargingcase", percent: 60),
@@ -38,7 +38,7 @@ final class MobileDeviceBatteryTests: XCTestCase {
             .init(id: "4", name: "Montre", symbol: "applewatch", percent: 50)
         ]
         let telemetry = TrayBatteryTelemetry(accessories: devices)
-        XCTAssertEqual(telemetry.featuredAccessories.prefix(3).map(\.symbol), ["iphone", "applewatch", "headphones"])
+        XCTAssertEqual(telemetry.featuredAccessories.prefix(3).map(\.symbol), ["iphone", "applewatch", "airpods.chargingcase"])
         XCTAssertEqual(telemetry.accessories.count, 4, "The detail keeps the charging case available")
     }
 

@@ -40,22 +40,23 @@ struct TrayBatteryTelemetry: Sendable {
     var accessories: [Accessory] = []
     var consumer: Consumer?
 
-    /// Small cards prioritize the remote devices the Mac user cannot otherwise inspect at a glance.
+    /// The first two places belong to the phone and Watch when available.
+    /// Missing places and the third circle use the lowest remaining battery.
     var featuredAccessories: [Accessory] {
-        guard accessories.contains(where: { ["iphone", "ipad", "applewatch"].contains($0.symbol) }) else { return accessories }
-        func priority(_ symbol: String) -> Int {
-            switch symbol {
-            case "iphone", "ipad": return 0
-            case "applewatch": return 1
-            case "headphones": return 2
-            case "airpods.chargingcase": return 4
-            default: return 3
-            }
+        var seen = Set<String>()
+        let ordered = accessories.filter { seen.insert($0.id).inserted }.sorted {
+            if $0.percent != $1.percent { return $0.percent < $1.percent }
+            return $0.id < $1.id
         }
-        return accessories.enumerated().sorted {
-            let left = priority($0.element.symbol), right = priority($1.element.symbol)
-            return left == right ? $0.offset < $1.offset : left < right
-        }.map(\.element)
+        var slots: [Accessory?] = [ordered.first { $0.symbol == "iphone" },
+                                   ordered.first { $0.symbol == "applewatch" }, nil]
+        var reserved = Set(slots.compactMap { $0?.id })
+        var remaining = ordered.filter { !reserved.contains($0.id) }.makeIterator()
+        for index in slots.indices where slots[index] == nil {
+            slots[index] = remaining.next()
+            if let device = slots[index] { reserved.insert(device.id) }
+        }
+        return slots.compactMap { $0 } + ordered.filter { !reserved.contains($0.id) }
     }
 
     static func adapterPower(_ details: [String: Any]) -> Double? {
@@ -70,14 +71,44 @@ struct TrayBatteryTelemetry: Sendable {
               CFGetTypeID(value) != CFBooleanGetTypeID(), value.doubleValue.isFinite,
               (0...100).contains(value.doubleValue),
               let name = properties["Product"] as? String, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
-        let lower = name.lowercased()
-        let isChargingCase = lower.contains("boîtier") || lower.contains("boitier") || (lower.contains("airpod") && lower.contains("case"))
-        let symbol = isChargingCase ? "airpods.chargingcase" :
-            lower.contains("mouse") || lower.contains("souris") ? "computermouse" :
-            lower.contains("keyboard") || lower.contains("clavier") ? "keyboard" :
-            lower.contains("iphone") ? "iphone" : lower.contains("ipad") ? "ipad" :
-            lower.contains("airpod") || lower.contains("headphone") ? "headphones" : "battery.100percent"
+        let symbol = accessorySymbol(name: name, properties: properties)
         return .init(id: "hid:\(id)", name: name, symbol: symbol, percent: Int(value.doubleValue.rounded()))
+    }
+
+    private static func accessorySymbol(name: String, properties: [String: Any]) -> String {
+        // Apple IOPSKeysPrivate.h categories survive custom Bluetooth device names.
+        let category = (properties["Accessory Category"] as? String)?.lowercased()
+        let lower = name.lowercased()
+        if category == "audio battery case" ||
+            ((category == "headphone" || category == "headset") &&
+             ((properties["Part Identifier"] as? String) == "Case" || lower.contains("boîtier") || lower.contains("boitier") || lower.contains("case"))) {
+            return "airpods.chargingcase"
+        }
+        switch category {
+        case "mouse": return "computermouse"
+        case "keyboard": return "keyboard"
+        case "trackpad": return "rectangle.and.hand.point.up.left"
+        case "watch": return "applewatch"
+        case "headphone", "headset": return "headphones"
+        default: break
+        }
+        if (properties["PrimaryUsagePage"] as? NSNumber)?.intValue == 1 {
+            switch (properties["PrimaryUsage"] as? NSNumber)?.intValue {
+            case 2: return "computermouse"
+            case 6: return "keyboard"
+            default: break
+            }
+        }
+        if lower.contains("boîtier") || lower.contains("boitier") || (lower.contains("airpod") && lower.contains("case")) {
+            return "airpods.chargingcase"
+        }
+        if lower.contains("mouse") || lower.contains("souris") || lower.contains("mx master") || lower.contains("mx anywhere") { return "computermouse" }
+        if lower.contains("keyboard") || lower.contains("clavier") { return "keyboard" }
+        if lower.contains("iphone") { return "iphone" }
+        if lower.contains("ipad") { return "ipad" }
+        if lower.contains("apple watch") || lower.contains("applewatch") { return "applewatch" }
+        if lower.contains("airpod") || lower.contains("headphone") { return "headphones" }
+        return "battery.100percent"
     }
 
     static func powerSourceAccessory(id: UInt64, properties: [String: Any]) -> Accessory? {
@@ -88,7 +119,7 @@ struct TrayBatteryTelemetry: Sendable {
               CFGetTypeID(current) != CFBooleanGetTypeID(), CFGetTypeID(maximum) != CFBooleanGetTypeID(),
               current.doubleValue.isFinite, maximum.doubleValue.isFinite, maximum.doubleValue > 0,
               current.doubleValue >= 0, current.doubleValue <= maximum.doubleValue,
-              let device = accessory(id: id, properties: ["Product": name, "BatteryPercent": current.doubleValue / maximum.doubleValue * 100]) else { return nil }
+              let device = accessory(id: id, properties: properties.merging(["Product": name, "BatteryPercent": current.doubleValue / maximum.doubleValue * 100]) { _, value in value }) else { return nil }
         return .init(id: "power:\(id)", name: device.name, symbol: device.symbol, percent: device.percent)
     }
 

@@ -53,7 +53,8 @@ matérielles décrivent les méthodes de la version 0.2.1, pas la nouvelle polit
 | Profils | Préréglages et profils personnels, sans adaptation silencieuse | Profil refusé si ses réglages sont incompatibles |
 | Historique | Mesures locales réelles, 30 jours et 10 000 entrées maximum | Aucun envoi réseau ; intervalle minimal sauf changement d’état |
 
-Les quatre onglets sont Réglages, Décharge, Programmations et Historique.
+Jusqu’à 0.2.17, les quatre onglets sont Réglages, Décharge, Programmations et Historique.
+Depuis 0.2.19, six cartes ouvrent les gestionnaires intégrés ; voir [Organisation Batterie](battery-cards.md).
 
 **L’étalonnage est retiré depuis la version 0.2.5, et la décharge volontaire revient en 0.2.6.** Sur le MacBookPro17,1 d’essai, le secteur revient seul à la fin d’une décharge avec un chargeur de 65 W, mais pas avec une alimentation de 30 W, où il faut reconnecter le câble. L’assistant refuse l’étalonnage. Le code du cycle reste en place, et les passages ci-dessous qui décrivent l’étalonnage ne concernent que les versions précédentes.
 Les métadonnées App Intents sont extraites pour Debug et Release lors du packaging.
