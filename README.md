@@ -12,6 +12,7 @@ Guides utilisateur : <https://maccare.homeblack.fr/documentation/>.
 - Analyse des caches, journaux et fichiers temporaires, avec revue avant suppression.
 - Recherche de gros fichiers, de doublons et exploration de l’occupation du disque.
 - Gestion des applications, résidus, autorisations et éléments de démarrage.
+- Recherche et installation des mises à jour compatibles des applications, à votre demande.
 - Entretien : index Mail, caches et instantanés locaux facultatifs, Spotlight,
   autorisations du dossier personnel et cache DNS.
 - Suivi de la batterie, de la mémoire, du processeur et du réseau Wi-Fi.
@@ -37,6 +38,12 @@ Dans une version distribuée, **MacCare → Rechercher les mises à jour…** la
 recherche manuelle. **Réglages → Général** permet de désactiver les recherches
 automatiques. L’installation d’une mise à jour nécessite votre action. Aucun jeton
 GitHub n’est intégré dans l’app et aucun profilage Sparkle n’est activé.
+
+Pour les autres applications, **Applications → Mises à jour → Mettre à jour** lance
+le parcours compatible : Sparkle, Homebrew pour la copie gérée, App Store ou archive
+DMG/ZIP officielle. Les PKG passent par l’installateur macOS. L’analyse seule
+n’installe rien ; les autorisations et la fermeture éventuelle restent confirmées.
+[Voir le fonctionnement et les limites](https://maccare.homeblack.fr/documentation/mises-a-jour.html#installer).
 
 ## Désinstallation
 

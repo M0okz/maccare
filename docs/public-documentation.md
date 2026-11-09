@@ -121,3 +121,7 @@ ne remplace pas les copies installées. Voir [le bilan de livraison](release-int
 Les dix pages HTML sont déployées et vérifiées en HTTPS. Les guides décrivent
 les six cartes Batterie, la réparation explicite et les priorités des accessoires
 dans l’accueil et le volet. Les captures datées restent signalées.
+
+## Livraison 0.2.22 — 10 novembre 2026
+
+L’installation depuis Applications est **publiée dans [MacCare 0.2.22 (build 24)](https://github.com/M0okz/maccare/releases/tag/v0.2.22)**, après fusion de la PR #30. Le tag `v0.2.22` vise `b73a43d45154c9adcf4087039cd90a2430e067c9`. Les CI de branche, PR et fusion ainsi que le [workflow officiel](https://github.com/M0okz/maccare/actions/runs/42716751129) réussissent. Ce statut remplace les mentions de développement non livré de ce correctif ; les preuves et limites datées restent conservées. La publication ne remplace pas les copies installées. Voir [la validation publique et les limites](release-integration-0.2.22.md).

@@ -1,5 +1,11 @@
 # Installation des mises à jour depuis le gestionnaire Applications
 
+## Livraison 0.2.22 — 10 novembre 2026
+
+L’installation depuis Applications est **publiée dans [MacCare 0.2.22 (build 24)](https://github.com/M0okz/maccare/releases/tag/v0.2.22)**, après fusion de la PR #30. Le tag `v0.2.22` vise `b73a43d45154c9adcf4087039cd90a2430e067c9`. Les CI de branche, PR et fusion ainsi que le [workflow officiel](https://github.com/M0okz/maccare/actions/runs/42716751129) réussissent. Ce statut remplace les mentions de développement non livré de ce correctif ; les preuves et limites datées restent conservées. La publication ne remplace pas les copies installées. Voir [la validation publique et les limites](release-integration-0.2.22.md).
+
+## État de développement antérieur
+
 9 novembre 2026 — **en développement, non publié** sur
 `codex/application-update-installation`, base `c682107` (MacCare 0.2.20).
 La 0.2.20 publiée ne contient encore que la détection et les liens externes.
