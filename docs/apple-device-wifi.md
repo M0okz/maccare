@@ -7,6 +7,9 @@ L'automatisation ponctuelle `reprendre-les-tests-wi-fi-maccare` est créée dans
 ce chat, pour une seule occurrence. **Ne pas déclarer la fonction fiable ou
 livrée : la redécouverte après relance reste à valider.**
 
+La dernière synchronisation Outline est également à reprendre après un échec
+du helper d'accès Homelab : voir [la note de synchronisation](outline-sync-pending-apple-device-wifi.md).
+
 Le paquet Dev (20) montré à Gregory utilisait encore `AMDeviceSetValue` sur
 `EnableWifiConnections`. Son clic a bien changé la valeur, et un premier relevé
 réseau complet a suivi. Après une relance du paquet, le téléphone n'était plus
