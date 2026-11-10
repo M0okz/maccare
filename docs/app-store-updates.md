@@ -99,3 +99,16 @@ Ces évolutions sont publiées dans [MacCare 0.2.12 (build 14)](https://github.c
 Le [workflow de release](https://github.com/M0okz/maccare/actions/runs/42355768168) est réussi. Les CI de branche, de PR et de fusion passent ; la revue locale compte 269 XCTest, 242 Swift Testing, 98 tests Rust et 19 tests Python réussis, avec contrôles PowerUI sans setter natif et contrôles Sparkle positifs/négatifs réussis. Le DMG public téléchargé, les quatre exécutables arm64, les signatures Developer ID, les tickets Apple et Gatekeeper sont vérifiés. Signatures Ed25519 du flux et du DMG validées avec la clé publique ; le flux latest correspond à la release. Licences, manifestes et archive source smartmontools présents dans le paquet.
 
 DMG : 15917141 octets, SHA-256 `9beb668bfac13099b3ed14c08791285c616636c7a9deb5c3317470bbf97a4029`. Le site public pointe vers ce paquet, avec taille et empreinte correspondantes ; le HTML HTTPS correspond aux sources et le conteneur reste sain. Aucune installation quotidienne effectuée : `/Applications/MacCare.app` demeure en 0.2.8 (10), empreinte inchangée. La Dev installée demeure identifiée 0.2.12 (2). Les limites de QA datées restent applicables ; l’application de distribution n’a pas été lancée pendant cette livraison. Preuves : `build/release-0.2.12-qa/`.
+
+
+## Autorisation administrateur signalée — 10 novembre 2026
+
+Sur le second Mac, Bitwarden installé depuis l’App Store affiche uniquement
+le dialogue macOS d’autorisation du script lancé par MacCare ; aucune erreur
+ensuite n’est signalée. Ce parcours utilise `mas` embarqué, copié dans un dossier
+privé appartenant à root puis contrôlé avec l’exigence de signature MacCare avant
+exécution sur le seul identifiant App Store sélectionné. La fenêtre demande le
+mot de passe administrateur de la session Mac, jamais celui du coffre Bitwarden.
+Le libellé « script » vient de l’élévation AppleScript utilisée actuellement.
+Ce retour ne prouve pas l’achèvement d’une mise à jour App Store ; aucun changement
+de ce mécanisme n’est inclus dans le correctif ZIP 0.2.24.

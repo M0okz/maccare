@@ -17,7 +17,12 @@ struct ApplicationUpdateTarget: Hashable, Sendable {
     let expectedVersion: String
 
     static func readVersion(_ info: [String: Any]) -> String? {
-        (info["ArtCraftLauncherVersion"] ?? info["CFBundleShortVersionString"]) as? String
+        // Bjango's official 7.50.2 ZIP still declares marketing version 7.50.
+        // Recognize only this verified build, both during inventory and installation.
+        if info["CFBundleIdentifier"] as? String == "com.bjango.istatmenus",
+           info["CFBundleShortVersionString"] as? String == "7.50",
+           info["CFBundleVersion"] as? String == "2394" { return "7.50.2" }
+        return (info["ArtCraftLauncherVersion"] ?? info["CFBundleShortVersionString"]) as? String
     }
 
     static func info(at url: URL) throws -> [String: Any] {
