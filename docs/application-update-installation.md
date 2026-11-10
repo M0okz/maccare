@@ -184,3 +184,29 @@ de PR, après fusion et workflow officiel réussis. Ce statut remplace les menti
 de préparation/non livré de ces changements ; les limites de validation datées
 restent applicables. [Vérifications publiques et limites](release-integration-0.2.25.md).
 La publication ne remplace pas les copies installées.
+
+
+## Préparation 0.2.26 — 10 novembre 2026
+
+En développement sur `codex/istat-build-versions`. Le refus 7.50.2 → 7.50.3 est
+reproduit avec les archives officielles : les deux déclarent la version courte
+7.50, mais leurs builds sont respectivement 2394 et 2395. Les exceptions exactes
+sont regroupées dans `VerifiedApplicationRelease`, avec URL Bjango et SHA-256
+vérifiés. Le catalogue utilise cette empreinte même si sa fiche indique
+`no_check`. L’identité du bundle, la version courte et le build doivent tous
+correspondre ; un build inconnu n’est pas transformé en version publiée par calcul.
+Une archive republiée avec une empreinte différente reste refusée.
+
+Archive 7.50.3 : [ZIP officiel Bjango](https://cdn.istatmenus.app/files/istatmenus7/versions/iStatMenus7.50.3.zip),
+SHA-256 `e477dc76606a6181697652ead6f3ce977e716b878165ac1aa945cc470b9ce25d`.
+L’inventaire relit 7.50.3 après remplacement pour ne pas proposer à nouveau la même
+mise à jour. Le libellé « Catalogue public Homebrew » et son explication distinguent
+la source de détection du mode d’installation : l’app peut venir directement de
+l’éditeur, sans Homebrew. Le parcours brew ne s’applique toujours que si le lien
+Caskroom prouve que cette copie est réellement gérée par brew.
+
+Limite : ces correspondances sont des exceptions vérifiées, pas un flux Bjango
+universel. Le flux natif consulté le 10 novembre renvoie encore 7.3 (build 2282),
+il ne justifie pas la correspondance 7.50.3/2395. Une future version dont le
+numéro publié diffère encore des métadonnées devra être vérifiée ; aucune
+validation de version, de signature ou de sécurité n’est supprimée.

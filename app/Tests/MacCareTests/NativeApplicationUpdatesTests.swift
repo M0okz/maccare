@@ -31,6 +31,22 @@ final class NativeApplicationUpdatesTests: XCTestCase {
         XCTAssertEqual(result.first?.downloadURL?.absoluteString, "https://example.org/editor")
         XCTAssertEqual(result.first?.catalogToken, "editor")
     }
+    func testIStatDirectInstallUsesPinnedVendorArchiveAndExplainsCatalogSource() throws {
+        let installed = app("com.bjango.istatmenus", name: "iStat Menus", version: "7.50.2")
+        let vendorURL = "https://cdn.istatmenus.app/files/istatmenus7/versions/iStatMenus7.50.3.zip"
+        let record = cask(["token": "istat-menus", "version": "7.50.3", "url": vendorURL, "sha256": "no_check",
+                           "artifacts": [["app": ["iStat Menus.app"]], ["uninstall": [["quit": "com.bjango.istatmenus"]]]]])
+        let item = try XCTUnwrap(updates([record], apps: [installed]).first)
+        XCTAssertEqual(item.artifact?.url.absoluteString, vendorURL)
+        XCTAssertEqual(item.artifact?.sha256, "e477dc76606a6181697652ead6f3ce977e716b878165ac1aa945cc470b9ce25d")
+        XCTAssertTrue(item.releaseNotes?.contains("sans Homebrew installé") == true)
+        let entry = ApplicationUpdateEntry(source: .init(key: "catalog", title: "", command: ""), item: item)
+        XCTAssertEqual(entry.sourceName, "Catalogue public Homebrew")
+        XCTAssertNil(VerifiedApplicationRelease.artifact(bundleID: installed.bundleID, version: "7.50.3", url: URL(string: "https://other.invalid/file.zip")!))
+        XCTAssertNil(VerifiedApplicationRelease.artifact(bundleID: "org.other.App", version: "7.50.3", url: URL(string: vendorURL)!))
+        let current = app("com.bjango.istatmenus", name: "iStat Menus", version: "7.50.3")
+        XCTAssertTrue(try updates([record], apps: [current]).isEmpty)
+    }
     func testBothIdentityAndAppArtifactAreRequired() throws {
         XCTAssertTrue(try updates([cask()], apps: [app("org.other.Editor")]).isEmpty)
         XCTAssertTrue(try updates([cask()], apps: [app(name: "Another")]).isEmpty)
