@@ -210,3 +210,14 @@ universel. Le flux natif consulté le 10 novembre renvoie encore 7.3 (build 2282
 il ne justifie pas la correspondance 7.50.3/2395. Une future version dont le
 numéro publié diffère encore des métadonnées devra être vérifiée ; aucune
 validation de version, de signature ou de sécurité n’est supprimée.
+
+
+## Livraison 0.2.26 — 10 novembre 2026
+
+**Livré dans [MacCare 0.2.26 (build 28)](https://github.com/M0okz/maccare/releases/tag/v0.2.26)**, tag `v0.2.26` sur
+`c1b9a8ffc3a8d4e72cda9dcb192ca10e7cef55bb`, après fusion de la [PR #35](https://github.com/M0okz/maccare/pull/35).
+
+Les CI de branche, de PR, après fusion et le workflow officiel réussissent.
+Ce statut remplace la mention de préparation ci-dessus.
+[Vérifications publiques et limites](release-integration-0.2.26.md).
+La publication ne remplace pas les copies installées.
