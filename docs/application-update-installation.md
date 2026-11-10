@@ -174,3 +174,13 @@ sont en développement dans `codex/app-store-session-context`, non livrés à ce
 étape. Voir [le diagnostic Bitwarden et ses limites](app-store-updates.md) et
 [les notifications locales et la position du rappel](app-update-notifications.md).
 Les contrôles de signature et le staging App Store ne sont pas relâchés.
+
+
+## Livraison 0.2.25 — 10 novembre 2026
+
+**Livré dans [MacCare 0.2.25 (build 27)](https://github.com/M0okz/maccare/releases/tag/v0.2.25)**,
+tag sur `c6c8483a55d6ea296b792cf564b6f0eeb40ddb1e` après fusion de la PR #34. CI de branche,
+de PR, après fusion et workflow officiel réussis. Ce statut remplace les mentions
+de préparation/non livré de ces changements ; les limites de validation datées
+restent applicables. [Vérifications publiques et limites](release-integration-0.2.25.md).
+La publication ne remplace pas les copies installées.

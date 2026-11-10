@@ -141,3 +141,13 @@ personnelle ; la confirmation du correctif Bitwarden sur le second Mac reste à 
 
 Branche `codex/app-store-session-context`, non livrée à ce stade.
 Source : [mas 7.0.0 — getters de session](https://github.com/mas-cli/mas/blob/v7.0.0/Sources/mas/Utilities/Processes/ProcessInfo.swift).
+
+
+## Livraison 0.2.25 — 10 novembre 2026
+
+**Livré dans [MacCare 0.2.25 (build 27)](https://github.com/M0okz/maccare/releases/tag/v0.2.25)**,
+tag sur `c6c8483a55d6ea296b792cf564b6f0eeb40ddb1e` après fusion de la PR #34. CI de branche,
+de PR, après fusion et workflow officiel réussis. Ce statut remplace les mentions
+de préparation/non livré de ces changements ; les limites de validation datées
+restent applicables. [Vérifications publiques et limites](release-integration-0.2.25.md).
+La publication ne remplace pas les copies installées.
