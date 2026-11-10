@@ -112,3 +112,32 @@ mot de passe administrateur de la session Mac, jamais celui du coffre Bitwarden.
 Le libellé « script » vient de l’élévation AppleScript utilisée actuellement.
 Ce retour ne prouve pas l’achèvement d’une mise à jour App Store ; aucun changement
 de ce mécanisme n’est inclus dans le correctif ZIP 0.2.24.
+
+## Correctif de session utilisateur — préparation 0.2.25, 10 novembre 2026
+
+Un nouveau retour du second Mac montre `Failed to get sudo uid` après acceptation
+de l’autorisation. Cette erreur précise remplace l’incertitude du retour précédent
+qui ne montrait que la fenêtre macOS. Le problème est l’environnement de lancement,
+sans preuve d’un mot de passe incorrect.
+
+mas 7.0.0 lit `SUDO_UID` et `SUDO_GID` dans ses getters ProcessInfo lorsqu’il est
+lancé comme root. L’élévation AppleScript ne remplit pas ces variables. MacCare
+capture maintenant `getuid()` et `getgid()` dans la session GUI avant élévation,
+puis les exporte explicitement dans le script. Il ne prend pas les identifiants
+d’un environnement hérité ni ceux du compte administrateur qui autorise l’action.
+Une identité root ou invalide est refusée avant construction du script.
+
+Le staging privé, la copie avant contrôle de signature, l’exigence Developer ID
+`org.maccare.mas`, les arguments fixes et le seul identifiant App Store choisi
+restent appliqués. Le mot de passe n’est ni lu ni conservé par MacCare.
+
+Reproduction : une sonde signée Developer ID utilise les getters officiels
+non modifiés de mas 7.0.0, sans changer les credentials ni installer d’app. Le
+script complet de production échoue avec le même `Failed to get sudo uid` avant
+correction ; il passe après, même avec un environnement SUDO vide ou usurpé à 0.
+Les cas root/identifiants invalides et le refus d’un outil non signé sont couverts.
+Une installation App Store privilégiée réelle n’a pas été exécutée sur une app
+personnelle ; la confirmation du correctif Bitwarden sur le second Mac reste à faire.
+
+Branche `codex/app-store-session-context`, non livrée à ce stade.
+Source : [mas 7.0.0 — getters de session](https://github.com/mas-cli/mas/blob/v7.0.0/Sources/mas/Utilities/Processes/ProcessInfo.swift).

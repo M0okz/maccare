@@ -7,6 +7,7 @@ struct AppUpdateAvailabilityToolbar: ToolbarContent {
 
     var body: some ToolbarContent {
         if #available(macOS 26, *) {
+            ToolbarSpacer(.flexible, placement: .primaryAction)
             item.sharedBackgroundVisibility(.hidden)
         } else {
             item

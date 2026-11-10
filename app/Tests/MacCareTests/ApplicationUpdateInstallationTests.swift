@@ -132,6 +132,23 @@ final class ApplicationUpdateInstallationTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath:marker.path))
     }
 
+    func testAppStoreOriginalUserContextWithSignedProbeWhenExplicitlyRequested() async throws {
+        guard let path = ProcessInfo.processInfo.environment["MACCARE_MAS_CONTEXT_QA"] else { throw XCTSkip("Opt-in signed mas identity probe; never installs an app") }
+        let script = try ApplicationUpdateCommand.appStorePrivilegedCommand(executable: URL(fileURLWithPath: path), id: 123)
+        for environment in [["SUDO_UID": "", "SUDO_GID": ""], ["SUDO_UID": "0", "SUDO_GID": "0"]] {
+            let output = try await ApplicationUpdateCommand.run("/bin/sh", ["-c", script], environment: environment)
+            XCTAssertEqual(output.trimmingCharacters(in: .whitespacesAndNewlines), "MAS_CONTEXT uid=\(getuid()) gid=\(getgid()) arguments=update,--force,123")
+        }
+    }
+
+    func testAppStoreContextRejectsRootAndInvalidCredentialIdentifiers() {
+        let tool = URL(fileURLWithPath: "/owned/mas")
+        let credentials: [(uid_t, gid_t)] = [(0, 20), (.max, 20), (501, .max)]
+        for (uid, gid) in credentials {
+            XCTAssertThrowsError(try ApplicationUpdateCommand.appStorePrivilegedCommand(executable: tool, id: 123, userID: uid, groupID: gid))
+        }
+    }
+
     func testAppStoreIdentifierIsRetainedForAnIndividualUpdate() throws {
         let item = try XCTUnwrap(AppStoreUpdates.parse(#"{"adamID":123,"name":"Editor","version":"1.0","newVersion":"2.0"}"#).first)
         XCTAssertEqual(item.storeID,123)

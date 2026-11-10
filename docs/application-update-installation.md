@@ -166,3 +166,11 @@ Ce statut remplace les mentions de préparation/non livré du correctif ZIP et
 d’iStat ci-dessus ; les validations historiques restent datées.
 [Vérifications publiques et limites](release-integration-0.2.24.md).
 La publication ne remplace pas les copies installées.
+
+## Préparation 0.2.25 — 10 novembre 2026
+
+Le correctif du contexte utilisateur App Store et les nouvelles alertes de version
+sont en développement dans `codex/app-store-session-context`, non livrés à cette
+étape. Voir [le diagnostic Bitwarden et ses limites](app-store-updates.md) et
+[les notifications locales et la position du rappel](app-update-notifications.md).
+Les contrôles de signature et le staging App Store ne sont pas relâchés.

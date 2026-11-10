@@ -23,14 +23,31 @@ import Combine
             .background(WindowConfigurator())
             .task { @MainActor in
                 var identities = Set<ObjectIdentifier>()
+                var placementChecks = 0
                 for i in 0..<160 {
                     updater.availableVersion = i % 4 < 2 ? nil : "9.9.9"
                     showNotice = i % 5 != 0
                     step = i
                     try? await Task.sleep(nanoseconds:40_000_000)
-                    if let toolbar = NSApp.windows.first(where:{$0.canBecomeMain})?.toolbar { identities.insert(ObjectIdentifier(toolbar)) }
+                    if let window = NSApp.windows.first(where: { $0.canBecomeMain }), let toolbar = window.toolbar {
+                        identities.insert(ObjectIdentifier(toolbar))
+                        if #available(macOS 26, *), updater.availableVersion != nil, showNotice {
+                            if let view = toolbar.items.first(where: { $0.itemIdentifier.rawValue.contains("MacCareUpdateAvailability") })?.view {
+                                let frame = view.convert(view.bounds, to: nil)
+                                let gap = window.frame.width - frame.maxX
+                                print("TOOLBAR_PLACEMENT x=\(frame.minX) width=\(frame.width) rightGap=\(gap)"); fflush(stdout)
+                                guard frame.width > 0, frame.midX > window.frame.width / 2, gap >= 0, gap < 40 else {
+                                    print("TOOLBAR_PLACEMENT_FAILED"); fflush(stdout); exit(1)
+                                }
+                                placementChecks += 1
+                            } else {
+                                print("TOOLBAR_ITEMS \(toolbar.items.map { $0.itemIdentifier.rawValue })"); fflush(stdout)
+                            }
+                        }
+                    }
                 }
-                print("TOOLBAR_PROBE completed=160 toolbarIdentities=\(identities.count)");fflush(stdout)
+                if #available(macOS 26, *), placementChecks == 0 { print("TOOLBAR_NO_PLACEMENT_CHECKS"); fflush(stdout); exit(1) }
+                print("TOOLBAR_PROBE completed=160 toolbarIdentities=\(identities.count) placementChecks=\(placementChecks)");fflush(stdout)
                 if let domain = Bundle.main.bundleIdentifier, domain.hasPrefix("org.maccare.toolbar-regression-probe.") {
                     UserDefaults.standard.removePersistentDomain(forName: domain)
                 }
