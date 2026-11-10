@@ -3,11 +3,18 @@ import MacCareHelperProtocol
 
 /// GUI-initiated commands use argument arrays and one output pipe, with no password capture.
 enum ApplicationUpdateCommand {
+    enum OutputPolicy: Sendable {
+        case tail
+        case complete(maximumBytes: Int)
+    }
     // codesign/csreq require = to distinguish inline text from a requirement file.
     static let appStoreSigningRequirement = "=anchor apple generic and identifier \"org.maccare.mas\" and certificate leaf[subject.OU] = \"\(HelperIdentity.teamID)\" and certificate 1[field.1.2.840.113635.100.6.2.6] exists and certificate leaf[field.1.2.840.113635.100.6.1.13] exists"
 
-    static func run(_ executable: String, _ arguments: [String], environment: [String: String] = [:], workingDirectory: URL? = nil) async throws -> String {
-        try await withCheckedThrowingContinuation { continuation in
+    static func run(_ executable: String, _ arguments: [String], environment: [String: String] = [:], workingDirectory: URL? = nil, outputPolicy: OutputPolicy = .tail) async throws -> String {
+        if case .complete(let maximumBytes) = outputPolicy, maximumBytes <= 0 {
+            throw ApplicationUpdateFailure.refused("La limite de lecture est invalide.")
+        }
+        return try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 let process = Process()
                 process.executableURL = URL(fileURLWithPath: executable)
@@ -19,13 +26,29 @@ enum ApplicationUpdateCommand {
                 do {
                     try process.run()
                     var output = Data()
+                    var overflow = false
                     while true {
                         let chunk = pipe.fileHandleForReading.availableData
                         if chunk.isEmpty { break }
-                        output.append(chunk)
-                        if output.count > 128_000 { output = Data(output.suffix(128_000)) }
+                        switch outputPolicy {
+                        case .tail:
+                            output.append(chunk)
+                            if output.count > 128_000 { output = Data(output.suffix(128_000)) }
+                        case .complete(let maximumBytes):
+                            if !overflow && chunk.count <= maximumBytes - output.count {
+                                output.append(chunk)
+                            } else {
+                                overflow = true
+                                output.removeAll(keepingCapacity: false)
+                            }
+                        }
                     }
                     process.waitUntilExit()
+                    // Drain even after overflow so the child cannot block on its output pipe.
+                    // Structured metadata must fail explicitly, never return a partial record.
+                    guard !overflow else {
+                        throw ApplicationUpdateFailure.refused("La liste des fichiers de l’archive dépasse la limite autorisée. L’application installée est conservée.")
+                    }
                     let text = String(decoding: output, as: UTF8.self)
                     guard process.terminationStatus == 0 else {
                         throw ApplicationUpdateFailure.refused(String(text.suffix(2500)).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "La mise à jour a été interrompue ou refusée." : String(text.suffix(2500)))

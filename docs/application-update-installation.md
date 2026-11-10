@@ -118,3 +118,40 @@ Sources : [Sparkle — mises à jour de bundles externes](https://sparkle-projec
 ## Livraison 0.2.23 — 10 novembre 2026
 
 **Livré dans [MacCare 0.2.23 (build 25)](https://github.com/M0okz/maccare/releases/tag/v0.2.23)**, tag sur `a3c3f98f646fa27202607b47c6879969ca6eb72b` après fusion des PR #31 et #32. Le [workflow officiel](https://github.com/M0okz/maccare/actions/runs/42789605501) et les CI du code publié réussissent. Ce statut remplace les mentions de préparation/non livré de ces deux correctifs ; les validations historiques restent datées. Le rappel utilise une barre gérée seulement par SwiftUI ; l’analyse et le staging lisent les architectures sans lipo ni demande d’outils Xcode. [Vérifications publiques et limites](release-integration-0.2.23.md). La publication ne remplace pas les copies installées.
+
+
+## Correctif ZIP et iStat Menus — préparation 0.2.24, 10 novembre 2026
+
+Branche `codex/complete-zip-listing`, non livrée à ce stade. Le runner conservait
+seulement les 128000 derniers octets de sortie de zipinfo. La liste officielle
+d’iStat Menus 7.50.2 compte 358301 octets et 3068 entrées : sa coupure fabriquait
+un chemin commençant par `/`. Le test de reproduction échouait sur 854 entrées
+et un faux chemin absolu.
+
+Le mode de lecture complète, limité à 16 Mio pour zipinfo, refuse explicitement
+un dépassement au lieu de rendre des données partielles. La sortie est drainée
+jusqu’à la fin même au-delà de cette limite pour éviter un blocage du processus.
+Les journaux ordinaires conservent leur limite de 128000 octets. Les chemins
+absolus, traversées `..`, signatures, Gatekeeper, empreintes et architectures
+restent contrôlés. Une archive adversaire place une traversée avant plus de
+128 Ko d’entrées pour vérifier qu’elle n’est jamais perdue.
+
+Le build officiel 2394 du bundle `com.bjango.istatmenus` déclare encore 7.50.
+Une exception exacte pour ce couple version/build reconnaît 7.50.2, utilisée
+pour l’inventaire, la validation et le contrôle après installation. Aucun autre
+build ou bundle n’est interprété ainsi. SHA-256 du ZIP officiel :
+`8c633ede51c431e0e9dcba864a2ac3499e9dc1c2ff5d849450b2b1e09c7d3d92`.
+Le vrai remplacement d’une copie isolée 7.50 (2355) vers 7.50.2 (2394) passe :
+signataire `Y93TK974AT`, Gatekeeper, préférences de test conservées et absence
+de nouvelle proposition de la même version. Ni iStat ni ses helpers n’ont été
+lancés ; la gestion des agents par l’éditeur après lancement reste hors de ce test.
+
+Sources : [archive officielle Bjango](https://cdn.istatmenus.app/files/istatmenus7/versions/iStatMenus7.50.2.zip),
+[fiche Homebrew](https://formulae.brew.sh/api/cask/istat-menus.json).
+La confirmation du correctif sur le second Mac reste à faire.
+
+Validation locale du correctif : build Release arm64 réussi, 365 XCTest exécutés
+(5 parcours optionnels ignorés), 269 Swift Testing et 19 tests Python réussis.
+Le parcours iStat optionnel est exécuté séparément avec les archives officielles ;
+les tests de lecture complète, de dépassement de limite et de traversée ZIP passent.
+Le contrôle d’absence d’outils de développement au runtime passe également.

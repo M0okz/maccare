@@ -269,4 +269,80 @@ final class ApplicationUpdateInstallationTests: XCTestCase {
         print("ARTCRAFT_INSTALL_QA", "owned fixture 0.16.1 → 0.17.0, native architecture validation, settings preserved")
     }
 
+    func testCompleteCommandOutputPreservesMetadataAndRejectsOverflow() async throws {
+        let root = try temporary(); defer { try? FileManager.default.removeItem(at: root) }
+        let file = root.appendingPathComponent("metadata")
+        let contents = "first entry\n" + String(repeating: "long metadata entry\n", count: 15_000)
+        try Data(contents.utf8).write(to: file)
+        let complete = try await ApplicationUpdateCommand.run("/bin/cat", [file.path], outputPolicy: .complete(maximumBytes: 1_000_000))
+        XCTAssertEqual(complete, contents)
+        let tail = try await ApplicationUpdateCommand.run("/bin/cat", [file.path])
+        XCTAssertEqual(tail, String(decoding: Data(contents.utf8).suffix(128_000), as: UTF8.self))
+        do {
+            _ = try await ApplicationUpdateCommand.run("/bin/cat", [file.path], outputPolicy: .complete(maximumBytes: 64_000))
+            XCTFail("Incomplete metadata must never be returned")
+        } catch { XCTAssertTrue(error.localizedDescription.contains("dépasse la limite")) }
+    }
+
+    func testLargeZIPRetainsAllPathsIncludingTraversalAtTheBeginning() async throws {
+        let root = try temporary(); defer { try? FileManager.default.removeItem(at: root) }
+        let source = root.appendingPathComponent("source")
+        let resources = source.appendingPathComponent("Editor.app/Contents/Resources")
+        try FileManager.default.createDirectory(at: resources, withIntermediateDirectories: true)
+        for index in 0..<800 {
+            try Data().write(to: resources.appendingPathComponent(String(repeating: "x", count: 180) + String(index)))
+        }
+        let safe = root.appendingPathComponent("safe.zip")
+        _ = try await ApplicationUpdateCommand.run("/usr/bin/zip", ["-q", "-r", safe.path, "Editor.app"], workingDirectory: source)
+        let listing = try await ApplicationUpdateCommand.run("/usr/bin/zipinfo", ["-1", safe.path], outputPolicy: .complete(maximumBytes: 1_000_000))
+        XCTAssertGreaterThan(listing.utf8.count, 128_000)
+        try await ApplicationUpdateArchive.validateZIPPaths(in: safe)
+        let outside = root.appendingPathComponent("outside")
+        try Data("owned marker".utf8).write(to: outside)
+        let unsafe = root.appendingPathComponent("unsafe.zip")
+        _ = try await ApplicationUpdateCommand.run("/usr/bin/zip", ["-q", "-r", unsafe.path, "../outside", "Editor.app"], workingDirectory: source)
+        do {
+            try await ApplicationUpdateArchive.validateZIPPaths(in: unsafe)
+            XCTFail("Traversal before a large list must be retained and rejected")
+        } catch { XCTAssertTrue(error.localizedDescription.contains("chemins non autorisés")) }
+        XCTAssertEqual(try String(contentsOf: outside), "owned marker")
+    }
+
+    func testIStatVerifiedBuildVersionIsScopedToItsBundleAndMarketingVersion() {
+        let base = ["CFBundleIdentifier": "com.bjango.istatmenus", "CFBundleShortVersionString": "7.50", "CFBundleVersion": "2394"]
+        XCTAssertEqual(ApplicationUpdateTarget.readVersion(base), "7.50.2")
+        for (key, value) in [("CFBundleIdentifier", "org.example.Editor"), ("CFBundleShortVersionString", "7.51"), ("CFBundleVersion", "2395")] {
+            var other = base; other[key] = value
+            XCTAssertEqual(ApplicationUpdateTarget.readVersion(other), other["CFBundleShortVersionString"])
+        }
+    }
+
+    func testOfficialIStatZIPReplacementWhenExplicitlyRequested() async throws {
+        guard let path = ProcessInfo.processInfo.environment["MACCARE_ISTAT_ZIP_QA"] else { throw XCTSkip("Opt-in official iStat ZIP installation QA, owned fixture only") }
+        let newArchive = URL(fileURLWithPath: path)
+        let oldArchive = newArchive.deletingLastPathComponent().appendingPathComponent("iStatMenus7.50.zip")
+        try ApplicationUpdateArchive.checkHash(of: oldArchive, expected: "adf77542f048cc4cdc078958da2fb64be2310c065035701b8a6290d1defd3f43")
+        try await ApplicationUpdateArchive.validateZIPPaths(in: newArchive)
+        let root = try temporary(); defer { try? FileManager.default.removeItem(at: root) }
+        _ = try await ApplicationUpdateCommand.run("/usr/bin/tar", ["-xf", oldArchive.path, "-C", root.path, "--no-same-owner"])
+        let installedApp = root.appendingPathComponent("iStat Menus.app")
+        let policy = ApplicationUpdatePolicy(roots: [root])
+        let target = try policy.target(url: installedApp, expectedVersion: "7.50.2")
+        XCTAssertEqual(target.version, "7.50")
+        XCTAssertEqual(try ApplicationUpdateTarget.info(at: installedApp)["CFBundleVersion"] as? String, "2355")
+        let preferences = root.appendingPathComponent("preferences.json")
+        try Data("preserved settings".utf8).write(to: preferences)
+        let prepared = try await ApplicationUpdateArchive.prepare(
+            artifact: .init(url: URL(string: "https://cdn.istatmenus.app/files/istatmenus7/versions/iStatMenus7.50.2.zip")!, sha256: "8c633ede51c431e0e9dcba864a2ac3499e9dc1c2ff5d849450b2b1e09c7d3d92"),
+            target: target, policy: policy, fetch: { _, destination, _ in try FileManager.default.copyItem(at: newArchive, to: destination) })
+        defer { prepared.cleanup() }
+        try await ApplicationUpdateArchive.replace(prepared, policy: policy)
+        XCTAssertEqual(try ApplicationUpdateTarget.readVersion(ApplicationUpdateTarget.info(at: installedApp)), "7.50.2")
+        XCTAssertEqual(try ApplicationUpdateTarget.info(at: installedApp)["CFBundleVersion"] as? String, "2394")
+        XCTAssertEqual(try ApplicationUpdateArchive.teamID(at: installedApp), "Y93TK974AT")
+        XCTAssertEqual(try String(contentsOf: preferences), "preserved settings")
+        let inventory = try XCTUnwrap(InstalledUpdateApplication.read(.init(url: installedApp, name: "iStat Menus", bundleId: "com.bjango.istatmenus")))
+        XCTAssertFalse(ApplicationReleaseVersion.isNewer("7.50.2", than: inventory.version))
+        print("ISTAT_INSTALL_QA: owned official fixture 7.50 (2355) → 7.50.2 (2394), signer and Gatekeeper verified, settings preserved, no repeated update")
+    }
 }

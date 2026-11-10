@@ -28,6 +28,13 @@ struct PreparedApplicationUpdate: Sendable {
 enum ApplicationUpdateArchive {
     typealias Fetch = @Sendable (URL, URL, @escaping @Sendable (Double?) -> Void) async throws -> Void
 
+    static func validateZIPPaths(in archive: URL) async throws {
+        let listing = try await ApplicationUpdateCommand.run("/usr/bin/zipinfo", ["-1", archive.path], outputPolicy: .complete(maximumBytes: 16 * 1024 * 1024))
+        guard ApplicationUpdatePolicy.validArchivePaths(listing.components(separatedBy: .newlines).filter { !$0.isEmpty }) else {
+            throw ApplicationUpdateFailure.refused("L’archive contient des chemins non autorisés.")
+        }
+    }
+
     static func download(_ url: URL, to destination: URL, progress: @escaping @Sendable (Double?) -> Void) async throws {
         guard ApplicationUpdatePolicy.validDownloadURL(url) else { throw ApplicationUpdateFailure.refused("Le téléchargement doit provenir d’une adresse HTTPS.") }
         let observer = ApplicationDownloadProgress(report: progress)
@@ -104,10 +111,7 @@ enum ApplicationUpdateArchive {
                 _ = try await ApplicationUpdateCommand.run("/usr/bin/hdiutil", ["attach", "-readonly", "-nobrowse", "-mountpoint", unpacked.path, archive.path])
                 mounted = true
             } else {
-                let listing = try await ApplicationUpdateCommand.run("/usr/bin/zipinfo", ["-1", archive.path])
-                guard ApplicationUpdatePolicy.validArchivePaths(listing.components(separatedBy: .newlines).filter { !$0.isEmpty }) else {
-                    throw ApplicationUpdateFailure.refused("L’archive contient des chemins non autorisés.")
-                }
+                try await validateZIPPaths(in: archive)
                 _ = try await ApplicationUpdateCommand.run("/usr/bin/tar", ["-xf", archive.path, "-C", unpacked.path, "--no-same-owner"])
             }
             // Detach on every exit, before the temporary root is removed.
