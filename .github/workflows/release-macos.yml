@@ -72,6 +72,7 @@ jobs:
       - name: Construire et tester
         run: |
           bash app/Tests/NoDeveloperToolsTests/run.sh
+          bash app/Tests/WindowToolbarLifecycleTests/run.sh --compile-only
           bash app/build.sh
           swift test --package-path app --scratch-path build/swift-tests --build-system native --arch arm64 -Xlinker -L"$PWD/core/target/release"
           python3 -m unittest discover -s app/release/tests -v

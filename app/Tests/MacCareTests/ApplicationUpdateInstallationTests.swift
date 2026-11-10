@@ -235,4 +235,38 @@ final class ApplicationUpdateInstallationTests: XCTestCase {
         print("PHOTOCRAFT_INSTALL_QA", "owned fixture 0.21.0 → 0.22.0, original preserved on bad checksum, preferences unchanged")
     }
 
+
+    func testArtCraft0161To0170WhenExplicitlyRequested() async throws {
+        guard ProcessInfo.processInfo.environment["MACCARE_ARTCRAFT_NETWORK_QA"] == "1" else { throw XCTSkip("Opt-in ArtCraft archive integration, owned fixture only") }
+        let root = try temporary();defer { try? FileManager.default.removeItem(at:root) }
+        let installedApp = root.appendingPathComponent("Installed ArtCraft Fixture.app")
+        let oldArchive = root.appendingPathComponent("old.dmg")
+        let oldURL = URL(string:"https://github.com/storytold/craft-launcher/releases/download/v0.16.1/artcraft-launcher-0.16.1-macos-universal.dmg")!
+        let newURL = URL(string:"https://github.com/storytold/craft-launcher/releases/download/v0.17.0/artcraft-launcher-0.17.0-macos-universal.dmg")!
+        try await ApplicationUpdateArchive.download(oldURL,to:oldArchive,progress:{ _ in })
+        try ApplicationUpdateArchive.checkHash(of:oldArchive,expected:"c092ab7586b34b7861b3e47728d689986575f83428f72222e5fe9090c97f6a66")
+        let mount = root.appendingPathComponent("old-mount")
+        try FileManager.default.createDirectory(at:mount,withIntermediateDirectories:true)
+        _ = try await ApplicationUpdateCommand.run("/usr/bin/hdiutil",["attach","-readonly","-nobrowse","-mountpoint",mount.path,oldArchive.path])
+        do {
+            let candidate = try XCTUnwrap(FileManager.default.contentsOfDirectory(at:mount,includingPropertiesForKeys:nil).first { $0.pathExtension == "app" })
+            try FileManager.default.copyItem(at:candidate,to:installedApp)
+        } catch {
+            _ = try? await ApplicationUpdateCommand.run("/usr/bin/hdiutil",["detach","-quiet",mount.path]);throw error
+        }
+        _ = try await ApplicationUpdateCommand.run("/usr/bin/hdiutil",["detach","-quiet",mount.path])
+        XCTAssertEqual(try ApplicationUpdateTarget.readVersion(ApplicationUpdateTarget.info(at:installedApp)),"0.16.1")
+        let policy = ApplicationUpdatePolicy(roots:[root])
+        let target = try policy.target(url:installedApp,expectedVersion:"0.17.0")
+        let preferences = root.appendingPathComponent("preferences.json")
+        try Data("preserved ArtCraft settings".utf8).write(to:preferences)
+        let prepared = try await ApplicationUpdateArchive.prepare(artifact:.init(url:newURL,sha256:"3a5bc2804fb5c256f409c089a58c6cab48a03f1a7ea8f036491fc0501c2a8331"),target:target,policy:policy)
+        defer { prepared.cleanup() }
+        try await ApplicationUpdateArchive.replace(prepared,policy:policy)
+        XCTAssertEqual(try ApplicationUpdateTarget.readVersion(ApplicationUpdateTarget.info(at:installedApp)),"0.17.0")
+        XCTAssertEqual(try String(contentsOf:preferences),"preserved ArtCraft settings")
+        XCTAssertFalse(try ApplicationUpdateArchive.teamID(at:installedApp).isEmpty)
+        print("ARTCRAFT_INSTALL_QA", "owned fixture 0.16.1 → 0.17.0, native architecture validation, settings preserved")
+    }
+
 }
