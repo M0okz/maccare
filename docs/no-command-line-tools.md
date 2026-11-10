@@ -1,5 +1,11 @@
 # Analyse Applications sans outils de développement
 
+## Livraison 0.2.23 — 10 novembre 2026
+
+**Livré dans [MacCare 0.2.23 (build 25)](https://github.com/M0okz/maccare/releases/tag/v0.2.23)**, tag sur `a3c3f98f646fa27202607b47c6879969ca6eb72b` après fusion des PR #31 et #32. Le [workflow officiel](https://github.com/M0okz/maccare/actions/runs/42789605501) et les CI du code publié réussissent. Ce statut remplace les mentions de préparation/non livré de ces deux correctifs ; les validations historiques restent datées. Le rappel utilise une barre gérée seulement par SwiftUI ; l’analyse et le staging lisent les architectures sans lipo ni demande d’outils Xcode. [Vérifications publiques et limites](release-integration-0.2.23.md). La publication ne remplace pas les copies installées.
+
+## Historique du développement
+
 9–10 novembre 2026 — **correctif en développement, non livré**.
 Branche `codex/no-command-line-tools`, base initiale `c682107` après la livraison 0.2.20, puis intégration de `b73a43d`.
 Le numéro et la signature de la copie installée ne sont pas modifiés.

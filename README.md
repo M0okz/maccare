@@ -41,7 +41,7 @@ GitHub n’est intégré dans l’app et aucun profilage Sparkle n’est activé
 
 Pour les autres applications, **Applications → Mises à jour → Mettre à jour** lance
 le parcours compatible : Sparkle, Homebrew pour la copie gérée, App Store ou archive
-DMG/ZIP officielle. Les PKG passent par l’installateur macOS. L’analyse seule
+DMG/ZIP officielle. Les PKG passent par l’installateur macOS. Les outils de développement Xcode ne sont pas nécessaires pour ces parcours. L’analyse seule
 n’installe rien ; les autorisations et la fermeture éventuelle restent confirmées.
 [Voir le fonctionnement et les limites](https://maccare.homeblack.fr/documentation/mises-a-jour.html#installer).
 

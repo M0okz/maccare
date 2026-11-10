@@ -241,3 +241,7 @@ DMG final : 16112155 octets, SHA-256 `6430fda069ac0f16455b2e9d9707762b3b8224670d
 ## Livraison 0.2.22 — 10 novembre 2026
 
 L’installation depuis Applications est **publiée dans [MacCare 0.2.22 (build 24)](https://github.com/M0okz/maccare/releases/tag/v0.2.22)**, après fusion de la PR #30. Le tag `v0.2.22` vise `b73a43d45154c9adcf4087039cd90a2430e067c9`. Les CI de branche, PR et fusion ainsi que le [workflow officiel](https://github.com/M0okz/maccare/actions/runs/42716751129) réussissent. Ce statut remplace les mentions de développement non livré de ce correctif ; les preuves et limites datées restent conservées. La publication ne remplace pas les copies installées. Voir [la validation publique et les limites](release-integration-0.2.22.md).
+
+## Livraison 0.2.23 — 10 novembre 2026
+
+**Livré dans [MacCare 0.2.23 (build 25)](https://github.com/M0okz/maccare/releases/tag/v0.2.23)**, tag sur `a3c3f98f646fa27202607b47c6879969ca6eb72b` après fusion des PR #31 et #32. Le [workflow officiel](https://github.com/M0okz/maccare/actions/runs/42789605501) et les CI du code publié réussissent. Ce statut remplace les mentions de préparation/non livré de ces deux correctifs ; les validations historiques restent datées. Le rappel utilise une barre gérée seulement par SwiftUI ; l’analyse et le staging lisent les architectures sans lipo ni demande d’outils Xcode. [Vérifications publiques et limites](release-integration-0.2.23.md). La publication ne remplace pas les copies installées.

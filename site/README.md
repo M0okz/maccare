@@ -64,3 +64,5 @@ Batterie, réparation d’assistant et priorités d’accessoires. Les référen
 Les guides prennent **0.2.20** comme référence depuis le 9 novembre 2026 : bilan Applications, seuil de 30 jours, incompatibilités, installateurs, vérification parallèle et rappel de mise à jour de MacCare. Les références aux introductions en 0.2.17 et 0.2.19 restent historiques.
 
 Les guides prennent **0.2.22** comme référence depuis le 10 novembre 2026 : le bouton Mettre à jour lance les parcours compatibles depuis le gestionnaire Applications. Le site et ses dix pages HTML ont été relus en HTTPS, identiques aux sources. Les introductions historiques et l’avertissement sur les anciennes captures sont conservés.
+
+Les guides prennent **0.2.23** comme référence depuis le 10 novembre 2026 : rappel de mise à jour stabilisé, architectures lues sans outils Xcode et procédure de remplacement depuis le DMG si une ancienne version quitte au lancement. Les dix HTML sont relus en HTTPS, identiques aux sources ; les introductions historiques et l’avertissement sur les anciennes captures restent conservés.
