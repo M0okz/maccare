@@ -47,6 +47,8 @@ jobs:
         run: bash app/Tests/DeviceBatteryProbeTests/run.sh
       - name: Vérifier l’analyse sans outils de développement
         run: bash app/Tests/NoDeveloperToolsTests/run.sh
+      - name: Compiler la sonde de stabilité de la barre de mise à jour
+        run: bash app/Tests/WindowToolbarLifecycleTests/run.sh --compile-only
       - name: Construire depuis les sources
         run: bash app/build.sh
       - name: Tests Swift

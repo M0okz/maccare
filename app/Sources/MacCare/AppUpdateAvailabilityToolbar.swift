@@ -14,11 +14,13 @@ struct AppUpdateAvailabilityToolbar: ToolbarContent {
     }
 
     private var item: some ToolbarContent {
-        ToolbarItemGroup(placement: .automatic) {
-            if isVisible, updater.availableVersion != nil {
-                Spacer()
-                AppUpdateAvailabilityButton(updater: updater)
-            }
+        // Keep one native item and one owner through launch, onboarding and update cycles.
+        ToolbarItem(id: "MacCareUpdateAvailability", placement: .primaryAction) {
+            AppUpdateAvailabilityButton(updater: updater)
+                .frame(minHeight: 44)
+                .opacity(isVisible ? 1 : 0)
+                .allowsHitTesting(isVisible)
+                .accessibilityHidden(!isVisible)
         }
     }
 }
