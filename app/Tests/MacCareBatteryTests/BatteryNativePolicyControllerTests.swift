@@ -696,7 +696,11 @@ struct BatteryNativePolicyControllerTests {
     @Test(arguments: [true, nil])
     func appleCalibrationOrUnknownOverrideNeverStartsPolicy(override: Bool?) {
         let f = Fixture(); f.driver.override = override
-        #expect(!f.run(.enable).active)
+        let status = f.run(.enable)
+        #expect(!status.active)
+        #expect(status.error?.contains("étalonnage") == false)
+        // An unreadable override makes policy capabilities unavailable before capture.
+        if override == true { #expect(status.error?.contains("priorité") == true) }
         #expect(f.driver.targets.isEmpty && f.journal.pending == nil)
     }
 }

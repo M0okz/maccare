@@ -237,6 +237,16 @@ if CommandLine.arguments.contains("--battery-diagnostics") {
     exit(0)
 }
 
+// Separate from the legacy snapshot for consumers of --battery-diagnostics.
+if CommandLine.arguments.contains("--battery-compatibility-diagnostics") {
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+    if let data = try? encoder.encode(BatteryCompatibilityDiagnostics.read()) {
+        print(String(decoding: data, as: UTF8.self))
+    }
+    exit(0)
+}
+
 let delegate = ListenerDelegate()
 let listener = NSXPCListener(machServiceName: HelperIdentity.machService)
 listener.delegate = delegate

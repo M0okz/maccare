@@ -1,5 +1,10 @@
 # Politique de charge Apple sur les nouveaux firmwares
 
+Note du 10 novembre 2026, développement non livré : le message de recharge complète
+prioritaire est maintenant distinct d'un état illisible. Le diagnostic de compatibilité
+est enrichi pour préparer une validation du M1 Max ; la liste des modèles validés
+reste inchangée. Voir [la correction et la procédure M1 Max](battery-charge-compatibility.md).
+
 État : préparée pour la version 0.2.2, disponible seulement une fois sa release publiée.
 La version 0.2.1 ne contient pas cette méthode.
 

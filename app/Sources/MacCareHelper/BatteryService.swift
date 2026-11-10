@@ -98,7 +98,11 @@ enum BatteryService {
                         }
                     }
                 }
-                let result: [String: Any] = ["method": "read-only", "helperUID": geteuid(), "smc": rows]
+                let compatibility = BatteryCompatibilityDiagnostics.read()
+                let compatibilityData = try? JSONEncoder().encode(compatibility)
+                let compatibilityJSON = compatibilityData.flatMap { try? JSONSerialization.jsonObject(with: $0) }
+                let result: [String: Any] = ["method": "read-only", "helperUID": geteuid(), "smc": rows,
+                                           "compatibility": compatibilityJSON ?? NSNull()]
                 let data = (try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])) ?? Data()
                 reply(String(decoding: data, as: UTF8.self)); return
             }

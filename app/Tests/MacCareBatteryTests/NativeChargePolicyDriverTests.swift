@@ -232,9 +232,10 @@ struct NativeChargePolicyDriverTests {
     func appleCalibrationBlocksApplyRestoreAndRelease(calibration: Bool?) {
         let fixture = Fixture()
         fixture.client.override = calibration
-        #expect(throws: NativeChargePolicyError.appleOverride) { try fixture.driver.apply(limit: 60) }
-        #expect(throws: NativeChargePolicyError.appleOverride) { try fixture.driver.restorePreferences(.init(featureState: .integer(0), limit: .integer(100))) }
-        #expect(throws: NativeChargePolicyError.appleOverride) { try fixture.driver.clearRegisteredLimit() }
+        let expected: NativeChargePolicyError = calibration == true ? .appleOverride : .unknownAppleOverride
+        #expect(throws: expected) { try fixture.driver.apply(limit: 60) }
+        #expect(throws: expected) { try fixture.driver.restorePreferences(.init(featureState: .integer(0), limit: .integer(100))) }
+        #expect(throws: expected) { try fixture.driver.clearRegisteredLimit() }
         #expect(fixture.events.values.isEmpty)
     }
 
@@ -242,6 +243,13 @@ struct NativeChargePolicyDriverTests {
         let fixture = Fixture()
         fixture.client.afterNotify = { fixture.client.override = true }
         #expect(throws: NativeChargePolicyError.appleOverride) { try fixture.driver.apply(limit: 60) }
+    }
+
+    @Test func unreadableOverrideAfterWriteDoesNotProduceSuccessOrClaimCalibration() {
+        let fixture = Fixture()
+        fixture.client.afterNotify = { fixture.client.override = nil }
+        #expect(throws: NativeChargePolicyError.unknownAppleOverride) { try fixture.driver.apply(limit: 60) }
+        #expect(!NativeChargePolicyError.unknownAppleOverride.localizedDescription.contains("étalonnage"))
     }
 
     @Test func releaseIsSeparateAndPropagatesAgentFailure() throws {
