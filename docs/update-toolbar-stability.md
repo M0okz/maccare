@@ -62,3 +62,12 @@ les vrais DMG officiels : la copie possédée est remplacée de 0.16.1 à 0.17.0
 les contrôles de signature/Gatekeeper/empreinte et les préférences de test sont
 préservés. Aucun lanceur ni jeu n’est exécuté et aucun compte utilisateur n’est
 utilisé. Les archives et montages temporaires sont nettoyés par le test.
+
+## Validation du correctif préparé en 0.2.23
+
+361 XCTest passent sans échec, avec quatre cas réseau facultatifs ignorés dans
+la passe générale ; 269 Swift Testing et 19 tests Python passent. Le cas réseau
+ArtCraft a été exécuté séparément avec succès. La sonde graphique a aussi été
+recompilée avec le vrai bouton et les styles de production : quatre lancements
+et 640 transitions terminent sans exception. Sa compilation isolée est ajoutée
+à la CI et à la chaîne officielle de release, avant l’accès aux clés.

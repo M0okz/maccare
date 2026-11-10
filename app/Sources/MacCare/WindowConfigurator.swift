@@ -57,4 +57,3 @@ struct WindowConfigurator: NSViewRepresentable {
         }
     }
 }
-
