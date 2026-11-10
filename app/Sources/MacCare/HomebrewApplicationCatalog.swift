@@ -56,15 +56,16 @@ enum HomebrewApplicationCatalog {
                   url.scheme == "https", url.host != nil, url.user == nil, url.password == nil,
                   let token = cask["token"] as? String else { return nil }
             return OutdatedItem(name: app.name, detail: "\(app.version) → \(version)",
-                                releaseNotes: "Version référencée dans le catalogue Homebrew. Consultez le site de l’éditeur pour les nouveautés et les conditions de mise à jour.",
-                                applicationURL: app.url, downloadURL: url, catalogToken: token, artifact: artifact(cask))
+                                releaseNotes: "Version détectée via le catalogue public Homebrew, utilisable sans Homebrew installé. Le téléchargement provient de l’éditeur. Consultez son site pour les nouveautés.",
+                                applicationURL: app.url, downloadURL: url, catalogToken: token, artifact: artifact(cask, bundleID: app.bundleID, version: version))
         }
     }
 
-    private static func artifact(_ cask: [String: Any]) -> ApplicationUpdateArtifact? {
+    private static func artifact(_ cask: [String: Any], bundleID: String, version: String) -> ApplicationUpdateArtifact? {
         guard let raw = cask["url"] as? String, let url = URL(string: raw),
               ApplicationUpdatePolicy.validDownloadURL(url),
               ["zip", "dmg", "pkg"].contains(url.pathExtension.lowercased()) else { return nil }
+        if let verified = VerifiedApplicationRelease.artifact(bundleID: bundleID, version: version, url: url) { return verified }
         let checksum = cask["sha256"] as? String
         let valid = checksum.flatMap { $0.range(of: "^[a-fA-F0-9]{64}$", options: .regularExpression) != nil ? $0.lowercased() : nil }
         return .init(url: url, sha256: valid)

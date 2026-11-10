@@ -26,7 +26,7 @@ struct ApplicationUpdateEntry: Identifiable {
         case "cask": return "Homebrew"
         case "mas": return "App Store"
         case "netnewswire": return "Sparkle"
-        case NativeApplicationUpdates.key: return item.catalogToken == nil ? "Éditeur · GitHub" : "Catalogue Homebrew"
+        case NativeApplicationUpdates.key: return item.catalogToken == nil ? "Éditeur · GitHub" : "Catalogue public Homebrew"
         default: return source.title
         }
     }

@@ -328,10 +328,32 @@ final class ApplicationUpdateInstallationTests: XCTestCase {
     func testIStatVerifiedBuildVersionIsScopedToItsBundleAndMarketingVersion() {
         let base = ["CFBundleIdentifier": "com.bjango.istatmenus", "CFBundleShortVersionString": "7.50", "CFBundleVersion": "2394"]
         XCTAssertEqual(ApplicationUpdateTarget.readVersion(base), "7.50.2")
-        for (key, value) in [("CFBundleIdentifier", "org.example.Editor"), ("CFBundleShortVersionString", "7.51"), ("CFBundleVersion", "2395")] {
+        var patch = base; patch["CFBundleVersion"] = "2395"
+        XCTAssertEqual(ApplicationUpdateTarget.readVersion(patch), "7.50.3")
+        for (key, value) in [("CFBundleIdentifier", "org.example.Editor"), ("CFBundleShortVersionString", "7.51"), ("CFBundleVersion", "2396")] {
             var other = base; other[key] = value
             XCTAssertEqual(ApplicationUpdateTarget.readVersion(other), other["CFBundleShortVersionString"])
         }
+    }
+
+    func testIStatExpectedPatchRejectsAnOlderOrUnknownBuildAndAnotherBundle() throws {
+        let root = try temporary(); defer { try? FileManager.default.removeItem(at: root) }
+        func candidate(_ name: String, id: String = "com.bjango.istatmenus", build: String) throws -> URL {
+            let app = try makeApp(root, name: name, id: id, version: "7.50")
+            var info = try ApplicationUpdateTarget.info(at: app); info["CFBundleVersion"] = build
+            try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0).write(to: app.appendingPathComponent("Contents/Info.plist"))
+            return app
+        }
+        let old = try candidate("Old.app", build: "2394")
+        let policy = ApplicationUpdatePolicy(roots: [root])
+        let target = try policy.target(url: old, expectedVersion: "7.50.3")
+        XCTAssertThrowsError(try policy.validateCandidate(at: old, target: target))
+        let unknown = try candidate("Unknown.app", build: "2396")
+        XCTAssertThrowsError(try policy.validateCandidate(at: unknown, target: target))
+        let wrong = try candidate("Wrong.app", id: "org.other.App", build: "2395")
+        XCTAssertThrowsError(try policy.validateCandidate(at: wrong, target: target))
+        let right = try candidate("Right.app", build: "2395")
+        XCTAssertNoThrow(try policy.validateCandidate(at: right, target: target))
     }
 
     func testOfficialIStatZIPReplacementWhenExplicitlyRequested() async throws {
@@ -362,4 +384,29 @@ final class ApplicationUpdateInstallationTests: XCTestCase {
         XCTAssertFalse(ApplicationReleaseVersion.isNewer("7.50.2", than: inventory.version))
         print("ISTAT_INSTALL_QA: owned official fixture 7.50 (2355) → 7.50.2 (2394), signer and Gatekeeper verified, settings preserved, no repeated update")
     }
+    func testOfficialIStatPatchReplacementWhenExplicitlyRequested() async throws {
+        guard let path = ProcessInfo.processInfo.environment["MACCARE_ISTAT_PATCH_QA"] else { throw XCTSkip("Opt-in official iStat patch installation QA, owned fixture only") }
+        let newArchive = URL(fileURLWithPath: path)
+        let oldArchive = newArchive.deletingLastPathComponent().appendingPathComponent("iStatMenus7.50.2.zip")
+        try ApplicationUpdateArchive.checkHash(of: oldArchive, expected: "8c633ede51c431e0e9dcba864a2ac3499e9dc1c2ff5d849450b2b1e09c7d3d92")
+        let root = try temporary(); defer { try? FileManager.default.removeItem(at: root) }
+        _ = try await ApplicationUpdateCommand.run("/usr/bin/tar", ["-xf", oldArchive.path, "-C", root.path, "--no-same-owner"])
+        let installed = root.appendingPathComponent("iStat Menus.app")
+        let policy = ApplicationUpdatePolicy(roots: [root])
+        let target = try policy.target(url: installed, expectedVersion: "7.50.3")
+        XCTAssertEqual(try ApplicationUpdateTarget.info(at: installed)["CFBundleVersion"] as? String, "2394")
+        let prepared = try await ApplicationUpdateArchive.prepare(
+            artifact: .init(url: URL(string: "https://cdn.istatmenus.app/files/istatmenus7/versions/iStatMenus7.50.3.zip")!, sha256: "e477dc76606a6181697652ead6f3ce977e716b878165ac1aa945cc470b9ce25d"),
+            target: target, policy: policy, fetch: { _, destination, _ in try FileManager.default.copyItem(at: newArchive, to: destination) })
+        defer { prepared.cleanup() }
+        try await ApplicationUpdateArchive.replace(prepared, policy: policy)
+        XCTAssertEqual(try ApplicationUpdateTarget.info(at: installed)["CFBundleVersion"] as? String, "2395")
+        XCTAssertEqual(try ApplicationUpdateArchive.teamID(at: installed), "Y93TK974AT")
+        let inventory = try XCTUnwrap(InstalledUpdateApplication.read(.init(url: installed, name: "iStat Menus", bundleId: "com.bjango.istatmenus")))
+        XCTAssertEqual(inventory.version, "7.50.3")
+        XCTAssertFalse(ApplicationReleaseVersion.isNewer("7.50.3", than: inventory.version))
+        XCTAssertThrowsError(try policy.target(url: installed, expectedVersion: "7.50.3"))
+        print("ISTAT_PATCH_QA: official owned 2394 → 2395; signature, Gatekeeper, inventory and repeated-update refusal passed")
+    }
+
 }
