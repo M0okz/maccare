@@ -155,3 +155,14 @@ Validation locale du correctif : build Release arm64 réussi, 365 XCTest exécut
 Le parcours iStat optionnel est exécuté séparément avec les archives officielles ;
 les tests de lecture complète, de dépassement de limite et de traversée ZIP passent.
 Le contrôle d’absence d’outils de développement au runtime passe également.
+
+
+## Livraison 0.2.24 — 10 novembre 2026
+
+**Livré dans [MacCare 0.2.24 (build 26)](https://github.com/M0okz/maccare/releases/tag/v0.2.24)**,
+tag sur `4b7372b08ed5ac8bb70eab8c9e23ae076b78a47e` après fusion de la PR #33.
+Les CI de branche, de PR, après fusion et le workflow officiel réussissent.
+Ce statut remplace les mentions de préparation/non livré du correctif ZIP et
+d’iStat ci-dessus ; les validations historiques restent datées.
+[Vérifications publiques et limites](release-integration-0.2.24.md).
+La publication ne remplace pas les copies installées.
