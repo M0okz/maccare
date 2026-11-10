@@ -184,22 +184,6 @@ final class ScanScheduler: ObservableObject {
     }
 }
 
-/// Ouvre MacCare sur le Smart Scan quand on clique la notification.
-final class NotificationRouter: NSObject, UNUserNotificationCenterDelegate {
-    var onOpen: (() -> Void)?
-
-    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
-                                withCompletionHandler completionHandler: @escaping () -> Void) {
-        DispatchQueue.main.async { self.onOpen?() }
-        completionHandler()
-    }
-
-    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
-                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        completionHandler([.banner])
-    }
-}
-
 /// Ouverture de MacCare à la connexion, via l'API d'Apple (`SMAppService`). Désactivée par défaut.
 enum LoginLaunch {
     static var status: SMAppService.Status { SMAppService.mainApp.status }

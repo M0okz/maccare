@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 import MacCareHelperProtocol
 
 /// GUI-initiated commands use argument arrays and one output pipe, with no password capture.
@@ -67,14 +68,19 @@ enum ApplicationUpdateCommand {
         return shellQuote(executable.path) + " update --force " + String(id)
     }
 
-    static func appStorePrivilegedCommand(executable: URL, id: UInt64) throws -> String {
+    /// Preserve the initiating GUI session when AppleScript elevates without sudo's environment.
+    static func appStorePrivilegedCommand(executable: URL, id: UInt64, userID: uid_t = getuid(), groupID: gid_t = getgid()) throws -> String {
         _ = try appStoreCommand(executable: executable, id: id)
+        guard userID > 0, userID != .max, groupID != .max else {
+            throw ApplicationUpdateFailure.refused("Relancez MacCare depuis votre session utilisateur pour mettre à jour les apps de l’App Store.")
+        }
         func quoted(_ text: String) -> String { "'" + text.replacingOccurrences(of: "'", with: "'\\''") + "'" }
         // Copy first into a root-owned, private directory, THEN validate and execute that copy.
         // A user-writable source cannot be swapped between signature validation and root execution.
         return """
         set -eu
         export MAS_NO_AUTO_INDEX=1
+        export SUDO_UID=\(userID) SUDO_GID=\(groupID)
         maccare_mas_stage=$(/usr/bin/mktemp -d /private/tmp/maccare-mas.XXXXXXXX)
         trap '/bin/rm -rf -- "$maccare_mas_stage"' EXIT
         /bin/cp -L \(quoted(executable.path)) "$maccare_mas_stage/mas"
