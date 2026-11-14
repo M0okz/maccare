@@ -4,6 +4,78 @@
 `codex/battery-calibration-status`. Aucun remplacement de la copie quotidienne,
 aucune activation de charge ni extension de la liste des modèles validés.
 
+## Relevé réel du M1 Max — 14 novembre 2026
+
+Gregory a exécuté les commandes en lecture seule dans son shell root et transmis
+les sorties. Le Mac est `MacBookPro18,4`, macOS **27.2 (26B123)**, avec MacCare
+**0.2.26**. Au relevé : secteur présent, batterie **100 %, chargée**, aucune
+limite enregistrée (`pmset -g battlimit`), et notification
+`com.apple.system.powersources.chargingtofulloverride` à **1**.
+
+Ce relevé distingue une priorité Apple signalée d'une lecture impossible. Dans
+le chemin natif 80–100 % de cette version, cette priorité bloque la capture
+initiale avant la première écriture et avant l'enregistrement d'une protection.
+L'absence de limite enregistrée est cohérente avec ce refus, sans établir à elle
+seule l'historique exact des tentatives d'activation.
+
+Le signal ne prouve ni la cause précise de la priorité, ni sa durée restante.
+Le fait d'être chargé à 100 % ne suffit pas à déclarer ce signal périmé ou à le
+remettre à zéro. Les journaux `powerd`/`PowerUIAgent` et les deux préférences
+de limite ont ensuite été lus (voir ci-dessous). Aucun drapeau, réglage de charge,
+assistant ou fichier du M1 Max n'a été modifié par cette investigation.
+
+### Deuxième relevé : cause de la demande Apple
+
+Les deux clés `MCLFeatureState` et `mclLimitValue` sont absentes du domaine root
+`com.apple.smartcharging.topoffprotection`. Le pilote MacCare sait représenter
+cette absence sans inventer une limite ; ce résultat n'est pas en soi une
+corruption des préférences ni une preuve d'incompatibilité.
+
+Le diagnostic CLI installé renvoie `supported: true`, `active: false`,
+`restoring: false`, `suspended: false`, batterie à 100 %, secteur présent,
+charge inactive, température 31,79 °C, 10 cycles, santé annoncée 100 % et
+`batteryFault: false`. `supported` confirme une découverte par lecture, pas
+un essai de changement de limite ni la validation de la politique avancée.
+`recoveryReady: false` appartient au diagnostic CLI indépendant du daemon ; il
+ne permet pas de conclure à un défaut de surveillance du service launchd.
+
+Les journaux transmis entre 10:55 et 11:31 indiquent explicitement :
+
+```text
+Last DOD0 change 13.6 days ago — charge to full
+periodicChargeToFullCheck run gauging mitigation policy
+Charge To Full Request: 1
+Charge To Full System Level Request:0
+```
+
+Ils établissent une demande Apple liée au suivi de la jauge après un ancien
+événement DOD0. Ils ne mesurent ni la date du dernier étalonnage complet, ni
+la durée restant à cette demande. Les requêtes par pack et au niveau système
+ne sont pas confondues : le signal global lu séparément reste l'observation
+utilisée par le garde-fou MacCare, à 1 lors du premier relevé.
+
+La ligne de 12:25 `received SOC limit from 41615: <private>` confirme seulement
+la réception d'une demande par `powerd`. La valeur est masquée et l'identité du
+processus n'a pas été relevée ; cette ligne ne prouve ni une limite enregistrée
+et appliquée, ni un auteur MacCare, ni une prise de contrôle réussie.
+
+La prochaine lecture utile pour la compatibilité avancée est la matrice SMC du
+bouton **Afficher le diagnostic de compatibilité…**, si l'assistant est déjà
+activé. Elle peut montrer si `CHIE` est lisible et quelles anciennes méthodes
+sont refusées. Cette matrice ne teste aucune écriture. Ne pas activer ou
+réinstaller l'assistant pour la recueillir dans la phase actuelle, limitée à
+la lecture. Aucune modification du signal Apple n'est proposée.
+
+Ce modèle reste hors de la liste de validation de la méthode avancée. Une
+lecture de la notification n'est pas un essai de maintien, de reprise ou de
+restauration. Ces validations et la disponibilité réelle du contrôle d'adaptateur
+sur le M1 Max restent à établir.
+
+Le correctif du 10 novembre est repris sans conflit sur la branche isolée
+`codex/m1-max-battery-diagnostics`, commit `4fa800c`, depuis `origin/main`
+`ea8305a`. Cette reprise n'est ni une publication ni une installation ; la version
+0.2.26 du M1 Max conserve donc encore son ancien message d'étalonnage.
+
 ## Message corrigé
 
 La notification Apple `com.apple.system.powersources.chargingtofulloverride`
