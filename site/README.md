@@ -66,3 +66,6 @@ Les guides prennent **0.2.20** comme référence depuis le 9 novembre 2026 : bil
 Les guides prennent **0.2.22** comme référence depuis le 10 novembre 2026 : le bouton Mettre à jour lance les parcours compatibles depuis le gestionnaire Applications. Le site et ses dix pages HTML ont été relus en HTTPS, identiques aux sources. Les introductions historiques et l’avertissement sur les anciennes captures sont conservés.
 
 Les guides prennent **0.2.23** comme référence depuis le 10 novembre 2026 : rappel de mise à jour stabilisé, architectures lues sans outils Xcode et procédure de remplacement depuis le DMG si une ancienne version quitte au lancement. Les dix HTML sont relus en HTTPS, identiques aux sources ; les introductions historiques et l’avertissement sur les anciennes captures restent conservés.
+
+
+Les guides prennent **0.2.27** comme référence depuis le 14 novembre 2026 : onglet À propos, nouveautés et contour orange de disponibilité. Les dix HTML HTTPS correspondent aux sources, liens et ancres internes validés ; les introductions historiques et l’avertissement sur les anciennes captures restent conservés.

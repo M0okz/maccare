@@ -1,5 +1,7 @@
 # Stabilité du rappel de mise à jour
 
+**Livré dans [MacCare 0.2.27 (build 29)](https://github.com/M0okz/maccare/releases/tag/v0.2.27), le 14 novembre 2026.** Le nouvel onglet À propos remplace le rappel jaune. Ce statut remplace les mentions de développement non livré de cette évolution ; les validations datées restent conservées. [Publication et limites](release-integration-0.2.27.md).
+
 Le 14 novembre 2026, la branche de développement `codex/about-updates` retire le
 rappel de la barre native et le déplace dans [À propos](update-availability-notice.md).
 La sonde CI conserve les changements répétés de disponibilité avec les vraies vues

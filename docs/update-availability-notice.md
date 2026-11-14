@@ -1,5 +1,7 @@
 # Rappel de mise à jour de MacCare
 
+**Livré dans [MacCare 0.2.27 (build 29)](https://github.com/M0okz/maccare/releases/tag/v0.2.27), le 14 novembre 2026.** Le nouvel onglet À propos remplace le rappel jaune. Ce statut remplace les mentions de développement non livré de cette évolution ; les validations datées restent conservées. [Publication et limites](release-integration-0.2.27.md).
+
 ## À propos — 14 novembre 2026, en développement
 
 État local sur `codex/about-updates`, base `ea8305a` de `origin/main`.
