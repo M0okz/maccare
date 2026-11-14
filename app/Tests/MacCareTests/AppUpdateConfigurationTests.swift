@@ -4,6 +4,14 @@ import XCTest
 final class AppUpdateConfigurationTests: XCTestCase {
     private let key = Data(repeating: 7, count: 32).base64EncodedString()
 
+    func testUpdatePreviewRequiresAnExplicitDevelopmentBundleAndLaunchArgument() {
+        let argument = ["MacCare", "--preview-available-update"]
+        XCTAssertTrue(AppUpdatePreview.isEnabled(info: ["MacCareDevelopmentBuild": true], arguments: argument))
+        XCTAssertFalse(AppUpdatePreview.isEnabled(info: ["MacCareDevelopmentBuild": false], arguments: argument))
+        XCTAssertFalse(AppUpdatePreview.isEnabled(info: [:], arguments: argument))
+        XCTAssertFalse(AppUpdatePreview.isEnabled(info: ["MacCareDevelopmentBuild": true], arguments: ["MacCare"]))
+    }
+
     func testDevelopmentBuildWithoutAFeedDoesNotEnableTheUpdater() {
         XCTAssertNil(AppUpdateConfiguration(info: [:]))
         XCTAssertNil(AppUpdateConfiguration(info: ["SUFeedURL": "https://github.com/M0okz/maccare/releases/latest/download/appcast.xml"]))

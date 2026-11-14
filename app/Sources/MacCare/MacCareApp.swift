@@ -40,6 +40,9 @@ struct MacCareApp: App {
         #endif
 
         .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button("À propos de MacCare") { app.show(.about) }
+            }
             CommandGroup(after: .appInfo) {
                 Button("Rechercher les mises à jour…", action: updater.checkForUpdates)
                     .disabled(!updater.canCheckForUpdates)

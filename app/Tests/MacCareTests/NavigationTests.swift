@@ -9,8 +9,17 @@ final class NavigationTests: XCTestCase {
         for section in NavigationSection.allCases {
             for module in section.destinations { XCTAssertEqual(module.section, section) }
         }
-        XCTAssertEqual(NavigationSection.primary.count, 8)
+        XCTAssertEqual(NavigationSection.primary.count, 9)
         XCTAssertEqual(NavigationSection.performance.defaultDestination, .performanceOverview)
+    }
+
+    func testAboutFollowsToolsAndHasItsOwnDestination() {
+        XCTAssertEqual(Array(NavigationSection.primary.suffix(2)), [.tools, .about])
+        XCTAssertEqual(NavigationSection.about.destinations, [.about])
+        XCTAssertEqual(Module.about.section, .about)
+        var history = NavigationHistory()
+        history.remember(.about)
+        XCTAssertEqual(history.destination(for: .about, developerTools: false), .about)
     }
 
     func testToolsEntryKeepsAllToolsReachable() {

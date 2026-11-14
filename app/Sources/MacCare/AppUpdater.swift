@@ -9,6 +9,7 @@ import UserNotifications
 final class AppUpdater: NSObject, ObservableObject, @MainActor SPUStandardUserDriverDelegate {
     @Published private(set) var canCheckForUpdates = false
     @Published private(set) var availableVersion: String?
+    @Published private(set) var releaseNotes: String?
     @Published private(set) var lastCheckDate: Date?
     @Published private(set) var unavailableReason: String?
     @Published private(set) var notificationAuthorization: UNAuthorizationStatus = .notDetermined
@@ -21,6 +22,7 @@ final class AppUpdater: NSObject, ObservableObject, @MainActor SPUStandardUserDr
             updater.automaticallyChecksForUpdates = automaticallyChecksForUpdates
         }
     }
+    private var isPreview = false
     private var controller: SPUStandardUpdaterController?
     private let updateNotifications: AppUpdateNotifications
     private var observations = Set<AnyCancellable>()
@@ -31,6 +33,13 @@ final class AppUpdater: NSObject, ObservableObject, @MainActor SPUStandardUserDr
     init(bundle: Bundle = .main, notifications: AppUpdateNotifications? = nil) {
         updateNotifications = notifications ?? AppUpdateNotifications()
         super.init()
+        if AppUpdatePreview.isEnabled(info: bundle.infoDictionary ?? [:], arguments: ProcessInfo.processInfo.arguments) {
+            isPreview = true
+            availableVersion = AppUpdatePreview.version
+            releaseNotes = AppUpdatePreview.notes
+            canCheckForUpdates = true
+            return
+        }
         guard AppUpdateConfiguration(info: bundle.infoDictionary ?? [:]) != nil else {
             unavailableReason = "Les mises à jour seront disponibles dans la version distribuée de MacCare."
             return
@@ -64,6 +73,14 @@ final class AppUpdater: NSObject, ObservableObject, @MainActor SPUStandardUserDr
     }
 
     func checkForUpdates() {
+        if isPreview {
+            let alert = NSAlert()
+            alert.messageText = "Aperçu de mise à jour"
+            alert.informativeText = "Cette version est fictive. Aucun téléchargement ni aucune installation ne sont lancés."
+            alert.addButton(withTitle: "Fermer")
+            alert.runModal()
+            return
+        }
         guard canCheckForUpdates, isAvailable else { return }
         controller?.checkForUpdates(nil)
     }
@@ -107,6 +124,7 @@ final class AppUpdater: NSObject, ObservableObject, @MainActor SPUStandardUserDr
                                                    forUpdate update: SUAppcastItem,
                                                    state: SPUUserUpdateState) {
         availableVersion = update.displayVersionString
+        releaseNotes = update.itemDescription
         if automaticallyChecksForUpdates, !handleShowingUpdate, !state.userInitiated {
             backgroundUpdate = (update.displayVersionString, update.versionString)
             Task { @MainActor [weak self] in
@@ -124,6 +142,7 @@ final class AppUpdater: NSObject, ObservableObject, @MainActor SPUStandardUserDr
     func standardUserDriverWillFinishUpdateSession() {
         // Respect the user's Later/Skip choice and remove reminders after an error.
         availableVersion = nil
+        releaseNotes = nil
         backgroundUpdate = nil
         updateNotifications.clear()
     }

@@ -6,12 +6,13 @@ import Combine
 enum Module: String, CaseIterable, Identifiable {
     case dashboard, smartScan, applicationsOverview, cleaningOverview, filesOverview, toolsOverview, performanceOverview
     case cleaning, space, largeFiles, duplicates, trash, systemClean, uninstall, simulators, devJunk, startup, privacy, updates, maintenance
-    case screenCleaning, aiClutter, applicationPermissions, battery, imageOptimization, diskHealth
+    case screenCleaning, aiClutter, applicationPermissions, battery, imageOptimization, diskHealth, about
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
+        case .about: return "À propos"
         case .battery: return "Batterie"
         case .dashboard: return "Accueil"
         case .applicationsOverview: return "Applications"
@@ -43,6 +44,7 @@ enum Module: String, CaseIterable, Identifiable {
 
     var symbol: String {
         switch self {
+        case .about: return "info.circle"
         case .battery: return "battery.100percent"
         case .dashboard: return "square.grid.2x2.fill"
         case .applicationsOverview: return "app.badge.fill"
@@ -74,6 +76,7 @@ enum Module: String, CaseIterable, Identifiable {
 
     var color: Color {
         switch self {
+        case .about: return Theme.accent
         case .battery: return Theme.ok
         case .dashboard, .cleaning, .cleaningOverview: return ModuleColor.clean
         case .smartScan, .privacy: return ModuleColor.privacy
@@ -231,14 +234,11 @@ struct RootView: View {
                 OnboardingView(model: app.permissions, system: app.systemClean)
             } else {
                 HStack(spacing: 0) {
-                    Sidebar(app: app)
-                    DetailView(app: app)
+                    Sidebar(app: app, updater: updater)
+                    DetailView(app: app, updater: updater)
                 }
                 .ignoresSafeArea(.container, edges: .top)
             }
-        }
-        .toolbar {
-            AppUpdateAvailabilityToolbar(updater: updater, isVisible: !permissions.needsOnboarding)
         }
         .modifier(DisplayAdjustedContent(layout: displayLayout))
         .onAppear {
@@ -264,6 +264,7 @@ struct RootView: View {
 
 /// Barre latérale labellisée (icône + texte), translucide sur le dégradé violet de MacCare.
 struct Sidebar: View {
+    @ObservedObject var updater: AppUpdater
     @ObservedObject var app: AppState
     @ObservedObject private var space: SpaceModel
     @ObservedObject private var smart: SmartScanModel
@@ -279,7 +280,8 @@ struct Sidebar: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var expandedDuringExploration = false
 
-    init(app: AppState) {
+    init(app: AppState, updater: AppUpdater) {
+        self.updater = updater
         self.app = app; self.space = app.space; self.smart = app.smartScan
         self.large = app.largeFiles; self.duplicates = app.duplicates; self.filesAnalysis = app.filesAnalysis
         self.applications = app.applicationsAnalysis; self.uninstall = app.uninstall; self.updates = app.updates
@@ -312,7 +314,7 @@ struct Sidebar: View {
         VStack(alignment: .leading, spacing: 10) {
             ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: 10) {
-                    ForEach(NavigationSection.primary.filter { $0 != .tools }) { row($0) }
+                    ForEach(NavigationSection.primary.filter { $0 != .tools && $0 != .about }) { row($0) }
                 }
             }
             .scrollIndicators(.hidden)
@@ -329,6 +331,7 @@ struct Sidebar: View {
                     .help(compact ? "Développer la navigation" : "Réduire la navigation")
             }
             row(.tools)
+            row(.about)
         }
         .padding(.horizontal, 10)
         .padding(.top, 70)
@@ -350,50 +353,57 @@ struct Sidebar: View {
         .overlay(alignment: .trailing) { Rectangle().fill(Color.white.opacity(0.06)).frame(width: 1) }
     }
 
+    @ViewBuilder
     private func row(_ m: NavigationSection) -> some View {
-        let selected = (app.module ?? .dashboard).section == m
-        return Button { app.select(m) } label: {
-            HStack(spacing: 16) {
-                Image(systemName: m.symbol)
-                    .accessibilityHidden(true)
-                    .font(AppFont.emphasis)
-                    .foregroundStyle(selected ? Color.white : Theme.muted)
-                    .frame(width: compact ? 24 : 20, height: 20)
-                if !compact {
-                    Text(m.title)
-                        .font(AppFont.body.weight(.medium))
-                        .foregroundStyle(Theme.fg)
-                    Spacer(minLength: 0)
+        if m == .about {
+            AboutSidebarButton(selected: app.module == .about, compact: compact,
+                               updateAvailable: updater.availableVersion != nil) { app.select(.about) }
+        } else {
+            let selected = (app.module ?? .dashboard).section == m
+            Button { app.select(m) } label: {
+                HStack(spacing: 16) {
+                    Image(systemName: m.symbol)
+                        .accessibilityHidden(true)
+                        .font(AppFont.emphasis)
+                        .foregroundStyle(selected ? Color.white : Theme.muted)
+                        .frame(width: compact ? 24 : 20, height: 20)
+                    if !compact {
+                        Text(m.title)
+                            .font(AppFont.body.weight(.medium))
+                            .foregroundStyle(Theme.fg)
+                        Spacer(minLength: 0)
+                    }
                 }
+                .padding(.horizontal, compact ? 0 : 24).padding(.vertical, 14)
+                .frame(maxWidth: .infinity, alignment: compact ? .center : .leading)
+                .contentShape(Rectangle())
             }
-            .padding(.horizontal, compact ? 0 : 24).padding(.vertical, 14)
-            .frame(maxWidth: .infinity, alignment: compact ? .center : .leading)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(SidebarRowStyle(selected: selected))
-        .overlay(alignment: compact ? .topTrailing : .trailing) {
-            // Rail : pastille à l'angle de l'icône. Barre complète : en fin de ligne, dans son axe.
-            Group {
-                if activity(m).busy {
-                    ScanActivityRing(lineWidth: 2, color: .white).frame(width: 14, height: 14)
-                        .padding(3).background(Theme.window, in: Circle())
-                } else if activity(m).available {
-                    Image(systemName: "checkmark.circle.fill").font(.system(size: 14))
-                        .foregroundStyle(Theme.ok).background(Theme.window, in: Circle())
+            .buttonStyle(SidebarRowStyle(selected: selected))
+            .overlay(alignment: compact ? .topTrailing : .trailing) {
+                // Rail : pastille à l'angle de l'icône. Barre complète : en fin de ligne, dans son axe.
+                Group {
+                    if activity(m).busy {
+                        ScanActivityRing(lineWidth: 2, color: .white).frame(width: 14, height: 14)
+                            .padding(3).background(Theme.window, in: Circle())
+                    } else if activity(m).available {
+                        Image(systemName: "checkmark.circle.fill").font(.system(size: 14))
+                            .foregroundStyle(Theme.ok).background(Theme.window, in: Circle())
+                    }
                 }
+                .padding(.top, compact ? 4 : 0).padding(.trailing, compact ? 8 : 12)
+                .accessibilityHidden(true).allowsHitTesting(false)
             }
-            .padding(.top, compact ? 4 : 0).padding(.trailing, compact ? 8 : 12)
-            .accessibilityHidden(true).allowsHitTesting(false)
+            .accessibilityLabel(m.title)
+            .accessibilityValue(activity(m).busy ? "Analyse en cours" : (activity(m).available ? "Résultats disponibles" : ""))
+            .help(m.title + (activity(m).busy ? " · analyse en cours" : ""))
+            .accessibilityAddTraits(selected ? .isSelected : [])
         }
-        .accessibilityLabel(m.title)
-        .accessibilityValue(activity(m).busy ? "Analyse en cours" : (activity(m).available ? "Résultats disponibles" : ""))
-        .help(m.title + (activity(m).busy ? " · analyse en cours" : ""))
-        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 
 struct DetailView: View {
     @ObservedObject var app: AppState
+    @ObservedObject var updater: AppUpdater
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var filesManagerVisible: Bool { app.module == .largeFiles || app.module == .duplicates || app.module == .imageOptimization }
@@ -407,6 +417,7 @@ struct DetailView: View {
             ZStack {
                 Group {
                     switch app.module ?? .dashboard {
+                    case .about: AboutView(updater: updater)
                     case .battery: BatteryView(model: app.battery)
                     case .dashboard: DashboardView(app: app)
                     case .applicationsOverview: ApplicationsOverviewView(app: app)
