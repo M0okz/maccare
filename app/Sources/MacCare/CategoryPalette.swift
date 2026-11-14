@@ -14,7 +14,7 @@ extension NavigationSection {
         case .battery:
             return .init(base: Color(hex: "10382E"), middle: Color(hex: "185B45"), edge: Color(hex: "123D34"),
                          sidebar: Color(hex: "102F29"), accent: Theme.ok)
-        case .home:
+        case .home, .about:
             return .init(base: Color(hex: "160C2E"), middle: Color(hex: "392166"), edge: Color(hex: "21123F"),
                          sidebar: Color(hex: "211536"), accent: ModuleColor.clean)
         case .cleaning:

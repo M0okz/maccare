@@ -12,8 +12,10 @@ root=Path(sys.argv[1])/'Contents'
 plistlib.dump({'CFBundleIdentifier':'org.maccare.toolbar-regression-probe.'+uuid.uuid4().hex,'CFBundleName':'MacCare Toolbar Probe','CFBundleExecutable':'ToolbarProbe','CFBundleVersion':'1','CFBundleShortVersionString':'1.0','NSHighResolutionCapable':True,'LSMinimumSystemVersion':'13.0'},(root/'Info.plist').open('wb'))
 PY
 swiftc -parse-as-library -target "$(uname -m)-apple-macos13.0" \
-    "$repo_root/app/Sources/MacCare/AppUpdateAvailabilityToolbar.swift" \
-    "$repo_root/app/Sources/MacCare/AppUpdateAvailabilityButton.swift" \
+    "$repo_root/app/Sources/MacCare/AboutView.swift" \
+    "$repo_root/app/Sources/MacCare/AboutReleaseNotesView.swift" \
+    "$repo_root/app/Sources/MacCare/AboutSidebarButton.swift" \
+    "$repo_root/app/Sources/MacCare/SidebarRowStyle.swift" \
     "$repo_root/app/Sources/MacCare/DesignSystem.swift" \
     "$repo_root/app/Sources/MacCare/Motion.swift" \
     "$repo_root/app/Sources/MacCare/AppBuildIdentity.swift" \
@@ -23,7 +25,7 @@ swiftc -parse-as-library -target "$(uname -m)-apple-macos13.0" \
     "$repo_root/app/Tests/WindowToolbarLifecycleTests/ToolbarLifecycleProbe.swift" \
     -o "$probe_app/Contents/MacOS/ToolbarProbe"
 if [[ "${1:-}" == "--compile-only" ]]; then
-    echo "PASS: shipping toolbar and window configurator compiled in the isolated lifecycle probe"
+    echo "PASS: shipping About view and window configurator compiled in the isolated lifecycle probe"
     exit 0
 fi
 # An active WindowServer session is required. No app scan, download or installation is performed.
@@ -35,5 +37,5 @@ for run in range(4):
     print(result.stdout,flush=True)
     if result.returncode or 'TOOLBAR_PROBE completed=160' not in result.stdout:
         raise SystemExit(f'FAIL: lifecycle run {run+1}, exit {result.returncode}')
-print('PASS: four launches and 640 availability/onboarding transitions, no toolbar exception')
+print('PASS: four launches and 640 availability transitions, no toolbar exception')
 PY

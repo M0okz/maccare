@@ -2,11 +2,12 @@ import Foundation
 
 /// Les destinations techniques restent stables ; seules leurs entrées de navigation sont regroupées.
 enum NavigationSection: String, CaseIterable, Identifiable {
-    case home, cleaning, performance, applications, files, space, tools, battery
+    case home, cleaning, performance, applications, files, space, tools, battery, about
 
     var id: String { rawValue }
     var title: String {
         switch self {
+        case .about: return "À propos"
         case .battery: return "Batterie"
         case .home: return "Accueil"
         case .cleaning: return "Nettoyage"
@@ -19,6 +20,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     }
     var symbol: String {
         switch self {
+        case .about: return "info.circle"
         case .battery: return "battery.100percent"
         case .home: return "house"
         case .cleaning: return "sparkle.magnifyingglass"
@@ -31,6 +33,7 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     }
     var destinations: [Module] {
         switch self {
+        case .about: return [.about]
         case .battery: return [.battery]
         case .home: return [.dashboard]
         case .performance: return [.performanceOverview]
@@ -45,12 +48,13 @@ enum NavigationSection: String, CaseIterable, Identifiable {
     func destinations(developerTools: Bool) -> [Module] {
         destinations.filter { developerTools || !$0.isDeveloper }
     }
-    static let primary: [Self] = [.home, .cleaning, .performance, .battery, .applications, .files, .space, .tools]
+    static let primary: [Self] = [.home, .cleaning, .performance, .battery, .applications, .files, .space, .tools, .about]
 }
 
 extension Module {
     var section: NavigationSection {
         switch self {
+        case .about: return .about
         case .battery: return .battery
         case .dashboard: return .home
         case .performanceOverview: return .performance

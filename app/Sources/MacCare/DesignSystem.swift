@@ -59,9 +59,8 @@ enum Theme {
     static let ok        = Color.themed("#1FA85A", "#49D89A")
     static let warn      = Color.themed("#E0920A", "#F0B23C")
     static let danger    = Color.themed("#DD4B39", "#F0705C")
-    /// Rappel global de nouvelle version, lisible sur chaque fond de catégorie.
-    static let updateNotice = Color(hex: "#FFD84D")
-    static let updateNoticeInk = Color(hex: "#20152E")
+    /// Attention discrète sur l’entrée À propos lorsqu’une version est disponible.
+    static let updateAttention = Color.orange
 }
 
 /// Une couleur par module (identiques en clair et sombre).
