@@ -8,13 +8,14 @@ trap 'rm -rf "$work_root"' EXIT
 xcrun clang -dynamiclib -Wall -Wextra -Werror -Wno-unused-parameter \
     -mmacosx-version-min=13.0 "$test_root/read-only-guard.c" \
     -framework IOKit -framework CoreFoundation -o "$work_root/guard.dylib"
-python3 - "$helper_path" "$work_root/guard.dylib" <<'PY'
+python3 - "$helper_path" "$work_root/guard.dylib" "${2:-service}" <<'PY'
 import json
 import os
 import subprocess
 import sys
 
-helper, guard = sys.argv[1:]
+helper, guard, mode = sys.argv[1:]
+assert mode in ('service', 'standalone')
 env = dict(os.environ, DYLD_INSERT_LIBRARIES=guard)
 
 def run(args, expected=0):
@@ -43,5 +44,7 @@ for args in [['--battery-full-diagnostic'], ['--unknown'],
              ['--battery-full-diagnostics', '--battery-diagnostics'],
              ['--battery-full-diagnostics', '--unknown']]:
     assert run(args, 2) == ''
+if mode == 'standalone':
+    assert run([], 2) == ''
 print('CLI passed: full JSON, 40 SMC reads including CHIE, legacy formats, help, rejected arguments; side-effect guard active.')
 PY

@@ -68,3 +68,22 @@ Ni lecture CLI root sur M1 Max ni maintien/reprise/restauration validés.
 Nouvel essai de l'accès prévu le 15 novembre : `homelab.py bw-exec --project`
 échoue avec `Bitwarden status failed; check login, configured secret and server access`.
 Aucune page Outline modifiée ; synchronisation toujours en attente.
+
+## Préparation du helper autonome — 15 novembre 2026
+
+Une variante release arm64 réservée au diagnostic est préparée sous
+`build/battery-diagnostics/`, avec README de transfert SSH/exécution/suppression
+et SHA-256. Signature Developer ID, hardened runtime, sans entitlement, non
+notariée. Dépendances système uniquement. `MACCARE_DIAGNOSTICS_ONLY` exclut
+le démarrage XPC et batterie, même sans argument (code 2) ; le helper distribué
+dans l'app garde son comportement normal. Le test de cette variante est ajouté
+à CI ; aucun lancement distant de CI.
+
+Contrôles locaux : release avec garde de lecture seule, puis exécution du fichier
+signé, 40 lignes SMC/4 CHIE, aide et erreurs d'arguments ; signature stricte valide.
+Empreintes des deux exécutables utilisateur inchangées. Aucun transfert ou essai
+root/M1 Max. La procédure transmise copie seulement le binaire temporaire dans
+le home SSH, affiche le JSON et supprime la copie après réussite.
+
+Nouvel essai de l'accès documentaire prévu : même échec `Bitwarden status failed`.
+Synchronisation des pages 06/08/11 toujours en attente, aucun contournement.

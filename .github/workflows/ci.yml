@@ -55,6 +55,10 @@ jobs:
         run: swift test --package-path app --scratch-path build/swift-tests --build-system native --arch arm64 -Xlinker -L"$PWD/core/target/release"
       - name: Tester le diagnostic CLI avec garde de lecture seule
         run: bash app/Tests/BatteryDiagnosticsCLI/run.sh "$PWD/build/swift-tests/arm64-apple-macosx/debug/MacCareHelper"
+      - name: Compiler et tester la variante autonome sans service
+        run: |
+          swift build --package-path app --scratch-path build/swift-diagnostics --build-system native --arch arm64 --configuration release --product MacCareHelper -Xswiftc -DMACCARE_DIAGNOSTICS_ONLY -Xlinker -L"$PWD/core/target/release"
+          bash app/Tests/BatteryDiagnosticsCLI/run.sh "$PWD/build/swift-diagnostics/arm64-apple-macosx/release/MacCareHelper" standalone
       - name: Tester les outils de release et les signatures Sparkle
         run: |
           python3 -m unittest discover -s app/release/tests -v

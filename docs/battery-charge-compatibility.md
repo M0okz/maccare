@@ -206,6 +206,33 @@ Validation locale du 15 novembre :
 
 Artefact local : `build/swift-tests/arm64-apple-macosx/debug/MacCareHelper`.
 
+### Helper autonome préparé pour transfert SSH
+
+Le 15 novembre, une variante release arm64 est préparée dans
+`build/battery-diagnostics/MacCareBatteryDiagnostics-20261115`, accompagnée d'un
+`LIRE-MOI.md` avec les commandes exactes de copie, exécution et suppression,
+et d'une empreinte `.sha256`. Elle est signée Developer ID avec hardened runtime,
+sans entitlement supplémentaire ; elle n'est pas notariée. Toutes ses dépendances
+sont des bibliothèques système. Aucun outil de développement n'est requis sur la cible.
+
+Cette variante se compile avec `-Xswiftc -DMACCARE_DIAGNOSTICS_ONLY`. Le listener
+XPC, le démarrage du service batterie et la boucle du daemon sont exclus du point
+d'entrée ; sans argument, elle quitte avec le code 2. Le helper de l'application
+conserve son comportement launchd normal. La CI couvre les deux variantes.
+
+Le test CLI avec garde interposé passe sur la variante release non signée pour
+distribution, y compris l'appel sans argument. Après signature, le fichier exact
+de transfert a été exécuté sans privilèges sur le M1 local : JSON valide,
+40 tentatives SMC dont quatre CHIE, aide et sorties d'erreur conformes. Signature
+stricte vérifiée. Empreintes des exécutables de la copie utilisateur inchangées.
+La CI distante, l'exécution root et le M1 Max ne sont pas testés dans cette étape.
+
+Le transfert prévu copie seulement le binaire dans le dossier personnel du compte
+SSH `gnarcin` ; la commande le vérifie, lance `sudo … --battery-full-diagnostics`
+puis supprime cette copie si la commande réussit. Aucun remplacement de MacCare,
+enregistrement de service ou écriture de réglage de charge. Aucun transfert n'a
+encore été exécuté par Codex.
+
 ## Validation nécessaire sur le M1 Max
 
 1. Relever modèle, macOS, version MacCare, chargeur et diagnostic du helper UID 0 ;

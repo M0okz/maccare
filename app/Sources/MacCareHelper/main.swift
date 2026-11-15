@@ -232,7 +232,6 @@ if !diagnosticArguments.isEmpty {
     Diagnostic options print read-only JSON and exit without starting the service.
     --battery-full-diagnostics includes battery telemetry, SMC keys (including CHIE), and compatibility.
     Run as root for privileged reads; read failures are retained in the report.
-    With no arguments, starts the launchd service.
     """
     guard diagnosticArguments.count == 1 else {
         FileHandle.standardError.write(Data((usage + "\n").utf8))
@@ -273,6 +272,12 @@ if !diagnosticArguments.isEmpty {
     }
 }
 
+#if MACCARE_DIAGNOSTICS_ONLY
+// Standalone handoff build: never register a listener or start recovery/watchdog,
+// even if the user forgets the diagnostic option. The installed helper is unchanged.
+FileHandle.standardError.write(Data("Use --battery-full-diagnostics for read-only JSON, or --help.\n".utf8))
+exit(2)
+#else
 let delegate = ListenerDelegate()
 let listener = NSXPCListener(machServiceName: HelperIdentity.machService)
 listener.delegate = delegate
@@ -280,3 +285,4 @@ listener.resume()
 BatteryService.start()
 Idle.watch()
 RunLoop.main.run()
+#endif
