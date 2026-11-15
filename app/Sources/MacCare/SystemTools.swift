@@ -21,6 +21,7 @@ enum SystemTools {
         }
         let out = Pipe()
         let err = Pipe()
+        process.standardInput = FileHandle.nullDevice
         process.standardOutput = out
         process.standardError = err
         do {
@@ -28,14 +29,32 @@ enum SystemTools {
         } catch {
             return Output(status: -1, stdout: "", stderr: error.localizedDescription)
         }
+        // Drain both pipes concurrently. A child can fill stderr while stdout stays open;
+        // sequential reads would then wait forever for each other.
+        let errors = CommandOutput()
+        let readers = DispatchGroup()
+        readers.enter()
+        DispatchQueue.global(qos: .utility).async {
+            errors.store(err.fileHandleForReading.readDataToEndOfFile())
+            readers.leave()
+        }
         let oData = out.fileHandleForReading.readDataToEndOfFile()
-        let eData = err.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
+        readers.wait()
         return Output(
             status: process.terminationStatus,
             stdout: String(decoding: oData, as: UTF8.self),
-            stderr: String(decoding: eData, as: UTF8.self)
+            stderr: String(decoding: errors.data, as: UTF8.self)
         )
+    }
+
+    /// The blocking process API is also used by synchronous callers. Only this locked
+    /// buffer crosses the worker boundary; no unsynchronized captured variable is shared.
+    private final class CommandOutput: @unchecked Sendable {
+        private let lock = NSLock()
+        private var value = Data()
+        var data: Data { lock.withLock { value } }
+        func store(_ data: Data) { lock.withLock { value = data } }
     }
 
     /// Emplacements habituels des binaires (Apple Silicon + Intel + système).
