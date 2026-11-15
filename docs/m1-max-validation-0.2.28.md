@@ -1,5 +1,22 @@
 # MacCare Dev 0.2.28 — validation M1 Max
 
+## Attention : deux paquets distincts portent le numéro 0.2.28
+
+La version publique `v0.2.28`, publiée le 15 novembre à 09:15 (Paris), est basée
+sur `3399a6e` (stabilité et activité en arrière-plan). Son code conserve le
+message « macOS effectue ou prépare un étalonnage » et le refus général des
+contrôles matériels. Elle ne contient ni le correctif de ce chantier ni son
+mode d'essai M1 Max. Installer cette mise à jour standard ne livre donc pas ce patch.
+
+Le paquet de cette page est **MacCare Dev 0.2.28 (9)**, issu de `12233bb`, fourni
+uniquement dans l'archive locale `MacCare-0.2.28-m1-max-validation-arm64.zip`.
+Il affiche « Prise en charge M1 Max en validation » sur MacBookPro18,4. Son nom,
+son build et son origine doivent être vérifiés, pas seulement le numéro 0.2.28.
+Cette distinction a été revérifiée dans l'archive signée et dans le tag public
+après la capture transmise par Gregory. Aucun remplacement du Mac distant effectué.
+
+## Préparation locale
+
 15 novembre 2026. Base : MacCare 0.2.27 (`83099d7`), branche
 `codex/m1-max-battery-diagnostics`. Paquet local **MacCare Dev 0.2.28 (9)**,
 signé Developer ID, non notarié, sans flux de mise à jour. Aucun remplacement

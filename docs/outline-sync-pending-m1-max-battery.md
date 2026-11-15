@@ -133,3 +133,19 @@ aucune installation ni publication. Source détaillée et plan de validation :
 
 Accès Outline réessayé : `Bitwarden status failed`. Pages 06/08/11 toujours à
 synchroniser ; aucune synchronisation annoncée.
+
+## Confusion entre la version publique et le paquet de validation
+
+Gregory signale les anciens messages après installation de « 0.28 ». Vérification
+du tag public `v0.2.28` (`3399a6e`, publié le 15 novembre à 09:15 Paris) : les deux
+textes de la capture sont toujours présents et la méthode avancée reste réservée
+au modèle validé précédent. Ce tag ne contient pas les correctifs de cette branche.
+L'archive locale MacCare Dev 0.2.28 (9), issue de `12233bb`, a été revérifiée :
+anciens textes absents, nouveaux textes et bannière de validation présents.
+
+Le numéro 0.2.28 réutilisé pour l'essai a créé une ambiguïté de livraison. La
+documentation locale distingue désormais explicitement le paquet Dev de la
+mise à jour publique. L'identité du processus réellement lancé sur le M1 Max
+n'est pas vérifiée directement : tentative SSH en lecture seule vers l'adresse
+utilisée dans le relevé précédent, délai de connexion dépassé. Aucun ancien
+helper n'a été exécuté avec une option inconnue, aucun changement distant.
