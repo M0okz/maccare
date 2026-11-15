@@ -3,6 +3,9 @@ import Darwin
 
 /// Fixed read-only commands, no sudo, no self-tests, no SMART setting changes.
 enum DiskHealthReader {
+    // Deadline callbacks must not wait behind blocking command I/O on the shared utility queue.
+    private static let deadlineQueue = DispatchQueue(label: "org.maccare.disk-health.deadlines", qos: .utility)
+
     enum ReadError: LocalizedError {
         case unavailable
         var errorDescription: String? { "Ces informations ne sont pas accessibles pour ce disque. Certains supports externes ne les transmettent pas à macOS." }
@@ -76,7 +79,7 @@ enum DiskHealthReader {
         let deadline = DispatchWorkItem {
             if process.isRunning { _ = Darwin.kill(process.processIdentifier, SIGKILL) }
         }
-        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + timeout, execute: deadline)
+        deadlineQueue.asyncAfter(deadline: .now() + timeout, execute: deadline)
         defer { deadline.cancel() }
         let data = output.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()

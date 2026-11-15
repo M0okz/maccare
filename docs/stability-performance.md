@@ -140,6 +140,21 @@ benchmark isolé des autres applications.
 
 ## État final de livraison
 
+### Complément pendant la préparation de la 0.2.28
+
+Les deux premières CI de publication ont exposé un défaut supplémentaire dans
+`DiskHealthReader.run` : la commande de test ignorant SIGTERM revient normalement
+après 2,177 / 2,310 secondes malgré un délai demandé de 0,05 seconde. Le test
+attend une erreur en moins de 1,5 seconde. Il passe localement en 0,054 seconde,
+ce qui confirme la nécessité de vérifier également l'environnement CI.
+
+Le watchdog utilisait la file globale utility, également utilisée par des lectures
+bloquantes. Son callback utilise désormais une file série dédiée de même priorité,
+sans boucle permanente, changement de signal ou relâchement du test. Le retard
+d'ordonnancement est l'hypothèse principale ; les traces initiales ne permettent
+pas de le distinguer entièrement d'un retard dans le lancement du processus.
+La suite complète du runner défaillant doit confirmer le correctif avant diffusion.
+
 Deux revues séparées (conventions/concurrence et conformité au besoin) ne relèvent
 aucun défaut bloquant dans les changements. Le paquet Dev vérifié est
 `build/stability-2026-11-15/optimized/MacCare.app`, version locale 0.2.27 (8),
