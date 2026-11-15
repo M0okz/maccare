@@ -22,6 +22,7 @@ static kern_return_t fixtureOpen(io_service_t, task_port_t, uint32_t, io_connect
 static kern_return_t fixtureRelease(io_object_t);
 static kern_return_t fixtureClose(io_connect_t);
 #include "../../Sources/CMacCareSMC/MacCareSMC.c"
+_Static_assert(offsetof(SMCMessage, command) == 42, "CLI read-only guard command offset");
 
 typedef struct { const char *key; uint32_t size, type; uint8_t bytes[32]; int denyRead, denyWrite; } Field;
 static Field fields[10];
@@ -194,6 +195,19 @@ static void gpuTemperatureTests(void) {
 int main(void) {
     uint8_t value; int32_t backend;
     MCKeyDiagnostic diagnostic;
+    // The full CLI/XPC matrix is strictly observational, including failed reads.
+    reset(); add("CHIE", 1, "hex_", 8);
+    for (int transport = 0; transport <= 1; transport++) {
+        for (int handshake = 0; handshake <= 1; handshake++) {
+            for (int slot = 0; slot < 10; slot++) {
+                int32_t result = maccare_key_diagnostic(slot, transport, handshake, &diagnostic);
+                if (slot == 8 && handshake == 1) {
+                    assert(result == 0 && diagnostic.bytes[0] == 8);
+                }
+                assert(writes == 0 && opens == closes && clientOpen == 0);
+            }
+        }
+    }
     reset(); add("CHIE", 1, "hex_", 0);
     assert(maccare_key_diagnostic(8, 1, 1, &diagnostic) == 0 && diagnostic.type == code("hex_") && writes == 0);
     assert(maccare_key_diagnostic(8, 0, 1, &diagnostic) == 0 && writes == 0);

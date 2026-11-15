@@ -1,7 +1,7 @@
 # Recharge complète prioritaire et compatibilité M1 Max
 
-État du 10 novembre 2026 : **développement local non livré**, branche
-`codex/battery-calibration-status`. Aucun remplacement de la copie quotidienne,
+État du 15 novembre 2026 : **développement local non livré**, branche
+`codex/m1-max-battery-diagnostics`. Aucun remplacement de la copie quotidienne,
 aucune activation de charge ni extension de la liste des modèles validés.
 
 ## Relevé réel du M1 Max — 14 novembre 2026
@@ -59,9 +59,11 @@ la réception d'une demande par `powerd`. La valeur est masquée et l'identité 
 processus n'a pas été relevée ; cette ligne ne prouve ni une limite enregistrée
 et appliquée, ni un auteur MacCare, ni une prise de contrôle réussie.
 
-La prochaine lecture utile pour la compatibilité avancée est la matrice SMC du
-bouton **Afficher le diagnostic de compatibilité…**, si l'assistant est déjà
-activé. Elle peut montrer si `CHIE` est lisible et quelles anciennes méthodes
+La prochaine lecture utile pour la compatibilité avancée est la matrice SMC,
+désormais accessible par le CLI de développement ci-dessous sans ouvrir l'app.
+Dans la version installée, elle reste accessible au bouton **Afficher le diagnostic
+de compatibilité…**, si l'assistant est déjà activé.
+Elle peut montrer si `CHIE` est lisible et quelles anciennes méthodes
 sont refusées. Cette matrice ne teste aucune écriture. Ne pas activer ou
 réinstaller l'assistant pour la recueillir dans la phase actuelle, limitée à
 la lecture. Aucune modification du signal Apple n'est proposée.
@@ -155,6 +157,54 @@ Sans privilèges, `effectiveUID` et `controlReadError` expliquent les limites
 de la sonde ; ne pas assimiler ce résultat au diagnostic du helper système UID 0.
 L'ancien `--battery-diagnostics` conserve son format. La nouvelle commande
 quitte avant le démarrage du daemon et du contrôleur.
+
+### Diagnostic complet dans Ghostty — ajout du 15 novembre
+
+Le **nouveau helper** accepte `--battery-full-diagnostics`. Il imprime un JSON
+sur la sortie standard puis termine ; il ne contacte pas le service installé,
+ne crée pas de journal de récupération et ne modifie aucun réglage de charge.
+Ce mode partage le collecteur `BatteryFullDiagnostics` avec le diagnostic XPC.
+Les champs existants `method`, `helperUID`, `smc`, `compatibility` sont conservés ;
+`snapshot` ajoute la télémétrie de batterie. Les clés optionnelles indisponibles
+peuvent être absentes.
+
+La matrice comprend `bfF0`, `bfD0`, `bfE0`, `CHTE`, `CH0B`, `CH0C`, `CH0I`,
+`CH0J`, **`CHIE`** et `CHLS`, pour deux transports et deux modes de handshake :
+40 tentatives, dont quatre pour `CHIE`. Chaque ligne conserve `result`, `size`,
+`type` et les quatre premiers octets bruts en hexadécimal. Un `result` non nul
+est une erreur de lecture : ne pas interpréter ses octets nuls comme une valeur
+matérielle, ni une lecture réussie comme une validation d'écriture.
+
+Dans Ghostty, après mise à disposition du **nouveau binaire** sur le Mac cible :
+
+```sh
+sudo "/chemin/absolu/vers/le/nouveau/MacCareHelper" --battery-full-diagnostics
+```
+
+Dans le shell root déjà ouvert sur le M1 Max, omettre `sudo`. Aucun fichier de
+sortie n'est créé par cette commande. L'UID 0 permet les lectures privilégiées ;
+sans lui, les refus restent visibles dans le JSON.
+
+**Ne pas utiliser cette option avec MacCare 0.2.26** : cette version ne la connaît
+pas et son ancien traitement des arguments peut démarrer le daemon. Le nouveau
+helper refuse les options inconnues ou combinées (code 2), affiche l'aide avec
+`--help`, et conserve les formats des deux anciens diagnostics. Code 0 : rapport
+produit, y compris avec erreurs de lecture ; code 1 : échec d'encodage du rapport.
+L'absence d'argument reste réservée au service launchd.
+
+Validation locale du 15 novembre :
+
+- helper arm64 compilé ; 170 tests batterie réussis ;
+- fixtures SMC et PowerUI sous ASan/UBSan réussies, dont la matrice complète sans
+  écriture SMC et les sondes natives sans setter ;
+- `bash app/Tests/BatteryDiagnosticsCLI/run.sh /chemin/vers/le/helper-developpement`
+  vérifie le JSON réel, les quatre lignes `CHIE`, les formats anciens, l'aide et
+  les arguments refusés. Un garde de test interposé bloque les écritures SMC,
+  modifications de préférences, posts de notification et démarrage batterie ;
+- exécution uniquement sans privilèges sur le M1 local. Aucun essai CLI root
+  ni matériel sur le M1 Max, aucune installation ni publication.
+
+Artefact local : `build/swift-tests/arm64-apple-macosx/debug/MacCareHelper`.
 
 ## Validation nécessaire sur le M1 Max
 

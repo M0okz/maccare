@@ -44,3 +44,27 @@ que l'accès personnel était retiré au profit d'Infisical ; aucune configurati
 Infisical exploitable n'avait été trouvée. Ce retrait n'est pas contourné.
 Lire les pages, ajouter le relevé daté sans effacer les limites historiques, puis
 relire après écriture lorsque le nouvel accès documentaire sera disponible.
+
+## Ajout du 15 novembre 2026 — commande complète sans interface
+
+État : développement local non livré sur `codex/m1-max-battery-diagnostics`.
+Ajouter également la page **08 — Développement, build local et tests** aux pages
+à synchroniser. Le helper expose `--battery-full-diagnostics` : même collecteur
+que le diagnostic XPC, télémétrie, compatibilité et 40 tentatives de lecture SMC
+dont quatre `CHIE`. Pas de démarrage du service, de capture de récupération ni
+de setter. Les anciennes options gardent leur format ; arguments inconnus ou
+combinés refusés avant démarrage. Aide avec `--help`.
+
+La commande documentée exige le nouveau binaire. Ne pas passer cette option à
+la 0.2.26 installée : l'ancien traitement des options inconnues peut démarrer
+le daemon. Aucun transfert, installation, lancement ou changement sur le M1 Max.
+
+Validation : helper arm64 compilé ; 170 tests batterie ; fixtures C SMC et
+Objective-C PowerUI sous ASan/UBSan ; smoke CLI réel sans privilèges sur M1 local,
+avec garde interposé contre écritures SMC/préférences/notifications et démarrage
+du service batterie. Le contrôle CLI est ajouté à CI, non exécutée à distance.
+Ni lecture CLI root sur M1 Max ni maintien/reprise/restauration validés.
+
+Nouvel essai de l'accès prévu le 15 novembre : `homelab.py bw-exec --project`
+échoue avec `Bitwarden status failed; check login, configured secret and server access`.
+Aucune page Outline modifiée ; synchronisation toujours en attente.
