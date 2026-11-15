@@ -27,7 +27,8 @@ def run(args, expected=0):
 full = json.loads(run(['--battery-full-diagnostics']))
 assert full['method'] == 'read-only'
 assert full['helperUID'] == os.geteuid()
-assert 'percent' in full['snapshot']
+# CI hosts may have no battery; optional telemetry must not be invented.
+assert isinstance(full['snapshot']['present'], bool)
 assert 'fullChargeOverride' in full['compatibility']
 rows = full['smc']
 assert len(rows) == 40
