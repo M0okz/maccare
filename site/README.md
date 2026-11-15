@@ -72,3 +72,10 @@ Les guides prennent **0.2.27** comme référence depuis le 14 novembre 2026 : on
 
 
 Les guides prennent **0.2.28** comme référence depuis le 15 novembre 2026 : stabilisation des commandes et optimisation de l’historique batterie. Les dix HTML sont vérifiés identiques aux sources en HTTPS ; les introductions historiques et les limites des anciennes captures sont conservées.
+
+
+Les guides prennent **0.2.29** comme référence depuis le 15 novembre 2026 :
+prise en charge en validation du seul M1 Max MacBookPro18,4, correction du message
+de priorité Apple et mise à jour de l'assistant si proposée. Les dix HTML sont
+identiques aux sources en HTTPS ; 216 liens/ancres internes sont vérifiés.
+Les introductions historiques et limites matérielles restent explicites.

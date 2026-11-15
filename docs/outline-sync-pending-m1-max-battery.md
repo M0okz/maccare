@@ -149,3 +149,25 @@ mise à jour publique. L'identité du processus réellement lancé sur le M1 Max
 n'est pas vérifiée directement : tentative SSH en lecture seule vers l'adresse
 utilisée dans le relevé précédent, délai de connexion dépassé. Aucun ancien
 helper n'a été exécuté avec une option inconnue, aucun changement distant.
+
+
+## Livraison publique 0.2.29 — 15 novembre 2026
+
+**Livré dans MacCare 0.2.29 (build 31)** après fusion de la PR #38, tag sur
+`4ca502febbc86b4c4e735212b47706e3b873e4aa`. Ce statut remplace les mentions
+historiques « développement non livré » pour le correctif et le diagnostic.
+La décision explicite de Gregory autorise la distribution du mode M1 Max en
+validation ; elle ne transforme pas MacBookPro18,4 en modèle matériellement
+validé. La priorité Apple active ou illisible continue de bloquer les écritures.
+La publication n'installe pas la version chez Gregory.
+
+Pages à actualiser : index, architecture, batterie, développement, publication,
+Sparkle et dépannage. Conserver les anciens relevés datés. Décrire les deux
+indicateurs de build, le garde de packaging, le diagnostic CLI et les deux
+erreurs distinctes de priorité Apple. La CI prend en charge Bash 3 et les
+runners sans batterie. Références, tests et preuves publiques :
+[livraison 0.2.29](release-integration-0.2.29.md).
+
+Les dix pages du site public sont livrées et relues. Outline reste non synchronisé :
+l'accès prescrit par le helper Homelab échoue avec `Bitwarden status failed`.
+Aucun accès retiré n'a été contourné.

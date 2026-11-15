@@ -138,3 +138,16 @@ de Gregory : historique batterie optimisé, drainage des commandes sans blocage
 stdout/stderr et minuteur disque indépendant. PR #37 fusionnée, tag `v0.2.28`
 sur `3399a6e`, CI et chaîne officielle réussies. Le site et Outline sont synchronisés.
 [Contrôles publics, installation et limites](release-integration-0.2.28.md).
+
+
+## Publication 0.2.29 — 15 novembre 2026
+
+[MacCare 0.2.29 (build 31)](https://github.com/M0okz/maccare/releases/tag/v0.2.29)
+est proposé dans le flux de mise à jour public. Les dix pages HTML utilisent
+cette référence et correspondent aux sources en HTTPS ; 216 liens/ancres internes
+sont vérifiés. Le guide Batterie précise le modèle MacBookPro18,4 en validation,
+la priorité Apple de recharge complète et les essais matériels restant à mener.
+Le site présente le nouveau DMG avec sa taille et son SHA-256 vérifiés.
+Aucune installation ou ouverture de l'app de production pendant cette livraison.
+[Vérifications et limites](release-integration-0.2.29.md). Outline reste à synchroniser
+en raison de l'indisponibilité de l'accès documentaire prescrit.
