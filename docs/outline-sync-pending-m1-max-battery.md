@@ -109,3 +109,27 @@ modification du M1 Max par Codex. Document source actualisé et relevé JSON con
 localement sous build/battery-diagnostics/m1-max-user-report-20261115.json.
 Nouvelle tentative documentaire : même échec Bitwarden status failed. Outline
 reste à synchroniser.
+
+## MacCare Dev 0.2.28 — préparation M1 Max
+
+Base actualisée sur 0.2.27 (`83099d7`). Nouveau mode de build
+`MACCARE_M1_MAX_BATTERY_TRIAL=1` limité au MacBookPro18,4 : sélection de la
+politique native avancée et conservation des garde-fous CHIE/journal/priorité
+Apple. La liste matériellement validée reste inchangée ; les builds ordinaires
+gardent le comportement natif 80–100 % sur ce modèle. Le diagnostic distingue
+build d'essai, éligibilité du modèle et validation matérielle.
+
+Écran et confirmation indiquent « en validation ». Refus SMC formulé comme un
+refus de la méthode directe, pas de tous les accès matériels. Packaging refusant
+le mélange de modes et la publication d'un build d'essai dans le flux public.
+Paquet local MacCare Dev 0.2.28 (9), Developer ID, non notarié, sans flux Sparkle.
+
+174 tests batterie, 19 tests de packaging, fixtures C/Objective-C ASan/UBSan,
+CLI avec garde de lecture seule et audit runtime sans outils développeur réussis.
+Paquet signé et métadonnées vérifiés ; diagnostic signé exécuté sans privilèges
+sur M1 local ; exécutables utilisateur inchangés. Aucun test physique distant,
+aucune installation ni publication. Source détaillée et plan de validation :
+`docs/m1-max-validation-0.2.28.md`.
+
+Accès Outline réessayé : `Bitwarden status failed`. Pages 06/08/11 toujours à
+synchroniser ; aucune synchronisation annoncée.

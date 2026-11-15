@@ -150,10 +150,26 @@ public final class AppleSiliconChargeHardware: ChargeHardware {
     public convenience init() {
         self.init(smc: SMCChargeHardware(), native: NativeChargeHardware(), nativePolicy: NativeChargePolicyHardware(),
                   nativeAvailable: Self.supportsNativeLimit(ProcessInfo.processInfo.operatingSystemVersion),
-                  nativePolicyActivationAllowed: Self.nativePolicyValidated(model: BatteryMachine.model))
+                  nativePolicyActivationAllowed: Self.nativePolicyAllowed(model: BatteryMachine.model))
     }
-    /// Only models with a hold, resume and restoration observed on hardware. Others keep Apple's 80–100 % limit.
+    /// Only models with a hold, resume and restoration observed on hardware; trials do not enter this list.
     public static func nativePolicyValidated(model: String?) -> Bool { model == "MacBookPro17,1" }
+    /// Enabled only in the dedicated validation build, never by a runtime preference.
+    public static var m1MaxTrialBuild: Bool {
+        #if MACCARE_M1_MAX_BATTERY_TRIAL
+        true
+        #else
+        false
+        #endif
+    }
+    /// The observed model is eligible for a trial, not yet hardware-validated.
+    public static func nativePolicyAllowed(model: String?, trialBuild: Bool = m1MaxTrialBuild) -> Bool {
+        nativePolicyValidated(model: model) || (trialBuild && model == "MacBookPro18,4")
+    }
+    /// Drives the validation notice without exposing a recovery identity to the app.
+    public static var nativePolicyTrialOnThisMac: Bool {
+        m1MaxTrialBuild && BatteryMachine.model == "MacBookPro18,4"
+    }
     init(smc: any ChargeHardware, native: any ChargeHardware, nativePolicy: (any ChargeHardware)? = nil,
          nativeAvailable: Bool, nativePolicyActivationAllowed: Bool = false) {
         self.smc = smc; self.native = native; self.nativePolicy = nativePolicy; self.nativeAvailable = nativeAvailable

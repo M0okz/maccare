@@ -40,6 +40,7 @@ compatibility = json.loads(run(['--battery-compatibility-diagnostics']))
 assert 'nativePolicyValidated' in compatibility and 'smc' not in compatibility
 assert '--battery-full-diagnostics' in run(['--help'])
 assert '--battery-full-diagnostics' in run(['-h'])
+assert isinstance(json.loads(run(['--battery-build-info']))['m1MaxTrialBuild'], bool)
 for args in [['--battery-full-diagnostic'], ['--unknown'],
              ['--battery-full-diagnostics', '--battery-diagnostics'],
              ['--battery-full-diagnostics', '--unknown']]:

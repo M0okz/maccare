@@ -107,8 +107,12 @@ echo "==> Synchronisation de l'en-tête C"
 cp core/include/maccare_core.h app/Sources/CMacCareCore/include/maccare_core.h
 
 echo "==> Build app SwiftUI"
+swift_options=()
+if [ "${MACCARE_M1_MAX_BATTERY_TRIAL:-0}" = "1" ]; then
+    swift_options+=(-Xswiftc -DMACCARE_M1_MAX_BATTERY_TRIAL)
+fi
 swift build --package-path app --build-system swiftbuild --arch "$(uname -m)" -c release \
-    -Xlinker -L"$repo_root/core/target/release"
+    "${swift_options[@]}" -Xlinker -L"$repo_root/core/target/release"
 
 products="$(swift build --package-path app --build-system swiftbuild --arch "$(uname -m)" -c release --show-bin-path)"
 bin="$products/MacCare"

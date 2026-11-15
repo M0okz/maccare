@@ -228,7 +228,7 @@ final class ListenerDelegate: NSObject, NSXPCListenerDelegate {
 let diagnosticArguments = Array(CommandLine.arguments.dropFirst())
 if !diagnosticArguments.isEmpty {
     let usage = """
-    Usage: MacCareHelper [--battery-full-diagnostics | --battery-diagnostics | --battery-compatibility-diagnostics | --help]
+    Usage: MacCareHelper [--battery-full-diagnostics | --battery-diagnostics | --battery-compatibility-diagnostics | --battery-build-info | --help]
     Diagnostic options print read-only JSON and exit without starting the service.
     --battery-full-diagnostics includes battery telemetry, SMC keys (including CHIE), and compatibility.
     Run as root for privileged reads; read failures are retained in the report.
@@ -241,6 +241,8 @@ if !diagnosticArguments.isEmpty {
     do {
         let data: Data
         switch diagnosticArguments[0] {
+        case "--battery-build-info":
+            data = try encoder.encode(["m1MaxTrialBuild": AppleSiliconChargeHardware.m1MaxTrialBuild])
         case "--battery-diagnostics":
             // Preserve the legacy snapshot format for existing consumers.
             let snapshot = BatterySnapshot.read()

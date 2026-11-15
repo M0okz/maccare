@@ -82,6 +82,32 @@ struct BatteryNativeHardwareTests {
         }
     }
 
+    @Test func trialIsRestrictedToTheObservedM1MaxWithoutClaimingValidation() {
+        #expect(AppleSiliconChargeHardware.nativePolicyAllowed(model: "MacBookPro18,4", trialBuild: true))
+        #expect(AppleSiliconChargeHardware.nativePolicyAllowed(model: "MacBookPro18,4", trialBuild: false) == false)
+        #expect(AppleSiliconChargeHardware.nativePolicyValidated(model: "MacBookPro18,4") == false)
+        #expect(AppleSiliconChargeHardware.nativePolicyAllowed(model: "MacBookPro17,1", trialBuild: false))
+        for model: String? in ["MacBookPro18,1", "MacBookPro18,2", "MacBookPro18,3", "MacBookAir10,1", "", nil] {
+            #expect(AppleSiliconChargeHardware.nativePolicyAllowed(model: model, trialBuild: true) == false)
+        }
+    }
+
+    @Test(arguments: [false, true])
+    func observedM1MaxUsesPolicyOnlyInTrialBuild(trial: Bool) throws {
+        let smc = SMC(), driver = Driver(), policy = Policy()
+        smc.readError = BatteryHardwareError(code: kIOReturnNotPrivileged)
+        let hardware = AppleSiliconChargeHardware(smc: smc, native: native(driver), nativePolicy: policy,
+            nativeAvailable: true,
+            nativePolicyActivationAllowed: AppleSiliconChargeHardware.nativePolicyAllowed(model: "MacBookPro18,4", trialBuild: trial))
+        #expect(try hardware.readSwitch() == 0)
+        #expect(hardware.capabilities.backend == (trial ? .nativePolicy : .nativeLimit))
+        #expect(hardware.capabilities.supportsSailing == trial)
+        #expect(hardware.capabilities.supportsThermalProtection == trial)
+        #expect(hardware.capabilities.supportedLimits.contains(60) == trial)
+        #expect(driver.limits.isEmpty && smc.writes.isEmpty && policy.restores.isEmpty)
+        if trial { #expect(policy.reads > 0) } else { #expect(policy.reads == 0) }
+    }
+
     @Test(arguments: [-1, 0, 1] as [Int32])
     func m1MaxCompatibilityReportReadsWithoutEnablingUnvalidatedPolicy(override: Int32) throws {
         let smc = SMC(), driver = Driver(), policy = Policy()

@@ -59,6 +59,11 @@ jobs:
         run: |
           swift build --package-path app --scratch-path build/swift-diagnostics --build-system native --arch arm64 --configuration release --product MacCareHelper -Xswiftc -DMACCARE_DIAGNOSTICS_ONLY -Xlinker -L"$PWD/core/target/release"
           bash app/Tests/BatteryDiagnosticsCLI/run.sh "$PWD/build/swift-diagnostics/arm64-apple-macosx/release/MacCareHelper" standalone
+      - name: Compiler et tester le helper de validation M1 Max
+        run: |
+          swift build --package-path app --scratch-path build/swift-m1max-trial --build-system native --arch arm64 --configuration release --product MacCareHelper -Xswiftc -DMACCARE_M1_MAX_BATTERY_TRIAL -Xlinker -L"$PWD/core/target/release"
+          bash app/Tests/BatteryDiagnosticsCLI/run.sh "$PWD/build/swift-m1max-trial/arm64-apple-macosx/release/MacCareHelper"
+          build/swift-m1max-trial/arm64-apple-macosx/release/MacCareHelper --battery-build-info | python3 -c 'import json,sys; assert json.load(sys.stdin)["m1MaxTrialBuild"] is True'
       - name: Tester les outils de release et les signatures Sparkle
         run: |
           python3 -m unittest discover -s app/release/tests -v

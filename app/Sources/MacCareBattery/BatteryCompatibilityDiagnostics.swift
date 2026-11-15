@@ -11,6 +11,8 @@ public struct BatteryCompatibilityDiagnostics: Codable, Sendable {
     public let macOS: String
     public let nativeLimitOSAvailable: Bool
     public let nativePolicyValidated: Bool
+    public let nativePolicyTrialBuild: Bool
+    public let nativePolicyActivationAllowed: Bool
     public let nativePolicyInterfaceAvailable: Bool
     public let fullChargeOverride: FullChargeOverride
     public let capabilities: BatteryControlCapabilities?
@@ -38,6 +40,8 @@ public struct BatteryCompatibilityDiagnostics: Codable, Sendable {
         return .init(model: model, effectiveUID: geteuid(), macOS: "\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)",
                      nativeLimitOSAvailable: AppleSiliconChargeHardware.supportsNativeLimit(os),
                      nativePolicyValidated: AppleSiliconChargeHardware.nativePolicyValidated(model: model),
+                     nativePolicyTrialBuild: AppleSiliconChargeHardware.m1MaxTrialBuild,
+                     nativePolicyActivationAllowed: AppleSiliconChargeHardware.nativePolicyAllowed(model: model),
                      nativePolicyInterfaceAvailable: policyAvailable,
                      fullChargeOverride: override < 0 ? .unknown : (override == 0 ? .inactive : .active),
                      capabilities: capabilities, controlReadError: controlError, nativeState: reading?.state,

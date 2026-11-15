@@ -4,6 +4,11 @@
 `codex/m1-max-battery-diagnostics`. Aucun remplacement de la copie quotidienne,
 aucune activation de charge ni extension de la liste des modèles validés.
 
+Une [version de validation MacCare Dev 0.2.28](m1-max-validation-0.2.28.md)
+prépare désormais la méthode avancée pour le seul `MacBookPro18,4`, dans un build
+explicite d'essai. La validation matérielle et la publication stable restent
+distinctes de cette préparation ; la priorité Apple continue de bloquer les écritures.
+
 ## Relevé réel du M1 Max — 14 novembre 2026
 
 Gregory a exécuté les commandes en lecture seule dans son shell root et transmis
