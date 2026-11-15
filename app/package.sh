@@ -23,6 +23,14 @@ if [ ! -x "$bin" ] || [ ! -x "$helper_bin" ] || [ ! -x "$probe_bin" ]; then
     exit 1
 fi
 
+# Inspect the compiled helper, not merely the caller's environment. A validation
+# build requires an explicit public-delivery choice, separate from compilation.
+python3 - "$helper_bin" <<'PYCODE'
+import json, os, subprocess, sys
+from app.release.configure_helper import validate_battery_build
+validate_battery_build(json.loads(subprocess.check_output([sys.argv[1], '--battery-build-info'], text=True)), os.environ)
+PYCODE
+
 # Un chemin explicite permet de préparer le DMG sans remplacer le paquet actuellement ouvert.
 app="$(python3 - "$repo_root" "${1:-build/MacCare.app}" <<'PYCODE'
 from pathlib import Path

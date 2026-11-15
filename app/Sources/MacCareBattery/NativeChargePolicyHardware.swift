@@ -77,7 +77,7 @@ public final class NativeChargePolicyHardware: ChargeHardware {
         return value
     }
     private func requireNoCalibration() throws {
-        guard driver.calibrationOverride() == false else { throw NativeChargeError(code: -8) }
+        try NativeChargeError.requireNoFullChargeOverride(driver.calibrationOverride())
     }
     public func captureRecovery() throws -> BatteryRecoveryRecord {
         guard let machineID = identity() else { throw BatteryNativePolicyError.invalidState }

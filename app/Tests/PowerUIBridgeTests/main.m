@@ -51,6 +51,9 @@ static FakeNativeClient *fake(void) {
 
 int main(void) {
     @autoreleasepool {
+        CHECK(requireNoAppleOverride(-1) == MACCARE_POWERUI_OVERRIDE_UNKNOWN);
+        CHECK(requireNoAppleOverride(0) == MACCARE_POWERUI_SUCCESS);
+        CHECK(requireNoAppleOverride(1) == MACCARE_POWERUI_APPLE_OVERRIDE);
         CHECK(validInterface([FakeNativeClient class]));
         Class wrong = objc_allocateClassPair([FakeNativeClient class], "MacCarePowerUIWrongReturnABI", 0);
         CHECK(wrong != Nil);

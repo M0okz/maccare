@@ -59,11 +59,17 @@ public struct NativeChargeError: LocalizedError {
     public let code: Int32
     public var errorDescription: String? {
         switch code {
-        case -8: return "macOS effectue ou prépare un étalonnage de la batterie. Le contrôle attend la fin de cette opération."
+        case -8: return "macOS donne la priorité à une recharge complète de la batterie. La protection attend la fin de cette opération."
+        case -9: return "MacCare ne parvient pas à vérifier si macOS impose une recharge complète. Réessayez dans quelques instants."
         case -4: return "Cette limite de charge n’est pas proposée par macOS sur ce Mac."
         case -2, -3: return "La méthode native de charge a changé ou son état est inconnu. Aucun autre mécanisme ne sera essayé pendant la restauration."
         default: return "La limite native de macOS est indisponible ou n’a pas confirmé le réglage (code \(code))."
         }
+    }
+
+    static func requireNoFullChargeOverride(_ override: Bool?) throws {
+        guard let override else { throw NativeChargeError(code: -9) }
+        if override { throw NativeChargeError(code: -8) }
     }
 }
 
@@ -90,7 +96,7 @@ public final class NativeChargeHardware: ChargeHardware {
         guard let machineID = identity() else { throw BatteryHardwareError(code: -3) }
         let reading = try checkedReading()
         guard reading.canRestore else { throw NativeChargeError(code: -3) }
-        guard reading.calibrationOverride == false else { throw NativeChargeError(code: -8) }
+        try NativeChargeError.requireNoFullChargeOverride(reading.calibrationOverride)
         pinned = .init(backend: .nativeLimit, supportedLimits: reading.supportedLimits, supportsThermalProtection: false)
         return .init(backend: .nativeLimit, machineID: machineID, nativeState: reading.state)
     }
@@ -104,7 +110,7 @@ public final class NativeChargeHardware: ChargeHardware {
         let reading = try checkedReading()
         guard reading.supportedLimits.contains(target) else { throw NativeChargeError(code: -4) }
         if reading.state == NativeChargeState(enabled: target < 100, limit: target) { return }
-        guard reading.calibrationOverride == false else { throw NativeChargeError(code: -8) }
+        try NativeChargeError.requireNoFullChargeOverride(reading.calibrationOverride)
         try driver.setLimit(target)
         let actual = try checkedReading()
         guard actual.state == NativeChargeState(enabled: target < 100, limit: target) else { throw NativeChargeError(code: -6) }
@@ -117,11 +123,13 @@ public final class NativeChargeHardware: ChargeHardware {
         guard reading.supportedLimits.contains(original.limit) else { throw NativeChargeError(code: -4) }
         pinned = .init(backend: .nativeLimit, supportedLimits: reading.supportedLimits, supportsThermalProtection: false)
         if reading.state == original { return }
-        guard reading.calibrationOverride == false else { throw NativeChargeError(code: -8) }
+        try NativeChargeError.requireNoFullChargeOverride(reading.calibrationOverride)
         try driver.restore(original)
         guard try checkedReading().state == original else { throw NativeChargeError(code: -6) }
     }
-    public func validateDischarge() throws { guard try checkedReading().calibrationOverride == false else { throw NativeChargeError(code: -8) } }
+    public func validateDischarge() throws {
+        try NativeChargeError.requireNoFullChargeOverride(checkedReading().calibrationOverride)
+    }
     public func endSession() { pinned = nil }
     public func readSwitch() throws -> UInt8 { try checkedReading().state.enabled ? 2 : 0 }
     public func writeSwitch(_ value: UInt8) throws { throw NativeChargeError(code: -3) }
@@ -142,10 +150,26 @@ public final class AppleSiliconChargeHardware: ChargeHardware {
     public convenience init() {
         self.init(smc: SMCChargeHardware(), native: NativeChargeHardware(), nativePolicy: NativeChargePolicyHardware(),
                   nativeAvailable: Self.supportsNativeLimit(ProcessInfo.processInfo.operatingSystemVersion),
-                  nativePolicyActivationAllowed: Self.nativePolicyValidated(model: BatteryMachine.model))
+                  nativePolicyActivationAllowed: Self.nativePolicyAllowed(model: BatteryMachine.model))
     }
-    /// Only models with a hold, resume and restoration observed on hardware. Others keep Apple's 80–100 % limit.
+    /// Only models with a hold, resume and restoration observed on hardware; trials do not enter this list.
     public static func nativePolicyValidated(model: String?) -> Bool { model == "MacBookPro17,1" }
+    /// Enabled only in the dedicated validation build, never by a runtime preference.
+    public static var m1MaxTrialBuild: Bool {
+        #if MACCARE_M1_MAX_BATTERY_TRIAL
+        true
+        #else
+        false
+        #endif
+    }
+    /// The observed model is eligible for a trial, not yet hardware-validated.
+    public static func nativePolicyAllowed(model: String?, trialBuild: Bool = m1MaxTrialBuild) -> Bool {
+        nativePolicyValidated(model: model) || (trialBuild && model == "MacBookPro18,4")
+    }
+    /// Drives the validation notice without exposing a recovery identity to the app.
+    public static var nativePolicyTrialOnThisMac: Bool {
+        m1MaxTrialBuild && BatteryMachine.model == "MacBookPro18,4"
+    }
     init(smc: any ChargeHardware, native: any ChargeHardware, nativePolicy: (any ChargeHardware)? = nil,
          nativeAvailable: Bool, nativePolicyActivationAllowed: Bool = false) {
         self.smc = smc; self.native = native; self.nativePolicy = nativePolicy; self.nativeAvailable = nativeAvailable
@@ -219,7 +243,10 @@ public final class AppleSiliconChargeHardware: ChargeHardware {
     public func validateDischarge() throws {
         if nativeAvailable {
             if selectedBackend == .nativeLimit { try native.validateDischarge() }
-            else if maccare_powerui_calibration_override() != 0 { throw NativeChargeError(code: -8) }
+            else {
+                let state = maccare_powerui_calibration_override()
+                try NativeChargeError.requireNoFullChargeOverride(state < 0 ? nil : state != 0)
+            }
         }
     }
     public func setChargeLimit(_ limit: Int?) throws { guard let selected else { throw BatteryHardwareError(code: -3) }; try selected.setChargeLimit(limit) }

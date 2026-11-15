@@ -85,21 +85,9 @@ enum BatteryService {
         queue.async {
             defer { Idle.end() }
             if raw == "diagnostics", configurationJSON == "{}", rawSession.isEmpty, uid >= 501 {
-                let keys = ["bfF0", "bfD0", "bfE0", "CHTE", "CH0B", "CH0C", "CH0I", "CH0J", "CHIE", "CHLS"]
-                var rows: [[String: Any]] = []
-                for transport: Int32 in [0, 1] {
-                    for handshake: Int32 in [0, 1] {
-                        for (index, key) in keys.enumerated() {
-                            var field = MCKeyDiagnostic()
-                            let code = maccare_key_diagnostic(Int32(index), transport, handshake, &field)
-                            let bytes = withUnsafeBytes(of: field.bytes) { $0.map { String(format: "%02x", $0) }.joined() }
-                            rows.append(["key": key, "transport": transport, "handshake": handshake, "result": code,
-                                         "size": field.size, "type": String(format: "%08x", field.type), "bytes": bytes])
-                        }
-                    }
-                }
-                let result: [String: Any] = ["method": "read-only", "helperUID": geteuid(), "smc": rows]
-                let data = (try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])) ?? Data()
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+                let data = (try? encoder.encode(BatteryFullDiagnostics.read())) ?? Data()
                 reply(String(decoding: data, as: UTF8.self)); return
             }
             let snapshot = BatterySnapshot.read()
