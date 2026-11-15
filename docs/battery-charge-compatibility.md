@@ -78,6 +78,40 @@ Le correctif du 10 novembre est repris sans conflit sur la branche isolée
 `ea8305a`. Cette reprise n'est ni une publication ni une installation ; la version
 0.2.26 du M1 Max conserve donc encore son ancien message d'étalonnage.
 
+## Diagnostic complet distant reçu le 15 novembre 2026
+
+La sortie Ghostty fournie par Gregory confirme l'exécution du helper autonome
+sur `MacBookPro18,4`, macOS 27.2.0, avec `helperUID: 0` et `effectiveUID: 0`.
+Les 40 tentatives SMC sont présentes. Les quatre lectures de `CHIE` réussissent
+pour les deux transports et les deux handshakes : `result: 0`, taille 1,
+type `6865785f` (`hex_`), valeur utile `00`. Le pilote découvre donc bien
+`adapterBackend: 2` (adaptateur moderne/CHIE). Cela prouve la lecture et le format
+accepté, pas la possibilité d'écrire ou de restaurer ce contrôle.
+
+Toutes les autres clés de la matrice échouent. `bfF0`, `bfD0`, `bfE0`, `CH0J`
+et `CHLS` renvoient `-536870207` ; `CHTE`, `CH0B`, `CH0C`, `CH0I` renvoient
+`65668` (statut SMC encapsulé par le bridge). Le champ `hardwareAccessDenied`
+vient de la découverte du contrôle de charge SMC dans `NativeChargeHardware` ;
+il ne signifie pas que tous les accès matériels, notamment `CHIE`, sont refusés.
+
+Le contrôle sélectionné reste `backend: 4` (limite native), avec les valeurs
+80/85/90/95/100 proposées. L'état natif est désactivé à 100 et
+`fullChargeOverride: active`. L'interface de politique avancée est présente,
+mais `nativePolicyValidated: false` : ce modèle n'est pas dans la liste de
+validation matérielle de MacCare. Aucun élargissement de cette liste n'est fait.
+
+Au moment du relevé : batterie à 74 %, hors secteur, sans charge, 11 cycles,
+santé annoncée 100 %, température 32,79 °C, aucun défaut signalé. Une priorité
+Apple signalée hors secteur n'établit pas qu'une recharge ou un étalonnage se
+déroule à cet instant. Elle ne permet pas non plus de déclarer le signal périmé.
+
+Le diagnostic CLI privilégié est désormais observé sur le M1 Max par la sortie
+utilisateur ; la capacité de maintien/reprise/restauration reste non testée.
+La limite native, l'interface de politique avancée et CHIE sont détectés ; la
+sélection n'a pas testé l'état complet du pilote de politique avancée sur ce
+modèle non validé. Une validation du contrôle physique demanderait des écritures,
+hors de la phase autorisée en lecture seule.
+
 ## Message corrigé
 
 La notification Apple `com.apple.system.powersources.chargingtofulloverride`

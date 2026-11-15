@@ -87,3 +87,25 @@ le home SSH, affiche le JSON et supprime la copie après réussite.
 
 Nouvel essai de l'accès documentaire prévu : même échec `Bitwarden status failed`.
 Synchronisation des pages 06/08/11 toujours en attente, aucun contournement.
+
+## Diagnostic distant reçu — 15 novembre 2026
+
+Gregory a transmis la sortie complète du helper autonome sur MacBookPro18,4,
+macOS 27.2.0, UID 0. Les quatre lectures CHIE réussissent, taille 1, type hex_,
+valeur 00 ; backend d'adaptateur moderne détecté. Toutes les autres clés SMC
+échouent. Le champ hardwareAccessDenied décrit la découverte du contrôle de
+charge SMC ; il ne décrit pas un refus de tout accès matériel, puisque CHIE
+est lisible. La lecture seule ne valide aucune écriture ni restauration.
+
+Limite native sélectionnée, valeurs 80/85/90/95/100 proposées, limite désactivée
+à 100. Priorité Apple toujours active. Interface de politique avancée présente,
+modèle toujours non validé. Batterie à 74 %, hors secteur, 11 cycles, santé
+annoncée 100 %, 32,79 °C, sans défaut signalé. Ne pas présenter ce signal comme
+la preuve d'une recharge ou d'un étalonnage en cours hors secteur.
+
+La validation CLI root distante est maintenant étayée par la sortie utilisateur.
+Aucun contrôle physique testé, aucune extension de la liste des modèles, aucune
+modification du M1 Max par Codex. Document source actualisé et relevé JSON conservé
+localement sous build/battery-diagnostics/m1-max-user-report-20261115.json.
+Nouvelle tentative documentaire : même échec Bitwarden status failed. Outline
+reste à synchroniser.
