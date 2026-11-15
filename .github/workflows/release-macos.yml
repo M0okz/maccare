@@ -30,6 +30,10 @@ jobs:
     env:
       RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
       MACCARE_DISTRIBUTION: '1'
+      # Public delivery explicitly requested; the M1 Max feature remains labelled
+      # as under validation and does not expand the hardware-validated allowlist.
+      MACCARE_M1_MAX_BATTERY_TRIAL: '1'
+      MACCARE_PUBLIC_M1_MAX_TRIAL: '1'
       MACCARE_BUILD_NUMBER: ${{ github.run_number }}
       MACCARE_UPDATE_FEED_URL: https://github.com/${{ github.repository }}/releases/latest/download/appcast.xml
       MACCARE_SPARKLE_PUBLIC_KEY: ${{ vars.MACCARE_SPARKLE_PUBLIC_KEY }}
@@ -74,7 +78,7 @@ jobs:
           bash app/Tests/NoDeveloperToolsTests/run.sh
           bash app/Tests/WindowToolbarLifecycleTests/run.sh --compile-only
           bash app/build.sh
-          swift test --package-path app --scratch-path build/swift-tests --build-system native --arch arm64 -Xlinker -L"$PWD/core/target/release"
+          swift test --package-path app --scratch-path build/swift-tests --build-system native --arch arm64 -Xswiftc -DMACCARE_M1_MAX_BATTERY_TRIAL -Xlinker -L"$PWD/core/target/release"
           python3 -m unittest discover -s app/release/tests -v
           python3 app/release/test_signatures.py
       - name: Préparer les notes

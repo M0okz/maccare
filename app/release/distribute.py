@@ -85,6 +85,7 @@ def main():
         '--sign-tool', str(ROOT / 'app/.build/artifacts/sparkle/Sparkle/bin/sign_update'))
     (output / 'release.json').write_text(json.dumps({
         'version': version, 'build': info['CFBundleVersion'], 'architecture': 'arm64',
+        'm1MaxValidationEnabled': info.get('MacCareM1MaxValidationEnabled', False),
         'sha256': digest, 'sparkle': '2.10.1', 'notarized': True,
         'oxipng': json.loads((app / 'Contents/Resources/oxipng/manifest.json').read_text())['oxipng'],
         'smartmontools': json.loads((app / 'Contents/Resources/smartmontools/manifest.json').read_text())['version'],

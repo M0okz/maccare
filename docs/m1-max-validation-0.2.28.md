@@ -1,5 +1,12 @@
 # MacCare Dev 0.2.28 — validation M1 Max
 
+**Évolution du 15 novembre :** Gregory demande maintenant la livraison publique
+du correctif. La préparation de **0.2.29** inclut explicitement le mode M1 Max
+dans le paquet de distribution ; le statut « en validation » et tous les
+garde-fous sont conservés. Cette décision remplace la restriction de distribution
+du paquet Dev ci-dessous, sans constituer une validation matérielle.
+Voir [la livraison 0.2.29](release-integration-0.2.29.md).
+
 ## Attention : deux paquets distincts portent le numéro 0.2.28
 
 La version publique `v0.2.28`, publiée le 15 novembre à 09:15 (Paris), est basée

@@ -21,6 +21,7 @@ def configure(info, environment):
     development = environment.get('MACCARE_DISTRIBUTION') != '1'
     name = 'MacCare Dev' if development else 'MacCare'
     info.update(MacCareDevelopmentBuild=development, CFBundleName=name, CFBundleDisplayName=name)
+    info['MacCareM1MaxValidationEnabled'] = environment.get('MACCARE_M1_MAX_BATTERY_TRIAL') == '1'
     feed = environment.get('MACCARE_UPDATE_FEED_URL', '')
     public_key = environment.get('MACCARE_SPARKLE_PUBLIC_KEY', '')
     if environment.get('MACCARE_DISTRIBUTION') == '1' and not (feed and public_key):

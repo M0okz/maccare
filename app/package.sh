@@ -24,14 +24,11 @@ if [ ! -x "$bin" ] || [ ! -x "$helper_bin" ] || [ ! -x "$probe_bin" ]; then
 fi
 
 # Inspect the compiled helper, not merely the caller's environment. A validation
-# build must never enter the public Sparkle distribution by a packaging mistake.
+# build requires an explicit public-delivery choice, separate from compilation.
 python3 - "$helper_bin" <<'PYCODE'
 import json, os, subprocess, sys
-trial = json.loads(subprocess.check_output([sys.argv[1], '--battery-build-info'], text=True))['m1MaxTrialBuild']
-if trial != (os.environ.get('MACCARE_M1_MAX_BATTERY_TRIAL') == '1'):
-    raise SystemExit('Le mode M1 Max du helper ne correspond pas au paquet demandé. Recompilez avec le même mode.')
-if trial and os.environ.get('MACCARE_DISTRIBUTION') == '1':
-    raise SystemExit('La version de validation M1 Max ne peut pas être distribuée dans le flux public.')
+from app.release.configure_helper import validate_battery_build
+validate_battery_build(json.loads(subprocess.check_output([sys.argv[1], '--battery-build-info'], text=True)), os.environ)
 PYCODE
 
 # Un chemin explicite permet de préparer le DMG sans remplacer le paquet actuellement ouvert.
