@@ -1,5 +1,14 @@
 # Stabilisation et empreinte système — 15 novembre 2026
 
+## Livraison 0.2.28 — 15 novembre 2026
+
+**Publié et installé.** [MacCare 0.2.28 (build 30)](https://github.com/M0okz/maccare/releases/tag/v0.2.28) livre les
+correctifs ci-dessous, ainsi que l'isolation du minuteur de diagnostic disque
+validée après l'échec initial de CI. `/Applications/MacCare.app` est mise à jour
+depuis 0.2.26. [Preuves de livraison et limites](release-integration-0.2.28.md).
+Les états « non livré » et 0.2.26 conservés plus bas décrivent la campagne Dev
+antérieure à cette publication.
+
 ## Périmètre et état
 
 Campagne demandée : vérifier les parcours courants, corriger les régressions
@@ -138,7 +147,7 @@ gain démontré par le test ciblé concerne l'historique, avec une baisse observ
 de la charge en arrière-plan. Il ne s'agit pas d'une campagne d'endurance ni d'un
 benchmark isolé des autres applications.
 
-## État final de livraison
+## État à la fin de la campagne Dev, avant publication
 
 ### Complément pendant la préparation de la 0.2.28
 
@@ -153,7 +162,8 @@ bloquantes. Son callback utilise désormais une file série dédiée de même pr
 sans boucle permanente, changement de signal ou relâchement du test. Le retard
 d'ordonnancement est l'hypothèse principale ; les traces initiales ne permettent
 pas de le distinguer entièrement d'un retard dans le lancement du processus.
-La suite complète du runner défaillant doit confirmer le correctif avant diffusion.
+Les deux suites CI complètes du runner défaillant réussissent ensuite ; le test
+termine en 0,374 seconde dans la CI de PR, sans modification de son contrat.
 
 Deux revues séparées (conventions/concurrence et conformité au besoin) ne relèvent
 aucun défaut bloquant dans les changements. Le paquet Dev vérifié est

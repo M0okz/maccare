@@ -250,3 +250,12 @@ L’installation depuis Applications est **publiée dans [MacCare 0.2.22 (build 
 ## Publication 0.2.27 — 14 novembre 2026
 
 L’onglet À propos et le contour orange de disponibilité sont publiés dans [MacCare 0.2.27 (build 29)](https://github.com/M0okz/maccare/releases/tag/v0.2.27), tag sur `40c98e8507d2a11f6dfb3e780b0c39d6da643430`, après fusion de la PR #36. Le [workflow officiel](https://github.com/M0okz/maccare/actions/runs/43589378271), les contrôles publics Apple/Sparkle, le site et les six pages Outline sont vérifiés. La copie quotidienne est préservée. [Détails, empreinte et limites](release-integration-0.2.27.md).
+
+
+## Publication 0.2.28 — 15 novembre 2026
+
+[MacCare 0.2.28 (build 30)](https://github.com/M0okz/maccare/releases/tag/v0.2.28) est publié et installé sur le Mac
+de Gregory : historique batterie optimisé, drainage des commandes sans blocage
+stdout/stderr et minuteur disque indépendant. PR #37 fusionnée, tag `v0.2.28`
+sur `3399a6e`, CI et chaîne officielle réussies. Le site et Outline sont synchronisés.
+[Contrôles publics, installation et limites](release-integration-0.2.28.md).

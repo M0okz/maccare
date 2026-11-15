@@ -69,3 +69,6 @@ Les guides prennent **0.2.23** comme référence depuis le 10 novembre 2026 : ra
 
 
 Les guides prennent **0.2.27** comme référence depuis le 14 novembre 2026 : onglet À propos, nouveautés et contour orange de disponibilité. Les dix HTML HTTPS correspondent aux sources, liens et ancres internes validés ; les introductions historiques et l’avertissement sur les anciennes captures restent conservés.
+
+
+Les guides prennent **0.2.28** comme référence depuis le 15 novembre 2026 : stabilisation des commandes et optimisation de l’historique batterie. Les dix HTML sont vérifiés identiques aux sources en HTTPS ; les introductions historiques et les limites des anciennes captures sont conservées.
