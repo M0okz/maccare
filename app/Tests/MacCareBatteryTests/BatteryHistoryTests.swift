@@ -3,6 +3,83 @@ import Testing
 import MacCareBattery
 
 struct BatteryHistoryTests {
+    @Test func readingHistorySeesChangesFromAnotherInstance() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let first = BatteryHistoryStore(directory: directory), second = BatteryHistoryStore(directory: directory)
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        #expect(try await first.load(now: now).isEmpty)
+        try await second.append(snapshot: .init(percent: 80, onAC: true), at: now)
+        #expect(try await first.load(now: now).map(\.percent) == [80])
+        try await first.append(snapshot: .init(percent: 79, onAC: false), at: now.addingTimeInterval(15))
+        #expect(try await second.load(now: now.addingTimeInterval(15)).map(\.percent) == [80, 79])
+    }
+
+    @Test func cachedHistoryStillExpiresAndHonorsClockChanges() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = BatteryHistoryStore(directory: directory)
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        try await store.append(snapshot: .init(percent: 80), at: now)
+        #expect(try await store.load(now: now.addingTimeInterval(-1)).isEmpty)
+        #expect(try await store.load(now: now).count == 1)
+        #expect(try await store.load(now: now.addingTimeInterval(31 * 86400)).isEmpty)
+    }
+
+    @Test func unchangedSamplesPreserveLargeHistory() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let snapshot = BatterySnapshot(percent: 80, onAC: true)
+        let entries = try (0..<10_000).map { index in
+            try #require(BatteryHistoryEntry(snapshot: snapshot, date: now.addingTimeInterval(Double(index - 10_000) * 180)))
+        }
+        let file = directory.appendingPathComponent("history.json")
+        let encoded = try JSONEncoder().encode(entries)
+        try encoded.write(to: file)
+        let store = BatteryHistoryStore(directory: directory)
+        #expect(try await store.load(now: now).count == 10_000)
+        let start = ContinuousClock.now
+        for _ in 0..<60 {
+            #expect(try await store.append(snapshot: snapshot, at: now).count == 10_000)
+        }
+        print("HISTORY_BENCHMARK 60 unchanged samples / 10000 entries:", start.duration(to: .now))
+        #expect(try Data(contentsOf: file) == encoded)
+    }
+
+    @Test(arguments: [true, false])
+    func cachedHistoryDetectsSameSizeReplacement(atomic: Bool) async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = BatteryHistoryStore(directory: directory)
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        try await store.append(snapshot: .init(percent: 80), at: now)
+        let file = directory.appendingPathComponent("history.json")
+        let previous = try FileManager.default.attributesOfItem(atPath: file.path)
+        let replacement = try #require(BatteryHistoryEntry(snapshot: .init(percent: 79), date: now))
+        let data = try JSONEncoder().encode([replacement])
+        #expect(data.count == (previous[.size] as? NSNumber)?.intValue)
+        try data.write(to: file, options: atomic ? .atomic : [])
+        // Modification time and length alone are insufficient to identify a revision.
+        try FileManager.default.setAttributes([.modificationDate: try #require(previous[.modificationDate])], ofItemAtPath: file.path)
+        #expect(try await store.load(now: now).map(\.percent) == [79])
+        #expect(try await store.append(snapshot: .init(percent: 78), at: now.addingTimeInterval(15)).map(\.percent) == [79, 78])
+    }
+
+    @Test func cachedHistoryDoesNotHideRemovalOrCorruption() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = BatteryHistoryStore(directory: directory)
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        try await store.append(snapshot: .init(percent: 80), at: now)
+        let file = directory.appendingPathComponent("history.json")
+        try Data("invalid JSON".utf8).write(to: file, options: .atomic)
+        await #expect(throws: (any Error).self) { try await store.load(now: now) }
+        try FileManager.default.removeItem(at: file)
+        #expect(try await store.load(now: now).isEmpty)
+    }
+
     @Test func historyIsRealBoundedAndPersistsAcrossInstances() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }

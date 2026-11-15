@@ -22,28 +22,30 @@ public struct BatteryHistoryEntry: Codable, Equatable, Identifiable, Sendable {
 public actor BatteryHistoryStore {
     private let directory: URL
     private var entries: [BatteryHistoryEntry]?
+    private var historyRevision: HistoryRevision?
     public init(directory: URL? = nil) {
         self.directory = directory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("MacCare/Battery", isDirectory: true)
     }
     public func load(now: Date = .now) throws -> [BatteryHistoryEntry] {
-        if let entries { return entries }
         let file = directory.appendingPathComponent("history.json")
-        guard FileManager.default.fileExists(atPath: file.path) else { entries = []; return [] }
-        let attributes = try FileManager.default.attributesOfItem(atPath: file.path)
-        guard attributes[.type] as? FileAttributeType == .typeRegular,
-              (attributes[.size] as? NSNumber)?.intValue ?? Int.max <= 2_500_000 else {
-            throw HistoryError()
+        guard let revision = try HistoryRevision.read(file) else {
+            entries = nil; historyRevision = nil
+            return []
         }
-        let decoded = try JSONDecoder().decode([BatteryHistoryEntry].self, from: Data(contentsOf: file))
+        if entries == nil || historyRevision != revision {
+            let decoded = try JSONDecoder().decode([BatteryHistoryEntry].self, from: Data(contentsOf: file))
+            entries = decoded.filter { (0...100).contains($0.percent) }.sorted { $0.date < $1.date }
+            historyRevision = revision
+        }
         let cutoff = now.addingTimeInterval(-30 * 86400)
-        let valid = decoded.filter { $0.date >= cutoff && $0.date <= now && (0...100).contains($0.percent) }
-        entries = Array(valid.sorted { $0.date < $1.date }.suffix(10_000))
-        return entries ?? []
+        // Reapply the time window even when the file did not change (including clock rollback).
+        return Array((entries ?? []).filter { $0.date >= cutoff && $0.date <= now }.suffix(10_000))
     }
     @discardableResult public func append(snapshot: BatterySnapshot, at date: Date = .now) throws -> [BatteryHistoryEntry] {
         try withFileLock("history.lock") {
-            entries = nil
+            // The file revision is checked under the interprocess lock. An unchanged history
+            // needs no JSON decoding; another app instance's writes are still merged.
             return try appendLocked(snapshot: snapshot, at: date)
         }
     }
@@ -65,7 +67,30 @@ public actor BatteryHistoryStore {
         try JSONEncoder().encode(values).write(to: file, options: .atomic)
         try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
         entries = values
+        historyRevision = try HistoryRevision.read(file)
         return values
+    }
+
+    private struct HistoryRevision: Equatable {
+        let device: dev_t
+        let inode: ino_t
+        let size: off_t
+        let modifiedSeconds: Int
+        let modifiedNanoseconds: Int
+        let changedSeconds: Int
+        let changedNanoseconds: Int
+
+        static func read(_ file: URL) throws -> Self? {
+            var info = stat()
+            guard lstat(file.path, &info) == 0 else {
+                if errno == ENOENT { return nil }
+                throw HistoryError()
+            }
+            guard info.st_mode & S_IFMT == S_IFREG, info.st_size <= 2_500_000 else { throw HistoryError() }
+            return .init(device: info.st_dev, inode: info.st_ino, size: info.st_size,
+                         modifiedSeconds: info.st_mtimespec.tv_sec, modifiedNanoseconds: info.st_mtimespec.tv_nsec,
+                         changedSeconds: info.st_ctimespec.tv_sec, changedNanoseconds: info.st_ctimespec.tv_nsec)
+        }
     }
     public func loadSchedules() throws -> [BatterySchedule] {
         let file = directory.appendingPathComponent("schedules.json")
