@@ -1,9 +1,11 @@
 # M1 Max : demande Apple et activation — développement du 22 novembre 2026
 
-État : modifications locales sur `codex/m1-max-battery-diagnostics`, après
-`63843da`. Non publiées, distinctes de MacCare 0.2.29 (31). MacBookPro18,4 reste
-un modèle en validation : cette correction ne démontre pas le maintien physique
-d’une limite, sa reprise après veille ou la restauration matérielle.
+État : **publié dans MacCare 0.2.30 (32) le 22 novembre 2026**, après la
+[PR #39](https://github.com/M0okz/maccare/pull/39). Le développement local décrit
+ci-dessous a été vérifié avant publication. MacBookPro18,4 reste un modèle en
+validation : cette correction ne démontre pas le maintien physique d’une limite,
+sa reprise après veille ou la restauration matérielle.
+[Preuves de livraison publique](release-integration-0.2.30.md).
 
 ## Problème et comportement
 
@@ -88,10 +90,10 @@ utilisée pour les essais.
 
 Les preuves locales sont les fichiers `build/m1-max-state-*-tests.log`,
 `build/m1-max-state-build.log`, `build/m1-max-state-package.log` et
-`build/m1-max-state-package-validation.json`. Le paquet n’a pas été lancé dans
+`build/m1-max-state-package-validation.json`. Le paquet Dev n’a pas été lancé dans
 l’interface graphique, installé ou publié. L’interface et VoiceOver restent à
 valider visuellement ; la compilation et les tests du modèle ne les remplacent pas.
-La dernière livraison publique de cette branche reste la 0.2.29 (31).
+Le paquet distribué 0.2.30 (32) est distinct de ce paquet Dev ; ses contrôles figurent dans le bilan de livraison.
 
 La synchronisation Outline est en attente après échec de l’accès prescrit :
 [note de reprise](outline-sync-pending-m1-max-battery.md).

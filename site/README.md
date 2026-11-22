@@ -79,3 +79,9 @@ prise en charge en validation du seul M1 Max MacBookPro18,4, correction du messa
 de priorité Apple et mise à jour de l'assistant si proposée. Les dix HTML sont
 identiques aux sources en HTTPS ; 216 liens/ancres internes sont vérifiés.
 Les introductions historiques et limites matérielles restent explicites.
+
+
+Les guides prennent **0.2.30** comme référence depuis le 22 novembre 2026 :
+état Apple actualisable avant activation et diagnostic de jauge en lecture seule.
+Les dix HTML sont déployés et relus en HTTPS, identiques aux sources ; 216 liens
+et ancres sont validés. Le M1 Max reste explicitement en validation matérielle.

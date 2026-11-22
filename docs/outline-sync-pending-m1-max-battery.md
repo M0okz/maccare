@@ -188,3 +188,16 @@ Accès prescrit retenté avec `homelab.py bw-exec --project <worktree> -- /usr/b
 Échec effectif : `Homelab environment failed (file, format, command or timeout);
 no values displayed`. Aucun accès Outline acquis, aucune page modifiée. Cette
 note reste nécessaire pour reprendre la synchronisation lorsque l’accès revient.
+
+
+## Publication 0.2.30 — 22 novembre 2026
+
+**Livré dans MacCare 0.2.30 (32)**, PR #39, tag sur `2642316`. Ce statut remplace
+le statut local/non livré de la section précédente. CI, notarisation, paquet
+public, signatures Sparkle et dix pages du site sont vérifiés. Voir
+[le bilan de livraison](release-integration-0.2.30.md) pour les preuves et limites.
+
+Nouvelle tentative de l’accès prescrit pendant la publication : `Bitwarden status
+failed; check login, configured secret and server access`. Aucune page Outline
+modifiée ; synchroniser batterie, développement, publication et dépannage lorsque
+l’accès revient. Ne pas présenter le M1 Max comme matériellement validé.

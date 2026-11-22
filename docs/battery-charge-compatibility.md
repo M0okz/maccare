@@ -3,7 +3,7 @@
 Mise à jour du 22 novembre 2026 : le premier correctif est
 [livré dans la 0.2.29](release-integration-0.2.29.md). Le nouveau
 [statut Apple actualisable et diagnostic de jauge](m1-max-apple-charge-state.md)
-est en développement, non publié. Les relevés ci-dessous conservent leur contexte
+est livré dans la [0.2.30](release-integration-0.2.30.md). Les relevés ci-dessous conservent leur contexte
 historique ; ils ne prouvent pas une validation matérielle du M1 Max.
 
 État du 15 novembre 2026 : **développement local non livré**, branche
