@@ -69,11 +69,16 @@ struct TrayFans: Sendable {
         let mode = withUnsafeBytes(of: snapshot.mode) { Array($0) }
         let modeValid = withUnsafeBytes(of: snapshot.modeValid) { Array($0) }
         let controllable = withUnsafeBytes(of: snapshot.controllable) { Array($0) }
-        return .init(fans: (0..<Int(snapshot.count)).map {
-            .init(rpm: valid[$0] != 0 ? current[$0] : nil, maximum: maxValid[$0] != 0 ? maximum[$0] : nil,
-                  target: controllable[$0] == 1 ? targets[$0] : nil,
-                  manual: modeValid[$0] == 1 ? mode[$0] == 1 : nil, controllable: controllable[$0] == 1)
-        })
+        let fans = (0..<Int(snapshot.count)).map { index -> Fan in
+            let rpm: Double? = valid[index] != 0 ? current[index] : nil
+            let maximumRPM: Double? = maxValid[index] != 0 ? maximum[index] : nil
+            let supportsControl = controllable[index] == 1
+            let target: Double? = supportsControl ? targets[index] : nil
+            let manual: Bool? = modeValid[index] == 1 ? mode[index] == 1 : nil
+            return Fan(rpm: rpm, maximum: maximumRPM, target: target, manual: manual,
+                       controllable: supportsControl)
+        }
+        return TrayFans(fans: fans)
     }
     var supportsControl: Bool { !fans.isEmpty && fans.allSatisfy(\.controllable) }
     var automatic: Bool { !fans.isEmpty && fans.allSatisfy { $0.manual == false } }
