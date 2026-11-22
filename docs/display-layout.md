@@ -1,6 +1,29 @@
 # Échelle automatique de la fenêtre principale
 
-Disponible dans [MacCare 0.2.13 (build 15)](https://github.com/M0okz/maccare/releases/tag/v0.2.13). Les notes Dev ci-dessous restent un historique daté avec leurs limites de validation.
+## Limites de redimensionnement de la fenêtre principale
+
+En développement dans MacCare Dev sur `codex/stability-footprint`, après `a30874e`.
+Les dimensions minimales du contenu sont de 1 120 × 700 points à l’échelle standard.
+À 85 %, elles passent à 952 × 595 points. Chaque dimension est plafonnée à l’espace
+utilisable de l’écran, après déduction de la barre de titre pour la hauteur.
+Ces limites réservent de la place aux cartes et au tableau des processus en bas de l’accueil.
+Elles s’appliquent à la fenêtre principale dans toutes ses sections.
+
+Sur l’accueil, le tableau des processus utilise les coordonnées natives de la fenêtre.
+Les cartes, le titre et le volet latéral sont mesurés à leur échelle d’affichage.
+Cette disposition évite une boucle de calcul des contraintes des cellules AppKit à 85 %.
+Les autres pages appliquent leur échelle à l’intérieur de chaque destination.
+
+Le 23 novembre 2026, les essais dans la DEV ont exercé séparément la largeur et la
+hauteur, puis les deux axes sur Accueil et Applications. Le cadre complet s’arrête
+à 1 120 × 728 points à 100 % et à 952 × 623 points dans l’aperçu compact à 85 %.
+L’agrandissement à 1 360 × 820 points et le retour à l’accueil ont aussi été vérifiés.
+Les six tests de disposition et les cinq tests de navigation passent. Le cas d’un écran
+plus petit que le minimum est couvert par les tests de géométrie.
+
+## Historique de la version 0.2.13
+
+L’adaptation initiale de l’échelle a été publiée dans [MacCare 0.2.13 (build 15)](https://github.com/M0okz/maccare/releases/tag/v0.2.13).
 
 Développement du 8 novembre 2026 sur `codex/compact-interface`, après 0.2.12.
 Dev **0.2.13 (build local 3)**, non publiée. La demande porte sur une échelle
@@ -26,7 +49,7 @@ Ces seuils sont une politique de présentation, pas une détection de modèle ma
 
 `DisplayAdjustedContent` ajuste d’abord les dimensions proposées au contenu,
 puis son rendu. Cela conserve la surface disponible et les replis des vues.
-La taille minimale logique existante, 940 × 620, est conservée après conversion.
+La version 0.2.13 conservait une taille minimale logique de 940 × 620 après conversion.
 L’état des modèles reste dans `AppState`, sans nouvelle analyse déclenchée par
 le changement de densité. Aucune animation de changement d’échelle n’est ajoutée.
 Les réglages, fenêtres de mesures et volet de barre des menus gardent leur
@@ -40,8 +63,8 @@ deux colonnes principales. Le format standard de départ reste 1 200 × 720.
 
 Une fenêtre restaurée trop grande est réduite et recentrée une seule fois lors
 du premier passage en présentation compacte, via la nouvelle clé locale
-`mainWindowCompactDisplayLayoutApplied`. Une fenêtre déjà plus petite n’est
-pas agrandie ni recentrée. Les fenêtres plein écran ou réduites sont exclues.
+`mainWindowCompactDisplayLayoutApplied`. Dans la version 0.2.13, une fenêtre
+déjà plus petite conservait sa taille et sa position. Les fenêtres plein écran ou réduites sont exclues.
 Les redimensionnements manuels suivants restent mémorisés par macOS.
 
 ## Revue selon Emil

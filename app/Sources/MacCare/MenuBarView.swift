@@ -16,7 +16,7 @@ struct MenuBarView: View {
     @AppStorage(TrayShortcuts.key) private var shortcuts = TrayShortcuts.defaults
     private var metrics: TrayMetrics { metricsStore.snapshot.compact.metrics }
     private var networkRates: TrayMetrics.WiFi? { metricsStore.snapshot.compactNetwork.wifi ?? metrics.wifi }
-    @StateObject private var batteryContext = TrayBatteryController()
+    @StateObject private var batteryContext = TrayBatteryController(accessoryHistory: .dashboard)
     @State private var showingHealth = false
     @State private var detail: TrayDetailSelection?
     @State private var disk = DiskSpace.current()
@@ -245,7 +245,7 @@ struct MenuBarView: View {
         .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: TrayAppearance.cardRadius))
         .overlay(RoundedRectangle(cornerRadius: TrayAppearance.cardRadius).strokeBorder(.white.opacity(0.09)))
         .accessibilityElement(children: .combine)
-        .help((metrics.fans?.description ?? "Lecture indisponible") + "\nGestion des ventilateurs par macOS. La valeur principale est la vitesse la plus élevée.")
+        .help((metrics.fans?.description ?? "Lecture indisponible") + "\n\(metrics.fans?.controlText ?? "Mode inconnu"). La valeur principale est la vitesse la plus élevée.")
     }
 
     private var wifiCard: some View {

@@ -60,9 +60,7 @@ struct ToolsOverviewView: View {
 
     private func tool(title: String, subtitle: String, action: String, module: Module) -> some View {
         Button {
-            app.module = module
-            if module == .aiClutter { app.aiClutter.scan() }
-            if module == .applicationPermissions { app.applicationPermissions.scan() }
+            app.openTool(module)
         } label: {
             VStack(alignment: .leading, spacing: 16) {
                 ModuleIcon(symbol: module.symbol, color: module.color, size: 48).accessibilityHidden(true)

@@ -144,6 +144,19 @@ enum HelperClient {
         return try JSONDecoder().decode(MaintenanceReport.self, from: Data(json.utf8))
     }
 
+    static func setFanPreset(_ preset: FanPreset) async throws {
+        let version = try await queryLoadedProtocolVersion()
+        guard version == HelperIdentity.protocolVersion else { throw HelperError.incompatible(version) }
+        try await sendFanPreset(preset)
+    }
+
+    fileprivate static func sendFanPreset(_ preset: FanPreset) async throws {
+        let error: String = try await call(timeout: 8) { helper, done in
+            helper.fan(preset: preset.rawValue, withReply: done)
+        }
+        if !error.isEmpty { throw HelperError.unavailable(error) }
+    }
+
     static func batteryHardwareDiagnostics() async throws -> String {
         let (version, _): (Int, String) = try await call(timeout: 8) { helper, done in helper.version { done(($0, $1)) } }
         guard version == HelperIdentity.protocolVersion else { throw HelperError.incompatible(version) }
@@ -191,6 +204,7 @@ protocol HelperServiceLifecycle {
     func loadedProtocolVersion() async throws -> Int
     func restorationReply(_ command: BatteryCommand, sessionID: UUID?) async throws -> String
     func restoreLegacyBattery() async throws
+    func restoreFans() async throws
     func unregister() async throws
     func register() throws
     func failedLaunchConfirmed() async -> Bool
@@ -225,7 +239,7 @@ final class HelperServiceUpdater {
         if version == HelperIdentity.protocolVersion { return .ready }
         try validateRestorableVersion(version)
         try Task.checkCancellation()
-        try await restoreBattery(version: version)
+        try await restoreHardware(version: version)
         if client.status == .requiresApproval { return .requiresApproval }
         let confirmedVersion = try await loadedProtocolVersion()
         guard confirmedVersion == version else {
@@ -287,7 +301,7 @@ final class HelperServiceUpdater {
         if client.status == .enabled {
             let version = try await loadedProtocolVersion()
             try validateRestorableVersion(version)
-            try await restoreBattery(version: version)
+            try await restoreHardware(version: version)
             guard try await loadedProtocolVersion() == version else {
                 throw HelperClient.HelperError.unavailable("l’assistant a changé pendant la préparation ; actualisez son état")
             }
@@ -309,7 +323,8 @@ final class HelperServiceUpdater {
         }
     }
 
-    private func restoreBattery(version: Int) async throws {
+    private func restoreHardware(version: Int) async throws {
+        if version >= 11 { try await client.restoreFans() }
         if version == 4 || version == 5 {
             try await client.restoreLegacyBattery()
         } else if version >= 6 {
@@ -353,6 +368,7 @@ private struct SystemHelperServiceLifecycle: HelperServiceLifecycle {
     func restorationReply(_ command: BatteryCommand, sessionID: UUID?) async throws -> String {
         try await HelperClient.restorationReply(command, sessionID: sessionID)
     }
+    func restoreFans() async throws { try await HelperClient.sendFanPreset(.automatic) }
     func restoreLegacyBattery() async throws { try await LegacyBatteryHelper.restoreBeforeUnregister() }
     func unregister() async throws { try await HelperClient.service.unregister() }
     func register() throws { try HelperClient.register() }

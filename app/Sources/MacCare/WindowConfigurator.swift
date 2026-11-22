@@ -38,7 +38,7 @@ struct WindowConfigurator: NSViewRepresentable {
             window.backgroundColor = NSColor(Color(hex: "#160C2E"))
             // Aligne aussi une fenêtre restaurée de l'ancienne version, une seule fois.
             // Les redimensionnements manuels suivants restent mémorisés par macOS.
-            let layout = window.screen.map { MainWindowDisplayObserver.layout(on: $0) } ?? .standard
+            let layout = MainWindowDisplayObserver.layout(for: window)
             if !UserDefaults.standard.bool(forKey: Self.sizeMigrationKey) {
                 window.setContentSize(layout.preferredWindowSize)
                 window.center()
@@ -48,7 +48,7 @@ struct WindowConfigurator: NSViewRepresentable {
                !window.styleMask.contains(.fullScreen), !window.isMiniaturized {
                 let current = window.contentView?.frame.size ?? window.frame.size
                 let reduced = layout.reducedRestoredSize(current)
-                if reduced.width < current.width || reduced.height < current.height {
+                if reduced != current {
                     window.setContentSize(reduced)
                     window.center()
                 }

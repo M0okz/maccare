@@ -163,6 +163,34 @@ relever l’énergie attribuée par macOS sans changer les actions de fermeture.
 La puissance vient des nanojoules ; le repli CPU est explicitement séparé et
 conserve la base de temps Mach. [Barème et limites](menu-bar-panel.md).
 
+## Action d’analyse sur l’accueil — aperçu DEV du 22 novembre 2026
+
+`HomeHealthCard` présente deux boutons. Le score ouvre `MacHealthDetails`
+et `HomeScanButton` rejoint le parcours de `SmartScanModel`. Le bouton réutilise
+`CircularOverviewActionStyle`, qui dessine le cercle et son halo au survol.
+Son diamètre s’adapte à la largeur de la carte. [Disposition et comportement](dashboard-cards.md).
+
+`HomeCardGrid` mesure chaque carte à sa largeur de colonne et utilise la hauteur
+maximale pour les deux rangées. `HomeProcessTable` remplit la hauteur disponible sous la grille et
+utilise le même relevé que la carte Batterie. `HomeCPUApplication` additionne la
+charge CPU des processus par application, puis retient les trois premières qui
+dépassent 40 % d’un cœur. L’alerte CPU rejoint ce tableau dans la fenêtre principale.
+
+### Ventilation depuis l’accueil — aperçu DEV du 22 novembre 2026
+
+Les lectures SMC en cache de cinq secondes fournissent aussi le mode, la cible et
+la capacité de commande par ventilateur. Le helper au protocole 11 accepte trois
+profils fermés. Le chemin direct exige des clés de mode et de cible inscriptibles
+et une cible flottante. Un modèle sans ce jeu de clés conserve la télémétrie.
+
+`FanService` sérialise les requêtes. Avant chaque prise de contrôle, il journalise
+l’index concerné dans `fan-recovery.bits`, dans le répertoire privé du helper.
+Après cinq minutes, une interruption de la surveillance, une température CPU
+atteignant 85 °C, une pression thermique sérieuse ou critique ou un ventilateur
+sans rotation après quinze secondes, il rend la gestion à macOS. Une restauration
+incomplète est réessayée. Le démarrage du helper reprend ce journal, et son
+retrait explicite restaure la ventilation avant de désenregistrer le service.
+
 ## Cartes de l’accueil — développement après 0.2.11
 
 `HomeCleaningCard` projette une répartition des seuls groupes sûrs. Le calcul pur

@@ -1,5 +1,12 @@
 # Volet compact et présence dans le Dock
 
+## Largeur du volet — aperçu DEV du 22 novembre 2026
+
+Le volet de la barre de menus mesure 396 points de large, contre 420 auparavant.
+Les deux colonnes se partagent cette largeur. La hauteur maximale reste de 590
+points. Sur un écran plus étroit, `TrayPanelLayout` ajuste la largeur disponible
+en gardant une marge de 8 points de chaque côté.
+
 ## Appareils jumelés — développement du 9 novembre 2026
 
 **Non livré.** La carte Batterie partage avec l'accueil une acquisition lente

@@ -1,10 +1,12 @@
 import SwiftUI
 
-struct HomeActivityCard: View {
+struct HomeActivityCard<Health: View, Battery: View>: View {
     @ObservedObject var store: TrayMetricsStore
     let storage: TrayStorageUsage?
+    let availableWidth: CGFloat
     let onStorage: () -> Void
-    @Environment(\.openWindow) private var openWindow
+    @ViewBuilder let health: () -> Health
+    @ViewBuilder let battery: () -> Battery
     @State private var memoryHovered = false
     @State private var cpuHovered = false
     @State private var networkHovered = false
@@ -15,109 +17,96 @@ struct HomeActivityCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Label { Text("Activité du Mac") } icon: {
-                Image(systemName: "waveform.path.ecg").foregroundStyle(Theme.accentInk).accessibilityHidden(true)
-            }.font(.headline).accessibilityAddTraits(.isHeader)
-            ViewThatFits(in: .horizontal) {
-                Grid(horizontalSpacing: 10, verticalSpacing: 10) {
-                    GridRow { cpu; gpu; memory }
-                    GridRow { disk; network; fans }
-                }.frame(minWidth: 540)
-                Grid(horizontalSpacing: 10, verticalSpacing: 10) {
-                    GridRow { cpu; gpu }
-                    GridRow { memory; disk }
-                    GridRow { network; fans }
-                }
-            }.frame(maxHeight: .infinity)
+        let wide = availableWidth >= 810
+        HomeCardGrid(width: availableWidth, wide: wide) {
+            health()
+            if wide {
+                cpu
+                gpu
+                memory
+                battery()
+                disk
+            } else {
+                battery()
+                cpu
+                gpu
+                memory
+                disk
+            }
+            network
+            fans
         }
-        .modifier(HomeStatusCardStyle(tint: Theme.accent, expandsVertically: true))
     }
 
     private var cpu: some View {
-        Button { openWindow(id: HomeActivityWindow.id(for: .cpu)) } label: {
-            HomeActivityTile {
-                HStack {
-                    metricLabel("Processeur", symbol: "cpu")
-                    Spacer(minLength: 4)
-                    badge(temperature(metrics.cpu?.temperature), color: Theme.accentInk)
-                        .accessibilityLabel("Température du processeur : \(temperature(metrics.cpu?.temperature))")
-                }
-                Text(metrics.cpu.map { "\(Int(($0.used * 100).rounded())) %" } ?? "—")
-                    .font(.title2.weight(.semibold)).monospacedDigit()
-                Spacer(minLength: 0)
-                TrayHistoryChart(points: store.snapshot.cpu.points, color: Theme.accentInk, filled: true)
-                    .frame(height: 24).modifier(HomeActivityGlow(active: cpuHovered, color: Theme.accentInk))
-                    .accessibilityHidden(true)
-                detail("Charge globale · \(ProcessInfo.processInfo.processorCount) cœurs")
+        HomeActivityTile {
+            metricHeader("CPU", symbol: "cpu") {
+                badge(temperature(metrics.cpu?.temperature), color: Theme.accentInk)
+                    .accessibilityLabel("Température du processeur : \(temperature(metrics.cpu?.temperature))")
             }
+        } value: {
+            reading(metrics.cpu.map { "\(Int(($0.used * 100).rounded()))" }, unit: "%")
+        } footer: {
+            TrayHistoryChart(points: store.snapshot.cpu.points, color: Theme.accentInk, filled: true)
+                .frame(height: 24).modifier(HomeActivityGlow(active: cpuHovered, color: Theme.accentInk))
+                .accessibilityHidden(true)
+            detail("\(ProcessInfo.processInfo.processorCount) cœurs")
         }
-        .buttonStyle(HomeActivityMetricButtonStyle()).onHover { cpuHovered = $0 }
+        .onHover { cpuHovered = $0 }
         .help("Charge globale et température maximale des capteurs CPU disponibles. Historique sur 10 minutes, partagé avec le volet.")
-        .accessibilityElement(children: .combine).accessibilityHint("Ouvrir l’historique CPU et les processus")
+        .accessibilityElement(children: .combine)
     }
 
     private var gpu: some View {
-        Button { openWindow(id: HomeActivityWindow.id(for: .gpu)) } label: {
-            HomeActivityTile {
-                HStack {
-                    metricLabel("GPU", symbol: "display")
-                    Spacer(minLength: 4)
-                    badge(temperature(metrics.gpu?.temperature), color: Theme.accentInk)
-                        .accessibilityLabel("Température du GPU : \(temperature(metrics.gpu?.temperature))")
-                }
-                Text(metrics.gpu?.fraction.map { "\(Int(($0 * 100).rounded())) %" } ?? "—")
-                    .font(.title2.weight(.semibold)).monospacedDigit()
-                Spacer(minLength: 0)
-                TrayHistoryChart(points: store.snapshot.gpu.points, color: Theme.accentInk, filled: true)
-                    .frame(height: 24).accessibilityHidden(true)
-                detail(gpuState)
+        HomeActivityTile {
+            metricHeader("GPU", symbol: "display") {
+                badge(temperature(metrics.gpu?.temperature), color: Theme.accentInk)
+                    .accessibilityLabel("Température du GPU : \(temperature(metrics.gpu?.temperature))")
             }
-            .accessibilityElement(children: .combine)
-            .help(metrics.gpu?.model ?? "Mesures du GPU indisponibles")
+        } value: {
+            reading(metrics.gpu?.fraction.map { "\(Int(($0 * 100).rounded()))" }, unit: "%")
+        } footer: {
+            TrayHistoryChart(points: store.snapshot.gpu.points, color: ModuleColor.startup, filled: true)
+                .frame(height: 24).accessibilityHidden(true)
+            detail(gpuState)
         }
-        .buttonStyle(HomeActivityMetricButtonStyle())
-        .accessibilityHint("Ouvrir l’historique GPU")
+        .accessibilityElement(children: .combine)
+        .help(metrics.gpu?.model ?? "Mesures du GPU indisponibles")
     }
 
     private var memory: some View {
-        Button { openWindow(id: HomeActivityWindow.id(for: .memory)) } label: {
-            HomeActivityTile {
-                HStack {
-                    metricLabel("Mémoire", symbol: "memorychip")
-                    Spacer(minLength: 4)
-                    badge(metrics.memory?.pressure?.title.replacingOccurrences(of: "Pression ", with: "") ?? "—",
-                          color: memoryPressureColor)
-                        .accessibilityLabel(metrics.memory?.pressure?.title ?? "Pression mémoire indisponible")
-                }
-                Text(metrics.memory.map { "\(Int(($0.fraction * 100).rounded())) %" } ?? "—")
-                    .font(.title2.weight(.semibold)).monospacedDigit()
-                    .accessibilityLabel("Utilisation mémoire estimée : \(metrics.memory.map { "\(Int(($0.fraction * 100).rounded())) %" } ?? "indisponible")")
-                Spacer(minLength: 0)
-                usageBar(metrics.memory?.fraction, color: ModuleColor.space)
-                    .modifier(HomeActivityGlow(active: memoryHovered, color: ModuleColor.space))
-                detail(metrics.memory.map { "\(humanSize($0.used)) sur \(humanSize($0.total))" } ?? "Mémoire indisponible")
+        HomeActivityTile {
+            metricHeader("Mémoire", symbol: "memorychip") {
+                badge(metrics.memory?.pressure?.title.replacingOccurrences(of: "Pression ", with: "") ?? "—",
+                      color: memoryPressureColor)
+                    .accessibilityLabel(metrics.memory?.pressure?.title ?? "Pression mémoire indisponible")
             }
+        } value: {
+            reading(metrics.memory.map { "\(Int(($0.fraction * 100).rounded()))" }, unit: "%")
+                .accessibilityLabel("Utilisation mémoire estimée : \(metrics.memory.map { "\(Int(($0.fraction * 100).rounded())) %" } ?? "indisponible")")
+        } footer: {
+            usageBar(metrics.memory?.fraction, color: ModuleColor.space)
+                .modifier(HomeActivityGlow(active: memoryHovered, color: ModuleColor.space))
+            detail(metrics.memory.map { "\(humanSize($0.used, fractionalAbove: 1_000_000_000)) sur \(humanSize($0.total, fractionalAbove: 1_000_000_000))" } ?? "Mémoire indisponible")
         }
-        .buttonStyle(HomeActivityMetricButtonStyle()).onHover { memoryHovered = $0 }
+        .onHover { memoryHovered = $0 }
         .help("Utilisation estimée et pression mesurée par macOS : deux indicateurs distincts.")
-        .accessibilityElement(children: .combine).accessibilityHint("Ouvrir la répartition mémoire et les processus")
+        .accessibilityElement(children: .combine)
     }
 
     private var disk: some View {
         Button(action: onStorage) {
             HomeActivityTile {
-                HStack {
-                    metricLabel("Stockage", symbol: "internaldrive")
-                    Spacer(minLength: 4)
-                    badge(storage.map { humanSize($0.total) } ?? "—")
+                metricHeader(availableWidth < 960 ? "Disque" : "Espace libre", symbol: "internaldrive") {
+                    badge(storage.map { humanSize($0.total, fractionalAbove: 1_000_000_000) } ?? "—")
                 }
-                Text(storage.map { humanSize($0.available) } ?? "—")
-                    .font(.title2.weight(.semibold)).monospacedDigit()
-                    .accessibilityLabel(storage.map { "Stockage libre : \(humanSize($0.available))" } ?? "Stockage indisponible")
-                Spacer(minLength: 0)
+            } value: {
+                let size = storage.map { humanSizeParts($0.available, fractionalAbove: 1_000_000_000) }
+                reading(size?.value, unit: size?.unit ?? "")
+                    .accessibilityLabel(storage.map { "Stockage libre : \(humanSize($0.available, fractionalAbove: 1_000_000_000))" } ?? "Stockage indisponible")
+            } footer: {
                 usageBar(storage?.fraction, color: ModuleColor.space)
-                detail(storage.map { "\(humanSize($0.used)) utilisés · \($0.percent) %" } ?? "Mesure indisponible")
+                detail(storage.map { "\(humanSize($0.used, fractionalAbove: 1_000_000_000)) utilisés · \($0.percent) %" } ?? "Mesure indisponible")
             }
         }
         .buttonStyle(HomeActivityMetricButtonStyle())
@@ -126,64 +115,82 @@ struct HomeActivityCard: View {
     }
 
     private var network: some View {
-        Button { openWindow(id: HomeActivityWindow.id(for: .wifi)) } label: {
-            HomeActivityTile {
-                HStack {
-                    metricLabel("Réseau", symbol: wifi?.symbol ?? "network")
-                    Spacer(minLength: 4)
-                    badge(wifi?.connected == true ? wifi?.kind.rawValue ?? "—" : "Hors ligne")
-                }
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text("↓ \(NetworkRateFormat.value(wifi?.received))").font(.title2.weight(.semibold))
-                    Text("Mb/s").font(AppFont.caption).foregroundStyle(Theme.muted)
-                }.monospacedDigit().lineLimit(1).minimumScaleFactor(0.8)
-                    .transaction { $0.animation = nil }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Réception : \(NetworkRateFormat.megabits(wifi?.received))")
-                detail(wifi?.connected == true ? wifi?.address ?? "IP indisponible" : "Aucune liaison active")
-                    .truncationMode(.middle)
-                Spacer(minLength: 0)
-                TrayHistoryChart(points: wifi?.connected == true ? networkPoints : [], color: ModuleColor.space,
-                                 maximum: store.snapshot.networkScale.maximum, filled: true)
-                    .frame(height: 24).modifier(HomeActivityGlow(active: networkHovered, color: ModuleColor.space))
-                    .accessibilityHidden(true)
-                detail("↑ \(NetworkRateFormat.megabits(wifi?.sent))")
-                    .accessibilityLabel("Envoi : \(NetworkRateFormat.megabits(wifi?.sent))")
+        HomeActivityTile {
+            metricHeader("Réseau", symbol: wifi?.symbol ?? "network") {
+                badge(wifi?.connected == true ? wifi?.kind.rawValue ?? "—" : "Hors ligne")
+            }
+        } value: {
+            reading(wifi?.received.map { NetworkRateFormat.value($0) }, unit: "Mb/s", symbol: "arrow.down")
+                .transaction { $0.animation = nil }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Réception : \(NetworkRateFormat.megabits(wifi?.received))")
+        } footer: {
+            TrayHistoryChart(points: wifi?.connected == true ? networkPoints : [], color: ModuleColor.space,
+                             maximum: store.snapshot.networkScale.maximum, filled: true)
+                .frame(height: 24).modifier(HomeActivityGlow(active: networkHovered, color: ModuleColor.space))
+                .accessibilityHidden(true)
+            let upload = detail("↑ \(NetworkRateFormat.megabits(wifi?.sent))")
+                .accessibilityLabel("Envoi : \(NetworkRateFormat.megabits(wifi?.sent))")
+            let address = detail(wifi?.connected == true ? wifi?.address ?? "IP indisponible" : "Aucune liaison active")
+                .truncationMode(.middle)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 4) { upload.fixedSize(); Spacer(minLength: 0); address.fixedSize() }
+                VStack(alignment: .leading, spacing: 2) { upload; address }
             }
         }
-        .buttonStyle(HomeActivityMetricButtonStyle()).onHover { networkHovered = $0 }
+        .onHover { networkHovered = $0 }
         .help("\(wifi?.address ?? "IP indisponible") · \(wifi?.interface ?? "")\nTrafic de l’interface principale, réseau local compris. Ce débit n’est pas un test de vitesse Internet.")
-        .accessibilityElement(children: .combine).accessibilityHint("Ouvrir les détails du réseau")
+        .accessibilityElement(children: .combine)
     }
 
     private var fans: some View {
         HomeActivityTile {
-            HStack {
-                metricLabel("Ventilateurs", symbol: "fanblades")
-                Spacer(minLength: 4)
+            metricHeader("Ventilateurs", symbol: "fanblades") {
                 badge(metrics.fans?.load.map { "\(Int(($0 * 100).rounded())) %" } ?? "—")
                     .accessibilityLabel(metrics.fans?.load.map { "Vitesse relative maximale : \(Int(($0 * 100).rounded())) %" } ?? "Vitesse relative indisponible")
             }
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(metrics.fans?.fastest.map { "\(Int($0.rounded()))" } ?? "—").font(.title2.weight(.semibold))
-                Text("tr/min").font(AppFont.caption).foregroundStyle(Theme.muted)
-            }.monospacedDigit()
-            Spacer(minLength: 0)
-            usageBar(metrics.fans?.load, color: Theme.accentInk)
-            detail(metrics.fans?.state ?? "Vitesse indisponible")
+        } value: {
+            reading(metrics.fans?.fastest.map { String(Int($0.rounded())) }, unit: "tr/min")
+        } footer: {
+            HomeFanControls(fans: metrics.fans)
         }
-        .accessibilityElement(children: .combine)
-        .help((metrics.fans?.description ?? "Lecture indisponible") + "\nGestion par macOS, en lecture seule. Le pourcentage est le rapport vitesse mesurée / vitesse maximale.")
+        .help(metrics.fans?.description ?? "Lecture des ventilateurs indisponible")
     }
 
-    private func metricLabel(_ title: String, symbol: String) -> some View {
-        Label { Text(title) } icon: { Image(systemName: symbol).accessibilityHidden(true) }
-            .font(AppFont.caption.weight(.medium)).foregroundStyle(Theme.muted).lineLimit(1)
-            .fixedSize(horizontal: true, vertical: false)
+    private func reading(_ value: String?, unit: String, symbol: String? = nil) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 3) {
+            if let symbol { Image(systemName: symbol).font(.caption2).accessibilityHidden(true) }
+            Text(value ?? "—").font(.system(size: 32, weight: .semibold))
+            if value != nil { Text(unit).font(AppFont.caption.weight(.semibold)).foregroundStyle(Theme.muted) }
+        }
+        .monospacedDigit().lineLimit(1).minimumScaleFactor(0.8)
+        .accessibilityElement(children: .combine)
     }
+
+    private func metricHeader<Badge: View>(_ title: String, symbol: String, @ViewBuilder badge: () -> Badge) -> some View {
+        let label = HStack(spacing: 4) {
+            Image(systemName: symbol).font(.system(size: 10)).accessibilityHidden(true)
+            Text(title).textCase(.uppercase).font(AppFont.body.weight(.semibold))
+        }
+        .foregroundStyle(Theme.muted)
+        .fixedSize()
+
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: 4) {
+                label
+                Spacer(minLength: 0)
+                badge().fixedSize()
+            }
+            VStack(alignment: .leading, spacing: 3) {
+                label
+                badge()
+            }
+        }
+    }
+
     private func badge(_ title: String, color: Color = Theme.muted) -> some View {
-        Text(title).font(AppFont.caption).foregroundStyle(color).monospacedDigit()
-            .lineLimit(1).padding(.horizontal, 6).padding(.vertical, 3)
+        Text(title).font(.system(size: 12, weight: .medium)).foregroundStyle(color).monospacedDigit()
+            .lineLimit(1).padding(.horizontal, 5).padding(.vertical, 2)
             .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 5))
     }
     private func detail(_ text: String) -> some View {
@@ -194,7 +201,7 @@ struct HomeActivityCard: View {
             Capsule().fill(.white.opacity(0.08)).overlay(alignment: .leading) {
                 Capsule().fill(color).frame(width: geometry.size.width * min(1, max(0, fraction ?? 0)))
             }
-        }.frame(height: 6).frame(height: 24).accessibilityHidden(true)
+        }.frame(height: 5).frame(height: 20).accessibilityHidden(true)
     }
     private func temperature(_ value: Double?) -> String { value.map { "\(Int($0.rounded())) °C" } ?? "— °C" }
     private var gpuState: String {
@@ -208,6 +215,41 @@ struct HomeActivityCard: View {
         case .warning: return Theme.warn
         case .critical: return Theme.danger
         case nil: return Theme.muted
+        }
+    }
+}
+
+/// The tallest card sets the height of every row at the actual column widths.
+private struct HomeCardGrid: Layout {
+    let width: CGFloat
+    let wide: Bool
+    private let gap: CGFloat = 12
+    private var columns: Int { wide ? 4 : 2 }
+    private var leadingWidth: CGFloat { wide ? max(244, width * 0.295) : (width - gap) / 2 }
+    private var metricWidth: CGFloat { (width - leadingWidth - CGFloat(columns - 1) * gap) / CGFloat(columns - 1) }
+
+    private func columnWidth(_ index: Int) -> CGFloat {
+        index.isMultiple(of: columns) ? leadingWidth : metricWidth
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let height = subviews.enumerated().map { index, card in
+            card.sizeThatFits(.init(width: columnWidth(index), height: nil)).height
+        }.max() ?? 0
+        let rows = (subviews.count + columns - 1) / columns
+        return CGSize(width: width, height: height * CGFloat(rows) + gap * CGFloat(max(0, rows - 1)))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let rows = (subviews.count + columns - 1) / columns
+        guard rows > 0 else { return }
+        let height = (bounds.height - gap * CGFloat(rows - 1)) / CGFloat(rows)
+        for (index, card) in subviews.enumerated() {
+            let column = index % columns
+            let x = column == 0 ? 0 : leadingWidth + gap + CGFloat(column - 1) * (metricWidth + gap)
+            let y = CGFloat(index / columns) * (height + gap)
+            card.place(at: CGPoint(x: bounds.minX + x, y: bounds.minY + y), anchor: .topLeading,
+                       proposal: .init(width: columnWidth(index), height: height))
         }
     }
 }

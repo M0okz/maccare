@@ -13,7 +13,6 @@ struct TraySceneLifecycle: View {
                 DockVisibilityController.activateForWindow()
                 action(id: MacCareApp.mainWindowID)
             }
-            app.openCPUActivity = { action(id: HomeActivityWindow.id(for: .cpu)) }
             app.openMainWindow = open
             AppDelegate.openMainWindow = open
             delegate.configureTray(app: app, openMainWindow: open)

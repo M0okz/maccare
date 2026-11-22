@@ -1,105 +1,94 @@
 import SwiftUI
 
-/// Accueil orienté actions : tous les chiffres proviennent des modèles et du disque réel.
+/// Tableau de bord alimenté par les mesures du Mac.
 struct DashboardView: View {
+    @Environment(\.dashboardScale) private var scale
     @ObservedObject var app: AppState
-    @ObservedObject private var smart: SmartScanModel
     @ObservedObject private var permissions: PermissionsModel
     @State private var disk = DiskSpace.current()
-    @State private var showingActivity = false
+    @State private var showingPermissions = false
 
     init(app: AppState) {
         self.app = app
-        self.smart = app.smartScan
         self.permissions = app.permissions
     }
 
     var body: some View {
         GeometryReader { geometry in
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                header
-                if permissions.showBanner { permissionBanner }
-                hero
-                HomeStatusCards(app: app, availableWidth: min(geometry.size.width, 1200) - 56,
-                                storage: disk.flatMap { TrayStorageUsage(free: $0.free, total: $0.total) })
-                VStack(alignment: .leading, spacing: 14) {
-                    HStack {
-                        Text("À vous de choisir").font(.title3.weight(.semibold)).accessibilityAddTraits(.isHeader)
-                        Spacer()
-                        Button("Tous les outils") { app.select(.tools) }.buttonStyle(LinkStyle())
-                    }
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 14),
-                                             count: geometry.size.width >= 800 ? 4 : 2), spacing: 14) {
-                        cleaningShortcut; applicationsShortcut; filesShortcut; performanceShortcut
-                    }
+            let availableWidth = geometry.size.width / scale
+            let inset: CGFloat = availableWidth < 1050 ? 20 : 26
+            let width = min(availableWidth - 2 * inset, 1440)
+            VStack(alignment: .leading, spacing: 14 * scale) {
+                HStack {
+                    Text("État du Mac").font(AppFont.pageTitle).accessibilityAddTraits(.isHeader)
+                    Spacer()
+                    QuickToolsButton(app: app)
                 }
-                recentActivity
-            }.padding(28).frame(maxWidth: 1200).frame(maxWidth: .infinity)
-        }
+                .dashboardBlockScale(scale)
+                HomeStatusCards(app: app, availableWidth: width,
+                                storage: disk.flatMap { TrayStorageUsage(free: $0.free, total: $0.total) })
+            }
+            .frame(width: width * scale)
+            .padding(.top, 20 * scale).padding(.bottom, 10 * scale)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .overlay(alignment: .bottomTrailing) {
+                if showsPermissionReminder {
+                    permissionReminder
+                        .dashboardBlockScale(scale)
+                        .padding(.trailing, (max(inset, (availableWidth - width) / 2) + 46) * scale)
+                        .padding(.bottom, 14 * scale)
+                }
+            }
         }
         .onAppear {
             disk = DiskSpace.current()
             if !app.uninstall.leftoversScanned { app.uninstall.scanLeftovers() }
             app.updates.quickCheck()
         }
-        .sheet(isPresented: $showingActivity) { ActivityView(app: app) }
     }
 
-    private var header: some View {
-        VStack(spacing: 6) {
-            Text("Bienvenue dans MacCare").font(.title.weight(.semibold)).accessibilityAddTraits(.isHeader)
-            Text("Un peu d’entretien. Plus de place pour l’essentiel.").font(AppFont.body).foregroundStyle(Theme.muted)
-        }.multilineTextAlignment(.center).frame(maxWidth: .infinity)
+    private var showsPermissionReminder: Bool {
+        permissions.hasChecked && permissions.showBanner
     }
 
-    private var hero: some View {
-        HomeCleaningCard(model: smart) {
-            if smart.stage != .scanning && smart.stage != .cleaning { smart.prepareForNewScan() }
-            app.select(.cleaning)
-            app.cleaningToolsVisible = false
+    private var permissionTitle: String {
+        if permissions.fullDisk == .unknown || permissions.automation == .unknown {
+            return "Vérifier les autorisations"
         }
+        return permissions.missing.count == 1 ? "1 autorisation manquante" : "\(permissions.missing.count) autorisations manquantes"
     }
 
-    private var cleaningShortcut: some View {
-        HomeActionCard(title: "Nettoyage", detail: "Caches, journaux et fichiers temporaires.", actionTitle: "Ouvrir le nettoyage", symbol: "sparkles", color: ModuleColor.clean) { app.select(.cleaning) }
-    }
-    private var applicationsShortcut: some View {
-        HomeActionCard(title: "Applications", detail: "Apps installées, résidus et mises à jour.", actionTitle: "Ouvrir les applications", symbol: "app.badge", color: ModuleColor.uninstall) { app.select(.applications) }
-    }
-    private var filesShortcut: some View {
-        HomeActionCard(title: "Mes fichiers", detail: "Gros fichiers et doublons à examiner.", actionTitle: "Ouvrir Mes fichiers", symbol: "folder", color: FilesStyle.accent) { app.select(.files) }
-    }
-    private var performanceShortcut: some View {
-        HomeActionCard(title: "Performances", detail: "Entretien et éléments de démarrage.", actionTitle: "Ouvrir les performances", symbol: "bolt", color: ModuleColor.startup) { app.select(.performance) }
-    }
-
-    private var recentActivity: some View {
-        HStack(spacing: Space.m) {
-            Text("Activité récente").font(AppFont.emphasis)
-            if let entry = app.activity.first {
-                Image(systemName: "clock").foregroundStyle(Theme.accentInk).accessibilityHidden(true)
-                Text(entry.title).font(AppFont.body).foregroundStyle(Theme.muted).lineLimit(1)
-            } else {
-                Text("Aucune opération terminée dans cette session.").font(AppFont.body).foregroundStyle(Theme.muted)
+    private var permissionReminder: some View {
+        Button { showingPermissions.toggle() } label: {
+            Label(permissionTitle, systemImage: "lock.fill")
+                .font(AppFont.caption.weight(.semibold))
+                .padding(.horizontal, 14).padding(.vertical, 9)
+                .background(Theme.window, in: Capsule())
+                .overlay(Capsule().strokeBorder(Theme.warn.opacity(0.48)))
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain).foregroundStyle(Theme.warn)
+        .shadow(color: .black.opacity(0.24), radius: 5, y: 2)
+        .accessibilityHint("Afficher les accès à configurer")
+        .popover(isPresented: $showingPermissions, arrowEdge: .top) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Autorisations").font(.headline).accessibilityAddTraits(.isHeader)
+                    Spacer()
+                    PopoverCloseButton { showingPermissions = false }
+                }
+                ForEach(permissions.missing, id: \.self) { access in
+                    Label(access, systemImage: "lock").font(AppFont.body)
+                }
+                Text("Certaines analyses sont incomplètes.").font(AppFont.secondary)
+                    .foregroundStyle(.secondary)
+                Button("Configurer") {
+                    showingPermissions = false
+                    permissions.reopen()
+                }
             }
-            Spacer(minLength: Space.s)
-            Button("Voir l’activité") { showingActivity = true }.buttonStyle(LinkStyle())
+            .padding(16)
+            .onExitCommand { showingPermissions = false }
         }
-        .padding(Space.l).card()
-    }
-
-    private var permissionBanner: some View {
-        HStack(spacing: Space.m) {
-            Image(systemName: "lock.fill").foregroundStyle(Theme.warn).accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Autorisations manquantes").font(AppFont.emphasis)
-                Text("\(permissions.missing.joined(separator: " · ")) : certaines analyses sont incomplètes.")
-                    .font(AppFont.body).foregroundStyle(Theme.muted)
-            }
-            Spacer()
-            Button("Configurer") { permissions.reopen() }.buttonStyle(LinkStyle())
-        }
-        .padding(Space.l).card()
     }
 }

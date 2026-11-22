@@ -41,7 +41,7 @@ struct CPUAlertView: View {
                     Button("Pendant une semaine") { snooze(7) }
                 }.fixedSize()
                 Spacer(minLength: 12)
-                Button("Voir l’activité", action: openActivity).buttonStyle(StorageAlertPrimaryButtonStyle())
+                Button("Voir les processus", action: openActivity).buttonStyle(StorageAlertPrimaryButtonStyle())
             }.padding(20)
         }
         .frame(width: 340)

@@ -15,11 +15,14 @@ int32_t maccare_cpu_temperature(double *celsius);
 int32_t maccare_gpu_temperature(double *celsius);
 typedef struct {
     uint32_t count;
-    double current[8], maximum[8];
+    double current[8], maximum[8], target[8];
     uint8_t currentValid[8], maximumValid[8];
+    uint8_t mode[8], modeValid[8], controllable[8];
 } MCFanSnapshot;
-// Vitesses uniquement : aucune commande de ventilateur ni changement de mode.
+// Instantané en lecture seule. Les commandes contrôlent les bornes sur le matériel.
 int32_t maccare_fans_read(MCFanSnapshot *snapshot);
+int32_t maccare_fan_boost(uint32_t index, uint8_t maximum, uint8_t replacingBoost, uint8_t *attempted);
+int32_t maccare_fan_auto(uint32_t index);
 int32_t maccare_firmware_limit_read(uint8_t *active, uint32_t *upper, uint32_t *lower);
 int32_t maccare_firmware_limit_set(uint32_t upper, uint32_t lower, uint8_t active);
 int32_t maccare_firmware_limit_restore(uint32_t upper, uint32_t lower);

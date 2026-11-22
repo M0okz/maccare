@@ -1,51 +1,55 @@
 import SwiftUI
 
 struct HomeStatusCards: View {
+    @Environment(\.dashboardScale) private var scale
     let app: AppState
     let availableWidth: CGFloat
     let storage: TrayStorageUsage?
+    @StateObject private var batteryContext = TrayBatteryController(accessoryHistory: .dashboard)
+    @StateObject private var processes = TrayProcessController()
+    @State private var windowVisible = false
     @State private var consumerID = UUID()
     var body: some View {
-        VStack(spacing: 0) {
-            if availableWidth >= 1040 {
-                HStack(alignment: .top, spacing: 18) {
-                    VStack(spacing: 18) { battery; health }
-                        .frame(width: (availableWidth - 18) * 0.36)
-                    activity.frame(maxWidth: .infinity)
-                }
-                .fixedSize(horizontal: false, vertical: true)
+        VStack(spacing: 16 * scale) {
+            if availableWidth < 810 {
+                ScrollView { metrics.dashboardBlockScale(scale) }
             } else {
-                VStack(spacing: 18) {
-                    ViewThatFits(in: .horizontal) {
-                        HStack(alignment: .top, spacing: 18) {
-                            battery.frame(minWidth: 350)
-                            health.frame(minWidth: 300)
-                        }.fixedSize(horizontal: false, vertical: true)
-                        VStack(spacing: 18) { battery; health }
-                    }
-                    activity
-                }
+                metrics.dashboardBlockScale(scale)
+            }
+            HomeProcessTable(controller: processes)
+        }
+        .background(WindowVisibilityObserver { windowVisible = $0 })
+        .task(id: windowVisible) {
+            if windowVisible {
+                await batteryContext.monitor(includeAccessories: { app.battery.snapshot?.present == true },
+                                             onProcesses: processes.record)
             }
         }
         .modifier(TrayMetricsConsumerModifier(store: app.trayMetrics, consumer: .dashboard(consumerID)))
     }
-    private var battery: some View { HomeBatteryCard(model: app.battery) { app.select(.battery) } }
-    private var health: some View {
-        HomeHealthCard(store: app.trayMetrics, battery: app.battery, storage: storage)
-    }
-    private var activity: some View {
-        HomeActivityCard(store: app.trayMetrics, storage: storage) { app.select(.space) }
+
+    private var metrics: some View {
+        HomeActivityCard(store: app.trayMetrics, storage: storage, availableWidth: availableWidth,
+                         onStorage: { app.select(.space) }) {
+            HomeHealthCard(store: app.trayMetrics, battery: app.battery, storage: storage) {
+                HomeScanButton(model: app.smartScan, diameter: availableWidth >= 1050 ? 90 : 70) {
+                    app.cleaningToolsVisible = false
+                    app.select(.cleaning)
+                }
+            }
+        } battery: {
+            HomeBatteryCard(model: app.battery, context: batteryContext) { app.select(.battery) }
+        }
     }
 }
 
 struct HomeStatusCardStyle: ViewModifier {
     let tint: Color
-    var expandsVertically = false
     func body(content: Content) -> some View {
-        content.padding(18).frame(maxWidth: .infinity,
-                                  maxHeight: expandsVertically ? .infinity : nil, alignment: .topLeading)
-            .background(LinearGradient(colors: [tint.opacity(0.13), Color(hex: "#2B2045")],
-                                       startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 22))
-            .overlay(RoundedRectangle(cornerRadius: 22).strokeBorder(.white.opacity(0.1)))
+        content.padding(16).frame(maxWidth: .infinity,
+                                  minHeight: 150, maxHeight: .infinity, alignment: .topLeading)
+            .background(LinearGradient(colors: [tint.opacity(0.115), .white.opacity(0.045)],
+                                       startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: Radius.card))
+            .overlay(RoundedRectangle(cornerRadius: Radius.card).strokeBorder(.white.opacity(0.1)))
     }
 }

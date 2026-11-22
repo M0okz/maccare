@@ -18,6 +18,7 @@ import Foundation
     func maintenance(task: String, withReply reply: @escaping (String) -> Void)
     /// Commande batterie fermée ; validation des seuils et contrôle matériel dans l’assistant.
     func battery(command: String, sessionID: String, configurationJSON: String, withReply reply: @escaping (String) -> Void)
+    func fan(preset: String, withReply reply: @escaping (String) -> Void)
     func journal(since: Date, withReply reply: @escaping (String) -> Void)
 }
 
@@ -25,9 +26,8 @@ import Foundation
 public enum HelperIdentity {
     public static let machService = "org.maccare.helper"
     public static let daemonPlist = "org.maccare.helper.plist"
-    // Version 10 adds a charge backend and recovery journal that version 9
-    // clients cannot decode or restore. Replacement remains an explicit action.
-    public static let protocolVersion = 10
+    // Version 11 adds bounded fan presets and restoration before service removal.
+    public static let protocolVersion = 11
 
     /// Équipe de signature (Developer ID et certificats de développement de la même équipe).
     public static let teamID = "5FAF9ZA2X9"
@@ -39,4 +39,17 @@ public enum HelperIdentity {
     /// Exigence imposée par l'app à l'assistant (on ne parle qu'au vrai assistant).
     public static let helperRequirement =
         "anchor apple generic and identifier \"org.maccare.helper\" and certificate leaf[subject.OU] = \"\(teamID)\""
+}
+
+
+public enum FanPreset: String, CaseIterable, Sendable {
+    case automatic, cool, maximum
+
+    public var title: String {
+        switch self {
+        case .automatic: return "Auto"
+        case .cool: return "Frais"
+        case .maximum: return "Max"
+        }
+    }
 }

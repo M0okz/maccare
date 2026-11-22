@@ -23,9 +23,15 @@ enum PowerAssertion {
 /// Un groupe de résultats du Smart Scan : une catégorie et ses éléments.
 struct ScanGroup: Identifiable {
     let category: CleaningCategory
-    var items: [ScanItem]
+    let items: [ScanItem]
+    let size: UInt64
     var id: String { category.id }
-    var size: UInt64 { items.reduce(0) { $0 + $1.size_bytes } }
+
+    init(category: CleaningCategory, items: [ScanItem]) {
+        self.category = category
+        self.items = items
+        size = items.reduce(0) { $0 + $1.size_bytes }
+    }
 }
 
 /// Smart Scan : un seul geste lance tous les scans sûrs, agrège les résultats par catégorie,
@@ -109,8 +115,8 @@ final class SmartScanModel: ObservableObject {
 
     var directDeleteEnabled: Bool { directDelete }
     var allItems: [ScanItem] { groups.flatMap(\.items) }
-    var foundSize: UInt64 { allItems.reduce(0) { $0 + $1.size_bytes } }
-    var foundCount: Int { allItems.count }
+    var foundSize: UInt64 { groups.reduce(0) { $0 + $1.size } }
+    var foundCount: Int { groups.reduce(0) { $0 + $1.items.count } }
     /// Espace récupérable sans risque (règles « sûr » uniquement) : base du tableau de bord.
     var safeSize: UInt64 { groups.filter { $0.category.risk == .safe }.reduce(0) { $0 + $1.size } }
     var safeCount: Int { groups.filter { $0.category.risk == .safe }.reduce(0) { $0 + $1.items.count } }
@@ -144,7 +150,8 @@ final class SmartScanModel: ObservableObject {
     }
 
     func scan(keepReport: Bool = false) {
-        guard !categories.isEmpty else {
+        let cats = categories
+        guard !cats.isEmpty else {
             task?.cancel()
             generation += 1
             stage = .idle
@@ -178,7 +185,6 @@ final class SmartScanModel: ObservableObject {
         liveBytes = 0
         if !keepReport { lastReport = nil }
 
-        let cats = categories
         let threshold = logThresholdKB
         let exclusions = userExclusions
 
@@ -186,8 +192,8 @@ final class SmartScanModel: ObservableObject {
         Task { @MainActor in
             while self.generation == gen && self.stage == .scanning {
                 let p = task.progress
-                self.liveEntries = p.entries
-                self.liveBytes = p.bytes
+                if self.liveEntries != p.entries { self.liveEntries = p.entries }
+                if self.liveBytes != p.bytes { self.liveBytes = p.bytes }
                 self.advanceProgress(entries: p.entries, of: cats)
                 try? await Task.sleep(nanoseconds: 100_000_000)
             }
@@ -277,7 +283,8 @@ final class SmartScanModel: ObservableObject {
             let inCategory = Double(entries - min(entries, categoryStartEntries))
             estimate = byCategory + 0.9 * (1 - exp(-inCategory / 30_000)) / n
         }
-        progress = max(progress, min(0.99, max(byCategory, estimate)))
+        let next = min(0.99, max(byCategory, estimate))
+        if next > progress { progress = next }
     }
 
     /// Interrompt le scan en cours. Le moteur rend la main en moins de 50 ms ; les catégories déjà
@@ -298,8 +305,8 @@ final class SmartScanModel: ObservableObject {
     }
 
     func toggleGroup(_ group: ScanGroup) {
-        let ids = group.items.map(\.id)
-        if isGroupFullySelected(group) { ids.forEach { selection.remove($0) } }
+        let ids = group.items.lazy.map(\.id)
+        if isGroupFullySelected(group) { selection.subtract(ids) }
         else { selection.formUnion(ids) }
     }
 

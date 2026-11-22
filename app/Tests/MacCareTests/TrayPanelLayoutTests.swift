@@ -7,7 +7,7 @@ final class TrayPanelLayoutTests: XCTestCase {
         let panel = TrayPanelLayout.frame(in: screen)
         XCTAssertEqual(screen.maxX - panel.maxX, 8)
         XCTAssertEqual(screen.maxY - panel.maxY, 8)
-        XCTAssertEqual(panel.width, 420)
+        XCTAssertEqual(panel.width, 396)
         XCTAssertTrue(screen.contains(panel))
     }
     func testSecondaryScreenWithNegativeOrigin() {

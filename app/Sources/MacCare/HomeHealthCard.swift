@@ -1,62 +1,63 @@
 import SwiftUI
 
-struct HomeHealthCard: View {
+struct HomeHealthCard<ScanAction: View>: View {
     @ObservedObject var store: TrayMetricsStore
     @ObservedObject var battery: BatteryModel
     let storage: TrayStorageUsage?
+    @ViewBuilder let scanAction: () -> ScanAction
     @State private var showingDetails = false
-    @ScaledMetric(relativeTo: .title) private var statusSize = 24
-    @ScaledMetric(relativeTo: .body) private var iconColumn: CGFloat = 18
-    private let machineName = Host.current().localizedName ?? MacHardwarePresentation.current.title
     private var presentation: HomeHealthPresentation {
         .init(storage: storage, pressure: store.snapshot.display.memory?.pressure,
               thermal: ProcessInfo.processInfo.thermalState, battery: battery.snapshot)
     }
 
     var body: some View {
-        Button { showingDetails = true } label: {
-            Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 10) {
-                GridRow(alignment: .firstTextBaseline) {
-                    Image(systemName: "waveform.path.ecg").font(.headline)
-                        .foregroundStyle(Theme.accentInk).frame(width: iconColumn).accessibilityHidden(true)
-                    Text("Santé du Mac").font(.headline).accessibilityAddTraits(.isHeader)
-                }
-                GridRow {
-                    Color.clear.frame(width: iconColumn, height: 0).accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(presentation.title).font(.system(size: statusSize, weight: .semibold)).foregroundStyle(statusColor)
-                        Text(presentation.detail).font(AppFont.secondary).foregroundStyle(Theme.muted)
-                            .lineLimit(1).help(presentation.detail)
+        HealthCardLayout {
+            Button { showingDetails = true } label: {
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(spacing: 5) {
+                        Label("Santé du Mac", systemImage: "waveform.path.ecg")
+                            .font(AppFont.secondary.weight(.semibold)).foregroundStyle(Theme.ok)
+                        Image(systemName: "info.circle").font(.caption).foregroundStyle(Theme.muted)
+                            .accessibilityHidden(true)
                     }
-                }
-                GridRow(alignment: .top) {
-                    Image(systemName: machineSymbol).font(.title3).foregroundStyle(Theme.muted)
-                        .frame(width: iconColumn).accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(machineName).font(AppFont.emphasis).lineLimit(1).help(machineName)
-                        TimelineView(.periodic(from: .now, by: 60)) { context in
-                            Text(specs(now: context.date))
-                                .font(AppFont.caption).foregroundStyle(Theme.muted).monospacedDigit()
-                                .lineLimit(1).minimumScaleFactor(0.85)
-                                .help("\(MacSystemSpecs.ram) · \(MacSystemSpecs.systemVersion) · \(MacSystemSpecs.uptime(now: context.date))")
-                                .accessibilityLabel("\(MacSystemSpecs.ram), \(MacSystemSpecs.systemVersion), \(MacSystemSpecs.uptime(now: context.date))")
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .firstTextBaseline, spacing: 7) {
+                            score
+                            status.fixedSize()
                         }
+                        VStack(alignment: .leading, spacing: 2) { score; status }
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .combine)
+            .accessibilityHint("Afficher les critères de santé du Mac")
+            .help("Voir les mesures et le calcul de la santé du Mac.")
+            .popover(isPresented: $showingDetails, arrowEdge: .trailing) {
+                MacHealthDetails(assessment: presentation.assessment)
+            }
+            Text(presentation.detail).font(AppFont.secondary).foregroundStyle(Theme.muted)
+                .lineLimit(1).minimumScaleFactor(0.85)
+            TimelineView(.periodic(from: .now, by: 60)) { context in
+                Text(MacSystemSpecs.uptime(now: context.date))
+                    .font(AppFont.secondary).foregroundStyle(Theme.muted).monospacedDigit()
+            }
+            scanAction()
         }
-        .buttonStyle(HomeStatusCardButtonStyle(tint: Theme.accent))
-        .accessibilityElement(children: .combine)
-        .accessibilityHint("Afficher les critères de santé du Mac")
-        .help("Voir les mesures et le calcul de la santé du Mac.")
-        .popover(isPresented: $showingDetails, arrowEdge: .trailing) {
-            MacHealthDetails(assessment: presentation.assessment)
-        }
+        .modifier(HomeStatusCardStyle(tint: Theme.ok))
     }
 
-    private func specs(now: Date) -> String {
-        let uptime = MacSystemSpecs.bootDate.map { MacSystemSpecs.duration(now.timeIntervalSince($0)) } ?? "—"
-        return "\(MacSystemSpecs.ram) · \(MacSystemSpecs.systemVersion) · ↑ \(uptime)"
+    private var score: some View {
+        Text(presentation.assessment.percent.map(String.init) ?? "—")
+            .font(.system(size: 34, weight: .semibold)).monospacedDigit().fixedSize()
+            .accessibilityLabel(presentation.assessment.percent.map { "Indice de santé, \($0) sur 100" } ?? "Indice en attente")
+    }
+
+    private var status: some View {
+        Text(presentation.title).font(AppFont.secondary.weight(.semibold)).foregroundStyle(statusColor)
     }
 
     private var statusColor: Color {
@@ -67,11 +68,45 @@ struct HomeHealthCard: View {
         case .reading, .partial: return Theme.muted
         }
     }
+}
 
-    private var machineSymbol: String {
-        switch MacHardwarePresentation.current.family {
-        case .pro13, .proNotched, .airClassic, .airNotched, .laptop: return "laptopcomputer"
-        default: return "desktopcomputer"
-        }
+/// The action aligns to the whole card. A long summary can use the space below it.
+private struct HealthCardLayout: Layout {
+    private let gap: CGFloat = 6
+
+    private func measurements(width: CGFloat, subviews: Subviews) -> (leading: CGFloat, summaryBelow: Bool, sizes: [CGSize]) {
+        let action = subviews[3].sizeThatFits(.unspecified)
+        let leading = max(0, width - action.width - 8)
+        let summaryBelow = subviews[1].sizeThatFits(.unspecified).width > leading
+        let sizes = [
+            subviews[0].sizeThatFits(.init(width: leading, height: nil)),
+            subviews[1].sizeThatFits(.init(width: summaryBelow ? width : leading, height: nil)),
+            subviews[2].sizeThatFits(.init(width: width, height: nil)),
+            action
+        ]
+        return (leading, summaryBelow, sizes)
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let idealWidth = subviews[0].sizeThatFits(.unspecified).width + 8 + subviews[3].sizeThatFits(.unspecified).width
+        let width = proposal.width.flatMap { $0.isFinite ? $0 : nil } ?? idealWidth
+        let (_, below, sizes) = measurements(width: width, subviews: subviews)
+        let footer = sizes[1].height + gap + sizes[2].height
+        let textHeight = sizes[0].height + gap + footer
+        let actionHeight = sizes[3].height + (below ? 2 * (gap + footer) : 0)
+        let height = proposal.height.flatMap { $0.isFinite ? $0 : nil } ?? 0
+        return CGSize(width: width, height: max(textHeight, actionHeight, height))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let (leading, below, sizes) = measurements(width: bounds.width, subviews: subviews)
+        let action = sizes[3]
+        let summaryY = max(bounds.minY + sizes[0].height + gap, below ? bounds.midY + action.height / 2 + gap : bounds.minY)
+        subviews[0].place(at: bounds.origin, anchor: .topLeading, proposal: .init(width: leading, height: nil))
+        subviews[1].place(at: .init(x: bounds.minX, y: summaryY), anchor: .topLeading,
+                          proposal: .init(width: below ? bounds.width : leading, height: nil))
+        subviews[2].place(at: .init(x: bounds.minX, y: bounds.maxY), anchor: .bottomLeading,
+                          proposal: .init(width: bounds.width, height: nil))
+        subviews[3].place(at: .init(x: bounds.maxX, y: bounds.midY), anchor: .trailing, proposal: .unspecified)
     }
 }

@@ -1,5 +1,67 @@
 # Accueil : bilan, batterie et santé
 
+## Accueil et processus — aperçu DEV du 22 novembre 2026
+
+La proposition locale sur `codex/stability-footprint`, après `a30874e`, ouvre
+l’accueil sur huit cartes de mesures. La santé du Mac et la batterie ont une
+colonne plus large. La grille mesure le contenu à la largeur de chaque
+colonne et utilise la hauteur de la carte la plus haute pour les deux rangées.
+Les bords de chaque colonne s’alignent sur toute la grille. Les cartes CPU, GPU, mémoire et réseau sont
+consultables directement sur l’accueil. Les six cartes de mesures affichent leur titre en majuscules
+de 15 points, leurs unités et légendes en 13 points et leurs badges en 12 points.
+Le texte de santé est en 14 points.
+
+Dans la carte Batterie, les cycles figurent près du titre, la santé à droite et
+la puissance nominale du chargeur près du niveau de charge. Jusqu’à trois
+anneaux présentent les accessoires. MacCare mémorise localement les trois
+derniers anneaux à partir des relevés de l’accueil et du volet. Après vingt
+secondes sans niveau récent, l’anneau grisé garde le dernier pourcentage connu.
+Un nouveau relevé le recolore, même si la charge a baissé ou reste identique.
+Après une relance, les anneaux mémorisés sont gris jusqu’au premier relevé.
+Les appareils qui transmettent un niveau ont la priorité sur les emplacements
+mémorisés. Le bas de la carte indique
+l’état d’alimentation et le processus le plus énergivore avec sa puissance
+estimée, ou sa charge CPU lorsque la mesure d’énergie manque. Dans une colonne
+étroite, le nom dispose de sa propre ligne si nécessaire. Le débit d’envoi et
+l’adresse réseau peuvent également se placer sur deux lignes.
+
+Le tableau juste en dessous affiche les processus accessibles, leur empreinte
+mémoire, leur charge CPU, leur puissance moyenne estimée et leur PID. Le tri
+initial privilégie la mémoire. Le tableau s’étire jusqu’au bas de la fenêtre et
+défile indépendamment. Dans l’en-tête, jusqu’à trois applications sont classées
+par charge CPU cumulée de leurs processus, au-dessus de 40 % d’un cœur. Une
+recherche ou un tri de lignes conserve ce classement. Les tailles en base
+décimale sont arrondies à l’entier jusqu’à 1 Go inclus. Les en-têtes utilisent le fond violet de la carte.
+Un clic sur un en-tête change le tri et la
+recherche accepte un nom ou un PID. Le menu d’une ligne permet de copier le
+PID, de révéler l’exécutable dans le Finder ou de demander la fermeture d’un
+processus autorisé après confirmation. Un tiret indique une mesure indisponible.
+Le tableau et la carte Batterie partagent le relevé de processus pendant que
+l’accueil est visible. Après l’amorçage, il est renouvelé environ toutes les
+quinze secondes.
+
+« Accès rapide » ouvre la liste des outils. Une bulle au bas de la fenêtre
+donne accès au détail des autorisations restant à configurer.
+
+Sous le titre « Santé du Mac », la première ligne présente le score et son état,
+la deuxième résume la santé du Mac et la troisième indique la durée depuis le
+démarrage. Cliquer sur le score explique le calcul. Le bouton rond violet
+« Analyser », centré en hauteur sur le bord droit, s’éclaire au survol et ouvre la préparation
+du nettoyage avec le profil choisi. Pendant une analyse ou un nettoyage, il
+affiche « Suivre » et ramène à l’opération en cours. Le bilan détaillé reste
+consultable dans Nettoyage. Cette disposition attend la validation de Gregory
+sur la DEV.
+
+Les six tuiles de mesures utilisent des pictogrammes de 10 points et des unités
+plus petites que les valeurs. Le chiffre est centré verticalement entre le titre
+en haut et la courbe, la jauge ou les commandes en bas. La carte Ventilateurs affiche les commandes
+Auto, Frais et Max si les capteurs exposent les modes compatibles. Frais
+demande au moins 65 % de la vitesse maximale de chaque ventilateur. À la
+première activation, il respecte une vitesse macOS déjà supérieure. Passer de
+Max à Frais recalcule la cible. Max demande le maximum de chaque ventilateur. Les deux profils durent cinq minutes. Auto rend immédiatement à macOS
+les ventilateurs pris en charge par MacCare. La mesure reste accessible sans
+assistant. Le changement de profil exige l’assistant système au protocole 11.
+
 ## Appareils jumelés — développement du 9 novembre 2026
 
 **Non livré.** Lecture bornée des iPhone/iPad déjà approuvés et essai du registre

@@ -42,6 +42,9 @@ struct TrayFans: Sendable {
     struct Fan: Sendable {
         let rpm: Double?
         let maximum: Double?
+        var target: Double? = nil
+        var manual: Bool? = nil
+        var controllable = false
         var load: Double? {
             guard let rpm, let maximum, maximum > 0 else { return nil }
             return min(1, max(0, rpm / maximum))
@@ -53,7 +56,7 @@ struct TrayFans: Sendable {
     var state: String {
         if fans.isEmpty { return "Aucun ventilateur" }
         guard fans.allSatisfy({ $0.rpm != nil }) else { return "Lecture partielle" }
-        return fastest == 0 ? "À l’arrêt · macOS" : "Actifs · macOS"
+        return fastest == 0 ? "À l’arrêt" : "En rotation"
     }
     static func current() -> TrayFans? {
         var snapshot = MCFanSnapshot()
@@ -62,10 +65,35 @@ struct TrayFans: Sendable {
         let maximum = withUnsafeBytes(of: snapshot.maximum) { Array($0.bindMemory(to: Double.self)) }
         let valid = withUnsafeBytes(of: snapshot.currentValid) { Array($0) }
         let maxValid = withUnsafeBytes(of: snapshot.maximumValid) { Array($0) }
-        return .init(fans: (0..<Int(snapshot.count)).map {
-            .init(rpm: valid[$0] != 0 ? current[$0] : nil, maximum: maxValid[$0] != 0 ? maximum[$0] : nil)
-        })
+        let targets = withUnsafeBytes(of: snapshot.target) { Array($0.bindMemory(to: Double.self)) }
+        let mode = withUnsafeBytes(of: snapshot.mode) { Array($0) }
+        let modeValid = withUnsafeBytes(of: snapshot.modeValid) { Array($0) }
+        let controllable = withUnsafeBytes(of: snapshot.controllable) { Array($0) }
+        let fans = (0..<Int(snapshot.count)).map { index -> Fan in
+            let rpm: Double? = valid[index] != 0 ? current[index] : nil
+            let maximumRPM: Double? = maxValid[index] != 0 ? maximum[index] : nil
+            let supportsControl = controllable[index] == 1
+            let target: Double? = supportsControl ? targets[index] : nil
+            let manual: Bool? = modeValid[index] == 1 ? mode[index] == 1 : nil
+            return Fan(rpm: rpm, maximum: maximumRPM, target: target, manual: manual,
+                       controllable: supportsControl)
+        }
+        return TrayFans(fans: fans)
     }
+    var supportsControl: Bool { !fans.isEmpty && fans.allSatisfy(\.controllable) }
+    var automatic: Bool { !fans.isEmpty && fans.allSatisfy { $0.manual == false } }
+    var atMaximum: Bool {
+        !fans.isEmpty && fans.allSatisfy {
+            guard $0.manual == true, let target = $0.target, let maximum = $0.maximum else { return false }
+            return abs(target - maximum) < 1
+        }
+    }
+    var controlText: String {
+        if automatic { return "Géré par macOS" }
+        if fans.contains(where: { $0.manual == true }) { return "Commande manuelle" }
+        return state
+    }
+
     var description: String {
         fans.enumerated().map { index, fan in
             "Ventilateur \(index + 1) : \(fan.rpm.map { "\(Int($0.rounded())) tr/min" } ?? "indisponible")"

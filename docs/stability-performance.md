@@ -9,6 +9,74 @@ depuis 0.2.26. [Preuves de livraison et limites](release-integration-0.2.28.md).
 Les états « non livré » et 0.2.26 conservés plus bas décrivent la campagne Dev
 antérieure à cette publication.
 
+## Mesure de la copie installée 0.2.28 — 15 novembre 2026
+
+**Vérification en usage réel, sans modification du logiciel.** Le processus observé
+est celui de `/Applications/MacCare.app`, version **0.2.28 (30)**, signé Developer
+ID et notarialisé. Son chemin et celui du helper sont résolus depuis leurs PID ;
+l'ancienne prévisualisation Dev encore présente dans la session est exclue.
+La machine reste le MacBookPro17,1, M1, 8 Go, macOS 27.0.1. L'application était
+déjà ouverte depuis plus de vingt minutes ; aucun redémarrage n'est utilisé pour
+réduire artificiellement son empreinte. Les autres applications restent actives,
+sans compilation ni suite de tests pendant les intervalles.
+
+| Scénario installé | Durée | CPU moyen (% d'un cœur) | Pic CPU échantillonné | Empreinte physique moyenne / pic (Mio) |
+| --- | ---: | ---: | ---: | ---: |
+| Repos, fenêtre fermée, avant navigation | 90 s | 0,129 | 4,7 % | 56,69 / 56,77 |
+| Accueil visible | 60 s | 2,726 | 16,7 % | 65,65 / 66,16 |
+| Analyse Nettoyage Recommandé, répétition 1 | 6,069 s | 55,84 | 323,5 % | 66,61 / 66,75 |
+| Analyse Nettoyage Recommandé, répétition 2 | 5,906 s | 59,02 | 266,4 % | 66,69 / 67,06 |
+| Repos, fenêtre fermée, résultats conservés | 90 s | 0,162 | 14,0 % | 67,64 / 67,69 |
+
+**100 % CPU correspond à un cœur logique**, sur les huit disponibles ; les pics
+d'analyse utilisent brièvement plusieurs cœurs. Le temps CPU consommé par les
+deux analyses est de 3,389 et 3,486 secondes. Les trois analyses lancées se
+terminent avec un bilan de 22,72 Go à examiner, sans suppression. La première
+préchauffe les caches : son horodatage de départ n'a pas été conservé après
+troncature de la sortie d'observation ; ses échantillons bruts restent présents,
+mais elle est exclue des moyennes d'analyse bornées. Les deux répétitions sont
+donc des mesures à chaud, pas un benchmark de première analyse après démarrage.
+L'accès complet au disque reste absent : les chemins protégés ne sont pas tous
+couverts. La durée inclut le déclenchement par l'interface jusqu'à la date de
+fin enregistrée par `SmartScanModel`, sans prétendre mesurer sa latence d'affichage.
+
+Le retour au repos est confirmé sur 90 secondes. L'empreinte y varie de 67,52 à
+67,69 Mio, avec 67,61 Mio au début et 67,66 Mio à la fin. Elle reste environ 11 Mio
+au-dessus du repos initial après affichage du tableau de bord et conservation des
+résultats. Cette courte observation ne démontre ni une fuite ni son absence sur
+une longue session. Aucun gain global de mémoire n'est établi.
+
+Le **helper privilégié est mesuré séparément** : 0,256 % CPU moyen et 14,57 Mio
+de RSS moyen après les analyses (pic 14,63 Mio), soit environ **0,42 % CPU pour
+app et helper ensemble** dans cet intervalle. À l'accueil : 0,250 % CPU et
+14,46 Mio de RSS moyen pour le helper. Son empreinte physique native n'est pas
+accessible sans privilèges (`EPERM`, puis `sudo -n` exige un mot de passe) ;
+le relevé utilise donc `ps`, sans élévation. RSS et empreinte physique ne sont pas
+additionnés comme s'il s'agissait de la même métrique. Le premier repos n'est pas
+entièrement couvert par la collecte helper. Les démons macOS et éventuels outils
+éphémères ne sont pas intégrés à ces totaux.
+
+**Comparaison avec la campagne Dev précédente :** les 0,129–0,162 % au repos
+installé sont cohérents avec les 0,149 % optimisés et inférieurs aux 0,447 %
+observés avant correction. L'accueil installé à 2,726 % reste proche des 2,723 %
+avant et 2,773 % après. Cela confirme le faible coût CPU au repos en usage réel,
+sans transformer cette comparaison de sessions et signatures différentes en
+pourcentage garanti. Il n'existe pas de mesure d'analyse avant correction
+comparable : aucun gain de vitesse ou de CPU pendant l'analyse n'est revendiqué.
+L'énergie, l'autonomie et la fluidité en images par seconde ne sont pas mesurées.
+
+Méthode : `proc_pid_rusage(RUSAGE_INFO_V4)` toutes les 250 ms, conversion du temps
+CPU par la base Mach, empreinte physique incluant la compression et contrôle de
+l'identité de démarrage du PID. Les compteurs cumulatifs sont interpolés aux
+bornes des phases ; les pics sont des pics échantillonnés et peuvent manquer des
+pointes plus courtes. Le helper est relevé par `ps` toutes les secondes (temps CPU
+à 0,01 s près). Preuves locales conservées sous
+`build/footprint-installed-0.2.28/` : `samples.jsonl`, `helper-ps.jsonl`,
+`phases.json`, `summary.json` et identification des processus. Les collecteurs
+temporaires sont arrêtés et supprimés. L'application reste ouverte sur À propos
+en 0.2.28 ; aucun réglage, autorisation ou fichier utilisateur n'est modifié,
+hormis les résultats et dates d'analyse normalement enregistrés par l'app.
+
 ## Périmètre et état
 
 Campagne demandée : vérifier les parcours courants, corriger les régressions
@@ -177,3 +245,40 @@ inchangée ; SHA-256 du binaire avant/après :
 Les fixtures volumineuses, le paquet de comparaison et les copies documentaires
 temporaires sont supprimés après validation. Les journaux, mesures JSON et le
 paquet optimisé sont conservés comme preuves et livrable de développement.
+
+## Accueil et nettoyage en DEV le 22 novembre 2026
+
+Dans le tableau Processus, la recherche par nom ou PID filtre le dernier relevé
+déjà trié. Un nouveau relevé ou un changement de colonne actualise le tri.
+Smart Scan calcule la taille de chaque groupe à sa création, publie une seule
+sélection quand on décoche le groupe et évite de republier une progression
+identique. Dans le nettoyage ciblé, changer de catégorie ou relancer un scan
+annule le relevé précédent. Seul le scan actif peut publier son résultat ou son
+erreur. Le tri des fichiers se fait sur le thread de travail.
+
+État local sur `codex/stability-footprint`, base `a30874e`. Paquet de validation
+`build/home-preview/MacCare.app`, UUID arm64
+`9600A0D6-191B-3371-A5EF-5D261161AA5C`, signature Apple Development vérifiée.
+
+| Mesure du processus MacCare Dev | Avant | Après |
+| --- | ---: | ---: |
+| CPU moyen à l’accueil, fenêtre visible sur 32 s, en % d’un cœur | 3,46 % | 2,32 % |
+| Pic d’empreinte physique pendant cette fenêtre | 86,88 Mio | 63,45 Mio |
+| Analyse depuis le bouton jusqu’au bilan, médiane de trois essais | 3,08 s | 3,18 s |
+| Temps CPU de l’app pendant ces analyses, médiane | 0,67 s | 0,59 s |
+| Publications de sélection pour décocher 2 000 éléments, test du modèle | 2 000 | 1 |
+
+L’accueil a été mesuré avec `app/Diagnostics/footprint.c`. Les analyses ont
+parcouru les fichiers accessibles sur le Mac depuis l’interface, sans suppression.
+La durée inclut la détection du bilan par l’accessibilité macOS. Les caches,
+l’ancienneté des deux processus et l’activité des autres apps varient. Le second
+paquet inclut aussi un ajustement des titres des cartes. Ces fenêtres courtes
+ne permettent pas d’attribuer l’écart global de CPU ou de mémoire à la seule
+correction, ni de conclure à une accélération du scan.
+
+Dans la fenêtre DEV, la recherche « MacCare » est passée de 401 à deux lignes.
+Effacer la recherche a rétabli le tableau complet. Les colonnes PID puis Mémoire
+ont répondu au changement de tri. Deux tests de régression reproduisaient
+la publication de 2 000 sélections et l’affichage d’un résultat de l’ancienne
+catégorie. Ils passent après correction. Suites Swift complètes avec 389 tests
+XCTest recensés, dont sept ignorés, et 277 tests Swift Testing réussis.
