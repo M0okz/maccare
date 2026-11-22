@@ -86,6 +86,20 @@ final class BatteryModel: ObservableObject {
     var nativeControl: Bool { protection?.capabilities?.backend == .nativeLimit }
     var nativePolicyControl: Bool { protection?.capabilities?.backend == .nativePolicy }
     var usesAppleChargeControl: Bool { nativeControl || nativePolicyControl }
+    var appleActivationBlock: BatteryCompatibilityDiagnostics.FullChargeOverride? {
+        guard !active, usesAppleChargeControl, let state = protection?.appleFullChargeOverride,
+              state != .inactive else { return nil }
+        return state
+    }
+    var appleActivationExplanation: String? {
+        switch appleActivationBlock {
+        case .active:
+            return "macOS maintient une demande de recharge à 100 % pour le suivi de la batterie. Ce signal peut rester actif hors secteur ; il ne prouve pas qu’un étalonnage est en cours. Actualisez l’état pour vérifier si macOS autorise à nouveau l’activation."
+        case .unknown:
+            return "L’assistant ne peut pas vérifier la demande de recharge Apple. Actualisez l’état avant de réessayer l’activation."
+        default: return nil
+        }
+    }
     var helperUpdateRequired: Bool {
         helperEnabled && loadedHelperProtocol.map { $0 != HelperIdentity.protocolVersion } == true
     }
@@ -100,6 +114,8 @@ final class BatteryModel: ObservableObject {
         if !helperEnabled { return "Suivi de la batterie · assistant requis pour la protection" }
         if helperUpdateRequired { return "Assistant système à mettre à jour" }
         if restoring && !restorationDeferred { return "Restauration de la charge en cours" }
+        if appleActivationBlock == .active { return "Activation suspendue par macOS" }
+        if appleActivationBlock == .unknown { return "État de charge Apple à vérifier" }
         return protection?.message ?? "Vérification du contrôle de charge…"
     }
 
@@ -144,6 +160,10 @@ final class BatteryModel: ObservableObject {
 
     func perform(_ command: BatteryCommand, fromAutomation: Bool = false) async {
         guard !busy, !isTerminating, !automating || fromAutomation else { return }
+        if command == .enable, let explanation = appleActivationExplanation {
+            error = explanation
+            return
+        }
         busy = true; error = nil; commandInFlight = true
         defer {
             commandInFlight = false

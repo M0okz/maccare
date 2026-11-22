@@ -5,7 +5,11 @@ import Darwin
 /// Read-only compatibility evidence. Contains a model identifier, never a serial
 /// number, recovery identity, preference write, or probe by activation.
 public struct BatteryCompatibilityDiagnostics: Codable, Sendable {
-    public enum FullChargeOverride: String, Codable, Sendable { case inactive, active, unknown }
+    public enum FullChargeOverride: String, Codable, Sendable {
+        case inactive, active, unknown
+        public static func read() -> Self { from(maccare_powerui_calibration_override()) }
+        static func from(_ value: Int32) -> Self { value < 0 ? .unknown : (value == 0 ? .inactive : .active) }
+    }
     public let model: String?
     public let effectiveUID: UInt32
     public let macOS: String
@@ -43,7 +47,7 @@ public struct BatteryCompatibilityDiagnostics: Codable, Sendable {
                      nativePolicyTrialBuild: AppleSiliconChargeHardware.m1MaxTrialBuild,
                      nativePolicyActivationAllowed: AppleSiliconChargeHardware.nativePolicyAllowed(model: model),
                      nativePolicyInterfaceAvailable: policyAvailable,
-                     fullChargeOverride: override < 0 ? .unknown : (override == 0 ? .inactive : .active),
+                     fullChargeOverride: .from(override),
                      capabilities: capabilities, controlReadError: controlError, nativeState: reading?.state,
                      nativeSupportedLimits: reading?.supportedLimits, nativeReadError: readError)
     }

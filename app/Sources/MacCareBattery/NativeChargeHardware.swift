@@ -59,7 +59,7 @@ public struct NativeChargeError: LocalizedError {
     public let code: Int32
     public var errorDescription: String? {
         switch code {
-        case -8: return "macOS donne la priorité à une recharge complète de la batterie. La protection attend la fin de cette opération."
+        case -8: return "macOS maintient une demande de recharge complète, y compris hors secteur. La protection ne peut pas être activée tant que ce signal reste actif."
         case -9: return "MacCare ne parvient pas à vérifier si macOS impose une recharge complète. Réessayez dans quelques instants."
         case -4: return "Cette limite de charge n’est pas proposée par macOS sur ce Mac."
         case -2, -3: return "La méthode native de charge a changé ou son état est inconnu. Aucun autre mécanisme ne sera essayé pendant la restauration."

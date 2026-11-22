@@ -171,3 +171,20 @@ runners sans batterie. Références, tests et preuves publiques :
 Les dix pages du site public sont livrées et relues. Outline reste non synchronisé :
 l'accès prescrit par le helper Homelab échoue avec `Bitwarden status failed`.
 Aucun accès retiré n'a été contourné.
+
+## État Apple actualisable — 22 novembre 2026, non livré
+
+Correctif local après `63843da`, branche `codex/m1-max-battery-diagnostics` :
+statut Apple distinct de l’éligibilité du modèle, blocage expliqué avant
+activation, actualisation en lecture seule, retrait limité d’une ancienne erreur
+Apple après relecture favorable, diagnostic de jauge sans identifiants.
+Voir [le détail et les limites](m1-max-apple-charge-state.md).
+
+Pages à actualiser : batterie, développement et dépannage. Préserver le statut
+historique livré de la 0.2.29. Ne pas annoncer une validation matérielle M1 Max
+ni un déblocage durable ; le résultat de la réinitialisation proposée est inconnu.
+
+Accès prescrit retenté avec `homelab.py bw-exec --project <worktree> -- /usr/bin/true`.
+Échec effectif : `Homelab environment failed (file, format, command or timeout);
+no values displayed`. Aucun accès Outline acquis, aucune page modifiée. Cette
+note reste nécessaire pour reprendre la synchronisation lorsque l’accès revient.

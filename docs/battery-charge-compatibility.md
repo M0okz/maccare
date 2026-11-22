@@ -1,5 +1,11 @@
 # Recharge complète prioritaire et compatibilité M1 Max
 
+Mise à jour du 22 novembre 2026 : le premier correctif est
+[livré dans la 0.2.29](release-integration-0.2.29.md). Le nouveau
+[statut Apple actualisable et diagnostic de jauge](m1-max-apple-charge-state.md)
+est en développement, non publié. Les relevés ci-dessous conservent leur contexte
+historique ; ils ne prouvent pas une validation matérielle du M1 Max.
+
 État du 15 novembre 2026 : **développement local non livré**, branche
 `codex/m1-max-battery-diagnostics`. Aucun remplacement de la copie quotidienne,
 aucune activation de charge ni extension de la liste des modèles validés.
