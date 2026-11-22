@@ -4,11 +4,13 @@ import SwiftUI
 struct MainWindowDisplayObserver: NSViewRepresentable {
     let onChange: (MainWindowLayout) -> Void
 
-    static func layout(on screen: NSScreen) -> MainWindowLayout {
+    static func layout(for window: NSWindow) -> MainWindowLayout {
+        guard let screen = window.screen else { return .standard }
+        let titleBar = max(0, window.frame.height - window.contentLayoutRect.height)
         if AppBuildIdentity.isDevelopment && ProcessInfo.processInfo.arguments.contains("--preview-compact-display") {
-            return MainWindowLayout(visibleScreenSize: CGSize(width: 1800, height: 1000))
+            return MainWindowLayout(visibleScreenSize: CGSize(width: 1800, height: 1000), titleBarHeight: titleBar)
         }
-        return MainWindowLayout(visibleScreenSize: screen.visibleFrame.size)
+        return MainWindowLayout(visibleScreenSize: screen.visibleFrame.size, titleBarHeight: titleBar)
     }
 
     func makeNSView(context: Context) -> ObserverView { ObserverView(onChange: onChange) }
@@ -41,8 +43,8 @@ struct MainWindowDisplayObserver: NSViewRepresentable {
 
         private func reportOnNextTurn() {
             DispatchQueue.main.async { [weak self] in
-                guard let self, let screen = window?.screen else { return }
-                let layout = MainWindowDisplayObserver.layout(on: screen)
+                guard let self, let window, window.screen != nil else { return }
+                let layout = MainWindowDisplayObserver.layout(for: window)
                 guard layout != lastLayout else { return }
                 lastLayout = layout
                 onChange(layout)

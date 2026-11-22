@@ -24,7 +24,7 @@ let package = Package(
         // Assistant privilégié (démon root lancé par launchd, règles système fermées du moteur).
         .executableTarget(
             name: "MacCareHelper",
-            dependencies: ["CMacCareCore", "MacCareHelperProtocol", "MacCareMaintenance", "MacCareBattery"],
+            dependencies: ["CMacCareSMC", "CMacCareCore", "MacCareHelperProtocol", "MacCareMaintenance", "MacCareBattery"],
             linkerSettings: [
                 .linkedLibrary("maccare_core")
             ]

@@ -1,7 +1,6 @@
 import AppKit
 import SwiftUI
 
-/// Le panneau AppKit porte le flou et le contour ; cette vue ne dessine aucun fond.
 struct StorageAlertView: View {
     let volume: SpaceVolumeUsage
     let openMacCare: () -> Void

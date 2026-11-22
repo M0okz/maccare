@@ -15,7 +15,7 @@ final class TrayHardwareAndShortcutsTests: XCTestCase {
         let stopped = TrayFans(fans: [.init(rpm: 0, maximum: 7200)])
         XCTAssertEqual(stopped.fastest, 0)
         XCTAssertEqual(stopped.load, 0)
-        XCTAssertEqual(stopped.state, "À l’arrêt · macOS")
+        XCTAssertEqual(stopped.state, "À l’arrêt")
         let missing = TrayFans(fans: [.init(rpm: nil, maximum: 7200)])
         XCTAssertNil(missing.fastest)
         XCTAssertNil(missing.load)

@@ -1,4 +1,29 @@
-# Alertes CPU et batterie
+# Alertes CPU, batterie et état thermique
+
+## État thermique élevé du Mac — en développement
+
+Dans **Réglages → Menu**, l’alerte thermique est activée par défaut et dispose
+d’un aperçu fictif. macOS fournit quatre niveaux thermiques. MacCare présente
+le popover après 60 secondes consécutives au niveau sérieux, ou dès le niveau
+critique si la présentation est disponible. **Voir les processus** ouvre l’accueil.
+**Ignorer** propose un report d’une journée ou d’une semaine.
+
+`ThermalAlertMonitor` lit l’état à l’activation, s’abonne aux changements de
+Foundation et attend l’échéance avec un minuteur ponctuel. Si le popover est
+occupé ou MacCare au premier plan, il réessaie tant que l’épisode dure. Un retour
+au niveau normal ou modéré ferme l’alerte réelle et réarme le prochain épisode.
+Le marqueur de présentation survit à une relance. Au réveil, une durée au niveau
+sérieux doit de nouveau être observée. L’aperçu fonctionne aussi lorsque l’alerte
+est désactivée et laisse intacts le marqueur d’épisode et les reports.
+
+Validation DEV du 23 novembre 2026 sur macOS 27.0.1. Les 47 tests ciblés
+passent, dont cinq tests de déclenchement, de report et de réarmement thermique.
+L’aperçu ouvert depuis les réglages expose un `AXPopover`, son titre et ses
+deux commandes. Échap et « Voir les processus » ferment le popover. La capture
+se trouve dans `build/thermal-alert/apercu-thermique.png`. Les états thermiques
+ont été simulés pour les tests.
+
+## Historique des alertes CPU et batterie
 
 Disponible depuis [MacCare 0.2.8 (build 10)](https://github.com/M0okz/maccare/releases/tag/v0.2.8), publiée le 6 novembre 2026
 (heure de Paris). Installation de cette version vérifiée dans
@@ -12,7 +37,10 @@ sur la branche préexistante `codex/menu-bar-alerts`. La base initiale est
 Nettoyage, incluse dans cette même PR, est décrite dans `cleaning-managers.md`.
 L’intégration du code ne remplace pas la version utilisateur installée.
 
-Les trois alertes réutilisent `MenuBarAlertPresenter` et le contour déjà validé :
+En développement depuis le 22 novembre 2026, ces trois alertes utilisent le
+[popover natif commun aux alertes](storage-alerts.md).
+
+En 0.2.8, les trois alertes réutilisaient `MenuBarAlertPresenter` et le contour déjà validé :
 largeur 340 points, flou AppKit natif, pointe raccordée, trait sombre fin,
 apparences claire/sombre, fermeture par Échap ou clic extérieur.
 
@@ -36,8 +64,7 @@ tous les cœurs ; l’aide précise cette différence.
 
 « Quitter » demande une fermeture normale en réutilisant les vérifications
 d’identité du chemin mémoire. Aucune fermeture automatique ou forcée.
-« Voir l’activité » ouvre la fenêtre CPU existante, via l’action `openWindow`
-capturée dans `TraySceneLifecycle`.
+Dans l’aperçu DEV du 22 novembre 2026, « Voir les processus » ouvre le tableau de l’accueil.
 
 ## Protection batterie interrompue
 

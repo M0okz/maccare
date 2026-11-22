@@ -110,6 +110,7 @@ final class PermissionsModel: ObservableObject {
     @Published private(set) var fullDisk: PermissionState = .unknown
     @Published private(set) var automation: PermissionState = .unknown
     @Published private(set) var requestingAutomation = false
+    @Published private(set) var hasChecked = false
     /// Enregistré : le parcours de bienvenue ne se rejoue pas une fois terminé.
     @Published private(set) var firstRunCompleted: Bool
 
@@ -142,6 +143,7 @@ final class PermissionsModel: ObservableObject {
             await MainActor.run {
                 self.fullDisk = disk
                 self.automation = auto
+                self.hasChecked = true
             }
         }
     }

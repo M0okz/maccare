@@ -4,17 +4,20 @@ import IOKit.ps
 import Darwin
 
 struct TrayBatteryTelemetry: Sendable {
-    struct Accessory: Identifiable, Sendable {
-        let id: String
+    struct Accessory: Identifiable, Codable, Equatable, Sendable {
+        var id: String
         let name: String
         let symbol: String
         let percent: Int
         var receivedAt: Date? = nil
         var viaPhone = false
+        var isLastKnown = false
 
         var levelDescription: String {
             let level = viaPhone ? "Dernier niveau connu par l’iPhone : \(percent) %" : "Dernier niveau connu : \(percent) %"
-            guard let receivedAt else { return level }
+            let status = isLastKnown ? "Hors ligne · " : ""
+            guard let receivedAt else { return status + level }
+            if isLastKnown { return status + level + " · " + receivedAt.formatted(.dateTime.day().month().hour().minute()) }
             return level + " · reçu à " + receivedAt.formatted(.dateTime.hour().minute())
         }
     }
@@ -148,7 +151,22 @@ actor TrayBatterySampler {
     private var consumer: TrayBatteryTelemetry.Consumer?
     private var readingProcesses = false
 
-    func read() async -> TrayBatteryTelemetry {
+    func read(includeAccessories: Bool, includeProcessList: Bool) async -> (telemetry: TrayBatteryTelemetry, processes: [TrayProcess]?) {
+        var result = includeAccessories ? await readAccessories() : TrayBatteryTelemetry()
+        var freshProcesses: [TrayProcess]?
+        if !readingProcesses && processCadence.shouldSample(at: ProcessInfo.processInfo.systemUptime) {
+            readingProcesses = true
+            let sample = await processes.sample(includeEnergy: true,
+                                               maximumInterval: TrayBatteryProcessCadence.maximumMeasurementInterval)
+            if includeProcessList { freshProcesses = sample }
+            consumer = TrayBatteryTelemetry.leadingConsumer(sample)
+            readingProcesses = false
+        }
+        result.consumer = consumer
+        return (result, freshProcesses)
+    }
+
+    private func readAccessories() async -> TrayBatteryTelemetry {
         var result = TrayBatteryTelemetry()
         if let details = IOPSCopyExternalPowerAdapterDetails()?.takeRetainedValue() as? [String: Any] {
             result.adapterWatts = TrayBatteryTelemetry.adapterPower(details)
@@ -176,16 +194,9 @@ actor TrayBatterySampler {
         let existing = Set(result.accessories.map { $0.name.lowercased() })
         result.accessories += mobile.filter { !existing.contains($0.name.lowercased()) }
         result.accessories.sort { $0.name == $1.name ? $0.id < $1.id : $0.name < $1.name }
-        if !readingProcesses && processCadence.shouldSample(at: ProcessInfo.processInfo.systemUptime) {
-            readingProcesses = true
-            let sample = await processes.sample(includeEnergy: true,
-                                               maximumInterval: TrayBatteryProcessCadence.maximumMeasurementInterval)
-            consumer = TrayBatteryTelemetry.leadingConsumer(sample)
-            readingProcesses = false
-        }
-        result.consumer = consumer
         return result
     }
+
     private func accessorySources() -> [TrayBatteryTelemetry.Accessory] {
         // ABI publié par Apple dans IOKitUser/ps.subproj/IOPowerSourcesPrivate.h.
         // L’API est optionnelle ; sa disparition ne bloque pas le volet.

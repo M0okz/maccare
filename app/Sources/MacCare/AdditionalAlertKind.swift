@@ -1,7 +1,7 @@
 import Foundation
 
 enum AdditionalAlertKind: String, CaseIterable, Identifiable {
-    case protection, cpu, cycle, deviceBattery
+    case protection, cpu, cycle, deviceBattery, thermal
     var id: String { rawValue }
     var enabledByDefault: Bool { self != .deviceBattery }
     var enabledKey: String { "additionalAlert.\(rawValue).enabled" }
@@ -9,6 +9,7 @@ enum AdditionalAlertKind: String, CaseIterable, Identifiable {
         switch self {
         case .protection: return "Protection batterie interrompue"
         case .cpu: return "CPU fortement sollicité"
+        case .thermal: return "État thermique élevé du Mac"
         case .cycle: return "Fin d’opération batterie"
         case .deviceBattery: return "Batterie faible des appareils"
         }

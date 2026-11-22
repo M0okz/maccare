@@ -10,7 +10,41 @@ struct DisplayAdjustedContent: ViewModifier {
                 .frame(width: size.width, height: size.height, alignment: .topLeading)
                 .scaleEffect(layout.scale, anchor: .topLeading)
         }
-        .frame(minWidth: layout.minimumWindowSize.width, minHeight: layout.minimumWindowSize.height)
         .animation(nil, value: layout)
+    }
+}
+
+private struct DashboardScaleKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 1
+}
+
+extension EnvironmentValues {
+    var dashboardScale: CGFloat {
+        get { self[DashboardScaleKey.self] }
+        set { self[DashboardScaleKey.self] = newValue }
+    }
+}
+
+/// Mesure chaque bloc en points logiques et réserve sa taille affichée dans la page.
+private struct ScaledBlockLayout: Layout {
+    let scale: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard let block = subviews.first else { return .zero }
+        let logical = ProposedViewSize(width: proposal.width.map { $0 / scale },
+                                       height: proposal.height.map { $0 / scale })
+        let measured = block.sizeThatFits(logical)
+        return CGSize(width: measured.width * scale, height: measured.height * scale)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        subviews.first?.place(at: bounds.origin, anchor: .topLeading,
+                              proposal: ProposedViewSize(width: bounds.width / scale, height: bounds.height / scale))
+    }
+}
+
+extension View {
+    func dashboardBlockScale(_ scale: CGFloat) -> some View {
+        ScaledBlockLayout(scale: scale) { self.scaleEffect(scale, anchor: .topLeading) }
     }
 }

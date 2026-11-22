@@ -115,6 +115,10 @@ final class HelperService: NSObject, MacCareHelperXPC {
         BatteryService.execute(command: command, sessionID: sessionID, configurationJSON: configurationJSON, uid: authenticatedUID, reply: reply)
     }
 
+    func fan(preset: String, withReply reply: @escaping (String) -> Void) {
+        FanService.execute(preset, uid: authenticatedUID, reply: reply)
+    }
+
     func version(withReply reply: @escaping (Int, String) -> Void) {
         reply(HelperIdentity.protocolVersion, String(cString: maccare_version()))
     }
@@ -283,6 +287,7 @@ exit(2)
 let delegate = ListenerDelegate()
 let listener = NSXPCListener(machServiceName: HelperIdentity.machService)
 listener.delegate = delegate
+FanService.start()
 listener.resume()
 BatteryService.start()
 Idle.watch()

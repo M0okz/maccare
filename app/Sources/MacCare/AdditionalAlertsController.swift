@@ -10,6 +10,13 @@ final class AdditionalAlertsController {
     private let openBattery: () -> Void
     private let openCPU: () -> Void
     private let presenter = MenuBarAlertPresenter()
+    private lazy var thermal = ThermalAlertMonitor(present: { [weak self] state in
+        guard let self, !self.isVisible, self.eligible else { return false }
+        return self.presentThermal(state, preview: false)
+    }, recovered: { [weak self] in
+        guard let self, self.visibleKind == .thermal, !self.preview else { return }
+        self.dismiss()
+    })
     private let sampler = TrayProcessSampler()
     private let processes = MemoryAlertModel()
     private var cpu = CPUAlertCondition()
@@ -40,9 +47,11 @@ final class AdditionalAlertsController {
     }
 
     func syncAvailability() {
-        let enabled = AdditionalAlertKind.allCases.contains { AdditionalAlertReminder($0).enabled }
-        guard !suspended, anchor() != nil, enabled else { stop(); return }
+        guard !suspended, anchor() != nil else { stop(); return }
         if let visibleKind, !AdditionalAlertReminder(visibleKind).enabled, !preview { dismiss() }
+        thermal.setEnabled(AdditionalAlertReminder(.thermal).enabled)
+        let needsPolling = AdditionalAlertKind.allCases.contains { $0 != .thermal && AdditionalAlertReminder($0).enabled }
+        guard needsPolling else { stopPolling(); return }
         if !AdditionalAlertReminder(.cpu).enabled { cpu.reset(); cpuLoad.reset() }
         if !AdditionalAlertReminder(.deviceBattery).enabled { deviceRead?.cancel(); deviceReadings = [] }
         guard timer == nil else { return }
@@ -58,11 +67,16 @@ final class AdditionalAlertsController {
     func resume() { suspended = false; syncAvailability() }
     func dismiss() { presenter.dismiss(); visibleKind = nil; visibleDeviceID = nil; preview = false }
     private func stop() {
+        thermal.setEnabled(false)
+        stopPolling()
+        dismiss()
+    }
+
+    private func stopPolling() {
         timer?.invalidate(); timer = nil
         sampling?.cancel()
         deviceRead?.cancel(); deviceReadings = []
         cpu.reset(); cpuLoad.reset(); detector.reset(); pendingCompletion = nil
-        dismiss()
     }
 
     private func observation() -> BatteryAlertObservation {
@@ -152,6 +166,18 @@ final class AdditionalAlertsController {
         }
     }
 
+    @discardableResult
+    private func presentThermal(_ state: ProcessInfo.ThermalState, preview: Bool) -> Bool {
+        let view = ThermalAlertView(state: state,
+            snooze: { [weak self] in self?.snooze(.thermal, days: $0) },
+            openActivity: { [weak self] in self?.dismiss(); self?.openCPU() })
+        guard presenter.show(view, title: "MacCare — " + AdditionalAlertKind.thermal.title, anchor: anchor()) else { return false }
+        self.preview = preview
+        visibleKind = .thermal
+        visibleDeviceID = nil
+        return true
+    }
+
     private func presentCPU(preview: Bool) {
         self.preview = preview
         let view = CPUAlertView(model: processes, fraction: preview ? 0.94 : cpu.fraction,
@@ -183,6 +209,7 @@ final class AdditionalAlertsController {
     private func showPreview(_ kind: AdditionalAlertKind) {
         guard !suspended else { return }
         switch kind {
+        case .thermal: presentThermal(.serious, preview: true)
         case .deviceBattery:
             presentDeviceBattery(.init(id: "mobile:preview", name: "iPhone", symbol: "iphone", percent: 15, receivedAt: Date()), preview: true)
         case .protection: presentBattery(completion: nil, preview: true)

@@ -70,6 +70,8 @@ struct HelperServiceUpdateTests {
             if command == .disable, let disableError { throw disableError }
             return command == .status ? statusReply : disableReply
         }
+        private(set) var fanRestores = 0
+        func restoreFans() async throws { fanRestores += 1 }
         func restoreLegacyBattery() async throws {
             calls.append("legacyRestore")
             if let legacyError { throw legacyError }
@@ -297,6 +299,13 @@ struct HelperServiceUpdateTests {
         #expect(client.calls == ["version", "status", "disable", "version", "unregister"])
         #expect(!client.calls.contains("register"))
     }
+    @Test func protocolElevenRestoresFansBeforeUnregistration() async throws {
+        let client = Client()
+        client.version = 11
+        try await HelperServiceUpdater(client: client).unregister()
+        #expect(client.fanRestores == 1)
+    }
+
     @Test func anExplicitRepairCanReplaceAServiceThatCannotLaunch() async throws {
         let client = Client(); client.launchFailed = true
         #expect(try await HelperServiceUpdater(client: client).repairFailedRegistration() == .ready)

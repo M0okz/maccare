@@ -1,19 +1,34 @@
-import AppKit
 import SwiftUI
 import MacCareBattery
 
 struct HomeBatteryCard: View {
     @ObservedObject var model: BatteryModel
+    @ObservedObject var context: TrayBatteryController
     let onDetails: () -> Void
-    @StateObject private var context = TrayBatteryController()
-    @State private var windowVisible = false
     @ScaledMetric(relativeTo: .largeTitle) private var chargeSize = 36
-    @ScaledMetric(relativeTo: .body) private var accessoryDiameter: CGFloat = 34
+    @ScaledMetric(relativeTo: .body) private var accessoryDiameter: CGFloat = 28
+    @ScaledMetric(relativeTo: .body) private var regularHeight: CGFloat = 155
+    @ScaledMetric(relativeTo: .body) private var compactHeight: CGFloat = 175
     private var snapshot: BatterySnapshot? { model.snapshot }
     private var telemetry: TrayBatteryTelemetry { context.telemetry }
 
     var body: some View {
-        Button(action: onDetails) { content }
+        Button(action: onDetails) {
+            if snapshot?.present == false {
+                VStack(alignment: .leading, spacing: 12) {
+                    header
+                    Text("Ce Mac ne possède pas de batterie intégrée.")
+                        .font(AppFont.body).foregroundStyle(Theme.muted)
+                }
+            } else {
+                // Preserve the dashboard row heights in its regular and compact columns.
+                ViewThatFits(in: .horizontal) {
+                    content.frame(minWidth: 270, idealWidth: 270, maxWidth: .infinity,
+                                  minHeight: regularHeight, maxHeight: .infinity)
+                    content.frame(maxWidth: .infinity, minHeight: compactHeight, maxHeight: .infinity)
+                }
+            }
+        }
             .buttonStyle(HomeStatusCardButtonStyle(tint: Theme.ok))
             .foregroundStyle(Theme.fg)
             .accessibilityElement(children: .ignore)
@@ -21,99 +36,131 @@ struct HomeBatteryCard: View {
             .accessibilityLabel("Batterie")
             .accessibilityValue(accessibilitySummary)
             .accessibilityHint("Ouvrir la section Batterie")
-            .background(WindowVisibilityObserver { windowVisible = $0 })
-            .task(id: windowVisible && snapshot?.present == true) {
-                if windowVisible && snapshot?.present == true { await context.monitor() }
-            }
+            .accessibilityAction { onDetails() }
     }
 
     private var content: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: "battery.100percent").foregroundStyle(Theme.ok).accessibilityHidden(true)
-                Text("Batterie").font(.headline)
-                Spacer(minLength: 4)
-                Text(healthLabel)
-                    .font(AppFont.caption.weight(.medium))
-                    .foregroundStyle(snapshot?.batteryFault == true ? Theme.warn : Theme.muted)
-                    .padding(.horizontal, 8).padding(.vertical, 5)
-                    .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 7))
-                    .help("Capacité de charge restante estimée par rapport à la capacité de conception.")
+        VStack(alignment: .leading, spacing: 0) {
+            header
+            Spacer(minLength: 8)
+            HStack(spacing: 6) {
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline, spacing: 7) { charge; adapter }
+                    VStack(alignment: .leading, spacing: 2) { charge; adapter }
+                }
+                Spacer(minLength: 0)
+                if !context.homeAccessories.isEmpty { accessories }
             }
-            if snapshot?.present == false {
-                Text("Ce Mac ne possède pas de batterie intégrée.")
-                    .font(AppFont.body).foregroundStyle(Theme.muted)
-            } else {
-                charge
-                Text(snapshot?.cycles.map { "\($0) \($0 == 1 ? "cycle" : "cycles")" } ?? "Cycles : —")
-                    .font(AppFont.caption).foregroundStyle(Theme.muted)
-                consumer
+            Spacer(minLength: 14)
+            HStack(spacing: 6) {
+                Text(source)
+                if snapshot?.onAC == false, let powerDetail {
+                    Text("· " + powerDetail).lineLimit(1).truncationMode(.tail)
+                }
             }
+            .font(AppFont.caption).foregroundStyle(Theme.muted)
+            .help(powerDetail ?? source)
+            consumer.padding(.top, 9)
+        }
+    }
+
+    private var header: some View {
+        HStack(alignment: .top, spacing: 4) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 7) { title; cycles }.fixedSize()
+                VStack(alignment: .leading, spacing: 2) { title; cycles }
+            }
+            Spacer(minLength: 2)
+            Text(healthLabel).font(.system(size: 12, weight: .medium)).monospacedDigit()
+                .foregroundStyle(snapshot?.batteryFault == true ? Theme.warn : Theme.muted)
+                .padding(.horizontal, 6).padding(.vertical, 3)
+                .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 5))
+                .fixedSize()
+                .help("Capacité de charge restante estimée par rapport à la capacité de conception.")
+        }
+    }
+
+    private var title: some View {
+        HStack(spacing: 5) {
+            Image(systemName: "battery.100percent").foregroundStyle(Theme.ok).accessibilityHidden(true)
+            Text("Batterie").textCase(.uppercase).tracking(0.5)
+        }.font(AppFont.caption.weight(.semibold)).fixedSize()
+    }
+
+    @ViewBuilder private var cycles: some View {
+        if let cycles = snapshot?.cycles {
+            Text("\(cycles) \(cycles == 1 ? "cycle" : "cycles")")
+                .font(.system(size: 12)).foregroundStyle(Theme.muted).fixedSize()
         }
     }
 
     private var charge: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 12) {
-                Text(HomeBatteryPresentation.charge(snapshot))
-                    .font(.system(size: chargeSize, weight: .semibold)).monospacedDigit()
-                Spacer(minLength: 0)
-                accessories
+        HStack(alignment: .firstTextBaseline, spacing: 2) {
+            if let percent = snapshot?.percent, (0...100).contains(percent) {
+                Text(String(percent))
+                Text("%").font(AppFont.secondary.weight(.semibold)).foregroundStyle(Theme.muted)
+            } else {
+                Text("—")
             }
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 12) { source; power }
-                VStack(alignment: .leading, spacing: 4) { source; power }
+        }
+        .font(.system(size: chargeSize, weight: .bold)).monospacedDigit().fixedSize()
+    }
+
+    @ViewBuilder private var adapter: some View {
+        if snapshot?.powerStateKnown == true, snapshot?.onAC == true, let watts = telemetry.adapterWatts {
+            HStack(spacing: 2) {
+                Image(systemName: "bolt.fill").font(.caption2).foregroundStyle(Theme.ok)
+                Text("\(watts.formatted(.number.precision(.fractionLength(0)))) W")
             }
+            .font(AppFont.caption.weight(.semibold)).foregroundStyle(Theme.muted).fixedSize()
+            .help(powerDetail ?? "")
         }
     }
 
-    private var source: some View {
-        Text(HomeBatteryPresentation.source(snapshot)).font(AppFont.caption)
-            .fixedSize(horizontal: true, vertical: false)
-    }
-
-    @ViewBuilder private var power: some View {
-        if let powerDetail {
-            Label { Text(powerDetail) } icon: {
-                Image(systemName: powerSymbol).accessibilityHidden(true)
-            }.font(AppFont.caption).foregroundStyle(Theme.muted)
-                .fixedSize(horizontal: true, vertical: false)
-        }
+    private var source: String {
+        if let snapshot, snapshot.present, snapshot.powerStateKnown, snapshot.onAC,
+           !snapshot.charging, snapshot.percent == 100 { return "Chargée" }
+        return HomeBatteryPresentation.source(snapshot)
     }
 
     private var accessories: some View {
-        HStack(spacing: 10) {
-            ForEach(Array(telemetry.featuredAccessories.prefix(3))) { accessory in
+        HStack(spacing: 4) {
+            ForEach(context.homeAccessories) { accessory in
                 HomeBatteryAccessory(accessory: accessory, diameter: accessoryDiameter)
             }
         }
-        .frame(width: (accessoryDiameter + 4) * 3 + 20, height: accessoryDiameter + 4, alignment: .trailing)
-        .transaction { $0.animation = nil }
+        .fixedSize().transaction { $0.animation = nil }
     }
 
     private var consumer: some View {
         Group {
             if let consumer = telemetry.consumer {
-                HStack(spacing: 9) {
-                    if let path = consumer.appBundlePath {
-                        Image(nsImage: NSWorkspace.shared.icon(forFile: path))
-                            .resizable().scaledToFit().frame(width: 26, height: 26).accessibilityHidden(true)
-                    } else {
-                        Image(systemName: "app.dashed").resizable().scaledToFit()
-                            .frame(width: 26, height: 26).foregroundStyle(Theme.muted).accessibilityHidden(true)
+                let label = Text(consumer.measuredPower ? "Plus énergivore" : "CPU le plus actif")
+                    .foregroundStyle(Theme.muted)
+                let name = Text(consumer.name).fontWeight(.semibold).lineLimit(1).truncationMode(.tail)
+                let value = Text(consumer.formattedValue).monospacedDigit().foregroundStyle(Theme.muted).fixedSize()
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 5) {
+                        label.fixedSize()
+                        name.fixedSize()
+                        Spacer(minLength: 2)
+                        value
                     }
-                    Text(consumer.name).font(AppFont.body).lineLimit(1)
-                        .truncationMode(.middle).help(consumer.name)
-                    Spacer(minLength: 4)
-                    Text(consumer.formattedValue).font(AppFont.emphasis).monospacedDigit().fixedSize()
-                }.frame(minHeight: 26)
-                .help(consumer.measuredPower ? "Estimation parmi les processus accessibles, pas la consommation totale de l’app." : "Puissance indisponible : repli sur la charge CPU, 100 % correspondant à un cœur.")
+                    VStack(alignment: .leading, spacing: 2) {
+                        label
+                        HStack(spacing: 4) { name; Spacer(minLength: 2); value }
+                    }
+                }
+                .help("\(consumer.name) · \(consumer.formattedValue) · " + (consumer.measuredPower
+                    ? "Puissance moyenne estimée sur le dernier relevé des processus accessibles."
+                    : "Classement selon la charge CPU des processus accessibles."))
             } else {
                 Text(context.hasSampled ? "Consommation indisponible." : "Lecture des processus accessibles…")
-                    .font(AppFont.secondary).foregroundStyle(Theme.muted)
+                    .foregroundStyle(Theme.muted).lineLimit(1)
             }
-        }.frame(minHeight: 26, alignment: .leading)
-            .transaction { $0.animation = nil }
+        }
+        .font(AppFont.caption).frame(minHeight: 16, alignment: .leading)
+        .transaction { $0.animation = nil }
     }
 
     private var powerDetail: String? {
@@ -128,23 +175,19 @@ struct HomeBatteryCard: View {
         }
         return nil
     }
-    private var powerSymbol: String {
-        if snapshot?.onAC == true { return "bolt.fill" }
-        return HomeBatteryPresentation.remaining(snapshot) != nil ? "clock" : "thermometer"
-    }
     private var healthLabel: String {
         guard let snapshot, snapshot.present, let health = snapshot.healthPercent else {
             return "Santé : —"
         }
-        return "Santé : \(health) %"
+        return "\(health) % de santé"
     }
     private var accessibilitySummary: String {
-        var parts = [HomeBatteryPresentation.charge(snapshot), HomeBatteryPresentation.source(snapshot),
+        var parts = [HomeBatteryPresentation.charge(snapshot), source,
                      healthLabel,
                      "État : \(HomeBatteryPresentation.condition(snapshot))"]
         if let cycles = snapshot?.cycles { parts.append("\(cycles) \(cycles == 1 ? "cycle" : "cycles")") }
         if let powerDetail { parts.append(powerDetail) }
-        parts += telemetry.featuredAccessories.prefix(3).map { "\($0.name) : \($0.levelDescription)" }
+        parts += context.homeAccessories.map { "\($0.name) : \($0.levelDescription)" }
         if let consumer = telemetry.consumer {
             parts.append("\(consumer.measuredPower ? "Processus le plus énergivore" : "Processus le plus actif CPU") : \(consumer.name), \(consumer.formattedValue)")
         }

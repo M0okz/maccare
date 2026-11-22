@@ -1,5 +1,8 @@
 # Alertes de batterie faible des appareils
 
+Dans la version DEV du 22 novembre 2026, l’aperçu et l’alerte d’un iPhone
+ou iPad s’affichent dans le [popover natif commun aux alertes](storage-alerts.md).
+
 ## Livraison 0.2.17 — 9 novembre 2026
 
 Cette évolution est publiée dans [MacCare 0.2.17 (build 19)](https://github.com/M0okz/maccare/releases/tag/v0.2.17),

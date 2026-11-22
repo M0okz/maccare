@@ -42,8 +42,8 @@ final class TrayPanelController: NSObject {
         },
         openBattery: { [weak self] in self?.app.show(.battery) },
         openCPU: { [weak self] in
-            NSApp.activate(ignoringOtherApps: true)
-            self?.app.openCPUActivity?()
+            self?.app.module = .dashboard
+            self?.openMainWindow()
         })
 
     init(app: AppState, openMainWindow: @escaping () -> Void, openSettings: (() -> Void)?) {

@@ -51,7 +51,7 @@ struct TrayMetricsSnapshot {
 /// Un seul suivi pour l’application, indépendant de la durée de vie du panneau.
 @MainActor
 final class TrayMetricsStore: ObservableObject {
-    enum Consumer: Hashable { case menuBar, dashboard(UUID), activityDetail(UUID) }
+    enum Consumer: Hashable { case menuBar, dashboard(UUID) }
     @Published private(set) var snapshot = TrayMetricsSnapshot()
     private var smoothing = TrayMetricsSmoothing()
     private let sampler: any TrayMetricsSampling

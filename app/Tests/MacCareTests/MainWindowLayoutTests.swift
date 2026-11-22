@@ -26,21 +26,31 @@ struct MainWindowLayoutTests {
         #expect(MainWindowLayout(visibleScreenSize: screen) == .standard)
     }
 
-    @Test func aRestoredOversizedWindowShrinksButASmallManualWindowNeverGrows() {
+    @Test func restorationPreservesManualSizesWithinTheResizeLimits() {
         let layout = MainWindowLayout(visibleScreenSize: CGSize(width: 1800, height: 1000))
         #expect(layout.reducedRestoredSize(CGSize(width: 1470, height: 790)) == layout.preferredWindowSize)
         let small = CGSize(width: 1000, height: 630)
         #expect(layout.reducedRestoredSize(small) == small)
+        #expect(layout.reducedRestoredSize(.zero) == layout.minimumWindowSize)
+        #expect(layout.reducedRestoredSize(CGSize(width: 900, height: 630)) == CGSize(width: 952, height: 630))
     }
 
-    @Test func scalingUsesTheFullViewportAndKeepsTheOriginalMinimumCanvas() {
+    @Test func scalingPreservesTheMinimumLogicalCanvas() {
         let layout = MainWindowLayout(visibleScreenSize: CGSize(width: 1800, height: 1000))
         let viewport = CGSize(width: 1156, height: 646)
         let canvas = layout.contentSize(in: viewport)
         #expect(abs(canvas.width * layout.scale - viewport.width) < 0.001)
         #expect(abs(canvas.height * layout.scale - viewport.height) < 0.001)
         let minimum = layout.contentSize(in: layout.minimumWindowSize)
-        #expect(abs(minimum.width - 940) < 0.001)
-        #expect(abs(minimum.height - 620) < 0.001)
+        #expect(abs(minimum.width - 1120) < 0.001)
+        #expect(abs(minimum.height - 700) < 0.001)
+    }
+    @Test func minimumAndPreferredSizeRespectTheUsableScreenIncludingTheTitleBar() {
+        let layout = MainWindowLayout(visibleScreenSize: CGSize(width: 900, height: 580), titleBarHeight: 28)
+        #expect(layout.minimumWindowSize == CGSize(width: 900, height: 552))
+        #expect(layout.preferredWindowSize == layout.minimumWindowSize)
+        let shallow = MainWindowLayout(visibleScreenSize: CGSize(width: 1500, height: 600), titleBarHeight: 28)
+        #expect(shallow.minimumWindowSize == CGSize(width: 952, height: 572))
+        #expect(shallow.preferredWindowSize == CGSize(width: 1156, height: 572))
     }
 }

@@ -33,6 +33,7 @@ struct MacCareApp: App {
             .background(TraySceneLifecycle(app: app, delegate: delegate))
         }
         .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentMinSize)
         #if DEBUG
         .defaultSize(width: TrayMetricPreview.isOverviewRequested ? TrayPanelLayout.width : 1200, height: TrayMetricPreview.isOverviewRequested ? TrayPanelLayout.maximumBodyHeight + TrayPanelLayout.footerHeight : 720)
         #else
@@ -52,11 +53,6 @@ struct MacCareApp: App {
                     .disabled(!menuBarShown)
             }
         }
-
-        HomeActivityWindow(kind: .memory, store: app.trayMetrics)
-        HomeActivityWindow(kind: .cpu, store: app.trayMetrics)
-        HomeActivityWindow(kind: .gpu, store: app.trayMetrics)
-        HomeActivityWindow(kind: .wifi, store: app.trayMetrics)
 
         Settings {
             SettingsView(permissions: app.permissions, model: app.review, systemClean: app.systemClean, updater: updater)

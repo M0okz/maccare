@@ -116,8 +116,6 @@ final class AppState: ObservableObject {
     @Published var cleaningToolsVisible = false
     @Published var performanceAnalyzed = false
     @Published var performanceDetail: PerformanceCategory?
-    @Published private(set) var activity: [AppActivityEntry] = []
-    private var subscriptions = Set<AnyCancellable>()
     let battery = BatteryModel()
     let trayMetrics = TrayMetricsStore()
     let smartScan = SmartScanModel()
@@ -148,13 +146,11 @@ final class AppState: ObservableObject {
     private(set) var scheduler: ScanScheduler!
     /// Ouvre la fenêtre principale ; renseigné par la première vue qui dispose de `openWindow`.
     var openMainWindow: (() -> Void)?
-    var openCPUActivity: (() -> Void)?
 
     init() {
         AppDelegate.stopBatteryBeforeTermination = { [weak battery] in await battery?.prepareForTermination() }
         battery.openSection = { [weak self] in self?.show(.battery) }
         scheduler = ScanScheduler(smart: smartScan) { [weak self] in self?.show(.smartScan) }
-        observeActivity()
     }
 
     func select(_ section: NavigationSection) {
@@ -171,38 +167,10 @@ final class AppState: ObservableObject {
         }
     }
 
-    private func observeActivity() {
-        smartScan.$lastCompletedAt.compactMap { $0 }.sink { [weak self] date in
-            self?.recordActivity("Analyse terminée", detail: "Analyse seule · consultez les résultats avant toute action.", module: .smartScan, date: date)
-        }.store(in: &subscriptions)
-        let reports: [(Published<RemovalReport?>.Publisher, Module)] = [
-            (smartScan.$lastReport, .smartScan), (review.$lastReport, .cleaning),
-            (uninstall.$lastReport, .uninstall), (devJunk.$lastReport, .devJunk),
-            (largeFiles.$lastReport, .largeFiles), (duplicates.$lastReport, .duplicates),
-            (privacy.$lastReport, .privacy), (aiClutter.$lastReport, .aiClutter)
-        ]
-        for (publisher, destination) in reports {
-            publisher.compactMap { $0 }.sink { [weak self] report in
-                self?.recordActivity(destination.title, detail: report.summary, module: destination)
-            }.store(in: &subscriptions)
-        }
-        performanceTasks.$lastSummary.compactMap { $0 }.sink { [weak self] summary in
-            self?.recordActivity("Entretien", detail: summary, module: .performanceOverview)
-        }.store(in: &subscriptions)
-        let summaries: [(Published<String?>.Publisher, Module)] = [
-            (trash.$lastSummary, .trash), (systemClean.$lastSummary, .systemClean),
-            (simulators.$lastSummary, .simulators), (startup.$lastAction, .startup)
-        ]
-        for (publisher, destination) in summaries {
-            publisher.compactMap { $0 }.sink { [weak self] summary in
-                self?.recordActivity(destination.title, detail: summary, module: destination)
-            }.store(in: &subscriptions)
-        }
-    }
-
-    private func recordActivity(_ title: String, detail: String, module: Module, date: Date = Date()) {
-        activity.insert(AppActivityEntry(date: date, title: title, detail: detail, module: module), at: 0)
-        if activity.count > 30 { activity.removeLast(activity.count - 30) }
+    func openTool(_ destination: Module) {
+        module = destination
+        if destination == .aiClutter { aiClutter.scan() }
+        if destination == .applicationPermissions { applicationPermissions.scan() }
     }
 
     /// Ramène MacCare au premier plan sur un module (fenêtre rouverte si elle était fermée).
@@ -232,15 +200,17 @@ struct RootView: View {
             CategoryTransitionBackground(section: (app.module ?? .dashboard).section)
             if permissions.needsOnboarding {
                 OnboardingView(model: app.permissions, system: app.systemClean)
+                    .modifier(DisplayAdjustedContent(layout: displayLayout))
             } else {
-                HStack(spacing: 0) {
-                    Sidebar(app: app, updater: updater)
-                    DetailView(app: app, updater: updater)
-                }
-                .ignoresSafeArea(.container, edges: .top)
+                DetailView(app: app, updater: updater, layout: displayLayout)
+                    .padding(.leading, SidebarLabel.railWidth * displayLayout.scale)
+                    .overlay(alignment: .leading) {
+                        Sidebar(app: app, updater: updater).dashboardBlockScale(displayLayout.scale)
+                    }
+                    .ignoresSafeArea(.container, edges: .top)
             }
         }
-        .modifier(DisplayAdjustedContent(layout: displayLayout))
+        .frame(minWidth: displayLayout.minimumWindowSize.width, minHeight: displayLayout.minimumWindowSize.height)
         .onAppear {
             app.permissions.recheck()
             app.systemClean.refreshStatus()
@@ -262,7 +232,7 @@ struct RootView: View {
     }
 }
 
-/// Barre latérale labellisée (icône + texte), translucide sur le dégradé violet de MacCare.
+/// Le rail garde sa largeur dans la mise en page. Les libellés se déploient au-dessus du détail.
 struct Sidebar: View {
     @ObservedObject var updater: AppUpdater
     @ObservedObject var app: AppState
@@ -270,7 +240,6 @@ struct Sidebar: View {
     @ObservedObject private var smart: SmartScanModel
     @ObservedObject private var large: LargeFilesModel
     @ObservedObject private var duplicates: DuplicatesModel
-    @ObservedObject private var filesAnalysis: FilesAnalysisModel
     @ObservedObject private var applications: ApplicationsAnalysisModel
     @ObservedObject private var uninstall: UninstallModel
     @ObservedObject private var updates: UpdatesModel
@@ -278,12 +247,14 @@ struct Sidebar: View {
     @ObservedObject private var performanceTasks: PerformanceTasksModel
     @ObservedObject private var performanceRepairs: MaintenanceModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var expandedDuringExploration = false
+    @State private var expanded = false
+    @State private var showingTools = false
+    private var compact: Bool { !expanded && !showingTools }
 
     init(app: AppState, updater: AppUpdater) {
         self.updater = updater
         self.app = app; self.space = app.space; self.smart = app.smartScan
-        self.large = app.largeFiles; self.duplicates = app.duplicates; self.filesAnalysis = app.filesAnalysis
+        self.large = app.largeFiles; self.duplicates = app.duplicates
         self.applications = app.applicationsAnalysis; self.uninstall = app.uninstall; self.updates = app.updates
         self.performanceStartup = app.startup; self.performanceTasks = app.performanceTasks; self.performanceRepairs = app.maintenance
     }
@@ -300,57 +271,55 @@ struct Sidebar: View {
         default: return (false, false)
         }
     }
-    private var focusedExploration: Bool {
-        activity((app.module ?? .dashboard).section).busy || (app.module == .space && space.hasMeasured) ||
-            app.module == .largeFiles || app.module == .duplicates || app.module == .imageOptimization ||
-            ((app.module ?? .dashboard).section == .tools && app.module != .toolsOverview) ||
-            (app.module == .performanceOverview && (app.performanceAnalyzed || app.performanceDetail != nil)) ||
-            (app.module == .applicationsOverview && (app.applicationsDetail != nil || applications.phase == .summary)) ||
-            (app.module == .filesOverview && app.filesAnalysis.hasStarted && !app.filesAnalysis.choosingLocation)
-    }
-    private var compact: Bool { focusedExploration && !expandedDuringExploration }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 5) {
             ScrollView(.vertical) {
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(spacing: 5) {
                     ForEach(NavigationSection.primary.filter { $0 != .tools && $0 != .about }) { row($0) }
                 }
             }
             .scrollIndicators(.hidden)
-            if focusedExploration {
-                Button { expandedDuringExploration.toggle() } label: {
-                    Image(systemName: compact ? "sidebar.left" : "sidebar.leading")
-                        .font(.system(size: 18))
-                        .frame(width: compact ? nil : 20)
-                        .padding(.leading, compact ? 0 : 12)
-                        .frame(maxWidth: .infinity, minHeight: 40, alignment: compact ? .center : .leading)
-                        .contentShape(Rectangle())
-                }.buttonStyle(.plain).foregroundStyle(Theme.muted)
-                    .accessibilityLabel(compact ? "Développer la navigation" : "Réduire la navigation")
-                    .help(compact ? "Développer la navigation" : "Réduire la navigation")
+            if (app.module ?? .dashboard).section != .home {
+                Button { showingTools.toggle() } label: {
+                    SidebarLabel(title: "Accès rapide", symbol: "square.grid.2x2", compact: compact)
+                }
+                .buttonStyle(SidebarRowStyle(selected: app.module?.section == .tools))
+                .accessibilityLabel("Accès rapide").help("Accès rapide aux outils")
+                .popover(isPresented: $showingTools, arrowEdge: .trailing) {
+                    QuickToolsList(app: app) { showingTools = false; expanded = false }
+                }
             }
-            row(.tools)
             row(.about)
+            Divider().padding(.vertical, 3)
+            Button { expanded = compact } label: {
+                SidebarLabel(title: compact ? "Développer" : "Réduire", symbol: "sidebar.left", compact: compact)
+            }
+            .buttonStyle(SidebarRowStyle(selected: false))
+            .accessibilityLabel(compact ? "Développer la navigation" : "Réduire la navigation")
+            .help(compact ? "Développer la navigation" : "Réduire la navigation")
         }
-        .padding(.horizontal, 10)
-        .padding(.top, 70)
-        .padding(.bottom, 44)
-        .frame(width: compact ? 82 : 240)
-        .animation(reduceMotion ? nil : Motion.easeInOut(0.25), value: compact)
+        .padding(.horizontal, 8)
+        .padding(.top, 62)
+        .padding(.bottom, 14)
+        .frame(width: compact ? SidebarLabel.railWidth : 222)
         .frame(maxHeight: .infinity, alignment: .top)
         .overlay(alignment: .topLeading) {
             if AppBuildIdentity.isDevelopment {
                 Text(compact ? "Dev" : AppBuildIdentity.name)
                     .font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.warn)
-                    .padding(.leading, 20).padding(.top, 38).allowsHitTesting(false)
+                    .padding(.leading, 21).padding(.top, 37).allowsHitTesting(false)
             }
         }
-        .background(
-            (app.module ?? .dashboard).section.palette.sidebar
-                .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: (app.module ?? .dashboard).section)
-        )
-        .overlay(alignment: .trailing) { Rectangle().fill(Color.white.opacity(0.06)).frame(width: 1) }
+        .background((app.module ?? .dashboard).section.palette.sidebar)
+        .overlay(alignment: .trailing) { Rectangle().fill(.white.opacity(0.08)).frame(width: 1) }
+        .clipped()
+        .shadow(color: .black.opacity(compact ? 0 : 0.25), radius: 12, x: 4)
+        .contentShape(Rectangle())
+        .onHover { expanded = $0 }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.19), value: compact)
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
+            expanded = false
+        }
     }
 
     @ViewBuilder
@@ -361,22 +330,7 @@ struct Sidebar: View {
         } else {
             let selected = (app.module ?? .dashboard).section == m
             Button { app.select(m) } label: {
-                HStack(spacing: 16) {
-                    Image(systemName: m.symbol)
-                        .accessibilityHidden(true)
-                        .font(AppFont.emphasis)
-                        .foregroundStyle(selected ? Color.white : Theme.muted)
-                        .frame(width: compact ? 24 : 20, height: 20)
-                    if !compact {
-                        Text(m.title)
-                            .font(AppFont.body.weight(.medium))
-                            .foregroundStyle(Theme.fg)
-                        Spacer(minLength: 0)
-                    }
-                }
-                .padding(.horizontal, compact ? 0 : 24).padding(.vertical, 14)
-                .frame(maxWidth: .infinity, alignment: compact ? .center : .leading)
-                .contentShape(Rectangle())
+                SidebarLabel(title: m.title, symbol: m.symbol, compact: compact)
             }
             .buttonStyle(SidebarRowStyle(selected: selected))
             .overlay(alignment: compact ? .topTrailing : .trailing) {
@@ -404,6 +358,7 @@ struct Sidebar: View {
 struct DetailView: View {
     @ObservedObject var app: AppState
     @ObservedObject var updater: AppUpdater
+    let layout: MainWindowLayout
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var filesManagerVisible: Bool { app.module == .largeFiles || app.module == .duplicates || app.module == .imageOptimization }
@@ -414,33 +369,14 @@ struct DetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             SectionNavigationView(module: $app.module)
+                .dashboardBlockScale(layout.scale)
             ZStack {
                 Group {
-                    switch app.module ?? .dashboard {
-                    case .about: AboutView(updater: updater)
-                    case .battery: BatteryView(model: app.battery)
-                    case .dashboard: DashboardView(app: app)
-                    case .applicationsOverview: ApplicationsOverviewView(app: app)
-                    case .cleaningOverview: CleaningOverviewView(app: app)
-                    case .filesOverview: FilesOverviewView(app: app)
-                    case .toolsOverview: ToolsOverviewView(app: app)
-                    case .performanceOverview: PerformanceOverviewView(app: app)
-                    case .smartScan, .cleaning, .trash, .systemClean, .simulators, .devJunk:
-                        CleaningDetailPanel(app: app, module: app.module ?? .cleaning)
-                    case .space: SpaceView(model: app.space)
-                    case .imageOptimization: PNGOptimizationView(model: app.pngOptimization) { app.module = .filesOverview }
-                    case .largeFiles: FilesManagerView(app: app, category: .large)
-                    case .duplicates: FilesManagerView(app: app, category: .duplicates)
-                    case .uninstall:
-                        ApplicationsDetailPanel(app: app, detail: app.uninstall.showingLeftovers ? .leftovers : .installed) {
-                            app.module = .applicationsOverview
-                        }
-                    case .updates:
-                        ApplicationsDetailPanel(app: app, detail: .updates, includeAllUpdateSources: true) {
-                            app.module = .applicationsOverview
-                        }
-                    case .startup, .privacy, .maintenance, .screenCleaning, .aiClutter, .applicationPermissions, .diskHealth:
-                        ToolsDetailPanel(app: app, module: app.module ?? .toolsOverview)
+                    if (app.module ?? .dashboard) == .dashboard {
+                        // Le tableau AppKit garde les coordonnées natives, y compris pendant la navigation.
+                        modulePage
+                    } else {
+                        modulePage.modifier(DisplayAdjustedContent(layout: layout))
                     }
                 }
                 .id(app.module)
@@ -452,6 +388,35 @@ struct DetailView: View {
             .animation(reduceMotion ? nil : Motion.easeOut(0.2), value: app.module)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder private var modulePage: some View {
+        switch app.module ?? .dashboard {
+        case .about: AboutView(updater: updater)
+        case .battery: BatteryView(model: app.battery)
+        case .dashboard: DashboardView(app: app).environment(\.dashboardScale, layout.scale)
+        case .applicationsOverview: ApplicationsOverviewView(app: app)
+        case .cleaningOverview: CleaningOverviewView(app: app)
+        case .filesOverview: FilesOverviewView(app: app)
+        case .toolsOverview: ToolsOverviewView(app: app)
+        case .performanceOverview: PerformanceOverviewView(app: app)
+        case .smartScan, .cleaning, .trash, .systemClean, .simulators, .devJunk:
+            CleaningDetailPanel(app: app, module: app.module ?? .cleaning)
+        case .space: SpaceView(model: app.space)
+        case .imageOptimization: PNGOptimizationView(model: app.pngOptimization) { app.module = .filesOverview }
+        case .largeFiles: FilesManagerView(app: app, category: .large)
+        case .duplicates: FilesManagerView(app: app, category: .duplicates)
+        case .uninstall:
+            ApplicationsDetailPanel(app: app, detail: app.uninstall.showingLeftovers ? .leftovers : .installed) {
+                app.module = .applicationsOverview
+            }
+        case .updates:
+            ApplicationsDetailPanel(app: app, detail: .updates, includeAllUpdateSources: true) {
+                app.module = .applicationsOverview
+            }
+        case .startup, .privacy, .maintenance, .screenCleaning, .aiClutter, .applicationPermissions, .diskHealth:
+            ToolsDetailPanel(app: app, module: app.module ?? .toolsOverview)
+        }
     }
 }
 
