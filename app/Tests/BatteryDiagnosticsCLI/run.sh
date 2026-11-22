@@ -30,6 +30,8 @@ assert full['helperUID'] == os.geteuid()
 # CI hosts may have no battery; optional telemetry must not be invented.
 assert isinstance(full['snapshot']['present'], bool)
 assert 'fullChargeOverride' in full['compatibility']
+assert full['appleGauging']['readState'] in ('available', 'unavailable', 'invalidFormat', 'tooLarge')
+assert isinstance(full['appleGauging']['packs'], list)
 rows = full['smc']
 assert len(rows) == 40
 assert len({(r['key'], r['transport'], r['handshake']) for r in rows}) == 40

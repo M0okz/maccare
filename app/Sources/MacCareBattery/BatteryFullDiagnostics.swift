@@ -10,11 +10,12 @@ public struct BatteryFullDiagnostics: Codable, Sendable {
     public let snapshot: BatterySnapshot
     public let smc: [BatterySMCKeyDiagnostic]
     public let compatibility: BatteryCompatibilityDiagnostics
+    public let appleGauging: BatteryGaugingDiagnostics?
 
     /// Reads battery telemetry, the fixed SMC key matrix, and native capabilities.
     public static func read() -> Self {
         .init(method: "read-only", helperUID: geteuid(), snapshot: .read(),
-              smc: BatterySMCKeyDiagnostic.read(), compatibility: .read())
+              smc: BatterySMCKeyDiagnostic.read(), compatibility: .read(), appleGauging: .read())
     }
 }
 

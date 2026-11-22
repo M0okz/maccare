@@ -331,7 +331,7 @@ struct BatteryNativeHardwareTests {
         #expect(driver.limits == [80] && driver.restores.isEmpty)
         let message = NativeChargeError(code: expected).localizedDescription
         #expect(!message.contains("étalonnage"))
-        #expect(message.contains(override == true ? "priorité" : "vérifier"))
+        #expect(message.contains(override == true ? "demande de recharge complète" : "vérifier"))
     }
 
     @Test func nativeControllerReportsUnreadableOverrideBeforeSavingOrWriting() {

@@ -9,6 +9,7 @@ struct BatteryNativeModelTests {
     private final class Client: BatteryClient {
         var status: SMAppService.Status = .enabled
         var capabilities: BatteryControlCapabilities? = .init(backend: .nativeLimit, supportedLimits: [80, 85, 90, 95, 100])
+        var appleOverride: String?
         var firmwareManaged = false
         var rootActive = false
         var restoring = false
@@ -42,6 +43,11 @@ struct BatteryNativeModelTests {
                          restoring: restoring, ownedByCaller: rootSession == sessionID, capabilities: capabilities)
             value.recoveryReady = true
             value.cycle = cycle
+            if let appleOverride {
+                var json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(value)) as! [String: Any]
+                json["appleFullChargeOverride"] = appleOverride
+                return try JSONDecoder().decode(BatteryProtectionStatus.self, from: JSONSerialization.data(withJSONObject: json))
+            }
             return value
         }
         func prepareProtection() async throws { preparations += 1 }
@@ -62,6 +68,41 @@ struct BatteryNativeModelTests {
         let defaults = try #require(UserDefaults(suiteName: suite))
         if let initial { defaults.set(try JSONEncoder().encode(initial), forKey: "battery.configuration") }
         return (.init(defaults: defaults, monitor: false, client: client), defaults, suite)
+    }
+
+    @Test func appleRequestIsVisibleBeforeActivationAndRefreshDoesNotActivate() async throws {
+        let client = Client()
+        client.capabilities = .init(backend: .nativePolicy)
+        client.appleOverride = "active"
+        let (model, defaults, suite) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        await model.refresh(force: true)
+        #expect(model.supported && !model.active)
+        #expect(model.message == "Activation suspendue par macOS")
+        #expect(model.appleActivationBlock == .active)
+        await model.perform(.enable)
+        #expect(client.preparations == 0 && !client.calls.contains(.enable))
+        #expect(client.calls == [.status] && client.preparations == 0)
+        client.appleOverride = "inactive"
+        await model.refresh(force: true)
+        #expect(model.message == "Protection désactivée")
+        #expect(model.appleActivationBlock == nil && model.error == nil)
+        #expect(client.calls == [.status, .status] && client.preparations == 0)
+    }
+
+    @Test func unknownAppleRequestBlocksNativeActivationButLegacyHelperStillDecodes() async throws {
+        let client = Client()
+        client.appleOverride = "unknown"
+        let (model, defaults, suite) = try fixture(client)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        await model.refresh(force: true)
+        #expect(model.appleActivationBlock == .unknown)
+        await model.perform(.enable)
+        #expect(client.calls == [.status] && client.preparations == 0)
+        client.appleOverride = nil
+        await model.refresh(force: true)
+        #expect(model.appleActivationBlock == nil)
+        #expect(model.message == "Protection désactivée")
     }
 
     @Test func nativeCapabilitiesAdaptDraftWithoutWritingSettingsOrActivatingControl() async throws {

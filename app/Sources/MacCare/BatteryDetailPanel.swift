@@ -109,6 +109,7 @@ struct BatteryDetailPanel: View {
         .padding(18).background(Theme.bg)
         .confirmationDialog("Activer la protection de la batterie ?", isPresented: $confirmingActivation, titleVisibility: .visible) {
             Button("Activer la protection") { Task { await model.perform(.enable) } }
+                .disabled(model.appleActivationBlock != nil)
             Button("Annuler", role: .cancel) {}
         } message: {
             if AppleSiliconChargeHardware.nativePolicyTrialOnThisMac {
@@ -127,6 +128,12 @@ struct BatteryDetailPanel: View {
             Label(model.message, systemImage: model.active && model.protection?.chargeApplication?.registered == false
                   ? "clock.arrow.circlepath" : model.active ? "checkmark.shield" : "shield")
                 .fixedSize(horizontal: false, vertical: true)
+            if let explanation = model.appleActivationExplanation {
+                Label(explanation, systemImage: "info.circle")
+                    .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+                Button("Actualiser l’état Apple") { Task { await model.refresh(force: true) } }
+                    .disabled(model.controlsBusy)
+            }
             if AppleSiliconChargeHardware.nativePolicyTrialOnThisMac {
                 Label("Prise en charge M1 Max en validation. Cette version permet d’essayer la méthode native avancée ; son fonctionnement physique reste à vérifier sur ce Mac.", systemImage: "flask")
                     .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
@@ -267,7 +274,7 @@ struct BatteryDetailPanel: View {
             Button("Désactiver la protection") { Task { await model.perform(.disable) } }.disabled(model.controlsBusy)
         } else {
             Button("Activer la protection") { confirmingActivation = true }
-                .buttonStyle(.borderedProminent).disabled(model.busy || !model.helperEnabled || !model.supported || !model.recoveryReady || (model.restoring && !model.restorationDeferred))
+                .buttonStyle(.borderedProminent).disabled(model.busy || !model.helperEnabled || !model.supported || !model.recoveryReady || model.appleActivationBlock != nil || (model.restoring && !model.restorationDeferred))
         }
     }
 }
