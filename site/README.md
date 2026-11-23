@@ -97,3 +97,7 @@ Les dix pages publiques prennent la 0.2.32 comme référence. Les icônes du sit
 ## Publication 0.2.33 — 23 novembre 2026
 
 Le site propose la 0.2.33 et le guide de prise en main décrit la densité adaptative de l’accueil. [Contrôles de publication](../docs/release-integration-0.2.33.md).
+
+## Publication 0.2.34 — 23 novembre 2026
+
+Le site propose la 0.2.34. Le guide de prise en main présente la taille minimale de la fenêtre et la fiche des processus. [Contrôles de publication](../docs/release-integration-0.2.34.md).

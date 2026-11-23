@@ -280,3 +280,7 @@ la validation matérielle M1 Max et la synchronisation Outline restent distincte
 ## Publication 0.2.33 — 23 novembre 2026
 
 [MacCare 0.2.33, build 35](https://github.com/M0okz/maccare/releases/tag/v0.2.33) est disponible via GitHub et Sparkle. [Contrôles de distribution et du site](release-integration-0.2.33.md).
+
+## Publication 0.2.34 — 23 novembre 2026
+
+[MacCare 0.2.34, build 36](https://github.com/M0okz/maccare/releases/tag/v0.2.34) est disponible via GitHub et Sparkle. [Contrôles de distribution et du site](release-integration-0.2.34.md).

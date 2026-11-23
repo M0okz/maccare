@@ -1,6 +1,8 @@
 # Échelle automatique de la fenêtre principale
 
-## Taille minimale choisie dans MacCare Dev
+## Taille minimale de la fenêtre principale
+
+Disponible dans [MacCare 0.2.34, build 36](release-integration-0.2.34.md).
 
 Le 23 novembre 2026, la fenêtre que Gregory venait de redimensionner dans la DEV
 mesurait **1 311 × 773 points**, barre de titre comprise. Ce format devient la
