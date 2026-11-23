@@ -77,9 +77,71 @@ struct BatteryNativeHardwareTests {
 
     @Test func policyIsOnlyAllowedOnTheValidationModel() {
         #expect(AppleSiliconChargeHardware.nativePolicyValidated(model: "MacBookPro17,1"))
-        for model: String? in ["MacBookAir10,1", "Mac16,12", "MacBookPro18,3", "", nil] {
+        for model: String? in ["MacBookAir10,1", "Mac16,12", "MacBookPro18,1", "MacBookPro18,2", "MacBookPro18,3", "MacBookPro18,4", "", nil] {
             #expect(!AppleSiliconChargeHardware.nativePolicyValidated(model: model))
         }
+    }
+
+    @Test func trialIsRestrictedToTheObservedM1MaxWithoutClaimingValidation() {
+        #expect(AppleSiliconChargeHardware.nativePolicyAllowed(model: "MacBookPro18,4", trialBuild: true))
+        #expect(AppleSiliconChargeHardware.nativePolicyAllowed(model: "MacBookPro18,4", trialBuild: false) == false)
+        #expect(AppleSiliconChargeHardware.nativePolicyValidated(model: "MacBookPro18,4") == false)
+        #expect(AppleSiliconChargeHardware.nativePolicyAllowed(model: "MacBookPro17,1", trialBuild: false))
+        for model: String? in ["MacBookPro18,1", "MacBookPro18,2", "MacBookPro18,3", "MacBookAir10,1", "", nil] {
+            #expect(AppleSiliconChargeHardware.nativePolicyAllowed(model: model, trialBuild: true) == false)
+        }
+    }
+
+    @Test(arguments: [false, true])
+    func observedM1MaxUsesPolicyOnlyInTrialBuild(trial: Bool) throws {
+        let smc = SMC(), driver = Driver(), policy = Policy()
+        smc.readError = BatteryHardwareError(code: kIOReturnNotPrivileged)
+        let hardware = AppleSiliconChargeHardware(smc: smc, native: native(driver), nativePolicy: policy,
+            nativeAvailable: true,
+            nativePolicyActivationAllowed: AppleSiliconChargeHardware.nativePolicyAllowed(model: "MacBookPro18,4", trialBuild: trial))
+        #expect(try hardware.readSwitch() == 0)
+        #expect(hardware.capabilities.backend == (trial ? .nativePolicy : .nativeLimit))
+        #expect(hardware.capabilities.supportsSailing == trial)
+        #expect(hardware.capabilities.supportsThermalProtection == trial)
+        #expect(hardware.capabilities.supportedLimits.contains(60) == trial)
+        #expect(driver.limits.isEmpty && smc.writes.isEmpty && policy.restores.isEmpty)
+        if trial { #expect(policy.reads > 0) } else { #expect(policy.reads == 0) }
+    }
+
+    @Test(arguments: [-1, 0, 1] as [Int32])
+    func m1MaxCompatibilityReportReadsWithoutEnablingUnvalidatedPolicy(override: Int32) throws {
+        let smc = SMC(), driver = Driver(), policy = Policy()
+        smc.readError = BatteryHardwareError(code: kIOReturnNotPrivileged)
+        let hardware = AppleSiliconChargeHardware(smc: smc, native: native(driver), nativePolicy: policy,
+                                                  nativeAvailable: true,
+                                                  nativePolicyActivationAllowed: AppleSiliconChargeHardware.nativePolicyValidated(model: "MacBookPro18,2"))
+        let report = BatteryCompatibilityDiagnostics.capture(model: "MacBookPro18,2",
+            os: .init(majorVersion: 27, minorVersion: 0, patchVersion: 1), driver: driver,
+            hardware: hardware, override: override, policyAvailable: true)
+        #expect(report.model == "MacBookPro18,2" && report.macOS == "27.0.1")
+        #expect(report.nativeLimitOSAvailable && report.nativePolicyInterfaceAvailable && !report.nativePolicyValidated)
+        #expect(report.fullChargeOverride == (override < 0 ? .unknown : (override == 0 ? .inactive : .active)))
+        #expect(report.capabilities?.backend == .nativeLimit && report.capabilities?.limitation == .hardwareAccessDenied)
+        #expect(report.controlReadError == nil)
+        #expect(report.nativeState == driver.reading.state && report.nativeSupportedLimits == Array(80...100))
+        #expect(report.nativeReadError == nil)
+        #expect(policy.reads == 0 && policy.restores.isEmpty && smc.writes.isEmpty && smc.captures == 0)
+        #expect(driver.limits.isEmpty && driver.restores.isEmpty)
+        let roundTrip = try JSONDecoder().decode(BatteryCompatibilityDiagnostics.self, from: JSONEncoder().encode(report))
+        #expect(roundTrip.fullChargeOverride == report.fullChargeOverride)
+    }
+
+    @Test func compatibilityReportRetainsNativeReadFailure() {
+        let driver = Driver(); driver.failRead = true
+        let smc = SMC(); smc.failRead = true
+        let report = BatteryCompatibilityDiagnostics.capture(model: nil,
+            os: .init(majorVersion: 25, minorVersion: 0, patchVersion: 0), driver: driver,
+            hardware: smc, override: -1, policyAvailable: false)
+        #expect(report.model == nil && !report.nativeLimitOSAvailable && !report.nativePolicyValidated)
+        #expect(report.fullChargeOverride == .unknown && report.nativeReadError != nil)
+        #expect(report.nativeState == nil && report.nativeSupportedLimits == nil)
+        #expect(report.capabilities == nil && report.controlReadError != nil)
+        #expect(driver.limits.isEmpty && driver.restores.isEmpty)
     }
     @Test func discoveryDoesNotActivateThePolicyWithoutValidation() throws {
         let smc = SMC(), driver = Driver(), policy = Policy()
@@ -247,6 +309,41 @@ struct BatteryNativeHardwareTests {
         #expect(throws: NativeChargeError.self) { _ = try native(driver).captureRecovery() }
         #expect(driver.limits.isEmpty)
         #expect(driver.restores.isEmpty)
+    }
+
+    @Test(arguments: [true, nil] as [Bool?])
+    func fullChargePriorityAndUnreadableStateHaveDifferentErrors(override: Bool?) throws {
+        let driver = Driver(), hardware = native(driver)
+        func refusedCode(_ operation: () throws -> Void) -> Int32? {
+            do { try operation(); Issue.record("The operation must be refused"); return nil }
+            catch { return (error as? NativeChargeError)?.code }
+        }
+        let expected: Int32 = override == true ? -8 : -9
+        driver.reading.calibrationOverride = override
+        #expect(refusedCode { _ = try hardware.captureRecovery() } == expected)
+        driver.reading.calibrationOverride = false
+        let record = try hardware.captureRecovery()
+        try hardware.setChargeLimit(80)
+        driver.reading.calibrationOverride = override
+        #expect(refusedCode { try hardware.setChargeLimit(85) } == expected)
+        #expect(refusedCode { try hardware.restore(record) } == expected)
+        #expect(refusedCode { try hardware.validateDischarge() } == expected)
+        #expect(driver.limits == [80] && driver.restores.isEmpty)
+        let message = NativeChargeError(code: expected).localizedDescription
+        #expect(!message.contains("étalonnage"))
+        #expect(message.contains(override == true ? "demande de recharge complète" : "vérifier"))
+    }
+
+    @Test func nativeControllerReportsUnreadableOverrideBeforeSavingOrWriting() {
+        let driver = Driver(); driver.reading.calibrationOverride = nil
+        var savedRecovery = false
+        let controller = BatteryProtectionController(hardware: native(driver),
+            markRecovery: { _ in savedRecovery = true }, clearRecovery: {})
+        let status = controller.execute(.enable, configuration: .init(thermalProtection: false),
+            uid: 501, sessionID: UUID(), snapshot: .init(percent: 80, onAC: true, temperature: 30), now: 0)
+        #expect(!status.active)
+        #expect(status.error == NativeChargeError(code: -9).localizedDescription)
+        #expect(!savedRecovery && driver.limits.isEmpty && driver.restores.isEmpty)
     }
 
     @Test(arguments: [NativeChargeState(enabled: true, limit: 100), .init(enabled: false, limit: 85)])

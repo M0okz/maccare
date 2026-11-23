@@ -6,6 +6,17 @@ import re
 import sys
 
 
+def validate_battery_build(info, environment):
+    """Keep the compiled battery mode and the explicitly chosen delivery aligned."""
+    trial = info.get('m1MaxTrialBuild')
+    if not isinstance(trial, bool):
+        raise ValueError('Le helper ne fournit pas un mode batterie valide.')
+    if trial != (environment.get('MACCARE_M1_MAX_BATTERY_TRIAL') == '1'):
+        raise ValueError('Le mode M1 Max du helper ne correspond pas au paquet demandé. Recompilez avec le même mode.')
+    if trial and environment.get('MACCARE_DISTRIBUTION') == '1' and environment.get('MACCARE_PUBLIC_M1_MAX_TRIAL') != '1':
+        raise ValueError('La publication du mode M1 Max en validation exige MACCARE_PUBLIC_M1_MAX_TRIAL=1.')
+
+
 def configure(helper, info, distribution):
     build = info['CFBundleVersion']
     version = info['CFBundleShortVersionString']

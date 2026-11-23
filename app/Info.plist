@@ -11,7 +11,7 @@
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleIconName</key><string>VeilleAmethyste</string>
   <key>CFBundleIconFile</key><string>MacCare</string>
-  <key>CFBundleShortVersionString</key><string>0.2.28</string>
+  <key>CFBundleShortVersionString</key><string>0.2.31</string>
   <key>CFBundleVersion</key><string>8</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>NSHighResolutionCapable</key><true/>

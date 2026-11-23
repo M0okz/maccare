@@ -4,10 +4,26 @@ from pathlib import Path
 import plistlib
 import unittest
 
-from app.release.configure_helper import configure
+from app.release.configure_helper import configure, validate_battery_build
 
 
 class HelperConfigurationTests(unittest.TestCase):
+    def test_public_trial_requires_explicit_delivery_choice(self):
+        environment = {'MACCARE_M1_MAX_BATTERY_TRIAL':'1', 'MACCARE_DISTRIBUTION':'1'}
+        with self.assertRaisesRegex(ValueError, 'MACCARE_PUBLIC_M1_MAX_TRIAL'):
+            validate_battery_build({'m1MaxTrialBuild':True}, environment)
+        validate_battery_build({'m1MaxTrialBuild':True}, dict(environment, MACCARE_PUBLIC_M1_MAX_TRIAL='1'))
+        validate_battery_build({'m1MaxTrialBuild':True}, {'MACCARE_M1_MAX_BATTERY_TRIAL':'1'})
+        validate_battery_build({'m1MaxTrialBuild':False}, {'MACCARE_DISTRIBUTION':'1'})
+
+    def test_public_choice_does_not_hide_a_mismatched_or_unknown_binary(self):
+        environment = {'MACCARE_M1_MAX_BATTERY_TRIAL':'1', 'MACCARE_DISTRIBUTION':'1', 'MACCARE_PUBLIC_M1_MAX_TRIAL':'1'}
+        for info in [{}, {'m1MaxTrialBuild':'true'}, {'m1MaxTrialBuild':False}]:
+            with self.subTest(info=info), self.assertRaises(ValueError):
+                validate_battery_build(info, environment)
+        with self.assertRaises(ValueError):
+            validate_battery_build({'m1MaxTrialBuild':True}, {})
+
     def setUp(self):
         source = Path(__file__).resolve().parents[2]/'Helper/org.maccare.helper.plist'
         self.helper = plistlib.loads(source.read_bytes())

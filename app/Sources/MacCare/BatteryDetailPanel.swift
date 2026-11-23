@@ -109,8 +109,12 @@ struct BatteryDetailPanel: View {
         .padding(18).background(Theme.bg)
         .confirmationDialog("Activer la protection de la batterie ?", isPresented: $confirmingActivation, titleVisibility: .visible) {
             Button("Activer la protection") { Task { await model.perform(.enable) } }
+                .disabled(model.appleActivationBlock != nil)
             Button("Annuler", role: .cancel) {}
         } message: {
+            if AppleSiliconChargeHardware.nativePolicyTrialOnThisMac {
+                Text("Version de validation M1 Max. Le maintien, la reprise et la restauration doivent encore être vérifiés sur ce modèle. L’activation peut modifier les réglages de charge ; elle reste bloquée si macOS impose une recharge complète.")
+            }
             Text(model.nativePolicyControl
                  ? "MacCare demandera à macOS une limite de \(model.configuration.limit) %. Elle s’applique en général en quelques secondes, et la charge peut mettre environ une minute à réagir. Désactivez AlDente et tout autre contrôleur avant de continuer. MacCare conserve la recharge optimisée. À l’arrêt, il restaure les réglages de charge initiaux, dès que la batterie n’est plus au-dessus de la limite d’origine. La calibration de macOS peut temporairement imposer une recharge à 100 %."
                  : model.nativeControl
@@ -124,8 +128,18 @@ struct BatteryDetailPanel: View {
             Label(model.message, systemImage: model.active && model.protection?.chargeApplication?.registered == false
                   ? "clock.arrow.circlepath" : model.active ? "checkmark.shield" : "shield")
                 .fixedSize(horizontal: false, vertical: true)
+            if let explanation = model.appleActivationExplanation {
+                Label(explanation, systemImage: "info.circle")
+                    .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+                Button("Actualiser l’état Apple") { Task { await model.refresh(force: true) } }
+                    .disabled(model.controlsBusy)
+            }
+            if AppleSiliconChargeHardware.nativePolicyTrialOnThisMac {
+                Label("Prise en charge M1 Max en validation. Cette version permet d’essayer la méthode native avancée ; son fonctionnement physique reste à vérifier sur ce Mac.", systemImage: "flask")
+                    .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+            }
             if model.protection?.capabilities?.limitation == .hardwareAccessDenied {
-                Label("macOS refuse l’accès aux contrôles matériels de charge sur ce Mac. La limite native reste disponible de 80 à 100 %. Les limites sous 80 % et le mode Voile ne peuvent pas être activés avec cette méthode.", systemImage: "info.circle")
+                Label("macOS refuse l’accès à la méthode directe de contrôle de charge. La limite native reste disponible de 80 à 100 %. Les limites sous 80 % et le mode Voile ne sont pas disponibles avec cette limite native.", systemImage: "info.circle")
                     .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
             }
             if !snapshot.appleSilicon {
@@ -260,7 +274,7 @@ struct BatteryDetailPanel: View {
             Button("Désactiver la protection") { Task { await model.perform(.disable) } }.disabled(model.controlsBusy)
         } else {
             Button("Activer la protection") { confirmingActivation = true }
-                .buttonStyle(.borderedProminent).disabled(model.busy || !model.helperEnabled || !model.supported || !model.recoveryReady || (model.restoring && !model.restorationDeferred))
+                .buttonStyle(.borderedProminent).disabled(model.busy || !model.helperEnabled || !model.supported || !model.recoveryReady || model.appleActivationBlock != nil || (model.restoring && !model.restorationDeferred))
         }
     }
 }

@@ -227,20 +227,63 @@ final class ListenerDelegate: NSObject, NSXPCListenerDelegate {
     }
 }
 
-// Explicit read-only diagnostic: never starts the daemon or writes SMC state.
-if CommandLine.arguments.contains("--battery-diagnostics") {
-    let snapshot = BatterySnapshot.read()
-    let hardware = AppleSiliconChargeHardware()
-    var value: UInt8?
-    var diagnosticError: String?
-    do { value = try hardware.readSwitch() } catch { diagnosticError = error.localizedDescription }
-    let result = BatteryProtectionStatus(snapshot: snapshot, firmwareManaged: hardware.firmwareManaged, supported: value != nil,
-        suspended: value == 2, message: "Diagnostic en lecture seule",
-        error: diagnosticError)
-    if let data = try? JSONEncoder().encode(result) { print(String(decoding: data, as: UTF8.self)) }
-    exit(0)
+// Any CLI argument is handled before daemon/recovery initialization. Unknown or
+// combined options must never fall through into the privileged service.
+let diagnosticArguments = Array(CommandLine.arguments.dropFirst())
+if !diagnosticArguments.isEmpty {
+    let usage = """
+    Usage: MacCareHelper [--battery-full-diagnostics | --battery-diagnostics | --battery-compatibility-diagnostics | --battery-build-info | --help]
+    Diagnostic options print read-only JSON and exit without starting the service.
+    --battery-full-diagnostics includes battery telemetry, SMC keys (including CHIE), and compatibility.
+    Run as root for privileged reads; read failures are retained in the report.
+    """
+    guard diagnosticArguments.count == 1 else {
+        FileHandle.standardError.write(Data((usage + "\n").utf8))
+        exit(2)
+    }
+    let encoder = JSONEncoder()
+    do {
+        let data: Data
+        switch diagnosticArguments[0] {
+        case "--battery-build-info":
+            data = try encoder.encode(["m1MaxTrialBuild": AppleSiliconChargeHardware.m1MaxTrialBuild])
+        case "--battery-diagnostics":
+            // Preserve the legacy snapshot format for existing consumers.
+            let snapshot = BatterySnapshot.read()
+            let hardware = AppleSiliconChargeHardware()
+            var value: UInt8?
+            var diagnosticError: String?
+            do { value = try hardware.readSwitch() } catch { diagnosticError = error.localizedDescription }
+            let result = BatteryProtectionStatus(snapshot: snapshot, firmwareManaged: hardware.firmwareManaged,
+                supported: value != nil, suspended: value == 2, message: "Diagnostic en lecture seule", error: diagnosticError)
+            data = try encoder.encode(result)
+        case "--battery-compatibility-diagnostics":
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            data = try encoder.encode(BatteryCompatibilityDiagnostics.read())
+        case "--battery-full-diagnostics":
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            data = try encoder.encode(BatteryFullDiagnostics.read())
+        case "--help", "-h":
+            print(usage)
+            exit(0)
+        default:
+            FileHandle.standardError.write(Data((usage + "\n").utf8))
+            exit(2)
+        }
+        print(String(decoding: data, as: UTF8.self))
+        exit(0)
+    } catch {
+        FileHandle.standardError.write(Data(("Diagnostic encoding failed: \(error.localizedDescription)\n").utf8))
+        exit(1)
+    }
 }
 
+#if MACCARE_DIAGNOSTICS_ONLY
+// Standalone handoff build: never register a listener or start recovery/watchdog,
+// even if the user forgets the diagnostic option. The installed helper is unchanged.
+FileHandle.standardError.write(Data("Use --battery-full-diagnostics for read-only JSON, or --help.\n".utf8))
+exit(2)
+#else
 let delegate = ListenerDelegate()
 let listener = NSXPCListener(machServiceName: HelperIdentity.machService)
 listener.delegate = delegate
@@ -249,3 +292,4 @@ listener.resume()
 BatteryService.start()
 Idle.watch()
 RunLoop.main.run()
+#endif

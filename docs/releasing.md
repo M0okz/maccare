@@ -259,3 +259,16 @@ de Gregory : historique batterie optimisé, drainage des commandes sans blocage
 stdout/stderr et minuteur disque indépendant. PR #37 fusionnée, tag `v0.2.28`
 sur `3399a6e`, CI et chaîne officielle réussies. Le site et Outline sont synchronisés.
 [Contrôles publics, installation et limites](release-integration-0.2.28.md).
+
+
+## Publication 0.2.30 — 22 novembre 2026
+
+[MacCare 0.2.30 (32)](https://github.com/M0okz/maccare/releases/tag/v0.2.30) est
+publié après la PR #39 : demande Apple actualisable et diagnostic de jauge en
+lecture seule. CI, signature, notarisation, flux Sparkle et site vérifiés.
+[Preuves et limites](release-integration-0.2.30.md). Aucune installation effectuée ;
+la validation matérielle M1 Max et la synchronisation Outline restent distinctes.
+
+## Publication 0.2.31 — 23 novembre 2026
+
+[MacCare 0.2.31, build 33](https://github.com/M0okz/maccare/releases/tag/v0.2.31) est publié sur GitHub et dans le flux Sparkle. Voir les [preuves de livraison](release-integration-0.2.31.md).

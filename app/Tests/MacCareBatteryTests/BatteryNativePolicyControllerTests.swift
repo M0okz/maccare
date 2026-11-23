@@ -109,6 +109,10 @@ struct BatteryNativePolicyControllerTests {
         }
         func clear() throws { if failClear { throw Failure.persistence }; pending = nil }
     }
+    private final class DeniedHardware: ChargeHardware {
+        func readSwitch() throws -> UInt8 { throw BatteryHardwareError(code: kIOReturnNotPrivileged) }
+        func writeSwitch(_ value: UInt8) throws { Issue.record("Unexpected fallback write"); throw Failure.write }
+    }
     private final class Fixture {
         let driver: Driver
         let journal: Journal
@@ -119,7 +123,8 @@ struct BatteryNativePolicyControllerTests {
         let hardware: RecoverableChargeHardware
         let controller: BatteryProtectionController
         let session = UUID()
-        init(original: NativeChargePolicyPreferences = .init(featureState: .absent, limit: .absent), driver injected: Driver? = nil) {
+        init(original: NativeChargePolicyPreferences = .init(featureState: .absent, limit: .absent), driver injected: Driver? = nil,
+             m1MaxTrial: Bool = false) {
             let driver = injected ?? Driver(original), journal = Journal()
             self.driver = driver; self.journal = journal
             // An explicit fixed AC context keeps all tests independent of the host Mac.
@@ -129,11 +134,17 @@ struct BatteryNativePolicyControllerTests {
             let policy = NativeChargePolicyHardware(driver: driver, identity: { "fixture-M1" }, onAC: { true },
                                                     percent: { readLevel() }, adapter: adapter,
                                                     charging: { readCharging() }, pause: { recordPause($0) })
-            let hardware = RecoverableChargeHardware(base: policy, adapter: adapter, identity: { "fixture-M1" })
+            let base: any ChargeHardware = m1MaxTrial
+                ? AppleSiliconChargeHardware(smc: DeniedHardware(), native: DeniedHardware(), nativePolicy: policy,
+                    nativeAvailable: true,
+                    nativePolicyActivationAllowed: AppleSiliconChargeHardware.nativePolicyAllowed(model: "MacBookPro18,4", trialBuild: true))
+                : policy
+            let hardware = RecoverableChargeHardware(base: base, adapter: adapter, identity: { "fixture-M1" })
             self.hardware = hardware
             adapter.journal = journal
             driver.beforeMutation = { #expect(journal.pending != nil, "The original policy must be durable before any write or release") }
-            controller = .init(hardware: hardware, markRecovery: { try journal.save($0) }, clearRecovery: { try journal.clear() })
+            controller = .init(hardware: hardware, markRecovery: { try journal.save($0) }, clearRecovery: { try journal.clear() },
+                               fullChargeOverride: { driver.override.map { $0 ? .active : .inactive } ?? .unknown })
             recordPause = { [unowned self] in self.pauses.append($0) }
             readLevel = { [unowned self] in self.level }
             readCharging = { [unowned self] in self.charging }
@@ -146,6 +157,56 @@ struct BatteryNativePolicyControllerTests {
                 ? .init(limit: limit, thermalProtection: thermal, maximumTemperature: 35, sailingWidth: sailing) : nil,
                 uid: 501, sessionID: session, snapshot: snapshot, now: now)
         }
+    }
+
+    @Test func m1MaxAppleRequestCanClearOffACWithoutActivationOrWrites() throws {
+        let f = Fixture(m1MaxTrial: true)
+        f.driver.override = true
+        let denied = f.run(.enable, percent: 71, onAC: false)
+        #expect(!denied.active && denied.error != nil && denied.appleFullChargeOverride == .active)
+        #expect(f.journal.pending == nil)
+        let blocked = f.run(.status, percent: 71, onAC: false)
+        #expect(blocked.error != nil && blocked.appleFullChargeOverride == .active)
+        f.driver.override = nil
+        #expect(f.run(.status, onAC: false).error != nil)
+        f.driver.override = false
+        let refreshed = f.run(.status, percent: 71, onAC: false)
+        #expect(refreshed.supported && !refreshed.active && !refreshed.restoring)
+        #expect(refreshed.error == nil && refreshed.message == "Protection désactivée")
+        #expect(refreshed.appleFullChargeOverride == .inactive)
+        #expect(f.driver.targets.isEmpty && f.driver.clears == 0 && f.driver.restores == 0)
+        #expect(f.adapter.writes.isEmpty && f.journal.pending == nil)
+    }
+
+    @Test func clearingAppleRequestDoesNotClearUnrelatedActivationFailure() {
+        let f = Fixture(m1MaxTrial: true)
+        f.journal.failSave = true
+        let failed = f.run(.enable)
+        #expect(failed.error != nil && !failed.active)
+        let refreshed = f.run(.status)
+        #expect(refreshed.error == failed.error && !refreshed.active)
+    }
+
+    @Test func m1MaxTrialRoutesThroughPolicyAndCHIEWithDurableRestoration() throws {
+        let f = Fixture(m1MaxTrial: true)
+        try #require(f.run(.enable, limit: 80, sailing: 5, percent: 78).active)
+        #expect(f.journal.pending?.backend == .nativePolicy && f.journal.pending?.adapterBackend == .modern)
+        #expect(f.driver.targets == [78])
+        #expect(f.run(.heartbeat, percent: 77, now: 10).active)
+        #expect(f.run(.heartbeat, percent: 75, now: 20).active)
+        #expect(f.driver.targets == [78, 77, 80] && f.driver.clears == 1)
+        let off = f.run(.disable, percent: 75, now: 25)
+        #expect(off.active == false && off.restoring == false)
+        #expect(f.journal.pending == nil && f.adapter.disabled == false)
+        #expect(f.driver.preferences == .init(featureState: .absent, limit: .absent))
+    }
+
+    @Test(arguments: [true, nil])
+    func m1MaxTrialStillBlocksApplePriorityBeforeAnyWrite(override: Bool?) {
+        let f = Fixture(m1MaxTrial: true); f.driver.override = override
+        #expect(f.run(.enable, percent: 74, onAC: false).active == false)
+        #expect(f.driver.targets.isEmpty && f.driver.clears == 0 && f.driver.restores == 0)
+        #expect(f.adapter.writes.isEmpty && f.journal.pending == nil)
     }
 
     @Test func restoringAfterARechargeReplacesTheFullTargetSoTheClearTakesEffect() throws {
@@ -696,7 +757,11 @@ struct BatteryNativePolicyControllerTests {
     @Test(arguments: [true, nil])
     func appleCalibrationOrUnknownOverrideNeverStartsPolicy(override: Bool?) {
         let f = Fixture(); f.driver.override = override
-        #expect(!f.run(.enable).active)
+        let status = f.run(.enable)
+        #expect(!status.active)
+        #expect(status.error?.contains("étalonnage") == false)
+        // An unreadable override makes policy capabilities unavailable before capture.
+        if override == true { #expect(status.error?.contains("demande de recharge complète") == true) }
         #expect(f.driver.targets.isEmpty && f.journal.pending == nil)
     }
 }

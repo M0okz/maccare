@@ -7,7 +7,7 @@
 typedef struct {
     int32_t enabled;
     int32_t limit;
-    // -1: unknown, 0: no Apple override, 1: Apple override/calibration active.
+    // -1: unknown, 0: no Apple full-charge override, 1: override active.
     int32_t calibration_override;
 } MacCarePowerUIState;
 
@@ -20,7 +20,8 @@ enum {
     MACCARE_POWERUI_CALL_FAILED = -5,
     MACCARE_POWERUI_VERIFICATION_FAILED = -6,
     MACCARE_POWERUI_EXCEPTION = -7,
-    MACCARE_POWERUI_APPLE_OVERRIDE = -8
+    MACCARE_POWERUI_APPLE_OVERRIDE = -8,
+    MACCARE_POWERUI_OVERRIDE_UNKNOWN = -9
 };
 
 // Calls must be serialized by the helper's battery queue. Read performs no

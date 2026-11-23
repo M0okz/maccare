@@ -37,6 +37,7 @@ private struct SidebarRowSurface<Label: View>: View {
 
 /// L’icône reste centrée sur le rail pendant l’ouverture et la fermeture.
 struct SidebarLabel: View {
+    static let railWidth: CGFloat = 76
     let title: String
     let symbol: String
     let compact: Bool
@@ -44,7 +45,7 @@ struct SidebarLabel: View {
     var body: some View {
         HStack(spacing: 0) {
             Image(systemName: symbol).font(AppFont.emphasis)
-                .frame(width: Sidebar.railWidth - 16)
+                .frame(width: Self.railWidth - 16)
                 .accessibilityHidden(true)
             if !compact {
                 Text(title).font(AppFont.body.weight(.medium)).lineLimit(1).fixedSize()

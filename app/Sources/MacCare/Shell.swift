@@ -203,7 +203,7 @@ struct RootView: View {
                     .modifier(DisplayAdjustedContent(layout: displayLayout))
             } else {
                 DetailView(app: app, updater: updater, layout: displayLayout)
-                    .padding(.leading, Sidebar.railWidth * displayLayout.scale)
+                    .padding(.leading, SidebarLabel.railWidth * displayLayout.scale)
                     .overlay(alignment: .leading) {
                         Sidebar(app: app, updater: updater).dashboardBlockScale(displayLayout.scale)
                     }
@@ -247,7 +247,6 @@ struct Sidebar: View {
     @ObservedObject private var performanceTasks: PerformanceTasksModel
     @ObservedObject private var performanceRepairs: MaintenanceModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    static let railWidth: CGFloat = 76
     @State private var expanded = false
     @State private var showingTools = false
     private var compact: Bool { !expanded && !showingTools }
@@ -302,7 +301,7 @@ struct Sidebar: View {
         .padding(.horizontal, 8)
         .padding(.top, 62)
         .padding(.bottom, 14)
-        .frame(width: compact ? Self.railWidth : 222)
+        .frame(width: compact ? SidebarLabel.railWidth : 222)
         .frame(maxHeight: .infinity, alignment: .top)
         .overlay(alignment: .topLeading) {
             if AppBuildIdentity.isDevelopment {

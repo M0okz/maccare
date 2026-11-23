@@ -26,16 +26,20 @@ public final class BatteryProtectionController {
     private var awaitingHeartbeat = false
     private var restoring = false
     private var deferredRestorationTarget: Int?
-    private var failure: String?
+    private var failure: String? { didSet { appleActivationFailure = false } }
+    private var appleActivationFailure = false
+    private let fullChargeOverride: () -> BatteryCompatibilityDiagnostics.FullChargeOverride?
     private var message = "Protection désactivée"
     private let allowsDischarge: Bool
     private let allowsCalibration: Bool
     public var requiresWatchdog: Bool { recovery != nil }
 
     public init(hardware: any ChargeHardware, markRecovery: @escaping (BatteryRecoveryRecord) throws -> Void,
-                clearRecovery: @escaping () throws -> Void, allowsDischarge: Bool = true, allowsCalibration: Bool = true) {
+                clearRecovery: @escaping () throws -> Void, allowsDischarge: Bool = true, allowsCalibration: Bool = true,
+                fullChargeOverride: @escaping () -> BatteryCompatibilityDiagnostics.FullChargeOverride? = { nil }) {
         self.hardware = hardware; self.markRecovery = markRecovery; self.clearRecovery = clearRecovery
         self.allowsDischarge = allowsDischarge; self.allowsCalibration = allowsCalibration
+        self.fullChargeOverride = fullChargeOverride
     }
     public func recover(_ record: BatteryRecoveryRecord) throws {
         guard record.isValid else { throw BatteryHardwareError(code: -3) }
@@ -49,6 +53,7 @@ public final class BatteryProtectionController {
         if command == .status { return status(snapshot, now: now, uid: uid, session: callerSession) }
         // A renewal that arrives after its session ended only learns the outcome: lateness is not a fault.
         if command == .heartbeat, restoring { return status(snapshot, now: now, uid: uid, session: callerSession) }
+        let enablingWithoutSession = command == .enable && recovery == nil
         do {
             guard uid >= 501, let callerSession else { throw ControlError("Session de contrôle invalide.") }
             if let owner {
@@ -160,6 +165,8 @@ public final class BatteryProtectionController {
                 message = restoring ? "Restauration de la charge en cours" : "Protection désactivée"
             } else {
                 failure = issue
+                appleActivationFailure = enablingWithoutSession && recovery == nil &&
+                    (error as? NativeChargeError).map { [-8, -9].contains($0.code) } == true
                 message = restoring ? "Restauration de la charge en cours" : "Protection à vérifier"
             }
         }
@@ -342,6 +349,13 @@ public final class BatteryProtectionController {
             catch { supported = false; hardwareError = error.localizedDescription }
         } else { supported = false }
         let expired = recovery != nil && now >= deadline && !sleeping
+        let appleOverride = fullChargeOverride()
+        // Only retire a typed pre-activation Apple failure after a fresh successful
+        // read. Never clear restoration, hardware, persistence, or session failures.
+        if appleActivationFailure, appleOverride == .inactive, hardwareError == nil,
+           recovery == nil, owner == nil, !restoring {
+            failure = nil; message = "Protection désactivée"
+        }
         var application: BatteryChargeApplicationStatus?
         if owner != nil && sessionCapabilities?.backend == .nativePolicy && !restoring && !expired {
             do { application = try hardware.chargeApplicationStatus(now: now) }
@@ -356,6 +370,7 @@ public final class BatteryProtectionController {
         result.cycle = cycle?.status
         result.chargeApplication = application
         result.deferredRestorationTarget = deferredRestorationTarget
+        result.appleFullChargeOverride = appleOverride
         return result
     }
     private static let reconnectMessage = "Secteur non revenu · si le câble est branché, débranchez-le puis rebranchez-le"

@@ -96,6 +96,11 @@ static int32_t appleOverride(void) {
     return state == 0 ? 0 : 1;
 }
 
+static int32_t requireNoAppleOverride(int32_t state) {
+    if (state < 0) return MACCARE_POWERUI_OVERRIDE_UNKNOWN;
+    return state == 0 ? MACCARE_POWERUI_SUCCESS : MACCARE_POWERUI_APPLE_OVERRIDE;
+}
+
 static int32_t readState(id<MacCarePowerUIClient> client, MacCarePowerUIState *state) {
     NSError *error = nil;
     unsigned char limit = [client getMCLLimitWithError:&error];
@@ -188,7 +193,8 @@ static int32_t setLimit(int32_t limit) {
             MacCarePowerUIState before;
             result = readState(client, &before);
             if (result != MACCARE_POWERUI_SUCCESS) return result;
-            if (before.calibration_override != 0) return MACCARE_POWERUI_APPLE_OVERRIDE;
+            result = requireNoAppleOverride(before.calibration_override);
+            if (result != MACCARE_POWERUI_SUCCESS) return result;
             int32_t expectedEnabled = limit < 100 ? 1 : 0;
             if (before.limit == limit && before.enabled == expectedEnabled) return MACCARE_POWERUI_SUCCESS;
             NSError *error = nil;
@@ -197,7 +203,8 @@ static int32_t setLimit(int32_t limit) {
             MacCarePowerUIState after;
             result = readState(client, &after);
             if (result != MACCARE_POWERUI_SUCCESS) return MACCARE_POWERUI_VERIFICATION_FAILED;
-            if (after.calibration_override != 0) return MACCARE_POWERUI_APPLE_OVERRIDE;
+            result = requireNoAppleOverride(after.calibration_override);
+            if (result != MACCARE_POWERUI_SUCCESS) return result;
             if (after.limit != limit || after.enabled != expectedEnabled) return MACCARE_POWERUI_VERIFICATION_FAILED;
             return MACCARE_POWERUI_SUCCESS;
         } @catch (NSException *exception) {
@@ -260,7 +267,8 @@ int32_t maccare_powerui_clear_limit(void) {
             if (client == nil) return result;
             if (!validPolicyInterface(object_getClass(client))) return MACCARE_POWERUI_INVALID_ABI;
             if (![client isMCLSupported]) return MACCARE_POWERUI_UNAVAILABLE;
-            if (appleOverride() != 0) return MACCARE_POWERUI_APPLE_OVERRIDE;
+            result = requireNoAppleOverride(appleOverride());
+            if (result != MACCARE_POWERUI_SUCCESS) return result;
             unsigned long long enabled;
             result = readEnabled(client, &enabled);
             if (result != MACCARE_POWERUI_SUCCESS) return result;
@@ -270,12 +278,14 @@ int32_t maccare_powerui_clear_limit(void) {
                 result = readEnabled(client, &enabled);
                 if (result != MACCARE_POWERUI_SUCCESS || enabled != 1) return MACCARE_POWERUI_VERIFICATION_FAILED;
             }
-            if (appleOverride() != 0) return MACCARE_POWERUI_APPLE_OVERRIDE;
+            result = requireNoAppleOverride(appleOverride());
+            if (result != MACCARE_POWERUI_SUCCESS) return result;
             error = nil;
             if (![client disableMCL:&error] || error != nil) return MACCARE_POWERUI_CALL_FAILED;
             result = readEnabled(client, &enabled);
             if (result != MACCARE_POWERUI_SUCCESS || enabled != 0) return MACCARE_POWERUI_VERIFICATION_FAILED;
-            if (appleOverride() != 0) return MACCARE_POWERUI_APPLE_OVERRIDE;
+            result = requireNoAppleOverride(appleOverride());
+            if (result != MACCARE_POWERUI_SUCCESS) return result;
             return MACCARE_POWERUI_SUCCESS;
         } @catch (NSException *exception) {
             return MACCARE_POWERUI_EXCEPTION;

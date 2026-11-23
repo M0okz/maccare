@@ -59,6 +59,9 @@ public struct BatteryProtectionStatus: Codable, Sendable {
     public var error: String?
     public var cycle: BatteryCycleStatus? = nil
     public var capabilities: BatteryControlCapabilities?
+    /// Live Apple request, independent of AC power and of method availability.
+    /// Nil permits decoding status replies from older helpers.
+    public var appleFullChargeOverride: BatteryCompatibilityDiagnostics.FullChargeOverride? = nil
     /// The agent's registered target is distinct from both the saved request and physical charging.
     public var chargeApplication: BatteryChargeApplicationStatus? = nil
     /// The session has ended, and the original limit waits for the charge level to come down to it.

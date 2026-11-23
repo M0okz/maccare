@@ -63,7 +63,7 @@ public protocol NativeChargePolicyDriver {
     func restorePreferences(_ snapshot: NativeChargePolicyPreferences) throws
     /// Returns the unique registered target, nil for an explicit empty result, or throws.
     func registeredLimit() throws -> Int?
-    /// Returns nil when the Apple calibration override cannot be determined.
+    /// Returns nil when Apple's full-charge override cannot be determined.
     func calibrationOverride() -> Bool?
 }
 
@@ -96,7 +96,7 @@ protocol NativeChargePolicyLimitReader {
 /// Errors retain failed/ambiguous operations for the caller's recovery policy.
 public enum NativeChargePolicyError: Error, Equatable, LocalizedError {
     case rootRequired, unavailable, invalidPreferences, inconsistentPreferences, invalidLimit
-    case synchronizationFailed, verificationFailed, appleOverride
+    case synchronizationFailed, verificationFailed, appleOverride, unknownAppleOverride
     case nativeCall(Int32), invalidRegisteredLimits, processFailed, processTimedOut
 
     public var errorDescription: String? {
@@ -106,7 +106,8 @@ public enum NativeChargePolicyError: Error, Equatable, LocalizedError {
         case .invalidLimit: return "La cible native de charge est invalide."
         case .invalidPreferences, .inconsistentPreferences: return "L’état de la politique native est inconnu ou a changé."
         case .synchronizationFailed, .verificationFailed: return "La politique native n’a pas confirmé ses préférences."
-        case .appleOverride: return "macOS effectue ou prépare un étalonnage de la batterie."
+        case .appleOverride: return NativeChargeError(code: -8).errorDescription
+        case .unknownAppleOverride: return NativeChargeError(code: -9).errorDescription
         case .nativeCall(let code): return "La politique native n’a pas confirmé l’opération (code \(code))."
         case .invalidRegisteredLimits: return "Les limites enregistrées par macOS sont inconnues ou incohérentes."
         case .processFailed, .processTimedOut: return "La lecture des limites enregistrées par macOS a échoué."
@@ -170,7 +171,7 @@ public final class SystemNativeChargePolicyDriver: NativeChargePolicyDriver {
 
     public func clearRegisteredLimit() throws {
         guard isAvailable else { throw NativeChargePolicyError.unavailable }
-        guard calibrationOverride() == false else { throw NativeChargePolicyError.appleOverride }
+        try requireNoFullChargeOverride()
         try client.clearRegisteredLimit()
     }
 
@@ -188,12 +189,17 @@ public final class SystemNativeChargePolicyDriver: NativeChargePolicyDriver {
     }
 
     private func write(_ preferences: NativeChargePolicyPreferences) throws {
-        guard calibrationOverride() == false else { throw NativeChargePolicyError.appleOverride }
+        try requireNoFullChargeOverride()
         try store.setValues(preferences)
         try store.synchronize()
         try client.reloadPreferences()
         guard try readPreferences() == preferences else { throw NativeChargePolicyError.verificationFailed }
-        guard calibrationOverride() == false else { throw NativeChargePolicyError.appleOverride }
+        try requireNoFullChargeOverride()
+    }
+
+    private func requireNoFullChargeOverride() throws {
+        guard let override = calibrationOverride() else { throw NativeChargePolicyError.unknownAppleOverride }
+        if override { throw NativeChargePolicyError.appleOverride }
     }
 
     public func registeredLimit() throws -> Int? { try Self.registeredLimit(in: reader.output()) }
