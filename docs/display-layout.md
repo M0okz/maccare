@@ -2,6 +2,8 @@
 
 ## Densité de l’accueil selon la largeur de la fenêtre
 
+Disponible dans [MacCare 0.2.33, build 35](https://github.com/M0okz/maccare/releases/tag/v0.2.33). [Vérifications de publication](release-integration-0.2.33.md).
+
 En DEV le 23 novembre 2026, sur `codex/dashboard-density` à partir de `edc3fc4`.
 Dans une fenêtre étroite sur un grand écran, les deux rangées de cartes prenaient
 la hauteur de la carte Batterie. Celle-ci réservait 20 points de plus dès que le
