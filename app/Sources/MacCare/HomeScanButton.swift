@@ -12,7 +12,7 @@ struct HomeScanButton: View {
             if !busy { model.prepareForNewScan() }
             openCleaning()
         }
-        .buttonStyle(CircularOverviewActionStyle(tint: ModuleColor.clean, diameter: diameter))
+        .buttonStyle(CircularOverviewActionStyle(tint: VeilleBrand.amethyst, diameter: diameter))
         .accessibilityLabel(busy ? "Suivre le nettoyage" : "Analyser le nettoyage")
         .help(helpText)
     }

@@ -88,7 +88,7 @@ struct MenuBarView: View {
     private var healthColor: Color {
         switch health.grade {
         case .excellent: return Color(hex: "#85DFBE")
-        case .good: return highlight
+        case .good: return Color(hex: "#C294FF")
         case .poor: return .orange
         case nil: return muted
         }
@@ -152,7 +152,7 @@ struct MenuBarView: View {
         .padding(10)
         .background {
             RoundedRectangle(cornerRadius: TrayAppearance.cardRadius)
-                .fill(LinearGradient(colors: [Color(hex: "#4D2B79").opacity(0.86), Color(hex: "#743AC3").opacity(0.66), Color(hex: "#302055")], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .fill(LinearGradient(colors: [VeilleBrand.plum.opacity(0.86), VeilleBrand.amethyst.opacity(0.66), Color(hex: "#302055")], startPoint: .topLeading, endPoint: .bottomTrailing))
                 .overlay(RoundedRectangle(cornerRadius: TrayAppearance.cardRadius).strokeBorder(Color(hex: "#AD82EF").opacity(0.22)))
         }
     }
@@ -382,8 +382,8 @@ private struct TrayBackdrop: View {
                 path.addLine(to: .init(x: geometry.size.width, y: geometry.size.height)); path.addLine(to: .init(x: 0, y: geometry.size.height)); path.closeSubpath()
             }
             .fill(LinearGradient(stops: [
-                .init(color: Color(hex: "#8B35EC").opacity(0.68), location: 0),
-                .init(color: Color(hex: "#47216B").opacity(0.22), location: 0.28),
+                .init(color: VeilleBrand.amethyst.opacity(0.68), location: 0),
+                .init(color: VeilleBrand.plum.opacity(0.22), location: 0.28),
                 .init(color: .clear, location: 0.52),
                 .init(color: .clear, location: 1)
             ], startPoint: .top, endPoint: .bottom))

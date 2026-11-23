@@ -30,10 +30,12 @@ exceptionnel de démontage, le script conserve seulement le répertoire encore m
 
 ## Visuels et disposition
 
-`render-assets.swift` dessine une icône originale (coche blanche et carré arrondi violet),
-toutes les tailles requises par `iconutil`, et un fond TIFF 1×/2×. L’app indique cette icône
-avec `CFBundleIconFile`, avant d’être signée. Les visuels sont originaux ; la capture fournie
-sert uniquement de référence au parcours glisser-déposer.
+Au packaging, `actool` (Xcode 26 ou ultérieur) compile `app/branding/VeilleAmethyste.icon`
+dans `Assets.car`. Le Dock des systèmes récents peut ainsi utiliser le fond améthyste
+pour l’apparence standard et le dégradé améthyste–prune pour l’apparence sombre.
+L’icône `app/branding/MacCare.icns` fournit les tailles standard et Retina pour le
+volume DMG et les systèmes qui utilisent l’icône classique. `package.sh` copie cette icône avant la signature
+et en extrait l’aperçu PNG. `render-assets.swift` dessine le fond TIFF 1×/2×.
 
 Le canevas mesure 680 × 460 points ; la fenêtre réserve 530 points de hauteur pour laisser
 les barres Finder visibles selon les préférences du Mac sans rogner le texte. Les deux icônes

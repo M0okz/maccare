@@ -75,6 +75,9 @@ MacCare conserve ensuite ces fichiers, que vous pouvez supprimer :
 
 ## Construire depuis les sources
 
+Le dépôt contient l’application, le moteur et les tests. Les dossiers locaux
+`build/` et `analyses/` sont exclus de Git.
+
 Prérequis : un Mac Apple Silicon, les outils Swift/Xcode actuels, Python 3.11+ et
 un accès aux distributions officielles Rust et Sparkle.
 
