@@ -69,13 +69,14 @@ struct AboutView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Link("Voir les notes de version", destination: URL(string: "https://github.com/M0okz/maccare/releases")!)
+                    .buttonStyle(.actionPill)
                     .font(AppFont.secondary).foregroundStyle(VeilleBrand.lavender)
             }
             VStack(alignment: .leading, spacing: 10) {
                 Button(updater.availableVersion == nil ? "Rechercher les mises à jour…" : "Télécharger la mise à jour…",
                        systemImage: updater.availableVersion == nil ? "arrow.clockwise" : "arrow.down.circle",
                        action: updater.checkForUpdates)
-                    .buttonStyle(.borderedProminent).controlSize(.large)
+                    .buttonStyle(.prominentPill).controlSize(.large)
                     .disabled(!updater.canCheckForUpdates)
                     .accessibilityHint(updater.availableVersion == nil ? "Rechercher une nouvelle version de MacCare" : "Ouvrir les options de téléchargement et d’installation")
                 if updater.availableVersion != nil {
@@ -114,7 +115,10 @@ struct AboutView: View {
 
     @ViewBuilder private var links: some View {
         Link("Site du projet", destination: URL(string: "https://maccare.homeblack.fr/")!)
+            .buttonStyle(.actionPill)
         Link("Documentation", destination: URL(string: "https://maccare.homeblack.fr/documentation/")!)
+            .buttonStyle(.actionPill)
         Link("Code source", destination: URL(string: "https://github.com/M0okz/maccare")!)
+            .buttonStyle(.actionPill)
     }
 }

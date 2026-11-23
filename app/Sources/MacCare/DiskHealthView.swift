@@ -44,7 +44,7 @@ struct DiskHealthView: View {
                 }
             } actions: {
                 Button("Actualiser", systemImage: "arrow.clockwise") { Task { await health.refresh(at: selectedPath) } }
-                    .buttonStyle(.borderedProminent).controlSize(.large).disabled(health.isLoading)
+                    .buttonStyle(.prominentPill).controlSize(.large).disabled(health.isLoading)
             }.padding(18).background(Theme.sidebar)
         }
         .task(id: selectedPath) { await health.refresh(at: selectedPath) }

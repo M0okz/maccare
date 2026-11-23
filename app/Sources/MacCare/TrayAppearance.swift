@@ -5,5 +5,4 @@ enum TrayAppearance {
     static let secondary = Theme.muted
     static let accent = VeilleBrand.lavender
     static let cardRadius: CGFloat = 10
-    static let controlRadius: CGFloat = 7
 }

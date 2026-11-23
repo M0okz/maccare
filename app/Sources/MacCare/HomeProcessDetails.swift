@@ -96,7 +96,7 @@ struct HomeProcessDetails: View {
                         Button("Forcer à quitter…", role: .destructive) { confirmation = StopRequest(process: process, force: true) }
                     }.disabled(!process.canQuit || controller.pending.contains(process.id))
                 }
-            }.controlSize(.regular).font(.system(size: 12))
+            }.buttonStyle(.actionPill).controlSize(.small)
         }
         .padding(22).frame(width: 602, height: 598, alignment: .topLeading)
         .background(ProcessSheetBackdrop(isEnabled: confirmation == nil) { dismiss() })

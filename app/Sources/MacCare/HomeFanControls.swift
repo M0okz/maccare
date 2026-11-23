@@ -13,24 +13,13 @@ struct HomeFanControls: View {
                 HStack(spacing: Space.s) {
                     ForEach(FanPreset.allCases, id: \.self) { preset in
                         let isSelected = selected == preset
-                        Button { apply(preset) } label: {
-                            Text(preset.title)
-                                .font(.callout.weight(.semibold))
-                                .foregroundStyle(isSelected ? Theme.fg : Theme.muted)
-                                .lineLimit(1)
-                                .frame(minWidth: 0, maxWidth: 56, minHeight: 24)
-                                .background(isSelected ? Theme.accent.opacity(0.28) : Theme.fg.opacity(0.09), in: Capsule())
-                                .overlay {
-                                    if isSelected {
-                                        Capsule().strokeBorder(Theme.accentInk.opacity(0.55))
-                                    }
-                                }
-                                .contentShape(Capsule())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityAddTraits(isSelected ? .isSelected : [])
-                        .accessibilityLabel("Ventilation " + preset.title)
-                        .help(hint(for: preset))
+                        Button(preset.title) { apply(preset) }
+                            .buttonStyle(PillButtonStyle(emphasis: isSelected ? .selected : .secondary, maximumWidth: 56))
+                            .controlSize(.mini)
+                            .lineLimit(1)
+                            .accessibilityAddTraits(isSelected ? .isSelected : [])
+                            .accessibilityLabel("Ventilation " + preset.title)
+                            .help(hint(for: preset))
                     }
                 }
                 .disabled(applying)

@@ -51,7 +51,8 @@ struct UninstallView: View {
                 Text(leftoversSubtitle).font(AppFont.secondary).foregroundStyle(Theme.muted)
                 Button(model.leftoversScanned ? "Actualiser les résidus" : "Analyser les résidus") {
                     model.scanLeftovers()
-                }.disabled(model.isScanningLeftovers || model.isCleaning)
+                }
+                .buttonStyle(.actionPill).disabled(model.isScanningLeftovers || model.isCleaning)
                 leftoverBrowser
             } else {
                 searchField
@@ -128,7 +129,7 @@ struct UninstallView: View {
                         .font(AppFont.secondary).foregroundStyle(Theme.muted)
                     Button("Afficher dans le Finder") {
                         NSWorkspace.shared.activateFileViewerSelecting([leftover.item.url])
-                    }.buttonStyle(SecondaryActionButtonStyle())
+                    }.buttonStyle(.actionPill)
                 } else {
                     Text(model.isScanningLeftovers ? "Recherche des résidus…" : "Aucun résidu à afficher.")
                         .foregroundStyle(Theme.muted)
@@ -208,8 +209,8 @@ struct UninstallView: View {
 
     private var leftoversFooter: some View {
         HStack(spacing: Space.m) {
-            Button("Tout cocher") { model.leftoverSelection = Set(model.leftovers.map(\.id)) }.buttonStyle(LinkStyle()).disabled(model.isCleaning || model.isScanningLeftovers)
-            Button("Tout décocher") { model.leftoverSelection = [] }.buttonStyle(LinkStyle()).disabled(model.isCleaning)
+            Button("Tout cocher") { model.leftoverSelection = Set(model.leftovers.map(\.id)) }.buttonStyle(.actionPill).controlSize(.small).disabled(model.isCleaning || model.isScanningLeftovers)
+            Button("Tout décocher") { model.leftoverSelection = [] }.buttonStyle(.actionPill).controlSize(.small).disabled(model.isCleaning)
             if let r = model.leftoverReport {
                 Text(reportSummary(r)).font(AppFont.secondary).foregroundStyle(r.needsAttention ? Theme.warn : Theme.muted)
             }

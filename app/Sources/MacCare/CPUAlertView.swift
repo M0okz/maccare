@@ -28,7 +28,7 @@ struct CPUAlertView: View {
                         Text("\(Int(candidate.process.cpuPercent ?? 0)) %").monospacedDigit().fixedSize()
                             .help("Pourcentage du processus principal : 100 % correspond à un cœur.")
                         Button(model.pending.contains(candidate.id) ? "Demandé" : "Quitter") { model.quit(candidate) }
-                            .buttonStyle(.plain).foregroundStyle(.secondary)
+                            .buttonStyle(.actionPill).controlSize(.small)
                             .disabled(model.pending.contains(candidate.id))
                             .accessibilityLabel("Quitter \(candidate.name)")
                     }.font(.system(size: bodySize, weight: .semibold)).padding(.top, 8)
@@ -39,9 +39,10 @@ struct CPUAlertView: View {
                 Menu("Ignorer") {
                     Button("Pendant une journée") { snooze(1) }
                     Button("Pendant une semaine") { snooze(7) }
-                }.fixedSize()
+                }
+                .menuStyle(.button).buttonStyle(.actionPill).fixedSize()
                 Spacer(minLength: 12)
-                Button("Voir les processus", action: openActivity).buttonStyle(StorageAlertPrimaryButtonStyle())
+                Button("Voir les processus", action: openActivity).buttonStyle(.prominentPill).tint(Color(nsColor: .systemBlue)).controlSize(.small)
             }.padding(20)
         }
         .frame(width: 340)

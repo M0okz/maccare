@@ -54,7 +54,7 @@ struct FilesOverviewView: View {
                                 OverviewFeatureRow(symbol: "doc.on.doc", title: "Doublons identiques", tint: FilesStyle.accent.shade(0.65))
                             }.padding(.top, 10)
                             Button { app.module = .imageOptimization } label: { Label("Alléger des images PNG", systemImage: "photo.on.rectangle.angled") }
-                                .buttonStyle(SecondaryActionButtonStyle()).controlSize(.large)
+                                .buttonStyle(.actionPill).controlSize(.large)
                             locationMenu
                             if let error = analysis.locationError {
                                 Label(error, systemImage: "exclamationmark.triangle").font(AppFont.secondary)
@@ -66,12 +66,12 @@ struct FilesOverviewView: View {
             OverviewActionFooter(caption: "Analyse seule. Vous choisissez ensuite ce que vous souhaitez garder.",
                                  message: !searchLarge && !searchDuplicates ? "Activez une recherche dans Réglages → Fichiers et disque." : nil) {
                 Button("Analyser") { analyze() }
-                    .buttonStyle(CircularOverviewActionStyle(tint: FilesStyle.accent))
+                    .buttonStyle(.prominentPill).tint(FilesStyle.accent).controlSize(.large)
                     .disabled(!searchLarge && !searchDuplicates)
                     .accessibilityLabel("Analyser les fichiers du dossier choisi")
             } secondary: {
                 Button("Examiner les catégories sans analyser") { analysis.choosingLocation = false; analysis.browsing = true }
-                    .buttonStyle(SecondaryActionButtonStyle()).font(AppFont.secondary)
+                    .buttonStyle(.actionPill).font(AppFont.secondary)
             }
         }
     }
@@ -80,8 +80,8 @@ struct FilesOverviewView: View {
         FileSearchLocationMenu(model: analysis)
             .frame(height: 44).padding(.horizontal, 12)
             .frame(maxWidth: 290)
-            .background(.white.opacity(0.17), in: RoundedRectangle(cornerRadius: 11))
-            .overlay(RoundedRectangle(cornerRadius: 11).strokeBorder(.white.opacity(0.2)))
+            .background(.white.opacity(0.17), in: Capsule())
+            .overlay(Capsule().strokeBorder(.white.opacity(0.2)))
     }
 
     private var progress: some View {
@@ -97,7 +97,7 @@ struct FilesOverviewView: View {
         VStack(spacing: 0) {
             ScreenToolbar(title: "Mes fichiers") {
                 Button { analysis.choosingLocation = true } label: { Label("Recommencer", systemImage: "arrow.counterclockwise") }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.actionPill)
             } trailing: { EmptyView() }.padding(.horizontal, 30).padding(.top, 20)
             GeometryReader { geometry in
                 ScrollView {
@@ -110,7 +110,7 @@ struct FilesOverviewView: View {
                                 .font(AppFont.body).foregroundStyle(.white.opacity(0.8))
                         }.multilineTextAlignment(.center)
                         Button("Examiner tous les fichiers") { app.module = showDuplicates && (!showLarge || large.visible.isEmpty) && !duplicates.groups.isEmpty ? .duplicates : .largeFiles }
-                            .buttonStyle(SecondaryActionButtonStyle()).controlSize(.large)
+                            .buttonStyle(.actionPill).controlSize(.large)
                         HStack(alignment: .top, spacing: 18) {
                             resultCard(duplicates: true).frame(maxWidth: .infinity)
                             resultCard(duplicates: false).frame(maxWidth: .infinity)
@@ -119,7 +119,7 @@ struct FilesOverviewView: View {
                             Label("Des images PNG plus légères, sans perte de qualité", systemImage: "photo.on.rectangle.angled")
                                 .font(AppFont.body.weight(.semibold))
                             Spacer()
-                            Button("Alléger des images") { app.module = .imageOptimization }.buttonStyle(SecondaryActionButtonStyle())
+                            Button("Alléger des images") { app.module = .imageOptimization }.buttonStyle(.actionPill)
                         }.padding(22).background(.white.opacity(0.13), in: RoundedRectangle(cornerRadius: 18))
                         InterfaceHelp(title: "À propos des résultats", message: "Un fichier peut apparaître dans les deux catégories ; leurs volumes ne s’additionnent pas. Les doublons sont identiques par contenu. Une copie reste conservée. Les éléments choisis passent toujours par la corbeille.")
                     }.padding(30).frame(maxWidth: .infinity, minHeight: geometry.size.height)
@@ -151,7 +151,7 @@ struct FilesOverviewView: View {
                     .font(AppFont.secondary).foregroundStyle(.white.opacity(0.8))
                 Spacer(minLength: 8)
                 Button("Examiner") { app.module = isDuplicates ? .duplicates : .largeFiles }
-                    .buttonStyle(SecondaryActionButtonStyle()).accessibilityLabel(isDuplicates ? "Examiner les doublons" : "Examiner les gros fichiers")
+                    .buttonStyle(.actionPill).accessibilityLabel(isDuplicates ? "Examiner les doublons" : "Examiner les gros fichiers")
             }
         }.padding(22).frame(minHeight: 180, alignment: .topLeading)
             .background(.white.opacity(0.13), in: RoundedRectangle(cornerRadius: 18))

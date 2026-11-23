@@ -11,6 +11,7 @@ struct VolumeLocationMenu: NSViewRepresentable {
         let button = NSPopUpButton(frame: .zero, pullsDown: false)
         button.isBordered = false
         button.controlSize = .large
+        button.alignment = .center
         button.font = .systemFont(ofSize: 15, weight: .semibold)
         button.contentTintColor = NSColor(Theme.fg)
         button.imagePosition = .imageLeading

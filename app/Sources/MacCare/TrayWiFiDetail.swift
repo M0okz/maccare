@@ -132,14 +132,10 @@ struct TrayWiFiDetail: View {
                 Button {
                     if test.running { test.cancel() } else { test.start() }
                 } label: {
-                    VStack(spacing: 6) {
-                        Image(systemName: test.running ? "stop.fill" : "speedometer").font(.title2)
-                        Text(test.running ? "Arrêter" : test.result == nil ? "Tester la vitesse" : "Retester")
-                            .font(.system(size: 11, weight: .semibold)).multilineTextAlignment(.center)
-                    }
-                    .frame(width: 106, height: 106).contentShape(Circle())
+                    Label(test.running ? "Arrêter" : test.result == nil ? "Tester la vitesse" : "Retester",
+                          systemImage: test.running ? "stop.fill" : "speedometer")
                 }
-                .buttonStyle(SpeedTestButtonStyle())
+                .buttonStyle(.actionPill).controlSize(.small)
                 .disabled(metrics.wifi?.connected != true)
                 .accessibilityLabel(test.running ? "Arrêter le test de vitesse" : "Lancer le test de vitesse Internet")
                 VStack(alignment: .leading, spacing: 6) {
@@ -183,18 +179,5 @@ struct TrayWiFiDetail: View {
         .frame(maxWidth: .infinity, alignment: .leading).padding(10)
         .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 8))
         .accessibilityElement(children: .combine)
-    }
-}
-
-private struct SpeedTestButtonStyle: ButtonStyle {
-    @State private var hovered = false
-    @Environment(\.isEnabled) private var enabled
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundStyle(.white.opacity(enabled ? 1 : 0.4))
-            .background(.white.opacity(configuration.isPressed ? 0.18 : hovered ? 0.12 : 0.07), in: Circle())
-            .overlay(Circle().strokeBorder(.white.opacity(hovered ? 0.30 : 0.12), lineWidth: 2))
-            .pressFeedback(configuration.isPressed && enabled)
-            .onHover { hovered = $0 }
     }
 }

@@ -41,7 +41,7 @@ struct StartupView: View {
                     .disabled(model.isLoading)
                     .opacity(model.isLoading ? 0.5 : 1)
                     Button("Réglages de connexion") { model.openLoginSettings() }
-                        .buttonStyle(LinkStyle())
+                        .buttonStyle(.actionPill).controlSize(.small)
                     Spacer()
                     if model.hasLoaded { Text("\(visibleCount) \(pl(visibleCount, "élément")) \(pl(visibleCount, "affiché"))").font(AppFont.secondary).foregroundStyle(Theme.muted) }
                 }
@@ -194,13 +194,13 @@ struct StartupView: View {
             if model.busyPath == a.path {
                 ProgressView().controlSize(.small)
             } else if a.scope == "disabled" {
-                Button("Réactiver") { model.toggle(a) }.buttonStyle(LinkStyle()).font(AppFont.secondary).disabled(model.busyPath != nil)
+                Button("Réactiver") { model.toggle(a) }.buttonStyle(.actionPill).controlSize(.small).disabled(model.busyPath != nil)
             } else if a.canDisable {
-                Button("Désactiver") { confirming = a }.buttonStyle(LinkStyle()).font(AppFont.secondary)
+                Button("Désactiver") { confirming = a }.buttonStyle(.actionPill).controlSize(.small)
                     .disabled(model.busyPath != nil)
             }
             if a.scope != "disabled" {
-                Button("Emplacement") { model.reveal(a) }.buttonStyle(LinkStyle()).font(AppFont.secondary)
+                Button("Emplacement") { model.reveal(a) }.buttonStyle(.actionPill).controlSize(.small)
             }
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
@@ -230,11 +230,13 @@ struct StartupView: View {
                 .font(AppFont.secondary).foregroundStyle(Theme.muted)
             HStack {
                 Spacer()
-                Button("Annuler") { confirming = nil }.keyboardShortcut(.defaultAction)
+                Button("Annuler") { confirming = nil }
+                    .buttonStyle(.actionPill).keyboardShortcut(.defaultAction)
                 Button("Désactiver") {
                     confirming = nil
                     model.toggle(a)
                 }
+                .buttonStyle(.actionPill)
             }
         }
         .padding(Space.xl)
@@ -253,7 +255,7 @@ struct StartupView: View {
             }
             Spacer(minLength: 8)
             if item.hasFile {
-                Button("Emplacement") { model.reveal(item) }.buttonStyle(LinkStyle()).font(AppFont.secondary)
+                Button("Emplacement") { model.reveal(item) }.buttonStyle(.actionPill).controlSize(.small)
             }
         }
         .padding(.horizontal, 14).padding(.vertical, 10)

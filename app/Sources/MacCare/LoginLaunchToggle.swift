@@ -31,7 +31,7 @@ struct LoginLaunchToggle: View {
             HStack(spacing: 6) {
                 Label("En attente de votre approbation dans les Réglages Système.", systemImage: "exclamationmark.circle")
                     .font(AppFont.secondary).foregroundStyle(.orange)
-                Button("Ouvrir") { SMAppService.openSystemSettingsLoginItems() }.buttonStyle(LinkStyle()).font(AppFont.secondary)
+                Button("Ouvrir") { SMAppService.openSystemSettingsLoginItems() }.buttonStyle(.actionPill).controlSize(.small)
             }
         case .notFound:
             Text("Indisponible depuis cet emplacement : placez MacCare dans le dossier Applications.")

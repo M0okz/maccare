@@ -97,8 +97,8 @@ struct DevJunkView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("\(model.selectedItems.count) \(pl(model.selectedItems.count, "élément")) \(pl(model.selectedItems.count, "sélectionné"))").font(AppFont.body.weight(.semibold))
                 HStack(spacing: Space.m) {
-                    Button("Tout cocher") { model.selectAll() }.buttonStyle(LinkStyle())
-                    Button("Tout décocher") { model.selectNone() }.buttonStyle(LinkStyle())
+                    Button("Tout cocher") { model.selectAll() }.buttonStyle(.actionPill).controlSize(.small)
+                    Button("Tout décocher") { model.selectNone() }.buttonStyle(.actionPill).controlSize(.small)
                 }
                 if let r = model.lastReport {
                     Text(reportSummary(r)).font(AppFont.secondary).foregroundStyle(r.needsAttention ? Theme.warn : Theme.muted)

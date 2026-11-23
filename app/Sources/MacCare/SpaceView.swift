@@ -61,7 +61,7 @@ struct SpaceView: View {
             OverviewActionFooter(caption: "Mesure seule. Aucun élément n’est sélectionné pour suppression.",
                                  message: model.statusMessage) {
                 Button("Explorer") { model.setRoot(model.root) }
-                    .buttonStyle(CircularOverviewActionStyle(tint: ModuleColor.space))
+                    .buttonStyle(.prominentPill).tint(ModuleColor.space).controlSize(.large)
                     .accessibilityLabel(model.isDiskRoot ? "Explorer ce disque" : "Explorer ce dossier")
             }
         }
@@ -71,8 +71,8 @@ struct SpaceView: View {
     private var locationMenu: some View {
         VolumeLocationMenu(model: model)
             .padding(.horizontal, 14).frame(width: 300, height: 44)
-            .background(Color.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 11))
-            .overlay(RoundedRectangle(cornerRadius: 11).strokeBorder(Theme.hairline))
+            .background(Color.white.opacity(0.15), in: Capsule())
+            .overlay(Capsule().strokeBorder(Theme.hairline))
     }
 
     private var artwork: some View {
@@ -102,14 +102,9 @@ struct SpaceView: View {
                 scanMetric(humanSize(model.liveBytes), label: "données mesurées")
             }.padding(.top, 6)
             Spacer(minLength: 12)
-            Button { model.cancelMeasurement() } label: {
-                ZStack {
-                    Circle().fill(LinearGradient(colors: [Theme.accent, Theme.accent.shade(-0.4)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                        .frame(width: 82, height: 82).shadow(color: Theme.accent.opacity(0.4), radius: 18)
-                    ScanActivityRing(lineWidth: 4).frame(width: 94, height: 94)
-                    Text("Arrêter").font(AppFont.body.weight(.semibold)).foregroundStyle(.white)
-                }.frame(width: 104, height: 104)
-            }.buttonStyle(.plain).accessibilityLabel("Arrêter la mesure")
+            Button("Arrêter") { model.cancelMeasurement() }
+                .buttonStyle(.prominentPill).controlSize(.large).tint(Theme.accent)
+                .accessibilityLabel("Arrêter la mesure")
             Text("Analyse seule. Vous pourrez examiner les résultats avant toute action.")
                 .font(AppFont.secondary).foregroundStyle(Theme.muted).multilineTextAlignment(.center)
         }.padding(.horizontal, 32).padding(.top, 18).padding(.bottom, 18).frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -165,12 +160,12 @@ struct SpaceView: View {
     private var header: some View {
         HStack(spacing: 18) {
             Button { model.returnToStart() } label: { Label("Changer d’emplacement", systemImage: "arrow.uturn.backward") }
-                .buttonStyle(.plain).font(AppFont.secondary)
+                .buttonStyle(.actionPill).controlSize(.small)
             Spacer(minLength: 12)
             Text("Espace disque").font(AppFont.body.weight(.semibold)).accessibilityAddTraits(.isHeader)
             Spacer(minLength: 12)
             Button { model.load() } label: { Image(systemName: "arrow.clockwise") }
-                .buttonStyle(SecondaryActionButtonStyle()).accessibilityLabel("Actualiser la mesure").help("Actualiser la mesure")
+                .buttonStyle(.actionPill).accessibilityLabel("Actualiser la mesure").help("Actualiser la mesure")
             Picker("Présentation", selection: $mode) {
                 Text("Carte").tag(SpaceDisplayMode.map)
                 Text("Liste").tag(SpaceDisplayMode.list)
@@ -220,7 +215,7 @@ struct SpaceView: View {
     private var breadcrumb: some View {
         HStack(spacing: 12) {
             Button { model.goUp() } label: { Label("Parent", systemImage: "arrow.up") }
-                .buttonStyle(SecondaryActionButtonStyle()).disabled(!model.canGoUp)
+                .buttonStyle(.actionPill).disabled(!model.canGoUp)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(Array(model.crumbs.enumerated()), id: \.offset) { index, crumb in
@@ -228,7 +223,7 @@ struct SpaceView: View {
                             Image(systemName: "chevron.right").foregroundStyle(Theme.muted).accessibilityHidden(true)
                         }
                         Button(crumb.name) { model.goTo(path: crumb.path) }
-                            .buttonStyle(.link)
+                            .buttonStyle(.actionPill).controlSize(.small)
                             .disabled(index == model.crumbs.count - 1)
                     }
                 }.font(AppFont.secondary)
@@ -333,7 +328,7 @@ struct SpaceView: View {
                 }
                 Spacer()
                 Text(child.sizeLabel).font(AppFont.body).monospacedDigit()
-                Button("Afficher dans le Finder") { model.revealInFinder(child) }.buttonStyle(SecondaryActionButtonStyle())
+                Button("Afficher dans le Finder") { model.revealInFinder(child) }.buttonStyle(.actionPill)
             }.padding(12).background(Theme.surface.opacity(0.6), in: RoundedRectangle(cornerRadius: 12))
         } else if mode == .list {
             Text("Cliquez sur un dossier pour l’ouvrir, ou sur un fichier pour afficher ses informations.")
@@ -349,7 +344,7 @@ struct SpaceView: View {
                 Button { showMeasurementInfo.toggle() } label: {
                     Label(model.hasPartial ? "Certaines tailles sont partielles" : "À propos de cette mesure", systemImage: "info.circle")
                         .font(AppFont.caption).foregroundStyle(model.hasPartial ? Theme.warn : Theme.muted)
-                }.buttonStyle(.plain).popover(isPresented: $showMeasurementInfo) {
+                }.buttonStyle(.actionPill).controlSize(.small).popover(isPresented: $showMeasurementInfo) {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Périmètre de la mesure").font(AppFont.emphasis.weight(.semibold))
                         Text("Les tailles partielles sont des minimums. Les zones protégées, les instantanés APFS et les autres volumes ne sont pas tous comptabilisés ; le total peut différer de l’occupation du volume affichée par macOS.")

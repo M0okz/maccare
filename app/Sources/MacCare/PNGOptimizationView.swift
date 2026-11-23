@@ -12,10 +12,10 @@ struct PNGOptimizationView: View {
         VStack(spacing: 0) {
             ScreenToolbar(title: "Gestionnaire de fichiers") {
                 Button(action: onBack) { Label("Retour", systemImage: "chevron.left") }
-                    .buttonStyle(ToolbarActionButtonStyle()).keyboardShortcut(.cancelAction).disabled(model.isRunning)
+                    .buttonStyle(.toolbarPill).keyboardShortcut(.cancelAction).disabled(model.isRunning)
             } trailing: {
                 Button("Choisir des images…", action: chooseImages).disabled(model.isRunning)
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.actionPill)
             }.padding(.horizontal, 24).frame(height: 56)
             Divider()
             ManagerBrowserLayout {
@@ -73,13 +73,13 @@ struct PNGOptimizationView: View {
         } actions: {
             if model.isRunning {
                 Button(model.stopRequested ? "Arrêt après cette image…" : "Arrêter après cette image") { model.requestStop() }
-                    .disabled(model.stopRequested).buttonStyle(.bordered)
+                    .disabled(model.stopRequested).buttonStyle(.actionPill)
             } else if model.copyCount > 0 {
                 Button("Afficher les copies") { NSWorkspace.shared.activateFileViewerSelecting(model.outputURLs) }
-                    .buttonStyle(.borderedProminent).controlSize(.large)
+                    .buttonStyle(.prominentPill).controlSize(.large)
             } else {
                 Button("Créer les copies optimisées…", action: chooseDestination)
-                    .disabled(model.items.isEmpty).buttonStyle(.borderedProminent).controlSize(.large)
+                    .disabled(model.items.isEmpty).buttonStyle(.prominentPill).controlSize(.large)
             }
         }.padding(18).background(Theme.sidebar)
     }

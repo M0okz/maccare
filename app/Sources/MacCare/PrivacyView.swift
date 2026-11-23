@@ -30,7 +30,7 @@ struct PrivacyView: View {
                 if model.isCleaning { ProgressView("Retrait…") }
                 Button(model.directDeleteEnabled ? "Supprimer définitivement…" : "Déplacer vers la corbeille…") {
                     confirmedDirect = model.directDeleteEnabled; confirmingRemoval = true
-                }.buttonStyle(.borderedProminent).disabled(model.selection.isEmpty || busy)
+                }.buttonStyle(.prominentPill).disabled(model.selection.isEmpty || busy)
             }
         }.sheet(isPresented: $confirmingRemoval) { removalConfirmation.modifier(ToolConfirmationStyle()) }
             .onChange(of: group) { _ in model.selectNone() }
@@ -72,8 +72,10 @@ struct PrivacyView: View {
             Text(group.detail).font(AppFont.secondary).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
             TextField("Rechercher un emplacement", text: $query).textFieldStyle(.roundedBorder)
             HStack {
-                Button("Tout cocher ici") { model.selection = Set(visible.map(\.id)) }.disabled(busy || visible.isEmpty)
-                Button("Tout décocher") { model.selectNone() }.disabled(busy || model.selection.isEmpty)
+                Button("Tout cocher ici") { model.selection = Set(visible.map(\.id)) }
+                    .buttonStyle(.actionPill).disabled(busy || visible.isEmpty)
+                Button("Tout décocher") { model.selectNone() }
+                    .buttonStyle(.actionPill).disabled(busy || model.selection.isEmpty)
                 Spacer()
                 Text("\(visible.count) \(pl(visible.count, "emplacement"))").font(AppFont.secondary).foregroundStyle(Theme.muted)
             }
@@ -88,7 +90,7 @@ struct PrivacyView: View {
                 VStack(spacing: 18) {
                     Image(systemName: "hand.raised.fill").font(.system(size: 52)).foregroundStyle(ModuleColor.privacy).accessibilityHidden(true)
                     Text("Examinez vos données locales").font(AppFont.section)
-                    Button("Analyser les données locales") { model.scan() }.buttonStyle(.borderedProminent)
+                    Button("Analyser les données locales") { model.scan() }.buttonStyle(.prominentPill)
                 }.frame(maxWidth: .infinity)
                 Spacer()
             } else {
@@ -141,11 +143,13 @@ struct PrivacyView: View {
                 .font(AppFont.body).foregroundStyle(confirmedDirect ? Theme.warn : Theme.muted)
             HStack {
                 Spacer()
-                Button("Annuler") { confirmingRemoval = false }.keyboardShortcut(.cancelAction)
+                Button("Annuler") { confirmingRemoval = false }
+                    .buttonStyle(.actionPill).keyboardShortcut(.cancelAction)
                 Button(confirmedDirect ? "Supprimer définitivement" : "Déplacer vers la corbeille", role: .destructive) {
                     confirmingRemoval = false
                     model.cleanSelected(directOverride: confirmedDirect)
                 }
+                .buttonStyle(.actionPill)
             }
         }.padding(28).frame(width: 520)
     }

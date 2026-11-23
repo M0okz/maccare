@@ -7,6 +7,7 @@ struct FileSearchLocationMenu: NSViewRepresentable {
     func makeNSView(context: Context) -> NSPopUpButton {
         let button = NSPopUpButton(frame: .zero, pullsDown: false)
         button.isBordered = false; button.controlSize = .large
+        button.alignment = .center
         button.font = .systemFont(ofSize: 15, weight: .semibold)
         button.contentTintColor = .white
         button.setAccessibilityLabel("Dossier à analyser")

@@ -27,7 +27,7 @@ struct ToolsDetailPanel: View {
         VStack(spacing: 0) {
             ScreenToolbar(title: "Gestionnaire Outils") {
                 Button { app.module = .toolsOverview } label: { Label("Retour", systemImage: "chevron.left") }
-                    .buttonStyle(ToolbarActionButtonStyle()).keyboardShortcut(.cancelAction).disabled(writing)
+                    .buttonStyle(.toolbarPill).keyboardShortcut(.cancelAction).disabled(writing)
             } trailing: {
                 if module == .startup {
                     Picker("Catégorie de démarrage", selection: $startupCategory) {

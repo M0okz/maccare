@@ -28,7 +28,7 @@ struct CleaningView: View {
                     Text(model.category.summary).font(AppFont.body).foregroundStyle(Theme.muted)
                     Text(model.category.root).font(AppFont.secondary).foregroundStyle(Theme.muted).textSelection(.enabled)
                     Button("Analyser la catégorie", systemImage: "magnifyingglass") { model.scan() }
-                        .buttonStyle(.bordered).controlSize(.large).disabled(model.isScanning || model.isCleaning)
+                        .buttonStyle(.actionPill).controlSize(.large).disabled(model.isScanning || model.isCleaning)
                 }.padding(24)
                 content
             }

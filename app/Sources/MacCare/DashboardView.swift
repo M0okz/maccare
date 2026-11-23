@@ -88,6 +88,7 @@ struct DashboardView: View {
                     showingPermissions = false
                     permissions.reopen()
                 }
+                .buttonStyle(.actionPill)
             }
             .padding(16)
             .onExitCommand { showingPermissions = false }

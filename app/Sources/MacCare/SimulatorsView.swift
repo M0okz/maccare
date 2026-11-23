@@ -18,7 +18,7 @@ struct SimulatorsView: View {
                         .opacity(model.isLoading || model.isDeleting ? 0.5 : 1)
                     if model.unavailableCount > 0 {
                         Button("Cocher les \(model.unavailableCount) \(pl(model.unavailableCount, "inutilisable"))") { model.selectUnavailable() }
-                            .buttonStyle(LinkStyle())
+                            .buttonStyle(.actionPill).controlSize(.small)
                     }
                     if model.hasLoaded && model.xcodeInstalled {
                         Text("\(model.simulators.count) \(pl(model.simulators.count, "simulateur")) · \(model.runtimes.count) \(pl(model.runtimes.count, "runtime")) · \(humanSize(model.totalSize))")
@@ -145,7 +145,7 @@ struct SimulatorsView: View {
 
     private var footer: some View {
         HStack(spacing: Space.m) {
-            Button("Tout décocher") { model.selectNone() }.buttonStyle(LinkStyle())
+            Button("Tout décocher") { model.selectNone() }.buttonStyle(.actionPill).controlSize(.small)
             if let s = model.lastSummary {
                 Text(s).font(AppFont.secondary).foregroundStyle(model.lastNeedsAttention ? Theme.warn : Theme.muted)
             } else if let msg = model.statusMessage {
@@ -182,11 +182,13 @@ struct SimulatorsView: View {
                 .fixedSize(horizontal: false, vertical: true)
             HStack {
                 Spacer()
-                Button("Annuler") { confirming = false }.keyboardShortcut(.defaultAction)
+                Button("Annuler") { confirming = false }
+                    .buttonStyle(.actionPill).keyboardShortcut(.defaultAction)
                 Button(role: .destructive) {
                     confirming = false
                     model.deleteSelected()
                 } label: { Text("Supprimer définitivement") }
+                    .buttonStyle(.actionPill)
                 .tint(Theme.danger)
             }
         }

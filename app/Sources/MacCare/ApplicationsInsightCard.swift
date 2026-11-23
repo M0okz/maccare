@@ -24,7 +24,7 @@ struct ApplicationsInsightCard: View {
             }
             Text(detail).font(AppFont.secondary).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
-            HStack { Spacer(); Button(actionTitle, action: action).buttonStyle(SecondaryActionButtonStyle()) }
+            HStack { Spacer(); Button(actionTitle, action: action).buttonStyle(.actionPill) }
         }
         .padding(20).frame(maxWidth: .infinity, minHeight: 164, alignment: .topLeading)
         .background(RoundedRectangle(cornerRadius: 18).fill(Color.white.opacity(0.065))

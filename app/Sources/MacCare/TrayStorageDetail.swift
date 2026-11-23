@@ -42,9 +42,9 @@ struct TrayStorageDetail: View {
             }
             Divider().overlay(.white.opacity(0.1))
             Button("Voir la santé des disques", action: openHealth)
-                .buttonStyle(TrayActionStyle(prominent: true))
+                .buttonStyle(.prominentPill).tint(VeilleBrand.amethyst).controlSize(.small)
             Button("Explorer le stockage dans MacCare", action: openStorage)
-                .buttonStyle(TrayActionStyle())
+                .buttonStyle(.actionPill).controlSize(.small)
         }
         .task { await health.refresh(at: "/") }
     }

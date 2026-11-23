@@ -26,7 +26,7 @@ struct ApplicationsUpdatesManager: View {
         VStack(spacing: 0) {
             ScreenToolbar(title: "Gestionnaire Applications") {
                 Button(action: onBack) { Label("Retour", systemImage: "chevron.left") }
-                    .buttonStyle(ToolbarActionButtonStyle()).keyboardShortcut(.cancelAction)
+                    .buttonStyle(.toolbarPill).keyboardShortcut(.cancelAction)
             } trailing: {
                 HStack(spacing: 10) {
                     Button {
@@ -201,22 +201,22 @@ struct ApplicationsUpdatesManager: View {
                     ProgressView(value: fraction).frame(width: 110).accessibilityLabel("Téléchargement de la mise à jour")
                 } else if installer.activeID == entry.id { ProgressView().controlSize(.small) }
                 if installer.canCancel {
-                    Button("Annuler") { installer.cancel() }.buttonStyle(.bordered)
+                    Button("Annuler") { installer.cancel() }.buttonStyle(.actionPill)
                 }
                 if installer.hasPendingInstaller(entry.id) {
                     Button("Vérifier l’installation") { installer.verifyInstaller(entry) }
-                        .buttonStyle(.borderedProminent).disabled(installer.isBusy)
+                        .buttonStyle(.prominentPill).disabled(installer.isBusy)
                 } else {
                     Button("Mettre à jour") {
                         if installer.requiresQuit(entry, apps: apps) { quitRequest = entry }
                         else { installer.install(entry, apps: apps) }
                     }
-                        .buttonStyle(.borderedProminent).controlSize(.large)
+                    .buttonStyle(.prominentPill).controlSize(.large)
                         .disabled(installer.isBusy || model.isChecking || installer.unavailableReason(for: entry, apps: apps) != nil)
                 }
             } else {
                 Button("Vérifier les mises à jour") { model.checkApplications() }
-                    .buttonStyle(.borderedProminent).disabled(model.isChecking || installer.isBusy)
+                    .buttonStyle(.prominentPill).disabled(model.isChecking || installer.isBusy)
             }
         }.padding(18).background(Theme.sidebar)
     }

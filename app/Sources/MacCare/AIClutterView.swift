@@ -34,7 +34,7 @@ struct AIClutterView: View {
             } actions: {
                 if model.isCleaning { ProgressView("Déplacement…") }
                 Button("Déplacer vers la corbeille…") { confirming = true }
-                    .buttonStyle(.borderedProminent).disabled(model.selection.isEmpty || model.busy)
+                    .buttonStyle(.prominentPill).disabled(model.selection.isEmpty || model.busy)
             }
         }.sheet(isPresented: $confirming) { confirmation.modifier(ToolConfirmationStyle()) }
     }
@@ -82,8 +82,10 @@ struct AIClutterView: View {
                 Picker("Trier par", selection: $sortBySize) { Text("Taille").tag(true); Text("Nom").tag(false) }.frame(width: 150)
             }
             HStack {
-                Button("Tout cocher ici") { model.selection.formUnion(visible.map(\.id)) }.disabled(model.busy || visible.isEmpty)
-                Button("Tout décocher") { model.selection = [] }.disabled(model.busy || model.selection.isEmpty)
+                Button("Tout cocher ici") { model.selection.formUnion(visible.map(\.id)) }
+                    .buttonStyle(.actionPill).disabled(model.busy || visible.isEmpty)
+                Button("Tout décocher") { model.selection = [] }
+                    .buttonStyle(.actionPill).disabled(model.busy || model.selection.isEmpty)
                 Spacer()
                 Text("\(visible.count) \(pl(visible.count, "élément"))").font(AppFont.secondary).foregroundStyle(Theme.muted)
             }
@@ -94,7 +96,7 @@ struct AIClutterView: View {
                 VStack(spacing: 18) {
                     Image(systemName: "sparkles.rectangle.stack.fill").font(.system(size: 52)).foregroundStyle(.green).accessibilityHidden(true)
                     Text("Faites le point sur vos fichiers IA").font(AppFont.section)
-                    Button("Analyser les fichiers IA") { model.scan() }.buttonStyle(.borderedProminent)
+                    Button("Analyser les fichiers IA") { model.scan() }.buttonStyle(.prominentPill)
                 }.frame(maxWidth: .infinity)
                 Spacer()
             } else {
@@ -148,8 +150,10 @@ struct AIClutterView: View {
             }
             HStack {
                 Spacer()
-                Button("Annuler") { confirming = false }.keyboardShortcut(.cancelAction)
+                Button("Annuler") { confirming = false }
+                    .buttonStyle(.actionPill).keyboardShortcut(.cancelAction)
                 Button("Déplacer vers la corbeille", role: .destructive) { confirming = false; model.trashSelected() }
+                    .buttonStyle(.actionPill)
             }
         }.font(AppFont.body).padding(28).frame(width: 560)
     }

@@ -35,10 +35,11 @@ struct BatteryStatusAlertView: View {
                 Menu("Ignorer") {
                     Button("Pendant une journée") { snooze(1) }
                     Button("Pendant une semaine") { snooze(7) }
-                }.fixedSize()
+                }
+                .menuStyle(.button).buttonStyle(.actionPill).fixedSize()
                 Spacer(minLength: 12)
                 Button(completion == nil ? "Vérifier la protection" : "Ouvrir Batterie", action: openBattery)
-                    .buttonStyle(StorageAlertPrimaryButtonStyle())
+                    .buttonStyle(.prominentPill).tint(Color(nsColor: .systemBlue)).controlSize(.small)
             }.padding(20)
         }.frame(width: 340)
     }

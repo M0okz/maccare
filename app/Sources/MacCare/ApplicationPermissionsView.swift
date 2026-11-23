@@ -110,11 +110,11 @@ struct ApplicationPermissionsView: View {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange).accessibilityHidden(true)
                 Text(model.snapshot.readableDatabases == 0 ? "Lecture indisponible" : "Certains accès ne sont pas lisibles").font(AppFont.secondary.weight(.semibold))
                 Spacer()
-                Button("Détails") { showReadDetails.toggle() }.buttonStyle(.plain).foregroundStyle(Theme.accentInk)
+                Button("Détails") { showReadDetails.toggle() }.buttonStyle(.actionPill).controlSize(.small)
             }
             if showReadDetails {
                 ForEach(model.snapshot.warnings, id: \.self) { Text($0).font(AppFont.secondary).fixedSize(horizontal: false, vertical: true) }
-                Button("Vérifier l’accès au disque") { model.openSettings("Privacy_AllFiles") }.buttonStyle(SecondaryActionButtonStyle())
+                Button("Vérifier l’accès au disque") { model.openSettings("Privacy_AllFiles") }.buttonStyle(.actionPill)
             }
         }.padding(14).background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 11))
     }
@@ -143,7 +143,7 @@ struct ApplicationPermissionsView: View {
             Spacer(minLength: 8)
             Button { model.openSettings(entry.settingsPane) } label: {
                 Label("Gérer", systemImage: "slider.horizontal.3")
-            }.buttonStyle(SecondaryActionButtonStyle()).help("Ouvrir \(entry.title) dans les Réglages Système")
+            }.buttonStyle(.actionPill).help("Ouvrir \(entry.title) dans les Réglages Système")
         }.padding(.vertical, 18)
     }
 
@@ -181,10 +181,10 @@ struct ApplicationPermissionsView: View {
         } actions: {
             if model.chosen.isEmpty {
                 Button("Ouvrir les réglages macOS", systemImage: "arrow.up.forward") { model.openSettings(pane) }
-                    .buttonStyle(.borderedProminent).disabled(model.busy)
+                    .buttonStyle(.prominentPill).disabled(model.busy)
             } else {
                 Button("Réinitialiser la sélection…") { confirming = true }
-                    .buttonStyle(.borderedProminent).disabled(model.busy)
+                    .buttonStyle(.prominentPill).disabled(model.busy)
             }
         }
     }
@@ -200,8 +200,10 @@ struct ApplicationPermissionsView: View {
             Text("Quittez les applications concernées avant de continuer. Leur autorisation actuelle sera effacée. Elles pourront afficher une nouvelle demande d’accès à la prochaine utilisation.")
             HStack {
                 Spacer()
-                Button("Annuler") { confirming = false }.keyboardShortcut(.cancelAction)
+                Button("Annuler") { confirming = false }
+                    .buttonStyle(.actionPill).keyboardShortcut(.cancelAction)
                 Button("Réinitialiser", role: .destructive) { confirming = false; model.resetSelected() }
+                    .buttonStyle(.actionPill)
             }
         }.font(AppFont.body).padding(28).frame(width: 540)
     }

@@ -52,7 +52,7 @@ struct ScreenCleaningView: View {
                 }
             } actions: {
                 Button("Activer le mode nettoyage") { controller.start(seconds: duration) }
-                    .buttonStyle(.borderedProminent).disabled(controller.active)
+                    .buttonStyle(.prominentPill).disabled(controller.active)
             }
         }
     }

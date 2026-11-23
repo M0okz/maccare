@@ -156,9 +156,9 @@ struct OnboardingView: View {
                 Button("Afficher MacCare dans le Finder") { model.revealApp() }
                 Button("Revérifier l’accès") { model.recheck() }
             }
-            .buttonStyle(.link).font(AppFont.secondary)
+            .buttonStyle(.actionPill).controlSize(.small)
             Button("Relancer MacCare") { model.relaunch() }
-                .buttonStyle(.link).font(AppFont.secondary)
+                .buttonStyle(.actionPill).controlSize(.small)
             if model.fullDisk == .unknown {
                 detail("L’accès n’est pas confirmé. Vous pouvez revérifier ou continuer plus tard.")
             }
@@ -204,7 +204,7 @@ struct OnboardingView: View {
             detail("C’est facultatif. Les autres fonctions de MacCare restent disponibles sans cet assistant.")
         case .needsApproval:
             detail("L’assistant attend votre approbation dans les Réglages Système. Vous pouvez aussi terminer sans l’activer.")
-            Button("J’ai approuvé : revérifier") { system.refreshStatus() }.buttonStyle(.link)
+            Button("J’ai approuvé : revérifier") { system.refreshStatus() }.buttonStyle(.actionPill).controlSize(.small)
         case .unavailable:
             detail("L’assistant n’est pas disponible dans cette version de l’app. Vous pouvez utiliser les autres fonctions.")
         }
@@ -223,23 +223,23 @@ struct OnboardingView: View {
         HStack(spacing: 16) {
             if step != .disk {
                 Button("Retour") { step = step == .helper ? .automation : .disk }
-                    .buttonStyle(SecondaryActionButtonStyle()).controlSize(.large)
+                    .buttonStyle(.actionPill).controlSize(.large)
             }
             Spacer()
             if step == .helper {
                 if system.phase == .off {
                     Button("Activer l’assistant…") { system.enable() }
-                        .buttonStyle(SecondaryActionButtonStyle()).controlSize(.large)
+                        .buttonStyle(.actionPill).controlSize(.large)
                 } else if system.phase == .needsApproval {
                     Button("Ouvrir les Réglages") { system.openApproval() }
-                        .buttonStyle(SecondaryActionButtonStyle()).controlSize(.large)
+                        .buttonStyle(.actionPill).controlSize(.large)
                 }
                 primary("Commencer") { model.completeFirstRun() }
             } else if confirmed {
                 primary("Continuer") { advance() }
             } else {
                 Button("Plus tard") { advance() }
-                    .buttonStyle(SecondaryActionButtonStyle()).controlSize(.large)
+                    .buttonStyle(.actionPill).controlSize(.large)
                     .keyboardShortcut(.cancelAction)
                 if step == .disk {
                     primary("Ouvrir les Réglages") { model.openFullDiskSettings() }
@@ -258,7 +258,7 @@ struct OnboardingView: View {
 
     private func primary(_ text: String, action: @escaping () -> Void) -> some View {
         Button(text, action: action)
-            .buttonStyle(.borderedProminent).controlSize(.large)
+            .buttonStyle(.prominentPill).controlSize(.large)
             .keyboardShortcut(.defaultAction)
     }
 

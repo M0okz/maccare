@@ -48,7 +48,7 @@ struct ApplicationsDetailPanel: View {
                 VStack(spacing: 0) {
                     ScreenToolbar(title: "Gestionnaire Applications") {
                         Button { close() } label: { Label("Retour", systemImage: "chevron.left") }
-                            .buttonStyle(ToolbarActionButtonStyle()).keyboardShortcut(.cancelAction).disabled(writing)
+                            .buttonStyle(.toolbarPill).keyboardShortcut(.cancelAction).disabled(writing)
                     } trailing: {
                         if detail == .startup {
                             Picker("Catégorie de démarrage", selection: $startupCategory) {

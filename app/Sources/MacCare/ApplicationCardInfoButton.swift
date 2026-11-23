@@ -39,7 +39,7 @@ struct ApplicationCardInfoButton: View {
                     presented = false
                     onDetails()
                 } label: { Label("En savoir plus…", systemImage: "arrow.right.circle.fill") }
-                    .buttonStyle(.plain).font(AppFont.secondary.weight(.semibold)).foregroundStyle(Theme.accentInk)
+                    .buttonStyle(.actionPill).controlSize(.small)
                     .padding(.vertical, 4)
                     .accessibilityLabel("En savoir plus : \(information.title)")
             }

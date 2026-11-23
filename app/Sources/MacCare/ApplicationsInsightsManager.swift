@@ -20,7 +20,7 @@ struct ApplicationsInsightsManager: View {
         VStack(spacing: 0) {
             ScreenToolbar(title: category.title) {
                 Button(action: onBack) { Label("Retour", systemImage: "chevron.left") }
-                    .buttonStyle(ToolbarActionButtonStyle()).keyboardShortcut(.cancelAction).disabled(model.isRemoving)
+                    .buttonStyle(.toolbarPill).keyboardShortcut(.cancelAction).disabled(model.isRemoving)
             } trailing: { EmptyView() }.padding(.horizontal, 24).frame(height: 56)
             Divider()
             HSplitView {
@@ -34,9 +34,9 @@ struct ApplicationsInsightsManager: View {
             } actions: {
                 if category == .installers {
                     Button("Mettre à la Corbeille") { confirmTrash = true }
-                        .buttonStyle(.borderedProminent).disabled(model.selectedInstallers.isEmpty || model.isRemoving)
+                        .buttonStyle(.prominentPill).disabled(model.selectedInstallers.isEmpty || model.isRemoving)
                 } else if let item = selectedApp {
-                    Button("Examiner la désinstallation") { examine(item.app) }.buttonStyle(.borderedProminent)
+                    Button("Examiner la désinstallation") { examine(item.app) }.buttonStyle(.prominentPill)
                 }
             }.padding(18).background(Theme.sidebar)
         }
@@ -110,6 +110,7 @@ struct ApplicationsInsightsManager: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(url.path).font(AppFont.secondary).textSelection(.enabled)
             Button("Afficher dans le Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+                .buttonStyle(.actionPill)
         }
     }
     private func examine(_ item: AppInfo) {

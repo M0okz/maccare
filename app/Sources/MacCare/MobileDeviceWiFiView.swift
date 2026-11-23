@@ -10,7 +10,7 @@ struct MobileDeviceWiFiView: View {
                 Text("Appareils Apple").font(.title2.weight(.semibold)).accessibilityAddTraits(.isHeader)
                 Spacer()
                 Button { Task { await model.refresh() } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
-                    .buttonStyle(SecondaryActionButtonStyle()).disabled(model.busy)
+                    .buttonStyle(.actionPill).disabled(model.busy)
             }
             Text("Suivez la batterie de l’iPhone ou de l’iPad, et le dernier niveau connu de sa Watch, depuis ce Mac.")
                 .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
@@ -32,7 +32,7 @@ struct MobileDeviceWiFiView: View {
                             Button(enabled ? "Désactiver l’accès Wi-Fi" : "Activer l’accès Wi-Fi") {
                                 Task { await model.setWiFi(for: device, enabled: !enabled) }
                             }
-                            .buttonStyle(SecondaryActionButtonStyle())
+                            .buttonStyle(.actionPill)
                             .disabled(model.busy || !device.canConfigure)
                         }
                     }

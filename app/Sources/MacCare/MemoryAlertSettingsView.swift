@@ -16,7 +16,8 @@ struct MemoryAlertSettingsView: View {
             }
             Button("Afficher un aperçu de l’alerte mémoire") {
                 NotificationCenter.default.post(name: MemoryAlertPolicy.previewNotification, object: nil)
-            }.disabled(!menuBarShown)
+            }
+            .buttonStyle(.actionPill).disabled(!menuBarShown)
             Text("L’aperçu utilise un exemple fictif. Il ne ferme aucune application et ne modifie pas les rappels.")
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }

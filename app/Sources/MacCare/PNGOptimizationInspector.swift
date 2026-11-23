@@ -36,7 +36,7 @@ struct PNGOptimizationInspector: View {
                     Text("Des PNG plus légers, la même image").font(.title.weight(.semibold)).accessibilityAddTraits(.isHeader)
                     Text("Créez des copies sans perte de qualité. Vos originaux et les métadonnées des images sont conservés.")
                         .font(AppFont.body).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
-                    Button("Choisir des images…", action: chooseImages).buttonStyle(.borderedProminent).controlSize(.large)
+                    Button("Choisir des images…", action: chooseImages).buttonStyle(.prominentPill).controlSize(.large)
                 }
             }.frame(maxWidth: .infinity, alignment: .leading).padding(26)
         }

@@ -50,11 +50,11 @@ struct PerformanceOverviewView: View {
             }
             OverviewActionFooter(caption: "Analyse seule. Vous choisissez ensuite les éléments à gérer.") {
                 Button("Analyser", action: analyze)
-                    .buttonStyle(CircularOverviewActionStyle(tint: ModuleColor.startup))
+                    .buttonStyle(.prominentPill).tint(ModuleColor.startup).controlSize(.large)
                     .accessibilityLabel("Analyser les performances").disabled(writing)
             } secondary: {
                 Button("Examiner une catégorie directement") { app.performanceDetail = .maintenance }
-                    .buttonStyle(SecondaryActionButtonStyle()).font(AppFont.secondary).disabled(writing)
+                    .buttonStyle(.actionPill).font(AppFont.secondary).disabled(writing)
             }
         }
     }
@@ -82,7 +82,7 @@ struct PerformanceOverviewView: View {
         VStack(spacing: 0) {
             ScreenToolbar(title: "Performances") {
                 Button(action: prepareNewAnalysis) { Label("Recommencer", systemImage: "arrow.counterclockwise") }
-                    .buttonStyle(ToolbarActionButtonStyle()).disabled(startup.isLoading || writing)
+                    .buttonStyle(.toolbarPill).disabled(startup.isLoading || writing)
                     .help("Revenir à l’écran Analyser pour préparer un nouveau bilan.")
             } trailing: { EmptyView() }.padding(.horizontal, 32).frame(height: 56).padding(.vertical, 8)
             ScrollView {
@@ -124,7 +124,7 @@ struct PerformanceOverviewView: View {
                 Spacer(minLength: 16)
             }
             Button(category == .maintenance ? "Examiner les tâches" : "Examiner") { app.performanceDetail = category }
-                .buttonStyle(SecondaryActionButtonStyle()).controlSize(.large).disabled(writing)
+                .buttonStyle(.actionPill).controlSize(.large).disabled(writing)
                 .accessibilityLabel("Examiner : \(category.title)")
         }.padding(22).frame(maxWidth: .infinity, minHeight: tall ? 318 : 150, alignment: .topLeading)
             .background(RoundedRectangle(cornerRadius: 20).fill(.white.opacity(0.065)))

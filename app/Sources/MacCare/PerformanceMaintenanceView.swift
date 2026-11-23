@@ -99,7 +99,7 @@ struct PerformanceMaintenanceView: View {
                             Label(issue, systemImage: "info.circle").font(AppFont.body)
                             if task.requiresHelper(includeLocalSnapshots: includeLocalSnapshots) && !helper.isEnabled { helperActions }
                             if task == .mail && permissions.fullDisk != .granted {
-                                Button("Ouvrir les réglages d’accès au disque") { permissions.openFullDiskSettings() }.buttonStyle(SecondaryActionButtonStyle())
+                                Button("Ouvrir les réglages d’accès au disque") { permissions.openFullDiskSettings() }.buttonStyle(.actionPill)
                             }
                         }.padding(16).background(Theme.bg, in: RoundedRectangle(cornerRadius: 12))
                     }
@@ -170,7 +170,7 @@ struct PerformanceMaintenanceView: View {
                 if helper.phase == .needsApproval { Button("Approuver dans macOS") { helper.openApproval() } }
                 else { Button("Activer l’assistant…") { helper.enable() }.disabled(helper.phase == .unavailable) }
                 Button("Revérifier") { helper.refreshStatus() }
-            }.buttonStyle(SecondaryActionButtonStyle())
+            }.buttonStyle(.actionPill)
             if let message = helper.statusMessage { Text(message).font(AppFont.secondary).foregroundStyle(Theme.muted) }
         }
     }
@@ -184,10 +184,10 @@ struct PerformanceMaintenanceView: View {
             }
         } actions: {
             if let repair = focusedRepair {
-                Button("Réparer…") { repairConfirmation = repair }.buttonStyle(.borderedProminent).controlSize(.large).disabled(busy)
+                Button("Réparer…") { repairConfirmation = repair }.buttonStyle(.prominentPill).controlSize(.large).disabled(busy)
             } else {
                 Button("Exécuter la sélection…") { confirmation = PerformanceConfirmation(tasks: model.chosen, includeLocalSnapshots: includeLocalSnapshots) }
-                    .buttonStyle(.borderedProminent).controlSize(.large)
+                    .buttonStyle(.prominentPill).controlSize(.large)
                     .disabled(busy || model.chosen.isEmpty || model.chosen.contains { unavailable($0) != nil })
             }
         }.padding(18).background(Theme.sidebar)
@@ -214,11 +214,12 @@ struct PerformanceMaintenanceView: View {
             }
             HStack {
                 Spacer()
-                Button("Annuler") { confirmation = nil }.keyboardShortcut(.cancelAction)
+                Button("Annuler") { confirmation = nil }
+                    .buttonStyle(.actionPill).keyboardShortcut(.cancelAction)
                 Button(removesSnapshots ? "Supprimer des instantanés et exécuter" : "Confirmer l’exécution") {
                     confirmation = nil
                     model.run(tasks, includeLocalSnapshots: snapshots)
-                }.buttonStyle(.borderedProminent)
+                }.buttonStyle(.prominentPill)
                     .tint(removesSnapshots ? Theme.danger : Theme.accent)
                     .disabled(busy || tasks.contains { unavailable($0) != nil })
             }
@@ -232,9 +233,10 @@ struct PerformanceMaintenanceView: View {
             Text(repair.effect).font(AppFont.body).fixedSize(horizontal: false, vertical: true)
             HStack {
                 Spacer()
-                Button("Annuler") { repairConfirmation = nil }.keyboardShortcut(.cancelAction)
+                Button("Annuler") { repairConfirmation = nil }
+                    .buttonStyle(.actionPill).keyboardShortcut(.cancelAction)
                 Button("Lancer la réparation") { repairConfirmation = nil; repairs.run(repair) }
-                    .buttonStyle(.borderedProminent).disabled(busy)
+                    .buttonStyle(.prominentPill).disabled(busy)
             }
         }.padding(28).frame(width: 520)
             .foregroundStyle(Color.primary).background(Color.white).preferredColorScheme(.light)

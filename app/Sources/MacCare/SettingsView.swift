@@ -72,6 +72,7 @@ struct SettingsView: View {
                             Text("Les autorisations restent sous votre contrôle dans macOS.").font(.caption).foregroundStyle(.secondary)
                             Spacer()
                             Button("Actualiser") { refreshStatus() }
+                                .buttonStyle(.actionPill)
                         }
                     }
                     groupCard("Démarrage") {
@@ -86,7 +87,8 @@ struct SettingsView: View {
                         Button("Revoir la configuration de MacCare") {
                             permissions.reopen()
                             openWindow(id: MacCareApp.mainWindowID)
-                        }.padding(.top, 6)
+                        }
+                        .buttonStyle(.actionPill).padding(.top, 6)
                     }
 
                 }
@@ -124,10 +126,13 @@ struct SettingsView: View {
                                 switch systemClean.phase {
                                     case .off:
                                     Button("Activer") { systemClean.enable() }
+                                        .buttonStyle(.actionPill)
                                     case .needsApproval:
                                     Button("Ouvrir les Réglages Système") { systemClean.openApproval() }
+                                        .buttonStyle(.actionPill)
                                     case .on:
                                     Button("Désactiver") { systemClean.disable() }
+                                        .buttonStyle(.actionPill)
                                     case .unavailable:
                                     EmptyView()
                                 }
@@ -175,6 +180,7 @@ struct SettingsView: View {
                                 NSWorkspace.shared.open(url)
                             }
                         }
+                        .buttonStyle(.actionPill)
                     }
                 }
                 if pane == .menu {
@@ -230,15 +236,18 @@ struct SettingsView: View {
                                             .lineLimit(2).truncationMode(.middle).help(p)
                                         Spacer()
                                         Button("Retirer") { model.removeExclusion(p) }
+                                            .buttonStyle(.actionPill)
                                             .accessibilityLabel("Retirer l’exclusion de \(p)")
                                     }.padding(.vertical, 6)
                                 }
                                 Button("Tout retirer…", role: .destructive) { clearExclusionsConfirmation = true }
-                                .padding(.top, 4)
+                                    .buttonStyle(.actionPill)
+                                    .padding(.top, 4)
                             }
                         }
                     }
                     Button("Ajouter un fichier ou un dossier…") { addExclusion() }
+                        .buttonStyle(.actionPill)
                     Text("Retirer une exclusion ne supprime aucun fichier. Les changements prennent effet à la prochaine analyse.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
@@ -293,7 +302,8 @@ struct SettingsView: View {
                     .font(.caption.weight(.medium))
             }
             Spacer()
-            Button("Ouvrir les réglages", action: action).accessibilityLabel("Ouvrir les réglages : \(title)")
+            Button("Ouvrir les réglages", action: action)
+                .buttonStyle(.actionPill).accessibilityLabel("Ouvrir les réglages : \(title)")
         }
     }
 

@@ -55,7 +55,7 @@ struct BatterySection<Content: View>: View {
             Text(title).font(.title2.weight(.semibold)).accessibilityAddTraits(.isHeader)
             content
         }
-        .buttonStyle(SecondaryActionButtonStyle())
+        .buttonStyle(.actionPill)
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.bg.opacity(0.55), in: RoundedRectangle(cornerRadius: Radius.card))

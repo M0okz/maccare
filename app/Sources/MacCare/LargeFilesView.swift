@@ -148,7 +148,7 @@ struct LargeFilesView: View {
     private var footer: some View {
         AdaptiveActionRow {
             VStack(alignment: .leading, spacing: 8) {
-                Button("Tout décocher") { model.selectNone() }.buttonStyle(LinkStyle())
+                Button("Tout décocher") { model.selectNone() }.buttonStyle(.actionPill).controlSize(.small)
                 if let r = model.lastReport {
                     Text(r.summary).font(AppFont.secondary).foregroundStyle(r.needsAttention ? Theme.warn : Theme.muted)
                 } else if let msg = model.statusMessage {

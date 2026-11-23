@@ -11,7 +11,7 @@ struct QuickToolsButton: View {
                 Image(systemName: "chevron.down").font(.caption).accessibilityHidden(true)
             }
         }
-        .buttonStyle(.bordered).controlSize(.large)
+        .buttonStyle(.actionPill).controlSize(.large)
         .help("Accès rapide aux outils")
         .popover(isPresented: $showingTools, arrowEdge: .bottom) {
             QuickToolsList(app: app) { showingTools = false }

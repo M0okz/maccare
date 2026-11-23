@@ -24,7 +24,8 @@ struct AdditionalAlertSettingsView: View {
             }
             Button("Afficher un aperçu : \(kind.title)") {
                 NotificationCenter.default.post(name: AdditionalAlertKind.previewNotification, object: nil, userInfo: ["kind": kind.rawValue])
-            }.disabled(!menuBarShown)
+            }
+            .buttonStyle(.actionPill).disabled(!menuBarShown)
             Text(menuBarShown ? "L’aperçu est fictif : il ne modifie ni la batterie, ni les rappels et ne ferme aucune application."
                              : "Activez la barre des menus pour afficher ces alertes.")
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)

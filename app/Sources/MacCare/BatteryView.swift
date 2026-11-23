@@ -66,7 +66,7 @@ struct BatteryView: View {
             Spacer(minLength: 0)
             Button { Task { await model.refresh(force: true) } } label: {
                 Label("Actualiser", systemImage: "arrow.clockwise")
-            }.buttonStyle(SecondaryActionButtonStyle()).disabled(model.controlsBusy)
+            }.buttonStyle(.actionPill).disabled(model.controlsBusy)
         }
     }
     private var artwork: some View {

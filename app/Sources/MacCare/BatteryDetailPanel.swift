@@ -16,7 +16,7 @@ struct BatteryDetailPanel: View {
         VStack(spacing: 0) {
             ScreenToolbar(title: "Gestionnaire Batterie") {
                 Button { category = nil } label: { Label("Retour", systemImage: "chevron.left") }
-                    .buttonStyle(ToolbarActionButtonStyle()).keyboardShortcut(.cancelAction)
+                    .buttonStyle(.toolbarPill).keyboardShortcut(.cancelAction)
             } trailing: { EmptyView() }
                 .padding(.horizontal, 24).frame(height: 56)
             Divider()
@@ -46,7 +46,8 @@ struct BatteryDetailPanel: View {
                 Text("Diagnostic de compatibilité").font(.headline)
                 Text("Lecture seule des contrôles de batterie. Aucun réglage de charge n’est modifié.").font(.callout)
                 ScrollView { Text(diagnostics).font(.system(.body, design: .monospaced)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
-                Button("Fermer") { showingDiagnostics = false }.keyboardShortcut(.cancelAction)
+                Button("Fermer") { showingDiagnostics = false }
+                    .buttonStyle(.actionPill).keyboardShortcut(.cancelAction)
             }.padding(24).frame(width: 700, height: 480).modifier(ManagerSheetStyle())
         }
         .onChange(of: model.error) { errorFocused = $0 != nil }
@@ -105,7 +106,7 @@ struct BatteryDetailPanel: View {
                 }.disabled(model.controlsBusy)
             }
         }
-        .buttonStyle(SecondaryActionButtonStyle())
+        .buttonStyle(.actionPill)
         .padding(18).background(Theme.bg)
         .confirmationDialog("Activer la protection de la batterie ?", isPresented: $confirmingActivation, titleVisibility: .visible) {
             Button("Activer la protection") { Task { await model.perform(.enable) } }
@@ -149,7 +150,7 @@ struct BatteryDetailPanel: View {
                     .foregroundStyle(Theme.muted)
                 Button(model.requiresApproval ? "Réessayer l’activation de l’assistant…" : "Activer l’assistant système…") {
                     Task { await model.activateHelper() }
-                }.buttonStyle(.borderedProminent).disabled(model.controlsBusy)
+                }.buttonStyle(.prominentPill).disabled(model.controlsBusy)
                 if model.requiresApproval {
                     Text("MacCare retente l’enregistrement, puis ouvre les Réglages Système si votre accord est encore nécessaire.")
                         .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
@@ -158,7 +159,7 @@ struct BatteryDetailPanel: View {
                 Text("Cette version de MacCare utilise un assistant plus récent. La mise à jour restaure d’abord les anciens réglages de charge et peut demander votre accord dans Réglages Système. La protection repart ensuite si elle était active.")
                     .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
                 Button("Mettre à jour l’assistant…") { Task { await model.updateHelper() } }
-                    .buttonStyle(.borderedProminent).disabled(model.controlsBusy)
+                    .buttonStyle(.prominentPill).disabled(model.controlsBusy)
             } else if model.restoring && !model.restorationDeferred {
                 Text("MacCare restaure l’état de charge d’origine. L’assistant continue les tentatives ; aucune nouvelle protection ne peut démarrer pendant cette opération.")
                     .foregroundStyle(Theme.warn)
@@ -260,21 +261,23 @@ struct BatteryDetailPanel: View {
                 }.padding(.top, 12)
             }
         }
-        .buttonStyle(SecondaryActionButtonStyle())
+        .buttonStyle(.actionPill)
         .padding(24).frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.bg.opacity(0.55), in: RoundedRectangle(cornerRadius: Radius.card))
     }
     @ViewBuilder private var actions: some View {
         if model.active {
             Button("Appliquer les réglages") { Task { await model.perform(.enable) } }
-                .disabled(model.busy || !model.pendingChanges || model.cycle != nil || model.protection?.ownedByCaller != true).buttonStyle(.borderedProminent)
+                .disabled(model.busy || !model.pendingChanges || model.cycle != nil || model.protection?.ownedByCaller != true).buttonStyle(.prominentPill)
             Button(model.protection?.topUp == true ? "Revenir à la limite" : "Recharger à 100 % une fois") {
                 Task { await model.perform(model.protection?.topUp == true ? .cancelTopUp : .topUp) }
-            }.disabled(model.busy || model.snapshot?.onAC != true || model.protection?.ownedByCaller != true)
-            Button("Désactiver la protection") { Task { await model.perform(.disable) } }.disabled(model.controlsBusy)
+            }
+            .buttonStyle(.actionPill).disabled(model.busy || model.snapshot?.onAC != true || model.protection?.ownedByCaller != true)
+            Button("Désactiver la protection") { Task { await model.perform(.disable) } }
+                .buttonStyle(.actionPill).disabled(model.controlsBusy)
         } else {
             Button("Activer la protection") { confirmingActivation = true }
-                .buttonStyle(.borderedProminent).disabled(model.busy || !model.helperEnabled || !model.supported || !model.recoveryReady || model.appleActivationBlock != nil || (model.restoring && !model.restorationDeferred))
+                .buttonStyle(.prominentPill).disabled(model.busy || !model.helperEnabled || !model.supported || !model.recoveryReady || model.appleActivationBlock != nil || (model.restoring && !model.restorationDeferred))
         }
     }
 }

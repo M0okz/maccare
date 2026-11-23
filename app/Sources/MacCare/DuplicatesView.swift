@@ -82,7 +82,7 @@ struct DuplicatesView: View {
                         .font(AppFont.caption).foregroundStyle(Theme.muted)
                 }
                 Spacer(minLength: 8)
-                Button("Cocher les copies") { model.selectCopies(in: g) }.buttonStyle(LinkStyle())
+                Button("Cocher les copies") { model.selectCopies(in: g) }.buttonStyle(.actionPill).controlSize(.small)
                 Text("jusqu'à \(humanSize(g.reclaimable))")
                     .font(AppFont.body.weight(.bold)).monospacedDigit()
                     .frame(minWidth: 72, alignment: .trailing)
@@ -116,7 +116,7 @@ struct DuplicatesView: View {
             if kept {
                 PillBadge(text: "Conservé", kind: .safe)
             } else {
-                Button("Garder celui-ci") { model.keep(f, in: g) }.buttonStyle(LinkStyle())
+                Button("Garder celui-ci") { model.keep(f, in: g) }.buttonStyle(.actionPill).controlSize(.small)
             }
             Button {
                 NSWorkspace.shared.activateFileViewerSelecting([f.url])
@@ -139,8 +139,8 @@ struct DuplicatesView: View {
     private var footer: some View {
         AdaptiveActionRow {
             VStack(alignment: .leading, spacing: 8) {
-                Button("Cocher toutes les copies") { model.selectAllCopies() }.buttonStyle(LinkStyle())
-                Button("Tout décocher") { model.selectNone() }.buttonStyle(LinkStyle())
+                Button("Cocher toutes les copies") { model.selectAllCopies() }.buttonStyle(.actionPill).controlSize(.small)
+                Button("Tout décocher") { model.selectNone() }.buttonStyle(.actionPill).controlSize(.small)
                 if let r = model.lastReport {
                     Text(r.summary).font(AppFont.secondary).foregroundStyle(r.needsAttention ? Theme.warn : Theme.muted)
                 } else if let msg = model.statusMessage {

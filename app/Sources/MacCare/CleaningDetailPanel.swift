@@ -27,7 +27,7 @@ struct CleaningDetailPanel: View {
         VStack(spacing: 0) {
             ScreenToolbar(title: "Gestionnaire Nettoyage") {
                 Button { app.module = .cleaningOverview } label: { Label("Retour", systemImage: "chevron.left") }
-                    .buttonStyle(ToolbarActionButtonStyle()).keyboardShortcut(.cancelAction).disabled(busy)
+                    .buttonStyle(.toolbarPill).keyboardShortcut(.cancelAction).disabled(busy)
             } trailing: {
                 Picker("Outil de nettoyage", selection: Binding(get: { module }, set: { app.module = $0 })) {
                     ForEach(NavigationSection.cleaning.destinations(developerTools: developerTools).filter { $0 != .cleaningOverview }) {

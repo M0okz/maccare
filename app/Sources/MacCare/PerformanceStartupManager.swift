@@ -112,7 +112,7 @@ struct PerformanceStartupManager: View {
                     accessNotice
                 } else if login, let error = model.loginItemsError {
                     Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(Theme.warn)
-                    Button("Ouvrir les réglages d’Automatisation") { permissions.openAutomationSettings() }.buttonStyle(SecondaryActionButtonStyle())
+                    Button("Ouvrir les réglages d’Automatisation") { permissions.openAutomationSettings() }.buttonStyle(.actionPill)
                 } else if login, let item = selectedLogin {
                     Text(item.name).font(.system(size: detailTitleSize, weight: .semibold)).accessibilityAddTraits(.isHeader)
                     Label("Application à la connexion", systemImage: "power").font(AppFont.body)
@@ -155,10 +155,10 @@ struct PerformanceStartupManager: View {
             Text("L’Automatisation de System Events permet de lire cette liste. Les agents d’arrière-plan restent consultables séparément.")
                 .font(AppFont.body).foregroundStyle(Theme.muted)
             if permissions.automation == .denied {
-                Button("Ouvrir les réglages d’Automatisation") { permissions.openAutomationSettings() }.buttonStyle(SecondaryActionButtonStyle())
+                Button("Ouvrir les réglages d’Automatisation") { permissions.openAutomationSettings() }.buttonStyle(.actionPill)
             } else {
                 Button(permissions.requestingAutomation ? "En attente…" : "Autoriser la lecture…") { permissions.requestAutomation() }
-                    .buttonStyle(SecondaryActionButtonStyle()).disabled(permissions.requestingAutomation)
+                    .buttonStyle(.actionPill).disabled(permissions.requestingAutomation)
             }
         }
     }
@@ -173,14 +173,14 @@ struct PerformanceStartupManager: View {
         } actions: {
             HStack(spacing: 10) {
                 if login {
-                    if let item = selectedLogin, item.hasFile { Button("Emplacement") { model.reveal(item) }.buttonStyle(SecondaryActionButtonStyle()) }
-                    Button("Réglages de connexion") { model.openLoginSettings() }.buttonStyle(.borderedProminent)
+                    if let item = selectedLogin, item.hasFile { Button("Emplacement") { model.reveal(item) }.buttonStyle(.actionPill) }
+                    Button("Réglages de connexion") { model.openLoginSettings() }.buttonStyle(.prominentPill)
                 } else if let agent = selectedAgent {
-                    if agent.scope != "disabled" { Button("Emplacement") { model.reveal(agent) }.buttonStyle(SecondaryActionButtonStyle()) }
+                    if agent.scope != "disabled" { Button("Emplacement") { model.reveal(agent) }.buttonStyle(.actionPill) }
                     if agent.scope == "disabled" {
-                        Button("Réactiver") { model.toggle(agent) }.buttonStyle(.borderedProminent).disabled(busy)
+                        Button("Réactiver") { model.toggle(agent) }.buttonStyle(.prominentPill).disabled(busy)
                     } else if agent.canDisable {
-                        Button("Désactiver…") { confirming = agent }.buttonStyle(.borderedProminent).disabled(busy)
+                        Button("Désactiver…") { confirming = agent }.buttonStyle(.prominentPill).disabled(busy)
                     }
                 }
             }
@@ -204,8 +204,10 @@ struct PerformanceStartupManager: View {
             Text("Réversible : MacCare le met de côté et peut le réactiver depuis cet écran.").font(AppFont.secondary).foregroundStyle(Theme.muted)
             HStack {
                 Spacer()
-                Button("Annuler") { confirming = nil }.keyboardShortcut(.defaultAction)
+                Button("Annuler") { confirming = nil }
+                    .buttonStyle(.actionPill).keyboardShortcut(.defaultAction)
                 Button("Désactiver") { confirming = nil; model.toggle(agent) }
+                    .buttonStyle(.actionPill)
             }
         }.padding(24).frame(width: 480).onExitCommand { confirming = nil }
     }

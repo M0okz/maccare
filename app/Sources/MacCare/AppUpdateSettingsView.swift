@@ -25,6 +25,7 @@ struct AppUpdateSettingsView: View {
                     Button("Autoriser les notifications…") {
                         Task { await updater.requestUpdateNotificationPermission() }
                     }
+                    .buttonStyle(.actionPill)
                 } else if updater.notificationAuthorization == .denied {
                     Text("Les notifications de MacCare sont désactivées dans macOS.")
                         .font(.callout).foregroundStyle(.secondary)
@@ -33,6 +34,7 @@ struct AppUpdateSettingsView: View {
                             NSWorkspace.shared.open(url)
                         }
                     }
+                    .buttonStyle(.actionPill)
                 }
             }
             if let error = updater.notificationError {
@@ -50,6 +52,7 @@ struct AppUpdateSettingsView: View {
                 }
                 Spacer(minLength: 12)
                 Button("Rechercher les mises à jour…", action: updater.checkForUpdates)
+                    .buttonStyle(.actionPill)
                     .disabled(!updater.canCheckForUpdates)
             }
         }

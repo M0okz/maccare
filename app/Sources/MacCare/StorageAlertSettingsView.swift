@@ -16,7 +16,8 @@ struct StorageAlertSettingsView: View {
             }
             Button("Afficher un aperçu") {
                 NotificationCenter.default.post(name: StorageAlertPolicy.previewNotification, object: nil)
-            }.disabled(!menuBarShown)
+            }
+            .buttonStyle(.actionPill).disabled(!menuBarShown)
             Text("L’aperçu utilise un exemple fictif et ne modifie pas vos rappels. Ouvrir MacCare ne lance aucun nettoyage.")
                 .font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
