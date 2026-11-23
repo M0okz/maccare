@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct HomeStatusCards: View {
-    @Environment(\.dashboardScale) private var scale
+    let scale: CGFloat
     let app: AppState
     let availableWidth: CGFloat
     let storage: TrayStorageUsage?
@@ -17,6 +17,7 @@ struct HomeStatusCards: View {
                 metrics.dashboardBlockScale(scale)
             }
             HomeProcessTable(controller: processes)
+                .font(scale < 1 ? .body : AppFont.body)
         }
         .background(WindowVisibilityObserver { windowVisible = $0 })
         .task(id: windowVisible) {
@@ -32,7 +33,7 @@ struct HomeStatusCards: View {
         HomeActivityCard(store: app.trayMetrics, storage: storage, availableWidth: availableWidth,
                          onStorage: { app.select(.space) }) {
             HomeHealthCard(store: app.trayMetrics, battery: app.battery, storage: storage) {
-                HomeScanButton(model: app.smartScan, diameter: availableWidth >= 1050 ? 90 : 70) {
+                HomeScanButton(model: app.smartScan, diameter: availableWidth * scale >= 1050 ? 90 : 70) {
                     app.cleaningToolsVisible = false
                     app.select(.cleaning)
                 }

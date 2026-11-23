@@ -394,7 +394,7 @@ struct DetailView: View {
         switch app.module ?? .dashboard {
         case .about: AboutView(updater: updater)
         case .battery: BatteryView(model: app.battery)
-        case .dashboard: DashboardView(app: app).environment(\.dashboardScale, layout.scale)
+        case .dashboard: DashboardView(app: app, layout: layout)
         case .applicationsOverview: ApplicationsOverviewView(app: app)
         case .cleaningOverview: CleaningOverviewView(app: app)
         case .filesOverview: FilesOverviewView(app: app)
