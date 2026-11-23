@@ -101,3 +101,7 @@ Le site propose la 0.2.33 et le guide de prise en main décrit la densité adapt
 ## Publication 0.2.34 — 23 novembre 2026
 
 Le site propose la 0.2.34. Le guide de prise en main présente la taille minimale de la fenêtre et la fiche des processus. [Contrôles de publication](../docs/release-integration-0.2.34.md).
+
+## Publication 0.2.35 — 24 novembre 2026
+
+Le site propose le DMG officiel 0.2.35. Le guide de prise en main décrit le curseur des actions et les confirmations dans la fiche processus. [Vérifications publiques](../docs/release-integration-0.2.35.md).
