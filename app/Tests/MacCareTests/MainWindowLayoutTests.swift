@@ -3,6 +3,15 @@ import Testing
 @testable import MacCare
 
 struct MainWindowLayoutTests {
+    @Test func dashboardDensityTracksWindowWidthWithoutCompoundingDisplayScale() {
+        let roomy = MainWindowLayout.standard
+        #expect(roomy.dashboardScale(forContentWidth: 1080) == 0.9)
+        #expect(roomy.dashboardScale(forContentWidth: 960) == 0.85)
+        #expect(roomy.dashboardScale(forContentWidth: 1360) == 1)
+        let compact = MainWindowLayout(visibleScreenSize: CGSize(width: 1920, height: 1080))
+        #expect(compact.dashboardScale(forContentWidth: 1080) == compact.scale)
+    }
+
     @Test func theCurrentMacKeepsItsExistingScaleAndDefaultWindow() {
         let layout = MainWindowLayout(visibleScreenSize: CGSize(width: 2560, height: 1488))
         #expect(layout == .standard)

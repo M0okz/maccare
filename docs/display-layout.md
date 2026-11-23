@@ -1,5 +1,26 @@
 # Échelle automatique de la fenêtre principale
 
+## Densité de l’accueil selon la largeur de la fenêtre
+
+En DEV le 23 novembre 2026, sur `codex/dashboard-density` à partir de `edc3fc4`.
+Dans une fenêtre étroite sur un grand écran, les deux rangées de cartes prenaient
+la hauteur de la carte Batterie. Celle-ci réservait 20 points de plus dès que le
+contenu de sa colonne passait sous 270 points de largeur.
+
+Le titre et les cartes s’adaptent désormais à la largeur disponible après le rail
+de navigation. L’échelle atteint 100 % à 1 200 points de contenu si l’écran le
+permet. Elle conserve le plancher de 85 % et respecte la densité de l’écran sans
+cumuler deux réductions. La carte Batterie garde la place nécessaire à son
+contenu. Le tableau des processus utilise ses coordonnées natives et la police
+système du corps de texte en présentation compacte.
+
+Sur le Mac de développement, une fenêtre de 1 149 × 845 points reproduisait les
+neuf lignes complètes du signalement. À dimensions identiques, la hauteur d’une
+carte est passée de 207 à 167 points et le nombre de lignes complètes de 9 à 12.
+La saisie et l’effacement d’une recherche au clavier ont été exercés dans la DEV.
+Ces mesures proviennent de la fenêtre native sur le Mac de développement. Le
+rendu physique du moniteur 27 pouces 4K reste à confirmer sur l’autre Mac.
+
 ## Limites de redimensionnement de la fenêtre principale
 
 En développement dans MacCare Dev sur `codex/stability-footprint`, après `a30874e`.

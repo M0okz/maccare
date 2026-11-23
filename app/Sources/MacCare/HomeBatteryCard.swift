@@ -7,8 +7,7 @@ struct HomeBatteryCard: View {
     let onDetails: () -> Void
     @ScaledMetric(relativeTo: .largeTitle) private var chargeSize = 36
     @ScaledMetric(relativeTo: .body) private var accessoryDiameter: CGFloat = 28
-    @ScaledMetric(relativeTo: .body) private var regularHeight: CGFloat = 155
-    @ScaledMetric(relativeTo: .body) private var compactHeight: CGFloat = 175
+    @ScaledMetric(relativeTo: .body) private var minimumContentHeight: CGFloat = 155
     private var snapshot: BatterySnapshot? { model.snapshot }
     private var telemetry: TrayBatteryTelemetry { context.telemetry }
 
@@ -21,12 +20,7 @@ struct HomeBatteryCard: View {
                         .font(AppFont.body).foregroundStyle(Theme.muted)
                 }
             } else {
-                // Preserve the dashboard row heights in its regular and compact columns.
-                ViewThatFits(in: .horizontal) {
-                    content.frame(minWidth: 270, idealWidth: 270, maxWidth: .infinity,
-                                  minHeight: regularHeight, maxHeight: .infinity)
-                    content.frame(maxWidth: .infinity, minHeight: compactHeight, maxHeight: .infinity)
-                }
+                content.frame(maxWidth: .infinity, minHeight: minimumContentHeight, maxHeight: .infinity)
             }
         }
             .buttonStyle(HomeStatusCardButtonStyle(tint: Theme.ok))

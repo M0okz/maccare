@@ -6,6 +6,7 @@ struct MainWindowLayout: Equatable {
     let preferredWindowSize: CGSize
 
     static let standard = MainWindowLayout(scale: 1)
+    private static let minimumScale: CGFloat = 0.85
     static let minimumContentSize = CGSize(width: 1120, height: 700)
     static let compactWindowMigrationKey = "mainWindowCompactDisplayLayoutApplied"
 
@@ -17,7 +18,7 @@ struct MainWindowLayout: Equatable {
         }
         // Use the workspace in points, independently of the number of Retina pixels.
         let room = min(visibleScreenSize.width / 2400, visibleScreenSize.height / 1400)
-        let scale = min(1, max(0.85, (room * 20).rounded(.down) / 20))
+        let scale = min(1, max(Self.minimumScale, (room * 20).rounded(.down) / 20))
         let available = CGSize(width: visibleScreenSize.width,
                                height: max(1, visibleScreenSize.height - max(0, titleBarHeight)))
         self.init(scale: scale, available: available)
@@ -35,6 +36,11 @@ struct MainWindowLayout: Equatable {
     }
 
     var isCompact: Bool { scale < 1 }
+
+    /// Width available to the dashboard after the navigation rail, in native points.
+    func dashboardScale(forContentWidth width: CGFloat) -> CGFloat {
+        min(scale, max(Self.minimumScale, width / 1200))
+    }
 
     func contentSize(in viewport: CGSize) -> CGSize {
         CGSize(width: viewport.width / scale, height: viewport.height / scale)

@@ -2,19 +2,21 @@ import SwiftUI
 
 /// Tableau de bord alimenté par les mesures du Mac.
 struct DashboardView: View {
-    @Environment(\.dashboardScale) private var scale
+    let layout: MainWindowLayout
     @ObservedObject var app: AppState
     @ObservedObject private var permissions: PermissionsModel
     @State private var disk = DiskSpace.current()
     @State private var showingPermissions = false
 
-    init(app: AppState) {
+    init(app: AppState, layout: MainWindowLayout) {
+        self.layout = layout
         self.app = app
         self.permissions = app.permissions
     }
 
     var body: some View {
         GeometryReader { geometry in
+            let scale = layout.dashboardScale(forContentWidth: geometry.size.width)
             let availableWidth = geometry.size.width / scale
             let inset: CGFloat = availableWidth < 1050 ? 20 : 26
             let width = min(availableWidth - 2 * inset, 1440)
@@ -25,7 +27,7 @@ struct DashboardView: View {
                     QuickToolsButton(app: app)
                 }
                 .dashboardBlockScale(scale)
-                HomeStatusCards(app: app, availableWidth: width,
+                HomeStatusCards(scale: scale, app: app, availableWidth: width,
                                 storage: disk.flatMap { TrayStorageUsage(free: $0.free, total: $0.total) })
             }
             .frame(width: width * scale)

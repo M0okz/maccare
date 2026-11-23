@@ -14,17 +14,6 @@ struct DisplayAdjustedContent: ViewModifier {
     }
 }
 
-private struct DashboardScaleKey: EnvironmentKey {
-    static let defaultValue: CGFloat = 1
-}
-
-extension EnvironmentValues {
-    var dashboardScale: CGFloat {
-        get { self[DashboardScaleKey.self] }
-        set { self[DashboardScaleKey.self] = newValue }
-    }
-}
-
 /// Mesure chaque bloc en points logiques et réserve sa taille affichée dans la page.
 private struct ScaledBlockLayout: Layout {
     let scale: CGFloat
