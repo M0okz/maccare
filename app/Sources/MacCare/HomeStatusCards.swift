@@ -33,7 +33,7 @@ struct HomeStatusCards: View {
         HomeActivityCard(store: app.trayMetrics, storage: storage, availableWidth: availableWidth,
                          onStorage: { app.select(.space) }) {
             HomeHealthCard(store: app.trayMetrics, battery: app.battery, storage: storage) {
-                HomeScanButton(model: app.smartScan, diameter: availableWidth * scale >= 1050 ? 90 : 70) {
+                HomeScanButton(model: app.smartScan, compact: availableWidth * scale < 1050) {
                     app.cleaningToolsVisible = false
                     app.select(.cleaning)
                 }

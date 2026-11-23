@@ -51,8 +51,10 @@ struct HomeProcessList: NSViewRepresentable {
         guard let table = scroll.documentView as? ProcessTableView else { return }
         let coordinator = context.coordinator
         let selection = coordinator.owner.rows.indices.contains(table.selectedRow) ? coordinator.owner.rows[table.selectedRow].id : nil
+        let countChanged = coordinator.owner.rows.count != rows.count
         coordinator.owner = self
         table.reloadData()
+        if countChanged { table.window?.invalidateCursorRects(for: table) }
         if let selection, let index = rows.firstIndex(where: { $0.id == selection }) {
             table.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
         }
@@ -123,10 +125,23 @@ private final class ProcessTableView: NSTableView {
     var openSelection: ((Int) -> Void)?
     private var tracking: NSTrackingArea?
     private(set) var hoverIndex = -1
+    override func resetCursorRects() {
+        super.resetCursorRects()
+        guard numberOfRows > 0 else { return }
+        let occupied = rect(ofRow: 0).union(rect(ofRow: numberOfRows - 1)).intersection(visibleRect)
+        if !occupied.isEmpty { addCursorRect(occupied, cursor: .pointingHand) }
+    }
+
+    override func cursorUpdate(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        if visibleRect.contains(point), row(at: point) >= 0 { NSCursor.pointingHand.set() }
+        else { super.cursorUpdate(with: event) }
+    }
+
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         if let tracking { removeTrackingArea(tracking) }
-        let area = NSTrackingArea(rect: .zero, options: [.mouseMoved, .mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect], owner: self)
+        let area = NSTrackingArea(rect: .zero, options: [.mouseMoved, .mouseEnteredAndExited, .cursorUpdate, .activeInActiveApp, .inVisibleRect], owner: self)
         addTrackingArea(area)
         tracking = area
     }
@@ -171,6 +186,16 @@ private final class ProcessRowView: NSTableRowView {
 }
 
 private final class ProcessHeader: NSTableHeaderView {
+    override func resetCursorRects() {
+        super.resetCursorRects()
+        guard let tableView else { return }
+        for (index, column) in tableView.tableColumns.enumerated() where column.sortDescriptorPrototype != nil {
+            // Leave the column edges to the native resize cursor.
+            let rect = headerRect(ofColumn: index).insetBy(dx: 5, dy: 0).intersection(visibleRect)
+            if !rect.isEmpty { addCursorRect(rect, cursor: .pointingHand) }
+        }
+    }
+
     override func draw(_ dirtyRect: NSRect) {
         guard let table = tableView else { return }
         NSColor.white.withAlphaComponent(0.04).setFill()

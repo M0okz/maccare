@@ -8,7 +8,7 @@ struct TrayHistoryRangePicker: View {
             Text("10 min").tag(TimeInterval(600))
             Text("30 min").tag(TimeInterval(1800))
             Text("1 h").tag(TimeInterval(3600))
-        }.pickerStyle(.segmented)
+        }.actionCursor().pickerStyle(.segmented)
     }
 }
 

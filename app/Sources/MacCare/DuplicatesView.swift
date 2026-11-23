@@ -82,7 +82,7 @@ struct DuplicatesView: View {
                         .font(AppFont.caption).foregroundStyle(Theme.muted)
                 }
                 Spacer(minLength: 8)
-                Button("Cocher les copies") { model.selectCopies(in: g) }.buttonStyle(LinkStyle())
+                Button("Cocher les copies") { model.selectCopies(in: g) }.buttonStyle(.actionPill).controlSize(.small)
                 Text("jusqu'à \(humanSize(g.reclaimable))")
                     .font(AppFont.body.weight(.bold)).monospacedDigit()
                     .frame(minWidth: 72, alignment: .trailing)
@@ -116,20 +116,21 @@ struct DuplicatesView: View {
             if kept {
                 PillBadge(text: "Conservé", kind: .safe)
             } else {
-                Button("Garder celui-ci") { model.keep(f, in: g) }.buttonStyle(LinkStyle())
+                Button("Garder celui-ci") { model.keep(f, in: g) }.buttonStyle(.actionPill).controlSize(.small)
             }
             Button {
                 NSWorkspace.shared.activateFileViewerSelecting([f.url])
             } label: {
                 Image(systemName: "magnifyingglass.circle").font(AppFont.body)
             }
-            .buttonStyle(.plain).foregroundStyle(Theme.muted)
+            .buttonStyle(.plainAction).foregroundStyle(Theme.muted)
             .help("Afficher dans le Finder")
         }
         .padding(.horizontal, 14).padding(.vertical, 8)
         .padding(.leading, 30)
         .contentShape(Rectangle())
         .onTapGesture { model.toggle(f, in: g) }
+        .actionCursor()
         .contextMenu {
             Button("Afficher dans le Finder") { NSWorkspace.shared.activateFileViewerSelecting([f.url]) }
             Button("Ouvrir") { NSWorkspace.shared.open(f.url) }
@@ -139,8 +140,8 @@ struct DuplicatesView: View {
     private var footer: some View {
         AdaptiveActionRow {
             VStack(alignment: .leading, spacing: 8) {
-                Button("Cocher toutes les copies") { model.selectAllCopies() }.buttonStyle(LinkStyle())
-                Button("Tout décocher") { model.selectNone() }.buttonStyle(LinkStyle())
+                Button("Cocher toutes les copies") { model.selectAllCopies() }.buttonStyle(.actionPill).controlSize(.small)
+                Button("Tout décocher") { model.selectNone() }.buttonStyle(.actionPill).controlSize(.small)
                 if let r = model.lastReport {
                     Text(r.summary).font(AppFont.secondary).foregroundStyle(r.needsAttention ? Theme.warn : Theme.muted)
                 } else if let msg = model.statusMessage {

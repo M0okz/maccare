@@ -27,13 +27,13 @@ struct CleaningDetailPanel: View {
         VStack(spacing: 0) {
             ScreenToolbar(title: "Gestionnaire Nettoyage") {
                 Button { app.module = .cleaningOverview } label: { Label("Retour", systemImage: "chevron.left") }
-                    .buttonStyle(ToolbarActionButtonStyle()).keyboardShortcut(.cancelAction).disabled(busy)
+                    .buttonStyle(.toolbarPill).keyboardShortcut(.cancelAction).disabled(busy)
             } trailing: {
                 Picker("Outil de nettoyage", selection: Binding(get: { module }, set: { app.module = $0 })) {
                     ForEach(NavigationSection.cleaning.destinations(developerTools: developerTools).filter { $0 != .cleaningOverview }) {
                         Text($0.tabTitle).tag($0)
                     }
-                }.labelsHidden().frame(width: 225).accessibilityLabel("Outil de nettoyage").disabled(busy)
+                }.actionCursor().labelsHidden().frame(width: 225).accessibilityLabel("Outil de nettoyage").disabled(busy)
             }.padding(.horizontal, 24).frame(height: 56)
             Divider()
             Group {

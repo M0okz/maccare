@@ -39,7 +39,7 @@ struct TrashView: View {
                 Spacer()
                 ProgressView("Vidage en cours…")
                 Button("Arrêter") { model.cancelEmptying() }
-                    .buttonStyle(LinkStyle())
+                    .buttonStyle(.actionPill).controlSize(.small)
                     .padding(.top, Space.s)
                 Text("Ce qui est déjà supprimé ne peut pas être récupéré.")
                     .font(AppFont.caption).foregroundStyle(Theme.faint)
@@ -88,7 +88,7 @@ struct TrashView: View {
             Spacer(minLength: 8)
             if !b.readable {
                 PillBadge(text: "Autorisation manquante", kind: .review)
-                Button("Configurer") { permissions.reopen() }.buttonStyle(LinkStyle())
+                Button("Configurer") { permissions.reopen() }.buttonStyle(.actionPill).controlSize(.small)
             } else if b.items == 0 {
                 Text("Vide").font(AppFont.secondary).foregroundStyle(Theme.muted)
             } else {
@@ -101,6 +101,7 @@ struct TrashView: View {
         .padding(.horizontal, 14).padding(.vertical, 10)
         .contentShape(Rectangle())
         .onTapGesture { model.toggle(b) }
+        .actionCursor()
     }
 
     private var footer: some View {
@@ -124,7 +125,7 @@ struct TrashView: View {
                 if !model.selectedBins.isEmpty {
                     Text("Sélection : \(humanSize(model.selectedSize))").font(AppFont.secondary)
                 }
-                PrimaryButton(title: "Vider…", systemImage: "trash.slash", tint: Theme.danger) {
+                PrimaryButton(title: "Vider", systemImage: "trash.slash", tint: Theme.danger) {
                     // Le contenu est relu avant de demander confirmation : la feuille annonce l'état actuel.
                     model.load()
                     confirming = true
@@ -160,6 +161,7 @@ struct TrashView: View {
             HStack {
                 Spacer()
                 Button("Annuler") { confirming = false }
+                    .buttonStyle(.actionPill)
                     .keyboardShortcut(.defaultAction)
                 Button(role: .destructive) {
                     confirming = false
@@ -167,6 +169,7 @@ struct TrashView: View {
                 } label: {
                     Text("Vider définitivement")
                 }
+                .buttonStyle(.actionPill)
                 .tint(Theme.danger)
                 .disabled(model.isLoading || model.selectedBins.isEmpty)
             }

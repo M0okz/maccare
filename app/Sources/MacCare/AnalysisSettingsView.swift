@@ -18,7 +18,7 @@ struct AnalysisSettingsView: View {
                 get: { preferences.profile }, set: { preferences.select($0) }
             )) {
                 ForEach(CleaningProfile.allCases) { Text($0.title).tag($0) }
-            }
+            }.actionCursor()
             .pickerStyle(.segmented)
             Text(preferences.profile.detail).font(.callout).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -39,7 +39,7 @@ struct AnalysisSettingsView: View {
                             Toggle(title, isOn: Binding(
                                 get: { categories.allSatisfy { selected.contains($0.id) } },
                                 set: { preferences.set(categories, enabled: $0, available: available) }
-                            ))
+                            )).actionCursor()
                             .toggleStyle(.checkbox)
                             Spacer()
                             Text("\(categories.filter { selected.contains($0.id) }.count)/\(categories.count)")
@@ -70,7 +70,7 @@ struct AnalysisSettingsView: View {
                 set: { preferences.set([category], enabled: $0, available: available) }
             )) {
                 Label(category.title, systemImage: category.icon)
-            }.toggleStyle(.checkbox)
+            }.actionCursor().toggleStyle(.checkbox)
             Text(category.summary).font(.callout).foregroundStyle(.secondary)
             Text(category.risk == .safe
                  ? "Faible risque · présélectionnée dans les résultats."

@@ -122,6 +122,7 @@ struct SystemCleanView: View {
         .padding(.horizontal, 14).padding(.vertical, 9)
         .contentShape(Rectangle())
         .onTapGesture { model.toggle(item) }
+        .actionCursor()
     }
 
     // MARK: Activation
@@ -160,7 +161,7 @@ struct SystemCleanView: View {
                 PrimaryButton(title: "Ouvrir les Réglages", systemImage: "gearshape.fill", tint: ModuleColor.maint) { model.openApproval() }
                     .fixedSize()
                 Button("J'ai approuvé : revérifier") { model.refreshStatus(); if model.isEnabled { model.load() } }
-                    .buttonStyle(LinkStyle()).font(AppFont.secondary)
+                    .buttonStyle(.actionPill).controlSize(.small)
             }
         default:
             EmptyView()
@@ -171,7 +172,7 @@ struct SystemCleanView: View {
         HStack {
             Text("Assistant : \(model.statusText.lowercased()).").font(AppFont.caption).foregroundStyle(Theme.faint)
             Spacer()
-            Button("Désactiver l'assistant") { model.disable() }.buttonStyle(LinkStyle()).font(AppFont.secondary)
+            Button("Désactiver l'assistant") { model.disable() }.buttonStyle(.actionPill).controlSize(.small)
         }
     }
 
@@ -213,7 +214,7 @@ struct SystemCleanView: View {
             if !model.selectedItems.isEmpty {
                 Text("Sélection : \(humanSize(model.selectedSize))").font(AppFont.secondary)
             }
-            PrimaryButton(title: "Supprimer…", systemImage: "trash.slash", tint: Theme.danger) { confirming = true }
+            PrimaryButton(title: "Supprimer", systemImage: "trash.slash", tint: Theme.danger) { confirming = true }
                 .disabled(model.selectedItems.isEmpty || model.isRemoving)
                 .opacity(model.selectedItems.isEmpty || model.isRemoving ? 0.5 : 1)
         }
@@ -236,11 +237,13 @@ struct SystemCleanView: View {
                 .font(AppFont.secondary.weight(.semibold)).foregroundStyle(Theme.danger)
             HStack {
                 Spacer()
-                Button("Annuler") { confirming = false }.keyboardShortcut(.defaultAction)
+                Button("Annuler") { confirming = false }
+                    .buttonStyle(.actionPill).keyboardShortcut(.defaultAction)
                 Button(role: .destructive) {
                     confirming = false
                     model.removeSelected()
                 } label: { Text("Supprimer définitivement") }
+                    .buttonStyle(.actionPill)
                     .tint(Theme.danger)
             }
         }

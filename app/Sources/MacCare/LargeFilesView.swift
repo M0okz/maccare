@@ -36,7 +36,7 @@ struct LargeFilesView: View {
                 if model.stage == .results {
                     Picker("Tri", selection: $model.sort) {
                         ForEach(LargeFilesModel.Sort.allCases) { Text($0.rawValue).tag($0) }
-                    }
+                    }.actionCursor()
                     .pickerStyle(.menu).fixedSize()
                 }
             }
@@ -53,7 +53,7 @@ struct LargeFilesView: View {
     private var sizeFilter: some View {
         Picker("Taille", selection: $model.minSize) {
             ForEach(LargeFilesModel.MinSize.allCases) { Text("≥ \($0.title)").tag($0) }
-        }
+        }.actionCursor()
         .pickerStyle(.segmented).fixedSize()
         .accessibilityLabel("Taille minimale")
     }
@@ -61,7 +61,7 @@ struct LargeFilesView: View {
     private var ageFilter: some View {
         Picker("Ouvert", selection: $model.age) {
             ForEach(LargeFilesModel.Age.allCases) { Text($0.title).tag($0) }
-        }
+        }.actionCursor()
         .pickerStyle(.segmented).fixedSize()
         .accessibilityLabel("Dernière ouverture")
     }
@@ -131,12 +131,13 @@ struct LargeFilesView: View {
             } label: {
                 Image(systemName: "magnifyingglass.circle").font(AppFont.body)
             }
-            .buttonStyle(.plain).foregroundStyle(Theme.muted)
+            .buttonStyle(.plainAction).foregroundStyle(Theme.muted)
             .help("Afficher dans le Finder")
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
         .contentShape(Rectangle())
         .onTapGesture { model.toggle(f) }
+        .actionCursor()
         .contextMenu {
             Button("Afficher dans le Finder") { NSWorkspace.shared.activateFileViewerSelecting([f.url]) }
             Button("Ouvrir") { NSWorkspace.shared.open(f.url) }
@@ -148,7 +149,7 @@ struct LargeFilesView: View {
     private var footer: some View {
         AdaptiveActionRow {
             VStack(alignment: .leading, spacing: 8) {
-                Button("Tout décocher") { model.selectNone() }.buttonStyle(LinkStyle())
+                Button("Tout décocher") { model.selectNone() }.buttonStyle(.actionPill).controlSize(.small)
                 if let r = model.lastReport {
                     Text(r.summary).font(AppFont.secondary).foregroundStyle(r.needsAttention ? Theme.warn : Theme.muted)
                 } else if let msg = model.statusMessage {

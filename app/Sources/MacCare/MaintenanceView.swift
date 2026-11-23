@@ -23,7 +23,7 @@ struct MaintenanceView: View {
                                         }.padding(12).frame(maxWidth: .infinity, alignment: .leading)
                                             .background(selected?.id == task.id ? Theme.accent.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: 10))
                                             .contentShape(RoundedRectangle(cornerRadius: 10))
-                                    }.buttonStyle(.plain).disabled(model.running != nil).accessibilityAddTraits(selected?.id == task.id ? .isSelected : [])
+                                    }.buttonStyle(.plainAction).disabled(model.running != nil).accessibilityAddTraits(selected?.id == task.id ? .isSelected : [])
                                 }
                             }
                         }
@@ -56,7 +56,7 @@ struct MaintenanceView: View {
                 }
             } actions: {
                 if model.running != nil { ProgressView("Réparation…") }
-                Button("Réparer…") { confirming = selected }.buttonStyle(.borderedProminent).disabled(model.running != nil || selected == nil)
+                Button("Réparer") { confirming = selected }.buttonStyle(.prominentPill).disabled(model.running != nil || selected == nil)
             }
         }
         .sheet(item: $confirming) { task in
@@ -66,11 +66,12 @@ struct MaintenanceView: View {
                 Text(task.effect).font(AppFont.body).fixedSize(horizontal: false, vertical: true)
                 HStack {
                     Spacer()
-                    Button("Annuler") { confirming = nil }.keyboardShortcut(.cancelAction)
+                    Button("Annuler") { confirming = nil }
+                        .buttonStyle(.actionPill).keyboardShortcut(.cancelAction)
                     Button("Lancer la réparation") {
                         confirming = nil
                         model.run(task)
-                    }.buttonStyle(.borderedProminent).disabled(model.running != nil)
+                    }.buttonStyle(.prominentPill).disabled(model.running != nil)
                 }
             }.padding(28).frame(width: 500).modifier(ToolConfirmationStyle())
         }

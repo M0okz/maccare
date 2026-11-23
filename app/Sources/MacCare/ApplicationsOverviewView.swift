@@ -84,7 +84,7 @@ struct ApplicationsOverviewView: View {
                     ProgressView("Inventaire de vos applications…").font(AppFont.body).frame(minHeight: 90)
                 } else {
                     Button("Analyser") { analyze() }
-                        .buttonStyle(CircularOverviewActionStyle(tint: ModuleColor.uninstall))
+                        .buttonStyle(.prominentPill).tint(ModuleColor.uninstall).controlSize(.large)
                         .accessibilityLabel("Analyser les applications")
                 }
             }
@@ -116,7 +116,7 @@ struct ApplicationsOverviewView: View {
         VStack(spacing: 0) {
             ScreenToolbar(title: "Applications") {
                 Button(action: prepareNewAnalysis) { Label("Recommencer", systemImage: "arrow.counterclockwise") }
-                    .buttonStyle(ToolbarActionButtonStyle()).disabled(working || uninstall.isCleaning)
+                    .buttonStyle(.toolbarPill).disabled(working || uninstall.isCleaning)
                     .help("Revenir à l’écran Analyser pour préparer un nouveau bilan.")
             } trailing: { EmptyView() }
                 .padding(.horizontal, 32).frame(height: 56).padding(.vertical, 8)
@@ -131,7 +131,7 @@ struct ApplicationsOverviewView: View {
                             .multilineTextAlignment(.center)
                         Button("Gérer mes applications") { open(.installed) }
                         .font(.system(size: 16, weight: .semibold))
-                        .buttonStyle(OverviewPrimaryStyle())
+                        .buttonStyle(.prominentPill).controlSize(.large)
                     }
                     .padding(.bottom, 4)
 
@@ -176,7 +176,7 @@ struct ApplicationsOverviewView: View {
             if !previewURLs.isEmpty { ApplicationUpdateIconPreview(urls: previewURLs, totalCount: updateSummary.count) }
             Spacer(minLength: 0)
             Button("Voir les mises à jour") { open(.updates) }
-                .buttonStyle(SecondaryActionButtonStyle()).controlSize(.large)
+                .buttonStyle(.actionPill).controlSize(.large)
         }
         .padding(22).frame(maxWidth: .infinity, minHeight: 346, alignment: .topLeading)
         .background(cardSurface)
@@ -237,7 +237,7 @@ struct ApplicationsOverviewView: View {
                 cardIcon("shippingbox", color: ModuleColor.uninstall)
             }
             if !uninstall.isScanningLeftovers && !uninstall.leftovers.isEmpty {
-                Button("Examiner les données") { open(.leftovers) }.buttonStyle(SecondaryActionButtonStyle()).controlSize(.large)
+                Button("Examiner les données") { open(.leftovers) }.buttonStyle(.actionPill).controlSize(.large)
             }
         }
         .padding(22).frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
@@ -255,7 +255,7 @@ struct ApplicationsOverviewView: View {
                 Text("Choisissez ce qui se lance à la connexion.")
                     .font(AppFont.body).foregroundStyle(Theme.muted)
                 Button("Gérer le démarrage") { open(.startup) }
-                    .buttonStyle(SecondaryActionButtonStyle()).controlSize(.large)
+                    .buttonStyle(.actionPill).controlSize(.large)
             }
             Spacer(minLength: 0)
             cardIcon("power", color: ModuleColor.startup)

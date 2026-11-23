@@ -11,8 +11,8 @@ struct FileStorageSettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
             group("Mes fichiers") {
-                Toggle("Rechercher les gros fichiers", isOn: $searchLarge)
-                Toggle("Rechercher les doublons", isOn: $searchDuplicates)
+                Toggle("Rechercher les gros fichiers", isOn: $searchLarge).actionCursor()
+                Toggle("Rechercher les doublons", isOn: $searchDuplicates).actionCursor()
                 inlineHelp(title: "À propos des recherches", message: "La comparaison des doublons peut prendre plus de temps. Ces choix s’appliquent à la prochaine analyse de Mes fichiers.")
                 if !searchLarge && !searchDuplicates {
                     Label("Activez au moins une recherche pour lancer une analyse.", systemImage: "info.circle")
@@ -23,12 +23,12 @@ struct FileStorageSettingsView: View {
                 settingRow("Taille minimale") {
                     Picker("Taille minimale", selection: $minSize) {
                         ForEach(LargeFilesModel.MinSize.allCases) { Text($0.title).tag(Int($0.rawValue)) }
-                    }.labelsHidden().accessibilityLabel("Taille minimale")
+                    }.actionCursor().labelsHidden().accessibilityLabel("Taille minimale")
                 }
                 settingRow("Dernière ouverture") {
                     Picker("Dernière ouverture", selection: $age) {
                         ForEach(LargeFilesModel.Age.allCases) { Text($0.title).tag($0.rawValue) }
-                    }.labelsHidden().accessibilityLabel("Dernière ouverture")
+                    }.actionCursor().labelsHidden().accessibilityLabel("Dernière ouverture")
                 }
                 inlineHelp(title: "À propos des filtres", message: "Vous pourrez ajuster ces filtres dans les résultats. Un fichier ancien ou volumineux n’est pas forcément inutile.")
             }
@@ -36,13 +36,13 @@ struct FileStorageSettingsView: View {
                 settingRow("Vue de l’explorateur") {
                     Picker("Vue de l’explorateur", selection: $view) {
                         ForEach(SpaceDisplayMode.allCases) { Text($0.title).tag($0.rawValue) }
-                    }.labelsHidden().accessibilityLabel("Vue de l’explorateur")
+                    }.actionCursor().labelsHidden().accessibilityLabel("Vue de l’explorateur")
                 }
 
                 settingRow("Point de départ") {
                     Picker("Point de départ", selection: $start) {
                         ForEach(SpaceStartFolder.allCases) { Text($0.title).tag($0.rawValue) }
-                    }.labelsHidden().accessibilityLabel("Point de départ")
+                    }.actionCursor().labelsHidden().accessibilityLabel("Point de départ")
                 }
                 inlineHelp(title: "À propos de l’explorateur", message: "Ces choix sont mémorisés. Le point de départ s’applique au prochain lancement. Vous pouvez choisir un volume ou un dossier dans Espace disque. En vue Carte, la liste reste visible à côté lorsque la fenêtre est assez large.")
             }

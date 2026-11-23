@@ -14,7 +14,7 @@ struct ApplicationCardInfoButton: View {
                 .frame(width: 28, height: 28).contentShape(Rectangle())
                 .accessibilityHidden(true)
         }
-        .buttonStyle(.plain).foregroundStyle(Theme.muted)
+        .buttonStyle(.plainAction).foregroundStyle(Theme.muted)
         .accessibilityLabel("À propos : \(information.title)")
         .accessibilityHint("Afficher une explication de cette catégorie")
         .help("À propos : \(information.title)")
@@ -38,8 +38,8 @@ struct ApplicationCardInfoButton: View {
                 Button {
                     presented = false
                     onDetails()
-                } label: { Label("En savoir plus…", systemImage: "arrow.right.circle.fill") }
-                    .buttonStyle(.plain).font(AppFont.secondary.weight(.semibold)).foregroundStyle(Theme.accentInk)
+                } label: { Label("En savoir plus", systemImage: "arrow.right.circle.fill") }
+                    .buttonStyle(.actionPill).controlSize(.small)
                     .padding(.vertical, 4)
                     .accessibilityLabel("En savoir plus : \(information.title)")
             }

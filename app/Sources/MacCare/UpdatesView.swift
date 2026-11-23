@@ -25,7 +25,7 @@ struct UpdatesView: View {
                     .font(AppFont.secondary).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
                 Button("Vérifier", systemImage: "arrow.clockwise") {
                     if applicationsOnly { model.checkApplications() } else { model.check() }
-                }.buttonStyle(.bordered).disabled(model.isChecking)
+                }.buttonStyle(.actionPill).disabled(model.isChecking)
                 if model.isChecking { ProgressView("Vérification…").font(AppFont.secondary) }
                 ForEach(sources) { source in
                     VStack(alignment: .leading, spacing: 8) {
@@ -37,7 +37,7 @@ struct UpdatesView: View {
                                     .frame(maxWidth: .infinity, minHeight: 32, alignment: .leading).padding(10)
                                     .background(selectedEntry?.item.id == item.id ? Theme.accent.opacity(0.09) : .clear,
                                                 in: RoundedRectangle(cornerRadius: 9))
-                            }.buttonStyle(.plain).accessibilityAddTraits(selectedEntry?.item.id == item.id ? .isSelected : [])
+                            }.buttonStyle(.plainAction).accessibilityAddTraits(selectedEntry?.item.id == item.id ? .isSelected : [])
                         }
                     }
                 }
@@ -84,16 +84,16 @@ struct UpdatesView: View {
     private func actions(source: UpdateSource, item: OutdatedItem) -> some View {
         if source.key == "mas" {
             Button("Ouvrir l’App Store") { NSWorkspace.shared.open(AppStoreUpdates.storeURL) }
-                .buttonStyle(.borderedProminent).controlSize(.large)
+                .buttonStyle(.prominentPill).controlSize(.large)
         } else if let url = item.downloadURL {
             Button("Accéder au téléchargement") { NSWorkspace.shared.open(url) }
-                .buttonStyle(.borderedProminent).controlSize(.large)
+                .buttonStyle(.prominentPill).controlSize(.large)
         } else if let url = item.applicationURL {
             Button("Ouvrir pour mettre à jour") { NSWorkspace.shared.open(url) }
-                .buttonStyle(.borderedProminent).controlSize(.large)
+                .buttonStyle(.prominentPill).controlSize(.large)
         } else if !source.command.isEmpty {
             Button("Copier la commande : \(source.command)") { model.copy(source.command) }
-                .buttonStyle(.bordered).controlSize(.large)
+                .buttonStyle(.actionPill).controlSize(.large)
         }
     }
 

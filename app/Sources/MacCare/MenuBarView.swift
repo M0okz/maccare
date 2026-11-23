@@ -105,7 +105,7 @@ struct MenuBarView: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plainAction)
             .accessibilityHint("Afficher les critères et le calcul de la santé du Mac")
             .help("Indice estimé de l’état actuel. Cliquez pour voir son calcul.")
             .popover(isPresented: $showingHealth, arrowEdge: .bottom) { MacHealthDetails(assessment: health) }
@@ -130,11 +130,11 @@ struct MenuBarView: View {
                         Text(smart.currentLabel ?? "Analyse en cours…").font(.callout.weight(.semibold)).lineLimit(1)
                         ProgressView(value: smart.progress).accessibilityLabel("Progression du Smart Scan")
                     }.frame(maxWidth: .infinity, alignment: .leading)
-                    Button("Arrêter l’analyse") { smart.cancelScan() }.buttonStyle(TrayActionStyle())
+                    Button("Arrêter l’analyse") { smart.cancelScan() }.buttonStyle(.actionPill).controlSize(.small)
                 } else if smart.stage == .cleaning {
                     Text("Nettoyage en cours…").font(.callout.weight(.semibold))
                     Spacer(minLength: 0)
-                    Button("Voir la progression") { show(.smartScan) }.buttonStyle(TrayActionStyle())
+                    Button("Voir la progression") { show(.smartScan) }.buttonStyle(.actionPill).controlSize(.small)
                 } else {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(smart.lastCompletedAt == nil ? "Faites le point" : humanSize(smart.lastSafeBytes))
@@ -145,7 +145,7 @@ struct MenuBarView: View {
                     Button(action: analyze) {
                         Label(smart.lastCompletedAt == nil ? "Analyser mon Mac" : "Analyser à nouveau", systemImage: "play.fill")
                     }
-                    .buttonStyle(TrayActionStyle(prominent: true)).disabled(busy)
+                    .buttonStyle(.prominentPill).tint(VeilleBrand.amethyst).controlSize(.small).disabled(busy)
                 }
             }
         }
@@ -293,27 +293,27 @@ struct MenuBarView: View {
         HStack(spacing: 6) {
             ForEach(TrayShortcuts.slots(shortcuts).compactMap { $0 }) { module in
                 Button { show(module) } label: { Image(systemName: module.symbol).frame(width: 20) }
-                    .buttonStyle(TrayActionStyle())
+                    .buttonStyle(.actionPill).controlSize(.small)
                     .accessibilityLabel(module.title).accessibilityInputLabels([module.title])
                     .help(module.title)
             }
             Spacer(minLength: 0)
             Button { show(.dashboard) } label: { Image(systemName: "macwindow").frame(width: 20) }
-                .buttonStyle(TrayActionStyle())
+                .buttonStyle(.actionPill).controlSize(.small)
                 .accessibilityLabel("Ouvrir MacCare").accessibilityInputLabels(["Ouvrir MacCare"])
                 .help("Ouvrir MacCare")
             if let openSettingsAction {
                 Button(action: openSettingsAction) { Image(systemName: "gearshape").frame(width: 20) }
-                    .buttonStyle(TrayActionStyle()).accessibilityLabel("Réglages de MacCare").help("Réglages de MacCare")
+                    .buttonStyle(.actionPill).controlSize(.small).accessibilityLabel("Réglages de MacCare").help("Réglages de MacCare")
             } else if #available(macOS 14, *) {
-                SettingsLink { Image(systemName: "gearshape").frame(width: 20) }.buttonStyle(TrayActionStyle())
+                SettingsLink { Image(systemName: "gearshape").frame(width: 20) }.buttonStyle(.actionPill).controlSize(.small)
                     .accessibilityLabel("Réglages de MacCare").help("Réglages de MacCare")
             } else {
                 Button {
                     NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
                     NSApp.activate(ignoringOtherApps: true)
                 } label: { Image(systemName: "gearshape").frame(width: 20) }
-                    .buttonStyle(TrayActionStyle()).accessibilityLabel("Réglages de MacCare").help("Réglages de MacCare")
+                    .buttonStyle(.actionPill).controlSize(.small).accessibilityLabel("Réglages de MacCare").help("Réglages de MacCare")
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 8)

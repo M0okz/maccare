@@ -37,7 +37,7 @@ struct ScreenCleaningView: View {
                                 Text("1 minute").tag(60)
                                 Text("2 minutes").tag(120)
                                 Text("5 minutes").tag(300)
-                            }.frame(maxWidth: 350)
+                            }.actionCursor().frame(maxWidth: 350)
                             Text("Ce mode ne verrouille pas votre session. Les touches système, comme le bouton d’alimentation, restent disponibles.")
                                 .font(AppFont.secondary).foregroundStyle(Theme.muted)
                         }.frame(maxWidth: .infinity, alignment: .leading).padding(28)
@@ -52,7 +52,7 @@ struct ScreenCleaningView: View {
                 }
             } actions: {
                 Button("Activer le mode nettoyage") { controller.start(seconds: duration) }
-                    .buttonStyle(.borderedProminent).disabled(controller.active)
+                    .buttonStyle(.prominentPill).disabled(controller.active)
             }
         }
     }

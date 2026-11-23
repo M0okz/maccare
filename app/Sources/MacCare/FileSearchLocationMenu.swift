@@ -5,8 +5,9 @@ struct FileSearchLocationMenu: NSViewRepresentable {
     @ObservedObject var model: FilesAnalysisModel
     func makeCoordinator() -> Coordinator { Coordinator(model) }
     func makeNSView(context: Context) -> NSPopUpButton {
-        let button = NSPopUpButton(frame: .zero, pullsDown: false)
+        let button = ActionPopUpButton(frame: .zero, pullsDown: false)
         button.isBordered = false; button.controlSize = .large
+        button.alignment = .center
         button.font = .systemFont(ofSize: 15, weight: .semibold)
         button.contentTintColor = .white
         button.setAccessibilityLabel("Dossier à analyser")
@@ -35,7 +36,7 @@ struct FileSearchLocationMenu: NSViewRepresentable {
                 menu.addItem(item)
             }
             menu.addItem(.separator())
-            let choose = NSMenuItem(title: "Choisir un dossier…", action: #selector(chooseFolder), keyEquivalent: "")
+            let choose = NSMenuItem(title: "Choisir un dossier", action: #selector(chooseFolder), keyEquivalent: "")
             choose.target = self; choose.image = NSImage(systemSymbolName: "folder", accessibilityDescription: nil)
             menu.addItem(choose)
             button.menu = menu

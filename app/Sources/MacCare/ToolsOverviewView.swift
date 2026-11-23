@@ -75,16 +75,15 @@ struct ToolsOverviewView: View {
             .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(Color.white.opacity(0.12)))
             .contentShape(RoundedRectangle(cornerRadius: 20))
         }
-        .buttonStyle(.plain).foregroundStyle(Theme.fg)
+        .buttonStyle(.plainAction).foregroundStyle(Theme.fg)
         .accessibilityElement(children: .ignore).accessibilityAddTraits(.isButton).accessibilityLabel("\(title). \(subtitle)")
         .accessibilityHint(action)
     }
 
     private func developerLink(_ title: String, module: Module) -> some View {
         Button { app.module = module } label: {
-            Label(title, systemImage: module.symbol).font(AppFont.body)
-                .frame(maxWidth: .infinity, alignment: .leading).padding(16)
-                .background(Color.white.opacity(0.065), in: RoundedRectangle(cornerRadius: 12))
-        }.buttonStyle(.plain).foregroundStyle(Theme.accentInk)
+            Label(title, systemImage: module.symbol)
+                .frame(maxWidth: .infinity)
+        }.buttonStyle(.actionPill).controlSize(.large)
     }
 }

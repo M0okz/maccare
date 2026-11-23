@@ -54,7 +54,7 @@ struct PerformanceMaintenanceView: View {
                 Text("\(PerformanceTask.allCases.count) tâches · \(repairs.tasks.count) réparations").font(AppFont.secondary)
                 Spacer(minLength: 0)
                 Button { model.refresh(exclusions: app.review.userExclusions) } label: { Image(systemName: "arrow.clockwise").frame(width: 30, height: 32) }
-                    .buttonStyle(.plain).disabled(busy).accessibilityLabel("Actualiser le bilan des caches")
+                    .buttonStyle(.plainAction).disabled(busy).accessibilityLabel("Actualiser le bilan des caches")
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: 5) {
@@ -63,7 +63,7 @@ struct PerformanceMaintenanceView: View {
                         HStack(spacing: 9) {
                             Toggle("Choisir", isOn: Binding(get: { model.selection.contains(task) }, set: { on in
                                 if on { model.selection.insert(task) } else { model.selection.remove(task) }
-                            })).toggleStyle(.checkbox).labelsHidden().disabled(busy || unavailable(task) != nil)
+                            })).actionCursor().toggleStyle(.checkbox).labelsHidden().disabled(busy || unavailable(task) != nil)
                                 .accessibilityLabel("Sélectionner \(PerformanceTaskPresentation.title(task))")
                             Button { focusedTask = task; focusedRepair = nil } label: {
                                 HStack(spacing: 9) {
@@ -72,7 +72,7 @@ struct PerformanceMaintenanceView: View {
                                     if model.running == task { ProgressView().controlSize(.small) }
                                     else if unavailable(task) != nil { Image(systemName: "lock").foregroundStyle(Theme.muted).accessibilityHidden(true) }
                                 }.frame(maxWidth: .infinity, minHeight: 32).contentShape(Rectangle())
-                            }.buttonStyle(.plain).accessibilityLabel("Examiner \(PerformanceTaskPresentation.title(task))")
+                            }.buttonStyle(.plainAction).accessibilityLabel("Examiner \(PerformanceTaskPresentation.title(task))")
                                 .accessibilityAddTraits(focusedTask == task ? .isSelected : [])
                         }.padding(10).background(focusedTask == task ? Theme.accent.opacity(0.09) : .clear, in: RoundedRectangle(cornerRadius: 9))
                     }
@@ -82,7 +82,7 @@ struct PerformanceMaintenanceView: View {
                             Label(repair.title, systemImage: "wrench.and.screwdriver")
                                 .font(AppFont.body).frame(maxWidth: .infinity, alignment: .leading).padding(10)
                                 .background(focusedRepair?.key == repair.key ? Theme.accent.opacity(0.09) : .clear, in: RoundedRectangle(cornerRadius: 9))
-                        }.buttonStyle(.plain).accessibilityAddTraits(focusedRepair?.key == repair.key ? .isSelected : [])
+                        }.buttonStyle(.plainAction).accessibilityAddTraits(focusedRepair?.key == repair.key ? .isSelected : [])
                     }
                 }
             }
@@ -99,7 +99,7 @@ struct PerformanceMaintenanceView: View {
                             Label(issue, systemImage: "info.circle").font(AppFont.body)
                             if task.requiresHelper(includeLocalSnapshots: includeLocalSnapshots) && !helper.isEnabled { helperActions }
                             if task == .mail && permissions.fullDisk != .granted {
-                                Button("Ouvrir les réglages d’accès au disque") { permissions.openFullDiskSettings() }.buttonStyle(SecondaryActionButtonStyle())
+                                Button("Ouvrir les réglages d’accès au disque") { permissions.openFullDiskSettings() }.buttonStyle(.actionPill)
                             }
                         }.padding(16).background(Theme.bg, in: RoundedRectangle(cornerRadius: 12))
                     }
@@ -168,9 +168,9 @@ struct PerformanceMaintenanceView: View {
             Text("Assistant système · \(helper.statusText)").font(AppFont.secondary).foregroundStyle(Theme.muted)
             HStack {
                 if helper.phase == .needsApproval { Button("Approuver dans macOS") { helper.openApproval() } }
-                else { Button("Activer l’assistant…") { helper.enable() }.disabled(helper.phase == .unavailable) }
+                else { Button("Activer l’assistant") { helper.enable() }.disabled(helper.phase == .unavailable) }
                 Button("Revérifier") { helper.refreshStatus() }
-            }.buttonStyle(SecondaryActionButtonStyle())
+            }.buttonStyle(.actionPill)
             if let message = helper.statusMessage { Text(message).font(AppFont.secondary).foregroundStyle(Theme.muted) }
         }
     }
@@ -184,10 +184,10 @@ struct PerformanceMaintenanceView: View {
             }
         } actions: {
             if let repair = focusedRepair {
-                Button("Réparer…") { repairConfirmation = repair }.buttonStyle(.borderedProminent).controlSize(.large).disabled(busy)
+                Button("Réparer") { repairConfirmation = repair }.buttonStyle(.prominentPill).controlSize(.large).disabled(busy)
             } else {
-                Button("Exécuter la sélection…") { confirmation = PerformanceConfirmation(tasks: model.chosen, includeLocalSnapshots: includeLocalSnapshots) }
-                    .buttonStyle(.borderedProminent).controlSize(.large)
+                Button("Exécuter la sélection") { confirmation = PerformanceConfirmation(tasks: model.chosen, includeLocalSnapshots: includeLocalSnapshots) }
+                    .buttonStyle(.prominentPill).controlSize(.large)
                     .disabled(busy || model.chosen.isEmpty || model.chosen.contains { unavailable($0) != nil })
             }
         }.padding(18).background(Theme.sidebar)
@@ -214,11 +214,12 @@ struct PerformanceMaintenanceView: View {
             }
             HStack {
                 Spacer()
-                Button("Annuler") { confirmation = nil }.keyboardShortcut(.cancelAction)
+                Button("Annuler") { confirmation = nil }
+                    .buttonStyle(.actionPill).keyboardShortcut(.cancelAction)
                 Button(removesSnapshots ? "Supprimer des instantanés et exécuter" : "Confirmer l’exécution") {
                     confirmation = nil
                     model.run(tasks, includeLocalSnapshots: snapshots)
-                }.buttonStyle(.borderedProminent)
+                }.buttonStyle(.prominentPill)
                     .tint(removesSnapshots ? Theme.danger : Theme.accent)
                     .disabled(busy || tasks.contains { unavailable($0) != nil })
             }
@@ -232,9 +233,10 @@ struct PerformanceMaintenanceView: View {
             Text(repair.effect).font(AppFont.body).fixedSize(horizontal: false, vertical: true)
             HStack {
                 Spacer()
-                Button("Annuler") { repairConfirmation = nil }.keyboardShortcut(.cancelAction)
+                Button("Annuler") { repairConfirmation = nil }
+                    .buttonStyle(.actionPill).keyboardShortcut(.cancelAction)
                 Button("Lancer la réparation") { repairConfirmation = nil; repairs.run(repair) }
-                    .buttonStyle(.borderedProminent).disabled(busy)
+                    .buttonStyle(.prominentPill).disabled(busy)
             }
         }.padding(28).frame(width: 520)
             .foregroundStyle(Color.primary).background(Color.white).preferredColorScheme(.light)

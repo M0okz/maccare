@@ -39,7 +39,7 @@ struct HomeProcessTable: View {
                         .accessibilityLabel("Rechercher un processus")
                     if !query.isEmpty {
                         Button { query = "" } label: { Image(systemName: "xmark.circle.fill") }
-                            .buttonStyle(.plain).accessibilityLabel("Effacer la recherche")
+                            .buttonStyle(.plainAction).accessibilityLabel("Effacer la recherche")
                     }
                 }
                 .font(AppFont.caption).padding(.horizontal, 8).frame(width: 180, height: 26)

@@ -40,7 +40,7 @@ struct InterfaceHelp: View {
     var body: some View {
         Button { presented.toggle() } label: {
             Label(title, systemImage: "info.circle").font(AppFont.secondary)
-        }.buttonStyle(.plain).foregroundStyle(Theme.muted)
+        }.buttonStyle(.actionPill).controlSize(.small)
             .popover(isPresented: $presented, arrowEdge: .leading) {
                 Text(message).font(AppFont.body).fixedSize(horizontal: false, vertical: true)
                     .padding(20).frame(width: 360)
@@ -69,41 +69,5 @@ enum ManagerPanelMotion {
     /// Le fond de catégorie, lui, assure la continuité de couleur.
     static func page(reduceMotion: Bool) -> AnyTransition {
         reduceMotion ? .identity : .asymmetric(insertion: .opacity, removal: .identity)
-    }
-}
-
-
-/// La surface change au survol, jamais la position ni la taille du libellé.
-struct ToolbarActionButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        ToolbarActionSurface(label: configuration.label, pressed: configuration.isPressed)
-    }
-}
-
-private struct ToolbarActionSurface<Label: View>: View {
-    let label: Label
-    let pressed: Bool
-    @State private var hovered = false
-    @Environment(\.isEnabled) private var enabled
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        label.font(AppFont.body.weight(.semibold))
-            .padding(.horizontal, 10).frame(height: 32)
-            .background {
-                RoundedRectangle(cornerRadius: 7)
-                    .fill(Color.white.opacity(enabled && (hovered || pressed) ? (colorScheme == .dark ? 0.16 : 0.55) : 0))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 7)
-                            .strokeBorder((colorScheme == .dark ? Color.white : Color.black)
-                                .opacity(enabled && (hovered || pressed) ? (colorScheme == .dark ? 0.14 : 0.06) : 0), lineWidth: 0.5)
-                    }
-            }
-            .frame(minHeight: 44).contentShape(Rectangle())
-            .opacity(enabled ? 1 : 0.45)
-            .onHover { hovered = $0 }
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: hovered)
-            .pressFeedback(pressed && enabled)
     }
 }

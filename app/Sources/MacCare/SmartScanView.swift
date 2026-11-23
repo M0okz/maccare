@@ -77,7 +77,7 @@ struct SmartScanView: View {
                                 Text(humanSize(group.size)).font(AppFont.secondary).foregroundStyle(Theme.muted).monospacedDigit()
                             }.frame(maxWidth: .infinity, minHeight: 32, alignment: .leading)
                         }
-                        .buttonStyle(.plain).accessibilityAddTraits(selectedGroup?.id == group.id ? .isSelected : [])
+                        .buttonStyle(.plainAction).accessibilityAddTraits(selectedGroup?.id == group.id ? .isSelected : [])
                     }.padding(10).background(selectedGroup?.id == group.id ? Theme.accent.opacity(0.09) : .clear, in: RoundedRectangle(cornerRadius: 9))
                 }
             }
@@ -108,7 +108,7 @@ struct SmartScanView: View {
                         if let message = model.statusMessage {
                             Label(message, systemImage: "exclamationmark.triangle").font(AppFont.secondary).foregroundStyle(Theme.warn)
                             if model.wasCancelled {
-                                Button("Relancer l’analyse") { model.scan() }.buttonStyle(.bordered)
+                                Button("Relancer l’analyse") { model.scan() }.buttonStyle(.actionPill)
                             }
                         }
                     }
@@ -150,8 +150,8 @@ struct SmartScanView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("\(model.selectedItems.count) \(pl(model.selectedItems.count, "élément")) \(pl(model.selectedItems.count, "sélectionné"))").font(AppFont.body.weight(.semibold))
                 HStack(spacing: Space.m) {
-                    Button("Tout cocher") { model.selectAll() }.buttonStyle(LinkStyle())
-                    Button("Tout décocher") { model.selectNone() }.buttonStyle(LinkStyle())
+                    Button("Tout cocher") { model.selectAll() }.buttonStyle(.actionPill).controlSize(.small)
+                    Button("Tout décocher") { model.selectNone() }.buttonStyle(.actionPill).controlSize(.small)
                 }
             }
         } actions: {

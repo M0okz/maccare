@@ -14,11 +14,11 @@ struct PerformanceDetailPanel: View {
         VStack(spacing: 0) {
             ScreenToolbar(title: "Gestionnaire Performances") {
                 Button { app.performanceDetail = nil } label: { Label("Retour", systemImage: "chevron.left") }
-                    .buttonStyle(ToolbarActionButtonStyle()).keyboardShortcut(.cancelAction).disabled(writing)
+                    .buttonStyle(.toolbarPill).keyboardShortcut(.cancelAction).disabled(writing)
             } trailing: {
                 Picker("Catégorie", selection: Binding(get: { category }, set: { app.performanceDetail = $0 })) {
                     ForEach(PerformanceCategory.allCases) { Text($0.title).tag($0) }
-                }.labelsHidden().frame(width: 225).accessibilityLabel("Catégorie de performances").disabled(writing)
+                }.actionCursor().labelsHidden().frame(width: 225).accessibilityLabel("Catégorie de performances").disabled(writing)
             }.padding(.horizontal, 24).frame(height: 56)
             Divider()
             Group {

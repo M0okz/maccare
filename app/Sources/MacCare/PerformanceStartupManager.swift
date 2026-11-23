@@ -61,13 +61,13 @@ struct PerformanceStartupManager: View {
             if !login {
                 Picker("Afficher", selection: $filter) {
                     ForEach([StartupFilter.agents, .disabled, .system]) { Text($0.title).tag($0) }
-                }.labelsHidden().accessibilityLabel("Type d’agent")
+                }.actionCursor().labelsHidden().accessibilityLabel("Type d’agent")
             }
             HStack {
                 Text(countLabel).font(AppFont.secondary).monospacedDigit()
                 Spacer()
                 Button(action: reload) { Image(systemName: "arrow.clockwise").frame(width: 32, height: 32) }
-                    .buttonStyle(.plain).disabled(busy).accessibilityLabel("Actualiser les éléments de démarrage")
+                    .buttonStyle(.plainAction).disabled(busy).accessibilityLabel("Actualiser les éléments de démarrage")
             }
             ScrollView {
                 LazyVStack(spacing: 5) {
@@ -81,7 +81,7 @@ struct PerformanceStartupManager: View {
                                     Spacer(minLength: 0)
                                 }.padding(10).frame(maxWidth: .infinity, alignment: .leading)
                                     .background(selectedLogin?.id == item.id ? Theme.accent.opacity(0.09) : .clear, in: RoundedRectangle(cornerRadius: 9))
-                            }.buttonStyle(.plain).accessibilityAddTraits(selectedLogin?.id == item.id ? .isSelected : [])
+                            }.buttonStyle(.plainAction).accessibilityAddTraits(selectedLogin?.id == item.id ? .isSelected : [])
                         }
                     } else {
                         ForEach(agents) { agent in
@@ -95,7 +95,7 @@ struct PerformanceStartupManager: View {
                                     Spacer(minLength: 0)
                                 }.padding(10).frame(maxWidth: .infinity, alignment: .leading)
                                     .background(selectedAgent?.id == agent.id ? Theme.accent.opacity(0.09) : .clear, in: RoundedRectangle(cornerRadius: 9))
-                            }.buttonStyle(.plain).accessibilityAddTraits(selectedAgent?.id == agent.id ? .isSelected : [])
+                            }.buttonStyle(.plainAction).accessibilityAddTraits(selectedAgent?.id == agent.id ? .isSelected : [])
                         }
                     }
                 }
@@ -112,7 +112,7 @@ struct PerformanceStartupManager: View {
                     accessNotice
                 } else if login, let error = model.loginItemsError {
                     Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(Theme.warn)
-                    Button("Ouvrir les réglages d’Automatisation") { permissions.openAutomationSettings() }.buttonStyle(SecondaryActionButtonStyle())
+                    Button("Ouvrir les réglages d’Automatisation") { permissions.openAutomationSettings() }.buttonStyle(.actionPill)
                 } else if login, let item = selectedLogin {
                     Text(item.name).font(.system(size: detailTitleSize, weight: .semibold)).accessibilityAddTraits(.isHeader)
                     Label("Application à la connexion", systemImage: "power").font(AppFont.body)
@@ -155,10 +155,10 @@ struct PerformanceStartupManager: View {
             Text("L’Automatisation de System Events permet de lire cette liste. Les agents d’arrière-plan restent consultables séparément.")
                 .font(AppFont.body).foregroundStyle(Theme.muted)
             if permissions.automation == .denied {
-                Button("Ouvrir les réglages d’Automatisation") { permissions.openAutomationSettings() }.buttonStyle(SecondaryActionButtonStyle())
+                Button("Ouvrir les réglages d’Automatisation") { permissions.openAutomationSettings() }.buttonStyle(.actionPill)
             } else {
-                Button(permissions.requestingAutomation ? "En attente…" : "Autoriser la lecture…") { permissions.requestAutomation() }
-                    .buttonStyle(SecondaryActionButtonStyle()).disabled(permissions.requestingAutomation)
+                Button(permissions.requestingAutomation ? "En attente…" : "Autoriser la lecture") { permissions.requestAutomation() }
+                    .buttonStyle(.actionPill).disabled(permissions.requestingAutomation)
             }
         }
     }
@@ -173,14 +173,14 @@ struct PerformanceStartupManager: View {
         } actions: {
             HStack(spacing: 10) {
                 if login {
-                    if let item = selectedLogin, item.hasFile { Button("Emplacement") { model.reveal(item) }.buttonStyle(SecondaryActionButtonStyle()) }
-                    Button("Réglages de connexion") { model.openLoginSettings() }.buttonStyle(.borderedProminent)
+                    if let item = selectedLogin, item.hasFile { Button("Emplacement") { model.reveal(item) }.buttonStyle(.actionPill) }
+                    Button("Réglages de connexion") { model.openLoginSettings() }.buttonStyle(.prominentPill)
                 } else if let agent = selectedAgent {
-                    if agent.scope != "disabled" { Button("Emplacement") { model.reveal(agent) }.buttonStyle(SecondaryActionButtonStyle()) }
+                    if agent.scope != "disabled" { Button("Emplacement") { model.reveal(agent) }.buttonStyle(.actionPill) }
                     if agent.scope == "disabled" {
-                        Button("Réactiver") { model.toggle(agent) }.buttonStyle(.borderedProminent).disabled(busy)
+                        Button("Réactiver") { model.toggle(agent) }.buttonStyle(.prominentPill).disabled(busy)
                     } else if agent.canDisable {
-                        Button("Désactiver…") { confirming = agent }.buttonStyle(.borderedProminent).disabled(busy)
+                        Button("Désactiver") { confirming = agent }.buttonStyle(.prominentPill).disabled(busy)
                     }
                 }
             }
@@ -204,8 +204,10 @@ struct PerformanceStartupManager: View {
             Text("Réversible : MacCare le met de côté et peut le réactiver depuis cet écran.").font(AppFont.secondary).foregroundStyle(Theme.muted)
             HStack {
                 Spacer()
-                Button("Annuler") { confirming = nil }.keyboardShortcut(.defaultAction)
+                Button("Annuler") { confirming = nil }
+                    .buttonStyle(.actionPill).keyboardShortcut(.defaultAction)
                 Button("Désactiver") { confirming = nil; model.toggle(agent) }
+                    .buttonStyle(.actionPill)
             }
         }.padding(24).frame(width: 480).onExitCommand { confirming = nil }
     }

@@ -8,9 +8,10 @@ struct VolumeLocationMenu: NSViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(model: model) }
 
     func makeNSView(context: Context) -> NSPopUpButton {
-        let button = NSPopUpButton(frame: .zero, pullsDown: false)
+        let button = ActionPopUpButton(frame: .zero, pullsDown: false)
         button.isBordered = false
         button.controlSize = .large
+        button.alignment = .center
         button.font = .systemFont(ofSize: 15, weight: .semibold)
         button.contentTintColor = NSColor(Theme.fg)
         button.imagePosition = .imageLeading
@@ -22,6 +23,7 @@ struct VolumeLocationMenu: NSViewRepresentable {
     }
 
     func updateNSView(_ button: NSPopUpButton, context: Context) {
+        button.isEnabled = context.environment.isEnabled
         context.coordinator.model = model
         if !context.coordinator.tracking { context.coordinator.rebuild() }
     }
@@ -61,7 +63,7 @@ struct VolumeLocationMenu: NSViewRepresentable {
                 menu.addItem(item)
             }
             menu.addItem(.separator())
-            let choose = NSMenuItem(title: "Choisir un dossier…", action: #selector(chooseFolder), keyEquivalent: "")
+            let choose = NSMenuItem(title: "Choisir un dossier", action: #selector(chooseFolder), keyEquivalent: "")
             choose.target = self
             choose.image = NSImage(systemSymbolName: "folder.fill", accessibilityDescription: nil)
             menu.addItem(choose)

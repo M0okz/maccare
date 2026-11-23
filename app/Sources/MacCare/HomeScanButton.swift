@@ -2,7 +2,7 @@ import SwiftUI
 
 struct HomeScanButton: View {
     @ObservedObject var model: SmartScanModel
-    let diameter: CGFloat
+    let compact: Bool
     let openCleaning: () -> Void
 
     private var busy: Bool { model.stage == .scanning || model.stage == .cleaning }
@@ -12,7 +12,9 @@ struct HomeScanButton: View {
             if !busy { model.prepareForNewScan() }
             openCleaning()
         }
-        .buttonStyle(CircularOverviewActionStyle(tint: VeilleBrand.amethyst, diameter: diameter))
+        .buttonStyle(.prominentPill)
+        .controlSize(compact ? .small : .regular)
+        .tint(VeilleBrand.amethyst)
         .accessibilityLabel(busy ? "Suivre le nettoyage" : "Analyser le nettoyage")
         .help(helpText)
     }

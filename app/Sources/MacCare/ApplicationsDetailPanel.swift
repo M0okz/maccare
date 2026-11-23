@@ -48,13 +48,13 @@ struct ApplicationsDetailPanel: View {
                 VStack(spacing: 0) {
                     ScreenToolbar(title: "Gestionnaire Applications") {
                         Button { close() } label: { Label("Retour", systemImage: "chevron.left") }
-                            .buttonStyle(ToolbarActionButtonStyle()).keyboardShortcut(.cancelAction).disabled(writing)
+                            .buttonStyle(.toolbarPill).keyboardShortcut(.cancelAction).disabled(writing)
                     } trailing: {
                         if detail == .startup {
                             Picker("Catégorie de démarrage", selection: $startupCategory) {
                                 Text("À la connexion").tag(PerformanceCategory.login)
                                 Text("En arrière-plan").tag(PerformanceCategory.background)
-                            }.labelsHidden().accessibilityLabel("Catégorie de démarrage").frame(width: 225).disabled(writing)
+                            }.actionCursor().labelsHidden().accessibilityLabel("Catégorie de démarrage").frame(width: 225).disabled(writing)
                         }
                     }
                         .padding(.horizontal, 24).frame(height: 56)

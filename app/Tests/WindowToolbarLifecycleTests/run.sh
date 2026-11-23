@@ -15,6 +15,8 @@ swiftc -parse-as-library -target "$(uname -m)-apple-macos13.0" \
     "$repo_root/app/Sources/MacCare/AboutView.swift" \
     "$repo_root/app/Sources/MacCare/AboutReleaseNotesView.swift" \
     "$repo_root/app/Sources/MacCare/AboutSidebarButton.swift" \
+    "$repo_root/app/Sources/MacCare/ActionCursor.swift" \
+    "$repo_root/app/Sources/MacCare/PillButtonStyle.swift" \
     "$repo_root/app/Sources/MacCare/SidebarRowStyle.swift" \
     "$repo_root/app/Sources/MacCare/DesignSystem.swift" \
     "$repo_root/app/Sources/MacCare/Motion.swift" \

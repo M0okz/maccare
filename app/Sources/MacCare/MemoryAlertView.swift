@@ -31,7 +31,7 @@ struct MemoryAlertView: View {
                             }
                             Spacer(minLength: 0)
                             Button(model.pending.contains(candidate.id) ? "Demandé" : "Quitter") { model.quit(candidate) }
-                                .buttonStyle(SecondaryActionButtonStyle()).controlSize(.small).fixedSize()
+                                .buttonStyle(.actionPill).controlSize(.small).fixedSize()
                                 .disabled(model.pending.contains(candidate.id))
                                 .accessibilityLabel("Quitter \(candidate.name)")
                                 .help("Demander la fermeture de \(candidate.name), en proposant d’enregistrer les documents si l’application le permet.")
@@ -44,11 +44,12 @@ struct MemoryAlertView: View {
                 Menu("Ignorer") {
                     Button("Pendant une journée") { snooze(1) }
                     Button("Pendant une semaine") { snooze(7) }
-                }.fixedSize()
+                }.actionCursor()
+                .menuStyle(.button).buttonStyle(.actionPill).fixedSize()
                 Spacer(minLength: 12)
                 // Au second plan : l'arrêt forcé peut faire perdre du travail.
-                Button("Tout forcer à quitter") { confirming = true }
-                    .buttonStyle(.plain).foregroundStyle(.secondary)
+                Button("Tout forcer à quitter", role: .destructive) { confirming = true }
+                    .buttonStyle(.actionPill).controlSize(.small)
                     .disabled(!model.canForceQuit)
                     .alert("Forcer la fermeture des applications affichées ?", isPresented: $confirming) {
                         Button("Forcer à quitter", role: .destructive) { model.forceQuitDisplayed() }

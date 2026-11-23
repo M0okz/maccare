@@ -32,7 +32,7 @@ struct HomeHealthCard<ScanAction: View>: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plainAction)
             .accessibilityElement(children: .combine)
             .accessibilityHint("Afficher les critères de santé du Mac")
             .help("Voir les mesures et le calcul de la santé du Mac.")

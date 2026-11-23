@@ -62,13 +62,9 @@ struct AnalysisProgressView<Metrics: View>: View {
                 }
             }
             if let cancel {
-                Button(action: cancel) {
-                    ZStack {
-                        Circle().fill(color).frame(width: 80, height: 80)
-                        ScanActivityRing(lineWidth: 4).frame(width: 92, height: 92)
-                        Text("Arrêter").font(AppFont.body.weight(.semibold)).foregroundStyle(.white)
-                    }.frame(width: 102, height: 102)
-                }.buttonStyle(.plain).accessibilityLabel(cancelTitle)
+                Button("Arrêter", action: cancel)
+                    .buttonStyle(.prominentPill).controlSize(.large).tint(color)
+                    .accessibilityLabel(cancelTitle)
             }
             Text("Analyse seule. Vous choisissez ensuite les éléments à traiter.")
                 .font(AppFont.secondary).foregroundStyle(Theme.muted).multilineTextAlignment(.center)

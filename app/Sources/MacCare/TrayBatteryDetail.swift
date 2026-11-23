@@ -18,7 +18,7 @@ struct TrayBatteryDetail: View {
             }
             Divider().overlay(.white.opacity(0.1))
             Button("Ouvrir les réglages de la batterie", action: openBattery)
-                .buttonStyle(TrayActionStyle())
+                .buttonStyle(.actionPill).controlSize(.small)
         }
     }
 

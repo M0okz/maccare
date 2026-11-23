@@ -27,13 +27,13 @@ struct ToolsDetailPanel: View {
         VStack(spacing: 0) {
             ScreenToolbar(title: "Gestionnaire Outils") {
                 Button { app.module = .toolsOverview } label: { Label("Retour", systemImage: "chevron.left") }
-                    .buttonStyle(ToolbarActionButtonStyle()).keyboardShortcut(.cancelAction).disabled(writing)
+                    .buttonStyle(.toolbarPill).keyboardShortcut(.cancelAction).disabled(writing)
             } trailing: {
                 if module == .startup {
                     Picker("Catégorie de démarrage", selection: $startupCategory) {
                         Text("À la connexion").tag(PerformanceCategory.login)
                         Text("En arrière-plan").tag(PerformanceCategory.background)
-                    }.labelsHidden().accessibilityLabel("Catégorie de démarrage").frame(width: 200).disabled(writing)
+                    }.actionCursor().labelsHidden().accessibilityLabel("Catégorie de démarrage").frame(width: 200).disabled(writing)
                 }
             }.padding(.horizontal, 24).frame(height: 56)
             Divider()

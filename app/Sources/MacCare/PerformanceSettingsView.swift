@@ -7,7 +7,7 @@ struct PerformanceSettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Libération de l’espace purgeable").font(.headline).accessibilityAddTraits(.isHeader)
-            Toggle("Inclure les instantanés Time Machine locaux", isOn: $includeLocalSnapshots)
+            Toggle("Inclure les instantanés Time Machine locaux", isOn: $includeLocalSnapshots).actionCursor()
                 .toggleStyle(.switch)
             Text("Autorise MacCare à demander à macOS de réduire les instantanés locaux, en complément des caches. Certains points de restauration présents sur ce Mac peuvent alors être supprimés définitivement. Les sauvegardes sur disque externe ou réseau ne sont pas visées.")
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)

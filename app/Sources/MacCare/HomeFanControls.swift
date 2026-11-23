@@ -10,14 +10,14 @@ struct HomeFanControls: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             if fans?.supportsControl == true {
-                HStack(spacing: 5) {
+                HStack(spacing: Space.s) {
                     ForEach(FanPreset.allCases, id: \.self) { preset in
+                        let isSelected = selected == preset
                         Button(preset.title) { apply(preset) }
-                            .font(.system(size: 12, weight: .semibold))
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            .tint(selected == preset ? Theme.accent : nil)
-                            .accessibilityAddTraits(selected == preset ? .isSelected : [])
+                            .buttonStyle(PillButtonStyle(emphasis: isSelected ? .selected : .secondary, maximumWidth: 56))
+                            .controlSize(.mini)
+                            .lineLimit(1)
+                            .accessibilityAddTraits(isSelected ? .isSelected : [])
                             .accessibilityLabel("Ventilation " + preset.title)
                             .help(hint(for: preset))
                     }

@@ -31,6 +31,7 @@ private struct SidebarRowSurface<Label: View>: View {
             }
             .opacity(pressed ? 0.9 : 1)
             .pressFeedback(pressed && enabled)
+            .actionCursor()
             .onHover { hovered = $0 }
     }
 }

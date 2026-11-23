@@ -17,7 +17,7 @@ struct CleaningView: View {
                             .font(AppFont.body.weight(.medium)).lineLimit(2).fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, minHeight: 32, alignment: .leading).padding(10)
                             .background(model.category == category ? Theme.accent.opacity(0.09) : .clear, in: RoundedRectangle(cornerRadius: 9))
-                    }.buttonStyle(.plain).disabled(model.isScanning || model.isCleaning)
+                    }.buttonStyle(.plainAction).disabled(model.isScanning || model.isCleaning)
                         .accessibilityAddTraits(model.category == category ? .isSelected : [])
                 }
             }
@@ -28,7 +28,7 @@ struct CleaningView: View {
                     Text(model.category.summary).font(AppFont.body).foregroundStyle(Theme.muted)
                     Text(model.category.root).font(AppFont.secondary).foregroundStyle(Theme.muted).textSelection(.enabled)
                     Button("Analyser la catégorie", systemImage: "magnifyingglass") { model.scan() }
-                        .buttonStyle(.bordered).controlSize(.large).disabled(model.isScanning || model.isCleaning)
+                        .buttonStyle(.actionPill).controlSize(.large).disabled(model.isScanning || model.isCleaning)
                 }.padding(24)
                 content
             }

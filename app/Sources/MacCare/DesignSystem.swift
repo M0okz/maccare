@@ -59,6 +59,7 @@ enum Theme {
     static let ok        = Color.themed("#1FA85A", "#49D89A")
     static let warn      = Color.themed("#E0920A", "#F0B23C")
     static let danger    = Color.themed("#DD4B39", "#F0705C")
+    static let destructiveInk = Color.themed("#A52E27", "#FF9A8C")
     /// Attention discrète sur l’entrée À propos lorsqu’une version est disponible.
     static let updateAttention = Color.orange
 }
@@ -159,24 +160,6 @@ struct HoverLift: ViewModifier {
     }
 }
 
-/// Style de bouton avec enfoncement au clic, sans rebond.
-struct PressStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .opacity(configuration.isPressed ? 0.9 : 1)
-            .pressFeedback(configuration.isPressed)
-    }
-}
-
-/// Lien textuel à l'accent de la marque (le style `.link` du système reste bleu).
-struct LinkStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundStyle(Theme.accentInk)
-            .opacity(configuration.isPressed ? 0.6 : 1)
-    }
-}
-
 /// Nombre interpolé lors d'un changement de valeur sous `withAnimation` (effet compteur).
 struct AnimatedNumber: View, Animatable {
     var value: Double
@@ -273,7 +256,7 @@ struct StatTile: View {
     }
 }
 
-/// Bouton principal avec dégradé d'accent, lueur et enfoncement au clic.
+/// Action principale à la couleur du module.
 struct PrimaryButton: View {
     let title: String
     var systemImage: String? = nil
@@ -286,20 +269,10 @@ struct PrimaryButton: View {
                 if let systemImage { Image(systemName: systemImage) }
                 Text(title).fontWeight(.semibold)
             }
-            .font(AppFont.body)
-            .foregroundStyle(.white)
-            .padding(.horizontal, 16).padding(.vertical, 9)
-            .background(
-                LinearGradient(colors: [tint.shade(0.1), tint.shade(-0.12)], startPoint: .top, endPoint: .bottom),
-                in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
-            )
-            .shadow(color: tint.opacity(0.35), radius: 8, y: 4)
         }
-        .buttonStyle(PressStyle())
+        .buttonStyle(.prominentPill)
+        .tint(tint)
+        .controlSize(.large)
     }
 }
 
@@ -313,7 +286,7 @@ struct CheckBox: View {
         Toggle(label, isOn: Binding(
             get: { on },
             set: { value in if value != on { toggle() } }
-        ))
+        )).actionCursor()
         .toggleStyle(.checkbox)
         .labelsHidden()
         .fixedSize()

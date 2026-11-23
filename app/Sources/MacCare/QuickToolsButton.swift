@@ -11,7 +11,7 @@ struct QuickToolsButton: View {
                 Image(systemName: "chevron.down").font(.caption).accessibilityHidden(true)
             }
         }
-        .buttonStyle(.bordered).controlSize(.large)
+        .buttonStyle(.actionPill).controlSize(.large)
         .help("Accès rapide aux outils")
         .popover(isPresented: $showingTools, arrowEdge: .bottom) {
             QuickToolsList(app: app) { showingTools = false }
@@ -71,7 +71,7 @@ struct PopoverCloseButton: View {
             Image(systemName: "xmark.circle.fill").font(.body).foregroundStyle(.secondary)
                 .frame(width: 24, height: 24)
         }
-        .buttonStyle(.plain).keyboardShortcut(.cancelAction)
+        .buttonStyle(.plainAction).keyboardShortcut(.cancelAction)
         .accessibilityLabel("Fermer").help("Fermer")
     }
 }

@@ -30,7 +30,7 @@ struct FilesManagerView: View {
     var body: some View {
         VStack(spacing: 0) {
             ScreenToolbar(title: "Gestionnaire de fichiers") {
-                Button { app.module = .filesOverview } label: { Label("Retour", systemImage: "chevron.left") }.buttonStyle(ToolbarActionButtonStyle())
+                Button { app.module = .filesOverview } label: { Label("Retour", systemImage: "chevron.left") }.buttonStyle(.toolbarPill)
             } trailing: { EmptyView() }.padding(.horizontal, 24).frame(height: 56)
             Divider()
             controls.padding(.horizontal, 20).padding(.vertical, 14)
@@ -49,7 +49,8 @@ struct FilesManagerView: View {
         .sheet(item: $previewLarge) { file in
             VStack(spacing: 16) {
                 FileInspectionView(url: file.url, size: file.size_bytes, modified: file.modifiedDate)
-                Button("Fermer") { previewLarge = nil }.keyboardShortcut(.cancelAction)
+                Button("Fermer") { previewLarge = nil }
+                    .buttonStyle(.actionPill).keyboardShortcut(.cancelAction)
             }.padding(24).frame(width: 660, height: 540)
                 .background(Color.white).foregroundStyle(FilesStyle.ink).environment(\.colorScheme, .light)
         }
@@ -69,7 +70,7 @@ struct FilesManagerView: View {
             HStack(spacing: 16) {
                 Picker("Catégorie", selection: Binding(get: { category }, set: { app.module = $0 == .large ? .largeFiles : .duplicates })) {
                     ForEach(FileManagerCategory.allCases) { Text($0.title).tag($0) }
-                }.pickerStyle(.segmented).frame(width: 280).disabled(busy)
+                }.actionCursor().pickerStyle(.segmented).frame(width: 280).disabled(busy)
                 Spacer(minLength: 8)
                 HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass").accessibilityHidden(true)
@@ -77,25 +78,27 @@ struct FilesManagerView: View {
                 }.padding(8).background(Color.black.opacity(0.04), in: RoundedRectangle(cornerRadius: 8)).frame(maxWidth: 210)
                 Picker("Trier par", selection: $sort) {
                     ForEach(FileManagerSort.allCases.filter { category == .large || $0 != .lastOpened }) { Text($0.title).tag($0) }
-                }.frame(width: 220)
+                }.actionCursor().frame(width: 220)
             }
             HStack(spacing: 12) {
                 if category == .large {
                     Text("Taille minimale").font(AppFont.secondary)
                     Picker("Taille minimale", selection: $large.minSize) {
                         ForEach(LargeFilesModel.MinSize.allCases) { Text("≥ \($0.title)").tag($0) }
-                    }.labelsHidden().frame(width: 110).accessibilityLabel("Taille minimale")
+                    }.actionCursor().labelsHidden().frame(width: 110).accessibilityLabel("Taille minimale")
                     Picker("Dernière ouverture", selection: $large.age) {
                         ForEach(LargeFilesModel.Age.allCases) { Text($0.title).tag($0) }
-                    }.frame(maxWidth: 235)
+                    }.actionCursor().frame(maxWidth: 235)
                 } else {
                     Menu("Sélectionner : \(chosenCount == 0 ? "aucun" : "\(chosenCount) \(pl(chosenCount, "copie"))")") {
                         Button("Cocher les copies affichées") { groups.forEach { duplicates.selectCopies(in: $0) } }
                         Button("Tout décocher") { duplicates.selectNone() }
-                    }.frame(maxWidth: 230)
+                    }.actionCursor()
+                    .menuStyle(.button).buttonStyle(.actionPill).frame(maxWidth: 230)
                 }
                 Spacer(minLength: 8)
                 Button("Actualiser", systemImage: "arrow.clockwise") { scan() }
+                    .buttonStyle(.actionPill)
             }.disabled(busy)
         }
     }
@@ -123,7 +126,7 @@ struct FilesManagerView: View {
                                             .padding(5).background(.white, in: RoundedRectangle(cornerRadius: 5))
                                     }.padding(10).frame(maxWidth: .infinity, alignment: .leading)
                                         .background(activeGroup?.id == group.id ? FilesStyle.selection : .clear, in: RoundedRectangle(cornerRadius: 10))
-                                }.buttonStyle(.plain).accessibilityLabel("\(group.files.count) copies de \(URL(fileURLWithPath: group.files.first?.path ?? "").lastPathComponent)")
+                                }.buttonStyle(.plainAction).accessibilityLabel("\(group.files.count) copies de \(URL(fileURLWithPath: group.files.first?.path ?? "").lastPathComponent)")
                                     .accessibilityAddTraits(activeGroup?.id == group.id ? .isSelected : [])
                             }
                         }
@@ -147,12 +150,12 @@ struct FilesManagerView: View {
                                 FileThumbnail(url: copy.url).frame(width: 64, height: 64).padding(5)
                                     .background(file.path == copy.path ? FilesStyle.selection : .clear, in: RoundedRectangle(cornerRadius: 8))
                                     .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(file.path == copy.path ? FilesStyle.accent : .clear, lineWidth: 2))
-                            }.buttonStyle(.plain).accessibilityLabel("Examiner \(copy.path)")
+                            }.buttonStyle(.plainAction).accessibilityLabel("Examiner \(copy.path)")
                                 .accessibilityAddTraits(file.path == copy.path ? .isSelected : [])
                             if duplicates.isKept(copy, in: group) {
                                 Label("Conservé", systemImage: "checkmark.shield.fill").font(.caption).foregroundStyle(Color(hex: "15756B"))
                             } else {
-                                Toggle("Retirer", isOn: Binding(get: { duplicates.selection.contains(copy.path) }, set: { _ in duplicates.toggle(copy, in: group) }))
+                                Toggle("Retirer", isOn: Binding(get: { duplicates.selection.contains(copy.path) }, set: { _ in duplicates.toggle(copy, in: group) })).actionCursor()
                                     .toggleStyle(.checkbox).font(.caption).disabled(busy).accessibilityLabel("Retirer la copie \(copy.path)")
                             }
                         }
@@ -162,6 +165,7 @@ struct FilesManagerView: View {
             VStack(alignment: .leading, spacing: 12) {
                 FileInspectionView(url: file.url, size: file.size_bytes, modified: file.modifiedDate)
                 Button(duplicates.isKept(file, in: group) ? "Cette copie est conservée" : "Conserver cette copie") { duplicates.keep(file, in: group) }
+                    .buttonStyle(.actionPill)
                     .disabled(busy || duplicates.isKept(file, in: group))
                     .help("La copie conservée ne peut pas être cochée pour la corbeille.")
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -177,7 +181,8 @@ struct FilesManagerView: View {
                         .font(AppFont.secondary).foregroundStyle(FilesStyle.secondary)
                 }
                 Spacer()
-                Button("Tout décocher") { large.selectNone() }.disabled(busy || large.selectedFiles.isEmpty)
+                Button("Tout décocher") { large.selectNone() }
+                    .buttonStyle(.actionPill).disabled(busy || large.selectedFiles.isEmpty)
             }.padding(.horizontal, 24).padding(.top, 20)
             if files.isEmpty { emptyState.frame(maxWidth: .infinity, maxHeight: .infinity) }
             else {
@@ -185,7 +190,7 @@ struct FilesManagerView: View {
                     LazyVStack(spacing: 5) {
                         ForEach(files) { file in
                             HStack(spacing: 14) {
-                                Toggle("Retirer", isOn: Binding(get: { large.selection.contains(file.path) }, set: { _ in large.toggle(file) }))
+                                Toggle("Retirer", isOn: Binding(get: { large.selection.contains(file.path) }, set: { _ in large.toggle(file) })).actionCursor()
                                     .labelsHidden().toggleStyle(.checkbox).disabled(busy).accessibilityLabel("Retirer \(file.path)")
                                 Button { previewLarge = file } label: {
                                     HStack(spacing: 14) {
@@ -197,7 +202,7 @@ struct FilesManagerView: View {
                                         Text(file.modifiedDate, format: .dateTime.day().month(.abbreviated).year()).font(AppFont.secondary).foregroundStyle(FilesStyle.secondary).frame(width: 105, alignment: .trailing)
                                         Text(humanSize(file.size_bytes)).font(AppFont.body).monospacedDigit().frame(width: 85, alignment: .trailing)
                                     }.contentShape(Rectangle())
-                                }.buttonStyle(.plain).accessibilityLabel("Examiner \(file.url.lastPathComponent), \(humanSize(file.size_bytes))")
+                                }.buttonStyle(.plainAction).accessibilityLabel("Examiner \(file.url.lastPathComponent), \(humanSize(file.size_bytes))")
                             }.padding(14).background(large.selection.contains(file.path) ? FilesStyle.selection : Color.black.opacity(0.025), in: RoundedRectangle(cornerRadius: 10))
                                 .contextMenu {
                                     Button("Afficher dans le Finder") { NSWorkspace.shared.activateFileViewerSelecting([file.url]) }
@@ -220,18 +225,20 @@ struct FilesManagerView: View {
         } actions: {
             Button { category == .large ? large.trashSelected() : duplicates.trashSelected() } label: {
                 Label("Déplacer vers la corbeille", systemImage: "trash").padding(.horizontal, 10).padding(.vertical, 6)
-            }.buttonStyle(.borderedProminent).disabled(chosenCount == 0 || busy)
+            }.buttonStyle(.prominentPill).disabled(chosenCount == 0 || busy)
         }.padding(18).background(Color(hex: "F5F6F8"))
     }
     private var emptyState: some View {
         VStack(spacing: 14) {
             if category == .large && query.isEmpty && !large.files.isEmpty {
                 Text("Aucun fichier ne correspond aux filtres.").foregroundStyle(FilesStyle.secondary)
-                Button("Réinitialiser les filtres") { large.minSize = .mb50; large.age = .any }.disabled(busy)
+                Button("Réinitialiser les filtres") { large.minSize = .mb50; large.age = .any }
+                    .buttonStyle(.actionPill).disabled(busy)
             } else {
                 Text(query.isEmpty ? (message ?? "Aucun résultat à afficher.") : "Aucun résultat pour cette recherche.")
                     .foregroundStyle(FilesStyle.secondary).multilineTextAlignment(.center)
-                if query.isEmpty { Button("Lancer la recherche") { scan() }.disabled(busy) }
+                if query.isEmpty { Button("Lancer la recherche") { scan() }
+                    .buttonStyle(.actionPill).disabled(busy) }
             }
         }.padding(20)
     }
@@ -255,7 +262,7 @@ struct FileInspectionView: View {
             Text(url.lastPathComponent).font(AppFont.emphasis).lineLimit(2).accessibilityAddTraits(.isHeader)
             Button { NSWorkspace.shared.activateFileViewerSelecting([url]) } label: {
                 Label(url.deletingLastPathComponent().path, systemImage: "folder").lineLimit(2).truncationMode(.middle)
-            }.buttonStyle(.plain).font(AppFont.secondary).foregroundStyle(FilesStyle.secondary).help("Afficher dans le Finder")
+            }.buttonStyle(.actionPill).controlSize(.small).help("Afficher dans le Finder")
             Grid(alignment: .leading, horizontalSpacing: 20, verticalSpacing: 7) {
                 GridRow { Text("Modifié"); Text(modified, format: .dateTime.day().month(.wide).year()) }
                 if let created = values?.creationDate { GridRow { Text("Créé"); Text(created, format: .dateTime.day().month(.wide).year()) } }

@@ -16,11 +16,13 @@ struct BatteryDischargeView: View {
                     Text("La durée dépend de votre utilisation : comptez plusieurs minutes par point au repos. Laissez le Mac et son chargeur disponibles.")
                         .fixedSize(horizontal: false, vertical: true)
                     Button("Annuler et rétablir l’alimentation") { Task { await model.perform(.cancelCycle) } }
+                        .buttonStyle(.actionPill)
                         .disabled(model.controlsBusy || model.protection?.ownedByCaller != true)
                 } else {
                     Text("Le Mac utilise sa batterie tout en restant branché, puis reprend l’alimentation secteur à \(model.configuration.limit) %. Cette action est volontaire et peut être annulée.")
                         .fixedSize(horizontal: false, vertical: true)
                     Button("Décharger vers \(model.configuration.limit) %") { Task { await model.perform(.discharge) } }
+                        .buttonStyle(.actionPill)
                         .disabled(!canStart || (model.snapshot?.percent ?? 0) <= model.configuration.limit)
                 }
                 if !model.supportsDischarge {

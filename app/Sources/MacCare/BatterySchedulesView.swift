@@ -53,17 +53,17 @@ struct BatterySchedulesView: View {
                         Text("Recharger à 100 % une fois").tag(1)
                         Text("Décharger jusqu’à la limite").tag(2)
                         Text("Désactiver la protection").tag(4)
-                    }
+                    }.actionCursor()
                     if action == 0 {
                         Picker("Limite à appliquer", selection: $limit) {
                             ForEach(model.availableLimits, id: \.self) { Text("\($0) %").tag($0) }
-                        }
+                        }.actionCursor()
                         Text("Les autres réglages de protection actuels sont enregistrés avec cette limite.").font(.callout).foregroundStyle(.secondary)
                     }
                     DatePicker("Première exécution", selection: $firstRun, in: Date()..., displayedComponents: [.date, .hourAndMinute])
                     Picker("Répétition", selection: $recurrence) {
                         ForEach(BatterySchedule.Recurrence.allCases, id: \.self) { Text($0.title).tag($0) }
-                    }
+                    }.actionCursor()
                     Button("Enregistrer la programmation") { save() }
                         .disabled(model.controlsBusy || !model.automationsLoaded || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || firstRun <= .now || (action == 2 && !model.supportsDischarge))
                 }

@@ -26,7 +26,7 @@ struct ApplicationsUpdatesManager: View {
         VStack(spacing: 0) {
             ScreenToolbar(title: "Gestionnaire Applications") {
                 Button(action: onBack) { Label("Retour", systemImage: "chevron.left") }
-                    .buttonStyle(ToolbarActionButtonStyle()).keyboardShortcut(.cancelAction)
+                    .buttonStyle(.toolbarPill).keyboardShortcut(.cancelAction)
             } trailing: {
                 HStack(spacing: 10) {
                     Button {
@@ -36,10 +36,10 @@ struct ApplicationsUpdatesManager: View {
                         }
                         searchFocused = showSearch
                     } label: { Image(systemName: "magnifyingglass").frame(width: 36, height: 44) }
-                        .buttonStyle(.plain).accessibilityLabel("Rechercher une mise à jour")
+                        .buttonStyle(.plainAction).accessibilityLabel("Rechercher une mise à jour")
                     Picker("Trier par", selection: $sort) {
                         ForEach(ApplicationUpdateSort.allCases) { Text($0.title).tag($0) }
-                    }.frame(width: 220)
+                    }.actionCursor().frame(width: 220)
                 }
             }.padding(.horizontal, 24).frame(height: 56)
             Divider()
@@ -86,7 +86,7 @@ struct ApplicationsUpdatesManager: View {
                 Text("\(entries.count) \(pl(entries.count, "mise")) à jour").font(AppFont.secondary).monospacedDigit()
                 Spacer(minLength: 4)
                 Button { model.checkApplications() } label: { Image(systemName: "arrow.clockwise").frame(width: 32, height: 32) }
-                    .buttonStyle(.plain).disabled(model.isChecking || installer.isBusy).accessibilityLabel("Actualiser les mises à jour")
+                    .buttonStyle(.plainAction).disabled(model.isChecking || installer.isBusy).accessibilityLabel("Actualiser les mises à jour")
             }
             if showSearch {
                 TextField("Rechercher une application", text: $query).textFieldStyle(.roundedBorder)
@@ -116,7 +116,7 @@ struct ApplicationsUpdatesManager: View {
                                     .foregroundStyle(Theme.accent).accessibilityHidden(true)
                             }.padding(10).frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
                                 .background(selected?.id == entry.id ? Theme.accent.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: 9))
-                        }.buttonStyle(.plain).accessibilityLabel("Examiner la mise à jour de \(entry.item.name)")
+                        }.buttonStyle(.plainAction).accessibilityLabel("Examiner la mise à jour de \(entry.item.name)")
                             .accessibilityAddTraits(selected?.id == entry.id ? .isSelected : [])
                     }
                     if entries.isEmpty && !query.isEmpty {
@@ -201,22 +201,22 @@ struct ApplicationsUpdatesManager: View {
                     ProgressView(value: fraction).frame(width: 110).accessibilityLabel("Téléchargement de la mise à jour")
                 } else if installer.activeID == entry.id { ProgressView().controlSize(.small) }
                 if installer.canCancel {
-                    Button("Annuler") { installer.cancel() }.buttonStyle(.bordered)
+                    Button("Annuler") { installer.cancel() }.buttonStyle(.actionPill)
                 }
                 if installer.hasPendingInstaller(entry.id) {
                     Button("Vérifier l’installation") { installer.verifyInstaller(entry) }
-                        .buttonStyle(.borderedProminent).disabled(installer.isBusy)
+                        .buttonStyle(.prominentPill).disabled(installer.isBusy)
                 } else {
                     Button("Mettre à jour") {
                         if installer.requiresQuit(entry, apps: apps) { quitRequest = entry }
                         else { installer.install(entry, apps: apps) }
                     }
-                        .buttonStyle(.borderedProminent).controlSize(.large)
+                    .buttonStyle(.prominentPill).controlSize(.large)
                         .disabled(installer.isBusy || model.isChecking || installer.unavailableReason(for: entry, apps: apps) != nil)
                 }
             } else {
                 Button("Vérifier les mises à jour") { model.checkApplications() }
-                    .buttonStyle(.borderedProminent).disabled(model.isChecking || installer.isBusy)
+                    .buttonStyle(.prominentPill).disabled(model.isChecking || installer.isBusy)
             }
         }.padding(18).background(Theme.sidebar)
     }

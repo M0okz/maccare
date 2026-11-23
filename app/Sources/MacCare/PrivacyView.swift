@@ -28,9 +28,9 @@ struct PrivacyView: View {
                 }
             } actions: {
                 if model.isCleaning { ProgressView("Retrait…") }
-                Button(model.directDeleteEnabled ? "Supprimer définitivement…" : "Déplacer vers la corbeille…") {
+                Button(model.directDeleteEnabled ? "Supprimer définitivement" : "Déplacer vers la corbeille") {
                     confirmedDirect = model.directDeleteEnabled; confirmingRemoval = true
-                }.buttonStyle(.borderedProminent).disabled(model.selection.isEmpty || busy)
+                }.buttonStyle(.prominentPill).disabled(model.selection.isEmpty || busy)
             }
         }.sheet(isPresented: $confirmingRemoval) { removalConfirmation.modifier(ToolConfirmationStyle()) }
             .onChange(of: group) { _ in model.selectNone() }
@@ -44,7 +44,7 @@ struct PrivacyView: View {
                 Text(model.hasScanned ? "\(model.items.count) \(pl(model.items.count, "emplacement"))" : "Prêt à analyser").font(AppFont.secondary)
                 Spacer()
                 Button { model.scan() } label: { Image(systemName: "arrow.clockwise").frame(width: 32, height: 32) }
-                    .buttonStyle(.plain).disabled(busy).accessibilityLabel("Actualiser les données locales")
+                    .buttonStyle(.plainAction).disabled(busy).accessibilityLabel("Actualiser les données locales")
             }
             ScrollView {
                 VStack(spacing: 7) {
@@ -60,7 +60,7 @@ struct PrivacyView: View {
                             }.padding(12).frame(maxWidth: .infinity, alignment: .leading)
                                 .background(group == value ? Theme.accent.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: 10))
                                 .contentShape(RoundedRectangle(cornerRadius: 10))
-                        }.buttonStyle(.plain).disabled(busy).accessibilityAddTraits(group == value ? .isSelected : [])
+                        }.buttonStyle(.plainAction).disabled(busy).accessibilityAddTraits(group == value ? .isSelected : [])
                     }
                 }
             }
@@ -72,8 +72,10 @@ struct PrivacyView: View {
             Text(group.detail).font(AppFont.secondary).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
             TextField("Rechercher un emplacement", text: $query).textFieldStyle(.roundedBorder)
             HStack {
-                Button("Tout cocher ici") { model.selection = Set(visible.map(\.id)) }.disabled(busy || visible.isEmpty)
-                Button("Tout décocher") { model.selectNone() }.disabled(busy || model.selection.isEmpty)
+                Button("Tout cocher ici") { model.selection = Set(visible.map(\.id)) }
+                    .buttonStyle(.actionPill).disabled(busy || visible.isEmpty)
+                Button("Tout décocher") { model.selectNone() }
+                    .buttonStyle(.actionPill).disabled(busy || model.selection.isEmpty)
                 Spacer()
                 Text("\(visible.count) \(pl(visible.count, "emplacement"))").font(AppFont.secondary).foregroundStyle(Theme.muted)
             }
@@ -88,7 +90,7 @@ struct PrivacyView: View {
                 VStack(spacing: 18) {
                     Image(systemName: "hand.raised.fill").font(.system(size: 52)).foregroundStyle(ModuleColor.privacy).accessibilityHidden(true)
                     Text("Examinez vos données locales").font(AppFont.section)
-                    Button("Analyser les données locales") { model.scan() }.buttonStyle(.borderedProminent)
+                    Button("Analyser les données locales") { model.scan() }.buttonStyle(.prominentPill)
                 }.frame(maxWidth: .infinity)
                 Spacer()
             } else {
@@ -103,7 +105,7 @@ struct PrivacyView: View {
                                         Text(model.label(for: item)).font(AppFont.body.weight(.semibold))
                                         Text(item.path).font(AppFont.caption).foregroundStyle(Theme.muted).lineLimit(1).truncationMode(.middle).help(item.path)
                                     }
-                                }.toggleStyle(.checkbox).disabled(busy)
+                                }.actionCursor().toggleStyle(.checkbox).disabled(busy)
                                 Spacer(minLength: 8)
                                 Text(humanSize(item.size_bytes)).font(AppFont.body).monospacedDigit()
                             }.padding(.vertical, 16).contextMenu {
@@ -141,11 +143,13 @@ struct PrivacyView: View {
                 .font(AppFont.body).foregroundStyle(confirmedDirect ? Theme.warn : Theme.muted)
             HStack {
                 Spacer()
-                Button("Annuler") { confirmingRemoval = false }.keyboardShortcut(.cancelAction)
+                Button("Annuler") { confirmingRemoval = false }
+                    .buttonStyle(.actionPill).keyboardShortcut(.cancelAction)
                 Button(confirmedDirect ? "Supprimer définitivement" : "Déplacer vers la corbeille", role: .destructive) {
                     confirmingRemoval = false
                     model.cleanSelected(directOverride: confirmedDirect)
                 }
+                .buttonStyle(.actionPill)
             }
         }.padding(28).frame(width: 520)
     }

@@ -18,7 +18,7 @@ struct DiskHealthCard: View {
                 Spacer(minLength: 8)
                 if showsRefresh {
                     Button("Actualiser") { Task { await model.refresh(at: volumePath) } }
-                        .buttonStyle(.borderless).font(AppFont.secondary).disabled(model.isLoading)
+                        .buttonStyle(.actionPill).controlSize(.small).disabled(model.isLoading)
                 }
             }
             if let report = model.report {

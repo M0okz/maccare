@@ -45,13 +45,14 @@ struct UninstallView: View {
             Picker("Afficher", selection: $model.showingLeftovers) {
                 Text("Applications").tag(false)
                 Text("Résidus").tag(true)
-            }.pickerStyle(.segmented)
+            }.actionCursor().pickerStyle(.segmented)
                 .disabled(model.isCleaning)
             if model.showingLeftovers {
                 Text(leftoversSubtitle).font(AppFont.secondary).foregroundStyle(Theme.muted)
                 Button(model.leftoversScanned ? "Actualiser les résidus" : "Analyser les résidus") {
                     model.scanLeftovers()
-                }.disabled(model.isScanningLeftovers || model.isCleaning)
+                }
+                .buttonStyle(.actionPill).disabled(model.isScanningLeftovers || model.isCleaning)
                 leftoverBrowser
             } else {
                 searchField
@@ -70,7 +71,7 @@ struct UninstallView: View {
                                 .background(model.selectedApp == app ? Theme.surface : Color.clear,
                                             in: RoundedRectangle(cornerRadius: 8))
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.plainAction)
                             .accessibilityAddTraits(model.selectedApp == app ? [.isSelected] : [])
                             .disabled(model.isCleaning)
                         }
@@ -96,13 +97,13 @@ struct UninstallView: View {
                                 if on { model.leftoverSelection.insert(leftover.id) }
                                 else { model.leftoverSelection.remove(leftover.id) }
                             }
-                        )).toggleStyle(.checkbox).labelsHidden().disabled(model.isCleaning)
+                        )).actionCursor().toggleStyle(.checkbox).labelsHidden().disabled(model.isCleaning)
                         Button { focusedLeftoverID = leftover.id } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(leftover.item.url.lastPathComponent).font(AppFont.secondary).lineLimit(2)
                                 Text(humanSize(leftover.item.size_bytes)).font(AppFont.caption).foregroundStyle(Theme.muted)
                             }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
-                        }.buttonStyle(.plain)
+                        }.buttonStyle(.plainAction)
                             .accessibilityLabel("Examiner \(leftover.item.url.lastPathComponent)")
                             .accessibilityAddTraits(focusedLeftover?.id == leftover.id ? [.isSelected] : [])
                     }
@@ -128,7 +129,7 @@ struct UninstallView: View {
                         .font(AppFont.secondary).foregroundStyle(Theme.muted)
                     Button("Afficher dans le Finder") {
                         NSWorkspace.shared.activateFileViewerSelecting([leftover.item.url])
-                    }.buttonStyle(SecondaryActionButtonStyle())
+                    }.buttonStyle(.actionPill)
                 } else {
                     Text(model.isScanningLeftovers ? "Recherche des résidus…" : "Aucun résidu à afficher.")
                         .foregroundStyle(Theme.muted)
@@ -208,8 +209,8 @@ struct UninstallView: View {
 
     private var leftoversFooter: some View {
         HStack(spacing: Space.m) {
-            Button("Tout cocher") { model.leftoverSelection = Set(model.leftovers.map(\.id)) }.buttonStyle(LinkStyle()).disabled(model.isCleaning || model.isScanningLeftovers)
-            Button("Tout décocher") { model.leftoverSelection = [] }.buttonStyle(LinkStyle()).disabled(model.isCleaning)
+            Button("Tout cocher") { model.leftoverSelection = Set(model.leftovers.map(\.id)) }.buttonStyle(.actionPill).controlSize(.small).disabled(model.isCleaning || model.isScanningLeftovers)
+            Button("Tout décocher") { model.leftoverSelection = [] }.buttonStyle(.actionPill).controlSize(.small).disabled(model.isCleaning)
             if let r = model.leftoverReport {
                 Text(reportSummary(r)).font(AppFont.secondary).foregroundStyle(r.needsAttention ? Theme.warn : Theme.muted)
             }
@@ -300,7 +301,7 @@ struct UninstallView: View {
                         Spacer(minLength: 8)
                         Text(humanSize(item.size_bytes)).font(AppFont.body).monospacedDigit().foregroundStyle(Theme.muted)
                     }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
-                }
+                }.actionCursor()
                 .toggleStyle(.checkbox).padding(.horizontal, 14).padding(.vertical, 9)
                 .disabled(model.isCleaning || model.isScanning)
                     .contextMenu {

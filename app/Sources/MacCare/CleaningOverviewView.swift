@@ -59,11 +59,11 @@ struct CleaningOverviewView: View {
             OverviewActionFooter(caption: "Profil \(CleaningProfile(rawValue: profile)?.title ?? "Recommandé") · aucune suppression pendant l’analyse.",
                                  message: smart.statusMessage) {
                 Button("Analyser") { analyze() }
-                    .buttonStyle(CircularOverviewActionStyle(tint: ModuleColor.clean))
+                    .buttonStyle(.prominentPill).tint(ModuleColor.clean).controlSize(.large)
                     .accessibilityLabel("Analyser les catégories de nettoyage")
             } secondary: {
                 Button("Accéder directement aux outils") { app.cleaningToolsVisible = true }
-                    .buttonStyle(SecondaryActionButtonStyle()).font(AppFont.secondary)
+                    .buttonStyle(.actionPill).font(AppFont.secondary)
             }
         }
     }
@@ -95,7 +95,7 @@ struct CleaningOverviewView: View {
             VStack(spacing: 20) {
                 ScreenToolbar(title: "Nettoyage") {
                     Button { if smart.hasRun { prepareNewAnalysis() } else { analyze() } } label: { Label(smart.hasRun ? "Relancer l’analyse" : "Analyser mon Mac", systemImage: "arrow.clockwise") }
-                        .buttonStyle(SecondaryActionButtonStyle()).disabled(smart.stage == .cleaning)
+                        .buttonStyle(.actionPill).disabled(smart.stage == .cleaning)
                         .help(smart.hasRun ? "Revenir à l’écran Analyser pour préparer une nouvelle analyse." : "Lancer une analyse du profil de nettoyage.")
                 } trailing: { EmptyView() }
                 VStack(spacing: 12) {
@@ -107,7 +107,7 @@ struct CleaningOverviewView: View {
                         .multilineTextAlignment(.center)
                     if hasResults {
                         Button("Examiner les résultats") { app.module = .smartScan }
-                            .font(.system(size: 16, weight: .semibold)).buttonStyle(OverviewPrimaryStyle())
+                            .font(.system(size: 16, weight: .semibold)).buttonStyle(.prominentPill).controlSize(.large)
                     }
                 }
                 ViewThatFits(in: .horizontal) {
@@ -134,7 +134,7 @@ struct CleaningOverviewView: View {
                 .font(AppFont.body).foregroundStyle(Theme.muted)
             Spacer(minLength: 4)
             Button("Choisir une catégorie") { app.module = .cleaning }
-                .buttonStyle(SecondaryActionButtonStyle()).controlSize(.large)
+                .buttonStyle(.actionPill).controlSize(.large)
         }
         .padding(22).frame(maxWidth: .infinity, minHeight: 270, alignment: .topLeading)
         .background(cardSurface)
@@ -155,7 +155,7 @@ struct CleaningOverviewView: View {
                 icon("trash", color: ModuleColor.clean)
             }
             Button("Examiner les corbeilles") { app.module = .trash }
-                .buttonStyle(SecondaryActionButtonStyle()).controlSize(.large)
+                .buttonStyle(.actionPill).controlSize(.large)
         }
         .padding(22).frame(maxWidth: .infinity, alignment: .topLeading).background(cardSurface)
     }
@@ -179,7 +179,7 @@ struct CleaningOverviewView: View {
                 icon("lock.shield", color: ModuleColor.maint)
             }
             Button("Examiner les journaux") { app.module = .systemClean }
-                .buttonStyle(SecondaryActionButtonStyle()).controlSize(.large)
+                .buttonStyle(.actionPill).controlSize(.large)
         }
         .padding(22).frame(maxWidth: .infinity, alignment: .topLeading).background(cardSurface)
     }
@@ -190,7 +190,7 @@ struct CleaningOverviewView: View {
                 Button("Examiner les caches développeurs") { app.module = .devJunk }
                 Button("Gérer les simulateurs") { app.module = .simulators }
                 Spacer(minLength: 0)
-            }.buttonStyle(SecondaryActionButtonStyle()).controlSize(.large).padding(.top, 12)
+            }.buttonStyle(.actionPill).controlSize(.large).padding(.top, 12)
         }
         .font(AppFont.body).padding(16).background(cardSurface)
     }
