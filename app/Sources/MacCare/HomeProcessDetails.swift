@@ -99,6 +99,7 @@ struct HomeProcessDetails: View {
             }.controlSize(.regular).font(.system(size: 12))
         }
         .padding(22).frame(width: 602, height: 598, alignment: .topLeading)
+        .background(ProcessSheetBackdrop(isEnabled: confirmation == nil) { dismiss() })
         .task(id: inspected?.id) {
             inspection = nil
             guard let process = inspected else { return }
@@ -154,6 +155,56 @@ struct HomeProcessDetails: View {
                         }
                     }
             }
+        }
+    }
+}
+
+/// Une feuille AppKit bloque les gestes SwiftUI de la fenêtre assombrie.
+private struct ProcessSheetBackdrop: NSViewRepresentable {
+    let isEnabled: Bool
+    let dismiss: () -> Void
+
+    func makeNSView(context: Context) -> BackdropObserver {
+        let observer = BackdropObserver()
+        observer.monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp]) { [weak observer] event in
+            let consumed = MainActor.assumeIsolated { observer?.consume(event) == true }
+            return consumed ? nil : event
+        }
+        return observer
+    }
+
+    func updateNSView(_ observer: BackdropObserver, context: Context) {
+        observer.dismiss = isEnabled ? dismiss : nil
+    }
+
+    static func dismantleNSView(_ observer: BackdropObserver, coordinator: ()) {
+        if let monitor = observer.monitor { NSEvent.removeMonitor(monitor) }
+    }
+
+    final class BackdropObserver: NSView {
+        var monitor: Any?
+        var dismiss: (() -> Void)?
+        private var pressedOutside = false
+
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+        func consume(_ event: NSEvent) -> Bool {
+            guard let dismiss, let sheet = window, let parent = sheet.sheetParent,
+                  parent.attachedSheet === sheet, sheet.attachedSheet == nil,
+                  let target = event.window, target === parent || target === sheet else {
+                pressedOutside = false
+                return false
+            }
+            let point = target.convertPoint(toScreen: event.locationInWindow)
+            let outside = parent.frame.contains(point) && !sheet.frame.contains(point)
+            if event.type == .leftMouseDown {
+                pressedOutside = outside
+                return outside
+            }
+            guard pressedOutside else { return false }
+            pressedOutside = false
+            if outside { dismiss() }
+            return true
         }
     }
 }
