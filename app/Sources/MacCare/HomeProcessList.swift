@@ -63,7 +63,12 @@ struct HomeProcessList: NSViewRepresentable {
         var owner: HomeProcessList
         init(_ owner: HomeProcessList) { self.owner = owner }
         func numberOfRows(in tableView: NSTableView) -> Int { owner.rows.count }
-        @objc func clicked(_ sender: NSTableView) { show(sender.clickedRow) }
+        @objc func clicked(_ sender: NSTableView) {
+            let row = sender.clickedRow
+            // Le clic ouvre la fiche ; seule la navigation au clavier conserve une sélection.
+            sender.deselectAll(nil)
+            show(row)
+        }
         func show(_ index: Int) {
             guard owner.rows.indices.contains(index) else { return }
             owner.open(owner.rows[index])
