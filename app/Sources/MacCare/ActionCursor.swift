@@ -2,6 +2,11 @@ import AppKit
 import SwiftUI
 
 extension View {
+    @ViewBuilder
+    func defaultContentCursor() -> some View {
+        if #available(macOS 15, *) { pointerStyle(.default) } else { self }
+    }
+
     /// Follows the enabled state of the control, including that of its ancestors.
     func actionCursor() -> some View {
         modifier(ActionCursor())
@@ -13,7 +18,7 @@ private struct ActionCursor: ViewModifier {
 
     func body(content: Content) -> some View {
         if #available(macOS 15, *) {
-            content.pointerStyle(isEnabled ? .link : nil)
+            content.pointerStyle(isEnabled ? .link : .default)
         } else {
             content.background {
                 if isEnabled { LegacyCursorRegion().accessibilityHidden(true) }
@@ -36,67 +41,73 @@ private final class HandCursorRegion: NSView {
     }
 }
 
-/// AppKit draws alert buttons and the Settings toolbar outside our SwiftUI styles.
-/// Only inspect the local event's system control. AppKit handles clicks and tracking normally.
+/// Native panels and Settings toolbar items are drawn outside the SwiftUI button styles.
 @MainActor
 final class NativeButtonCursor: NSObject {
-    private var monitor: Any?
-    private var previousCursor: NSCursor?
-    private var updateScheduled = false
-
     func start() {
-        NotificationCenter.default.addObserver(self, selector: #selector(windowResignedKey(_:)),
-                                               name: NSWindow.didResignKeyNotification, object: nil)
-        monitor = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .mouseEntered, .mouseExited, .cursorUpdate, .leftMouseDown]) { [weak self] event in
-            self?.track(event)
-            return event
+        for name in [NSWindow.didBecomeKeyNotification, NSWindow.willBeginSheetNotification] {
+            NotificationCenter.default.addObserver(self, selector: #selector(prepare(_:)), name: name, object: nil)
         }
     }
 
-    deinit {
-        if let monitor { NSEvent.removeMonitor(monitor) }
+    @objc private func prepare(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow else { return }
+        DispatchQueue.main.async {
+            let window = window.attachedSheet ?? window
+            guard let content = window.contentView else { return }
+            if window is NSPanel || window.sheetParent != nil { self.install(in: content) }
+            if window.toolbar != nil, let frame = content.superview {
+                for item in frame.subviews where item !== content { self.install(in: item) }
+            }
+        }
     }
 
-    @objc private func windowResignedKey(_ notification: Notification) { restoreCursor() }
+    private func install(in view: NSView) {
+        if view is NSButton || view.accessibilityRole() == .button {
+            guard !view.subviews.contains(where: { $0 is NativeButtonTrackingRegion }) else { return }
+            let region = NativeButtonTrackingRegion(frame: view.bounds)
+            region.autoresizingMask = [.width, .height]
+            region.setAccessibilityElement(false)
+            view.addSubview(region)
+        } else {
+            for child in view.subviews { install(in: child) }
+        }
+    }
+}
 
-    private func restoreCursor() {
-        if let previousCursor, NSCursor.current == .pointingHand { previousCursor.set() }
-        previousCursor = nil
+private final class NativeButtonTrackingRegion: NSView {
+    private var area: NSTrackingArea?
+    private var inside = false
+
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let area { removeTrackingArea(area) }
+        let area = NSTrackingArea(rect: .zero, options: [.activeInKeyWindow, .mouseEnteredAndExited, .mouseMoved, .cursorUpdate, .inVisibleRect],
+                                  owner: self, userInfo: nil)
+        addTrackingArea(area)
+        self.area = area
     }
 
-    private func track(_ event: NSEvent) {
-        guard let window = NSApp.keyWindow, event.type != .leftMouseDown else { restoreCursor(); return }
-        let inToolbar = window.toolbar != nil && window.mouseLocationOutsideOfEventStream.y >= window.contentLayoutRect.maxY
-        guard inToolbar || window is NSPanel || window.sheetParent != nil else { restoreCursor(); return }
-        guard !updateScheduled else { return }
-        updateScheduled = true
+    override func mouseEntered(with event: NSEvent) {
+        inside = true
+        updateCursor()
+    }
 
-        // AppKit finishes dispatching all tracking events before we choose the cursor for the final position.
+    override func mouseMoved(with event: NSEvent) { updateCursor() }
+    override func cursorUpdate(with event: NSEvent) { updateCursor() }
+
+    private func updateCursor() {
         DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            updateScheduled = false
-            let point = NSEvent.mouseLocation
-            guard let window = NSApp.keyWindow, window.frame.contains(point),
-                  NSWindow.windowNumber(at: point, belowWindowWithWindowNumber: 0) == window.windowNumber,
-                  let target = window.accessibilityHitTest(point) as? NSAccessibilityProtocol else { restoreCursor(); return }
-            let inToolbar = window.toolbar != nil && window.convertPoint(fromScreen: point).y >= window.contentLayoutRect.maxY
-            guard Self.isNativeButton(target, inToolbar: inToolbar) else { restoreCursor(); return }
-            if previousCursor == nil { previousCursor = NSCursor.current == .pointingHand ? .arrow : NSCursor.current }
+            guard let self, inside, let window, window.isKeyWindow, let button = superview,
+                  button.isAccessibilityEnabled(),
+                  visibleRect.contains(convert(window.mouseLocationOutsideOfEventStream, from: nil)) else { return }
             NSCursor.pointingHand.set()
         }
     }
 
-    private static func isNativeButton(_ element: NSAccessibilityProtocol, inToolbar: Bool) -> Bool {
-        switch element.accessibilityRole() {
-        case .button, .radioButton, .checkBox, .popUpButton:
-            return element.isAccessibilityEnabled() && (inToolbar || element is NSCell || element is NSControl)
-        case .image, .staticText:
-            guard let parent = element.accessibilityParent() as? NSAccessibilityProtocol else { return false }
-            return isNativeButton(parent, inToolbar: inToolbar)
-        default:
-            return false
-        }
-    }
+    override func mouseExited(with event: NSEvent) { inside = false }
 }
 
 struct PlainActionButtonStyle: PrimitiveButtonStyle {

@@ -33,6 +33,7 @@ struct SettingsView: View {
         }
         .frame(width: 860, height: min(paneHeights[tab] ?? 660, 620))
         .background(Color.white)
+        .defaultContentCursor()
         .preferredColorScheme(.light)
         .onPreferenceChange(SettingsPaneHeightKey.self) { heights in
             paneHeights.merge(heights) { _, measured in measured }
