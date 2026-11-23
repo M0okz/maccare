@@ -1,26 +1,19 @@
 import AppKit
 import SwiftUI
 
-/// Le tableau et la carte Batterie utilisent le même relevé des processus accessibles.
+/// Le tableau et la carte Batterie utilisent le même relevé.
 struct HomeProcessTable: View {
     @ObservedObject var controller: TrayProcessController
     @State private var query = ""
-    @State private var sort = [KeyPathComparator(\TrayProcess.memory, order: .reverse)]
-    @State private var sortedRows: [TrayProcess] = []
-    @State private var highCPUApps: [HomeCPUApplication] = []
-    @State private var quitTarget: TrayProcess?
-
-    private var rows: [TrayProcess] {
-        let term = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !term.isEmpty else { return sortedRows }
-        return sortedRows.filter {
-            $0.name.localizedCaseInsensitiveContains(term) || String($0.id.pid).contains(term)
-        }
+    @State private var groups: [HomeProcessGroup] = []
+    @State private var highCPUApps: [HomeProcessGroup] = []
+    @State private var sort = HomeProcessSort()
+    private struct Selection: Identifiable {
+        let group: HomeProcessGroup
+        let member: TrayProcess.Identity?
+        var id: HomeProcessGroup.ID { group.id }
     }
-
-    private func updateOrder(_ processes: [TrayProcess]) {
-        sortedRows = processes.sorted(using: sort + [KeyPathComparator(\TrayProcess.id.pid)])
-    }
+    @State private var detail: Selection?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -31,15 +24,13 @@ struct HomeProcessTable: View {
                 ForEach(highCPUApps) { app in
                     HStack(spacing: 4) {
                         Image(systemName: "flame.fill").font(.caption2)
-                        Text(app.name).lineLimit(1).truncationMode(.tail)
-                        Text(app.percentLabel).monospacedDigit().fixedSize()
+                        Text(app.name).lineLimit(1)
+                        Text(HomeProcessMetric.cpu(app.cpu)).monospacedDigit().fixedSize()
                     }
                     .font(.caption.weight(.semibold)).foregroundStyle(Theme.warn)
                     .padding(.horizontal, 7).padding(.vertical, 3)
                     .background(Theme.warn.opacity(0.10), in: Capsule())
-                    .help("\(app.name) · \(app.percentLabel) CPU, processus auxiliaires compris.")
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("\(app.name), charge CPU élevée, \(app.percentLabel)")
+                    .help("\(app.name) · charge CPU élevée, auxiliaires compris.")
                 }
                 Spacer(minLength: 2)
                 HStack(spacing: 5) {
@@ -55,8 +46,19 @@ struct HomeProcessTable: View {
                 .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
             }
             .padding(.horizontal, 14).padding(.vertical, 8)
-            let visibleRows = rows
-            table(visibleRows)
+
+            let term = query.trimmingCharacters(in: .whitespacesAndNewlines)
+            let rows = term.isEmpty ? groups : groups.filter { $0.matches(term) }
+            HomeProcessList(rows: rows, controller: controller, sort: $sort) { group in
+                detail = Selection(group: group, member: group.members.first { String($0.id.pid) == term }?.id)
+            }
+                .frame(minHeight: 82, maxHeight: .infinity)
+                .overlay {
+                    if rows.isEmpty {
+                        Text(term.isEmpty ? "Lecture des processus accessibles…" : "Aucun processus correspondant")
+                            .font(AppFont.secondary).foregroundStyle(Theme.muted).allowsHitTesting(false)
+                    }
+                }
             if let message = controller.message {
                 Text(message).font(AppFont.caption).frame(maxWidth: .infinity, alignment: .leading).padding(8)
             }
@@ -65,124 +67,48 @@ struct HomeProcessTable: View {
         .clipShape(RoundedRectangle(cornerRadius: Radius.card))
         .overlay(RoundedRectangle(cornerRadius: Radius.card).strokeBorder(.white.opacity(0.1)).allowsHitTesting(false))
         .onReceive(controller.$processes) { processes in
-            updateOrder(processes)
-            highCPUApps = HomeCPUApplication.leaders(in: processes)
+            let snapshot = HomeProcessGroup.collect(processes, registered: HomeProcessGroup.registeredApplications())
+            groups = sort.ordered(snapshot)
+            highCPUApps = HomeProcessSort.highCPUApplications(in: snapshot)
         }
-        .onChange(of: sort) { _ in updateOrder(controller.processes) }
-        .alert("Quitter ce processus ?", isPresented: Binding(get: { quitTarget != nil }, set: { if !$0 { quitTarget = nil } }), presenting: quitTarget) { target in
-            Button("Annuler", role: .cancel) {}
-            Button("Quitter", role: .destructive) { controller.quit(target) }
-        } message: { target in
-            Text("Demander la fermeture de \(target.name) (PID \(target.id.pid)) ?")
+        .onChange(of: sort) { groups = $0.ordered(groups) }
+        .sheet(item: $detail) { opened in
+            HomeProcessDetails(opened: opened.group, matchedPID: opened.member, group: groups.first { $0.id == opened.id }, controller: controller)
         }
-    }
-
-    private func table(_ visibleRows: [TrayProcess]) -> some View {
-        Table(visibleRows, sortOrder: $sort) {
-            TableColumn("Nom", value: \TrayProcess.name) { process in
-                processName(process)
-            }.width(min: 145, ideal: 260)
-            TableColumn("Mémoire", value: \TrayProcess.memory) { process in
-                Text(humanSize(process.memory, fractionalAbove: 1_000_000_000)).monospacedDigit()
-            }.width(min: 106, ideal: 118, max: 140)
-            TableColumn("CPU", value: \TrayProcess.sortableCPU) { process in
-                HStack(spacing: 8) {
-                    ProgressView(value: min(100, process.cpuPercent ?? 0), total: 100)
-                        .progressViewStyle(.linear).frame(width: 36).tint(Theme.accentInk).accessibilityHidden(true)
-                    Text(metric(process.cpuPercent, unit: "%")).monospacedDigit()
-                }.help("100 % correspond à un cœur utilisé.")
-            }.width(min: 108, ideal: 124, max: 150)
-            TableColumn("Puissance", value: \TrayProcess.sortablePower) { process in
-                Text(metric(process.energyWatts, unit: "W")).monospacedDigit()
-                    .help("Puissance moyenne estimée par macOS sur le dernier intervalle de mesure.")
-            }.width(min: 80, ideal: 98, max: 125)
-            TableColumn("PID", value: \TrayProcess.id.pid) { process in
-                Text(String(process.id.pid)).monospacedDigit()
-            }.width(min: 55, ideal: 65, max: 82)
-            TableColumn("") { process in
-                actions(for: process)
-            }.width(36)
-        }
-        .tableStyle(.inset(alternatesRowBackgrounds: false))
-        .scrollContentBackground(.hidden)
-        // Le fond sombre de l’en-tête AppKit laisse apparaître la surface violette de la carte.
-        .blendMode(.lighten)
-        .frame(minHeight: 82, maxHeight: .infinity)
-        .overlay {
-            if visibleRows.isEmpty {
-                Text(query.isEmpty ? "Lecture des processus accessibles…" : "Aucun processus correspondant")
-                    .font(AppFont.secondary).foregroundStyle(Theme.muted).allowsHitTesting(false)
-            }
-        }
-    }
-
-    private func processName(_ process: TrayProcess) -> some View {
-        HStack(spacing: 7) {
-            if let icon = controller.presentation(for: process).icon {
-                Image(nsImage: icon).resizable().scaledToFit().frame(width: 16, height: 16)
-                    .accessibilityHidden(true)
-            } else {
-                Image(systemName: "gearshape").frame(width: 16).accessibilityHidden(true)
-            }
-            Text(process.name).lineLimit(1).truncationMode(.middle)
-        }.help(process.executable.isEmpty ? process.name : process.executable)
-    }
-
-    private func metric(_ value: Double?, unit: String) -> String {
-        guard let value else { return "—" }
-        if unit == "W", value > 0 && value < 0.01 { return "< 0,01 W" }
-        let precision = unit == "W" && value > 0 && value < 1 ? 2 : 1
-        return value.formatted(.number.precision(.fractionLength(precision))) + " " + unit
-    }
-
-    private func actions(for process: TrayProcess) -> some View {
-        Menu {
-            Button("Copier le PID") {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(String(process.id.pid), forType: .string)
-            }
-            if !process.executable.isEmpty {
-                Button("Afficher dans le Finder") {
-                    NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: process.executable)])
-                }
-            }
-            Divider()
-            Button("Quitter…") { quitTarget = process }
-                .disabled(!process.canQuit || controller.pending.contains(process.id))
-        } label: {
-            Image(systemName: "ellipsis").frame(width: 24, height: 20)
-        }
-        .menuStyle(.borderlessButton).menuIndicator(.hidden)
-        .accessibilityLabel("Actions pour \(process.name), PID \(process.id.pid)")
     }
 }
 
-private extension TrayProcess {
-    var sortableCPU: Double { cpuPercent ?? -1 }
-    var sortablePower: Double { energyWatts ?? -1 }
+enum HomeProcessColumn: String, CaseIterable {
+    case name = "Nom", memory = "Mémoire", cpu = "CPU", power = "Puissance", pid = "PID"
 }
 
-struct HomeCPUApplication: Identifiable {
-    let id: URL
-    let cpu: Double
-    var name: String { id.deletingPathExtension().lastPathComponent }
-    var percentLabel: String { cpu.formatted(.number.precision(.fractionLength(0...1))) + " %" }
+struct HomeProcessSort: Equatable {
+    var column: HomeProcessColumn = .memory
+    var ascending = false
 
-    static func leaders(in processes: [TrayProcess]) -> [Self] {
-        var totals: [URL: Double] = [:]
-        for process in processes {
-            guard let cpu = process.cpuPercent, cpu.isFinite, cpu > 0,
-                  let app = TrayProcessIconResolver.owningApplication(in: process.executable) else { continue }
-            totals[app, default: 0] += cpu
+    static func highCPUApplications(in groups: [HomeProcessGroup]) -> [HomeProcessGroup] {
+        let apps = groups.filter { $0.highCPU && $0.application != nil }
+        return Array(HomeProcessSort(column: .cpu).ordered(apps).prefix(3))
+    }
+
+    func ordered(_ rows: [HomeProcessGroup]) -> [HomeProcessGroup] {
+        rows.sorted { left, right in
+            let (a, b) = ascending ? (left, right) : (right, left)
+            switch column {
+            case .name:
+                let order = a.name.localizedStandardCompare(b.name)
+                if order != .orderedSame { return order == .orderedAscending }
+            case .memory: if a.memory != b.memory { return a.memory < b.memory }
+            case .cpu: if a.cpu != b.cpu { return (a.cpu ?? -1) < (b.cpu ?? -1) }
+            case .power: if a.power != b.power { return (a.power ?? -1) < (b.power ?? -1) }
+            case .pid:
+                let ap = a.primary?.id.pid ?? -1, bp = b.primary?.id.pid ?? -1
+                if ap != bp { return ap < bp }
+            }
+            if left.application?.path != right.application?.path {
+                return (left.application?.path ?? "") < (right.application?.path ?? "")
+            }
+            return left.members[0].id.pid < right.members[0].id.pid
         }
-        var ranked: [HomeCPUApplication] = []
-        for (app, cpu) in totals where cpu > 40 {
-            ranked.append(HomeCPUApplication(id: app, cpu: cpu))
-        }
-        ranked.sort { lhs, rhs in
-            if lhs.cpu == rhs.cpu { return lhs.id.path < rhs.id.path }
-            return lhs.cpu > rhs.cpu
-        }
-        return Array(ranked.prefix(3))
     }
 }
