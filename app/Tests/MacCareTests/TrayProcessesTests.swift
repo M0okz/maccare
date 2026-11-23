@@ -17,10 +17,65 @@ final class TrayProcessesTests: XCTestCase {
             process(7, nil, "/Applications/F.app/Contents/MacOS/F"),
             process(8, 150, "/usr/bin/yes")
         ]
-        let leaders = HomeCPUApplication.leaders(in: rows.reversed())
+        let groups = HomeProcessGroup.collect(rows.reversed())
+        let leaders = HomeProcessSort.highCPUApplications(in: groups)
         XCTAssertEqual(leaders.map(\.name), ["A", "C", "D"])
         XCTAssertEqual(leaders.map(\.cpu), [90, 70, 70])
-        XCTAssertTrue(HomeCPUApplication.leaders(in: Array(rows.suffix(3))).isEmpty)
+        XCTAssertTrue(HomeProcessSort.highCPUApplications(in: HomeProcessGroup.collect(Array(rows.suffix(3)))).isEmpty)
+    }
+
+    func testHomeGroupsHelpersAndKeepsProcessesFromOtherOwnersSeparate() throws {
+        let app = "/Applications/Code.app", helper = "/Contents/Frameworks/Helper.app/Contents/MacOS/Helper"
+        func process(_ pid: pid_t, _ uid: uid_t, _ path: String, _ watts: Double?) -> TrayProcess {
+            TrayProcess(id: .init(pid: pid, startedSeconds: 1, startedMicroseconds: 0),
+                        name: path.hasSuffix("Helper") ? "Renderer" : "Code", userID: uid, memory: 100,
+                        cpuPercent: watts == nil ? nil : 25, executable: path, energyWatts: watts)
+        }
+        let rows = [process(12, 501, app + "/Contents/MacOS/Code", 0.16),
+                    process(13, 501, app + helper, 0.04), process(14, 501, app + helper, nil),
+                    process(20, 502, app + helper, nil), process(21, 501, "/Volumes/Test/Code.app" + helper, nil),
+                    process(22, 501, "/usr/bin/sleep", nil)]
+        let apps: [pid_t: HomeProcessGroup.Application] = [12: .init(url: URL(fileURLWithPath: app), name: "Code")]
+        let groups = HomeProcessGroup.collect(rows, registered: apps)
+        XCTAssertEqual(groups.count, 4)
+        let code = try XCTUnwrap(groups.first { $0.primary?.id.pid == 12 })
+        XCTAssertEqual(code.members.count, 3)
+        XCTAssertEqual(code.memory, 300)
+        XCTAssertEqual(code.cpu, 50)
+        XCTAssertEqual(try XCTUnwrap(code.power), 0.20, accuracy: 0.00001)
+        XCTAssertEqual(code.powerLabel, "≥ 200 mW")
+        let tiny = HomeProcessGroup.collect([process(12, 501, app + helper, 0.0002), rows[2]])
+        XCTAssertEqual(tiny.first?.powerLabel, "> 0 mW")
+        XCTAssertTrue(code.matches("Renderer"))
+        XCTAssertTrue(code.matches("14"))
+        XCTAssertFalse(code.matches("sleep"))
+        XCTAssertEqual(HomeProcessSort(column: .power).ordered(groups).first?.id, code.id)
+        let helperOnly = try XCTUnwrap(groups.first { $0.members[0].id.pid == 20 })
+        XCTAssertNil(helperOnly.primary)
+        XCTAssertNil(helperOnly.power)
+        XCTAssertNil(helperOnly.cpu)
+    }
+
+    func testReadablePowerAndMeasuredZero() {
+        XCTAssertEqual(HomeProcessMetric.power(nil), "—")
+        XCTAssertEqual(HomeProcessMetric.power(0), "0 W")
+        XCTAssertEqual(HomeProcessMetric.power(0.0003), "< 1 mW")
+        XCTAssertEqual(HomeProcessMetric.power(0.001), "1 mW")
+        XCTAssertEqual(HomeProcessMetric.power(0.16), "160 mW")
+        XCTAssertEqual(HomeProcessMetric.power(1), "1 W")
+    }
+
+    func testDetailsReadLiveIdentityAndRejectRecycledPID() async throws {
+        let sample = await TrayProcessSampler().sample()
+        let current = try XCTUnwrap(sample.first { $0.id.pid == getpid() })
+        let details = try XCTUnwrap(HomeProcessInspection.read(current))
+        XCTAssertGreaterThan(details.threads, 0)
+        XCTAssertGreaterThan(try XCTUnwrap(details.files), 0)
+        XCTAssertNotNil(details.directory)
+        XCTAssertNotNil(details.diskRead)
+        let stale = TrayProcess(id: .init(pid: getpid(), startedSeconds: 1, startedMicroseconds: 0),
+                               name: current.name, userID: current.userID, memory: 0, cpuPercent: nil, executable: current.executable)
+        XCTAssertNil(HomeProcessInspection.read(stale))
     }
 
     func testHomeSizesUseDecimalsOnlyAboveOneGigabyte() {

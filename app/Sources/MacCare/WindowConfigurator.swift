@@ -3,8 +3,6 @@ import AppKit
 
 /// Rend la barre de titre transparente : le dégradé violet monte jusqu'en haut (plus de bandeau gris).
 struct WindowConfigurator: NSViewRepresentable {
-    private static let sizeMigrationKey = "mainWindowSize1200x720Applied"
-
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
         apply(to: view)
@@ -36,24 +34,6 @@ struct WindowConfigurator: NSViewRepresentable {
             window.styleMask.insert(.fullSizeContentView)
             window.isMovableByWindowBackground = false
             window.backgroundColor = NSColor(Color(hex: "#160C2E"))
-            // Aligne aussi une fenêtre restaurée de l'ancienne version, une seule fois.
-            // Les redimensionnements manuels suivants restent mémorisés par macOS.
-            let layout = MainWindowDisplayObserver.layout(for: window)
-            if !UserDefaults.standard.bool(forKey: Self.sizeMigrationKey) {
-                window.setContentSize(layout.preferredWindowSize)
-                window.center()
-                UserDefaults.standard.set(true, forKey: Self.sizeMigrationKey)
-            }
-            if layout.isCompact && !UserDefaults.standard.bool(forKey: MainWindowLayout.compactWindowMigrationKey),
-               !window.styleMask.contains(.fullScreen), !window.isMiniaturized {
-                let current = window.contentView?.frame.size ?? window.frame.size
-                let reduced = layout.reducedRestoredSize(current)
-                if reduced != current {
-                    window.setContentSize(reduced)
-                    window.center()
-                }
-                UserDefaults.standard.set(true, forKey: MainWindowLayout.compactWindowMigrationKey)
-            }
         }
     }
 }

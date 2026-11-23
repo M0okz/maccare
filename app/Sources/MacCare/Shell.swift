@@ -210,7 +210,7 @@ struct RootView: View {
                     .ignoresSafeArea(.container, edges: .top)
             }
         }
-        .frame(minWidth: displayLayout.minimumWindowSize.width, minHeight: displayLayout.minimumWindowSize.height)
+        .frame(minWidth: displayLayout.minimumContentSize.width, minHeight: displayLayout.minimumContentSize.height)
         .onAppear {
             app.permissions.recheck()
             app.systemClean.refreshStatus()
