@@ -101,6 +101,7 @@ struct TrashView: View {
         .padding(.horizontal, 14).padding(.vertical, 10)
         .contentShape(Rectangle())
         .onTapGesture { model.toggle(b) }
+        .actionCursor()
     }
 
     private var footer: some View {
@@ -124,7 +125,7 @@ struct TrashView: View {
                 if !model.selectedBins.isEmpty {
                     Text("Sélection : \(humanSize(model.selectedSize))").font(AppFont.secondary)
                 }
-                PrimaryButton(title: "Vider…", systemImage: "trash.slash", tint: Theme.danger) {
+                PrimaryButton(title: "Vider", systemImage: "trash.slash", tint: Theme.danger) {
                     // Le contenu est relu avant de demander confirmation : la feuille annonce l'état actuel.
                     model.load()
                     confirming = true

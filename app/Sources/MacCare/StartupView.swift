@@ -103,7 +103,7 @@ struct StartupView: View {
                 HStack(spacing: 16) {
                     Picker("Afficher", selection: $filter) {
                         ForEach(availableFilters) { Text($0.title).tag($0) }
-                    }.frame(maxWidth: 260)
+                    }.actionCursor().frame(maxWidth: 260)
                     TextField("Rechercher un élément", text: $search).textFieldStyle(.roundedBorder)
                         .accessibilityLabel("Rechercher un élément de démarrage")
                 }.padding(.horizontal, Space.xl)

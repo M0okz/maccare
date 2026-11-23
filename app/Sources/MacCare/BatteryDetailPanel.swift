@@ -68,7 +68,7 @@ struct BatteryDetailPanel: View {
                         .background(selected == item ? Theme.ok.opacity(0.12) : Color.clear,
                                     in: RoundedRectangle(cornerRadius: Radius.control))
                         .contentShape(RoundedRectangle(cornerRadius: Radius.control))
-                }.buttonStyle(.plain)
+                }.buttonStyle(.plainAction)
                     .accessibilityAddTraits(selected == item ? .isSelected : [])
             }
         }
@@ -148,7 +148,7 @@ struct BatteryDetailPanel: View {
             } else if !model.helperEnabled {
                 Text("Le suivi fonctionne sans autorisation supplémentaire. Pour suspendre la charge, activez l’assistant système signé de MacCare, puis autorisez-le dans Réglages Système si macOS le demande.")
                     .foregroundStyle(Theme.muted)
-                Button(model.requiresApproval ? "Réessayer l’activation de l’assistant…" : "Activer l’assistant système…") {
+                Button(model.requiresApproval ? "Réessayer l’activation de l’assistant" : "Activer l’assistant système") {
                     Task { await model.activateHelper() }
                 }.buttonStyle(.prominentPill).disabled(model.controlsBusy)
                 if model.requiresApproval {
@@ -158,7 +158,7 @@ struct BatteryDetailPanel: View {
             } else if model.helperUpdateRequired {
                 Text("Cette version de MacCare utilise un assistant plus récent. La mise à jour restaure d’abord les anciens réglages de charge et peut demander votre accord dans Réglages Système. La protection repart ensuite si elle était active.")
                     .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
-                Button("Mettre à jour l’assistant…") { Task { await model.updateHelper() } }
+                Button("Mettre à jour l’assistant") { Task { await model.updateHelper() } }
                     .buttonStyle(.prominentPill).disabled(model.controlsBusy)
             } else if model.restoring && !model.restorationDeferred {
                 Text("MacCare restaure l’état de charge d’origine. L’assistant continue les tentatives ; aucune nouvelle protection ne peut démarrer pendant cette opération.")
@@ -166,7 +166,7 @@ struct BatteryDetailPanel: View {
             } else if model.protection == nil {
                 Text("L’état du contrôleur n’a pas pu être vérifié. Actualisez ou vérifiez la version et l’activation de l’assistant système.")
                     .foregroundStyle(Theme.muted)
-                Button("Réparer l’assistant système…") { Task { await model.repairHelper() } }
+                Button("Réparer l’assistant système") { Task { await model.repairHelper() } }
                     .disabled(model.controlsBusy)
                 Text("MacCare réenregistre l’assistant uniquement si macOS confirme qu’il ne peut plus démarrer. La protection n’est pas activée par cette réparation.")
                     .font(AppFont.secondary).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
@@ -187,7 +187,7 @@ struct BatteryDetailPanel: View {
                     } else if model.nativeControl {
                         Picker("Limite de charge", selection: $model.configuration.limit) {
                             ForEach(model.availableLimits, id: \.self) { limit in Text("\(limit) %").tag(limit) }
-                        }.pickerStyle(.menu)
+                        }.actionCursor().pickerStyle(.menu)
                         Text("Limite native de macOS · les valeurs proposées par votre Mac sont disponibles ici. macOS peut exceptionnellement recharger à 100 % pour étalonner la batterie.")
                             .font(.callout).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
                     } else {
@@ -202,7 +202,7 @@ struct BatteryDetailPanel: View {
                     Toggle("Utiliser une plage de maintien (mode Voile)", isOn: Binding(
                         get: { model.configuration.sailingWidth != nil },
                         set: { model.configuration.sailingWidth = $0 ? 5 : nil }
-                    )).disabled(!model.supportsSailing || model.controlsBusy)
+                    )).actionCursor().disabled(!model.supportsSailing || model.controlsBusy)
                     if let width = model.configuration.sailingWidth {
                         Stepper("Reprise à \(model.configuration.limit - width) % · limite \(model.configuration.limit) %", value: Binding(
                             get: { model.configuration.sailingWidth ?? 5 }, set: { model.configuration.sailingWidth = $0 }
@@ -213,7 +213,7 @@ struct BatteryDetailPanel: View {
                         Text("La plage personnalisée nécessite un contrôleur matériel compatible. Avec la limite native, macOS choisit la reprise.")
                             .font(.callout).foregroundStyle(Theme.muted)
                     }
-                    Toggle("Suspendre la charge si la batterie chauffe", isOn: $model.configuration.thermalProtection)
+                    Toggle("Suspendre la charge si la batterie chauffe", isOn: $model.configuration.thermalProtection).actionCursor()
                         .toggleStyle(.switch).disabled(!model.supportsThermalProtection)
                     if model.nativeControl {
                         Text("La pause thermique personnalisée n’est pas disponible avec la limite native. Les protections thermiques de macOS restent actives.")
@@ -253,11 +253,11 @@ struct BatteryDetailPanel: View {
                              : "Utilisez un seul contrôleur de charge à la fois. Pour utiliser MacCare, désactivez AlDente et la recharge optimisée, puis réglez la limite native de macOS sur 100 %.")
                             .font(.callout).foregroundStyle(Theme.muted)
                     }
-                    Button("Afficher le diagnostic de compatibilité…") {
+                    Button("Afficher le diagnostic de compatibilité") {
                         showingDiagnostics = true; diagnostics = "Lecture du diagnostic…"
                         Task { do { diagnostics = try await HelperClient.batteryHardwareDiagnostics() } catch { diagnostics = error.localizedDescription } }
                     }.disabled(!model.helperEnabled || model.controlsBusy)
-                    Button("Ouvrir les réglages Batterie de macOS…") { model.openBatterySettings() }
+                    Button("Ouvrir les réglages Batterie de macOS") { model.openBatterySettings() }
                 }.padding(.top, 12)
             }
         }

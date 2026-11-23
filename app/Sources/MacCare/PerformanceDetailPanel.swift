@@ -18,7 +18,7 @@ struct PerformanceDetailPanel: View {
             } trailing: {
                 Picker("Catégorie", selection: Binding(get: { category }, set: { app.performanceDetail = $0 })) {
                     ForEach(PerformanceCategory.allCases) { Text($0.title).tag($0) }
-                }.labelsHidden().frame(width: 225).accessibilityLabel("Catégorie de performances").disabled(writing)
+                }.actionCursor().labelsHidden().frame(width: 225).accessibilityLabel("Catégorie de performances").disabled(writing)
             }.padding(.horizontal, 24).frame(height: 56)
             Divider()
             Group {

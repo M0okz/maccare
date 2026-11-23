@@ -77,7 +77,7 @@ struct SmartScanView: View {
                                 Text(humanSize(group.size)).font(AppFont.secondary).foregroundStyle(Theme.muted).monospacedDigit()
                             }.frame(maxWidth: .infinity, minHeight: 32, alignment: .leading)
                         }
-                        .buttonStyle(.plain).accessibilityAddTraits(selectedGroup?.id == group.id ? .isSelected : [])
+                        .buttonStyle(.plainAction).accessibilityAddTraits(selectedGroup?.id == group.id ? .isSelected : [])
                     }.padding(10).background(selectedGroup?.id == group.id ? Theme.accent.opacity(0.09) : .clear, in: RoundedRectangle(cornerRadius: 9))
                 }
             }

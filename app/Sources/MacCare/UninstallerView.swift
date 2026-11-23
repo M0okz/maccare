@@ -45,7 +45,7 @@ struct UninstallView: View {
             Picker("Afficher", selection: $model.showingLeftovers) {
                 Text("Applications").tag(false)
                 Text("Résidus").tag(true)
-            }.pickerStyle(.segmented)
+            }.actionCursor().pickerStyle(.segmented)
                 .disabled(model.isCleaning)
             if model.showingLeftovers {
                 Text(leftoversSubtitle).font(AppFont.secondary).foregroundStyle(Theme.muted)
@@ -71,7 +71,7 @@ struct UninstallView: View {
                                 .background(model.selectedApp == app ? Theme.surface : Color.clear,
                                             in: RoundedRectangle(cornerRadius: 8))
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.plainAction)
                             .accessibilityAddTraits(model.selectedApp == app ? [.isSelected] : [])
                             .disabled(model.isCleaning)
                         }
@@ -97,13 +97,13 @@ struct UninstallView: View {
                                 if on { model.leftoverSelection.insert(leftover.id) }
                                 else { model.leftoverSelection.remove(leftover.id) }
                             }
-                        )).toggleStyle(.checkbox).labelsHidden().disabled(model.isCleaning)
+                        )).actionCursor().toggleStyle(.checkbox).labelsHidden().disabled(model.isCleaning)
                         Button { focusedLeftoverID = leftover.id } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(leftover.item.url.lastPathComponent).font(AppFont.secondary).lineLimit(2)
                                 Text(humanSize(leftover.item.size_bytes)).font(AppFont.caption).foregroundStyle(Theme.muted)
                             }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
-                        }.buttonStyle(.plain)
+                        }.buttonStyle(.plainAction)
                             .accessibilityLabel("Examiner \(leftover.item.url.lastPathComponent)")
                             .accessibilityAddTraits(focusedLeftover?.id == leftover.id ? [.isSelected] : [])
                     }
@@ -301,7 +301,7 @@ struct UninstallView: View {
                         Spacer(minLength: 8)
                         Text(humanSize(item.size_bytes)).font(AppFont.body).monospacedDigit().foregroundStyle(Theme.muted)
                     }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
-                }
+                }.actionCursor()
                 .toggleStyle(.checkbox).padding(.horizontal, 14).padding(.vertical, 9)
                 .disabled(model.isCleaning || model.isScanning)
                     .contextMenu {

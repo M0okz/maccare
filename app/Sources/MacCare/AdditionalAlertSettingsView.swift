@@ -12,7 +12,7 @@ struct AdditionalAlertSettingsView: View {
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Toggle(kind.title, isOn: $enabled)
+            Toggle(kind.title, isOn: $enabled).actionCursor()
             if kind == .deviceBattery {
                 Stepper("Seuil de batterie faible : \(threshold) %", value: $threshold, in: 5...50, step: 5)
                     .disabled(!enabled)

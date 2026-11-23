@@ -157,6 +157,10 @@ private final class ProcessRowView: NSTableRowView {
     var hovered = false { didSet { needsDisplay = true } }
     var hot = false
     var open: (() -> Bool)?
+    override func resetCursorRects() {
+        super.resetCursorRects()
+        addCursorRect(visibleRect, cursor: .pointingHand)
+    }
     override func accessibilityPerformPress() -> Bool { open?() ?? false }
     override func drawBackground(in dirtyRect: NSRect) {
         if hovered {
@@ -171,6 +175,16 @@ private final class ProcessRowView: NSTableRowView {
 }
 
 private final class ProcessHeader: NSTableHeaderView {
+    override func resetCursorRects() {
+        super.resetCursorRects()
+        guard let tableView else { return }
+        for (index, column) in tableView.tableColumns.enumerated() where column.sortDescriptorPrototype != nil {
+            // Leave the column edges to the native resize cursor.
+            let rect = headerRect(ofColumn: index).insetBy(dx: 5, dy: 0).intersection(visibleRect)
+            if !rect.isEmpty { addCursorRect(rect, cursor: .pointingHand) }
+        }
+    }
+
     override func draw(_ dirtyRect: NSRect) {
         guard let table = tableView else { return }
         NSColor.white.withAlphaComponent(0.04).setFill()

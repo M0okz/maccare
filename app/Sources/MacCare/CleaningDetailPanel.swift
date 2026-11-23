@@ -33,7 +33,7 @@ struct CleaningDetailPanel: View {
                     ForEach(NavigationSection.cleaning.destinations(developerTools: developerTools).filter { $0 != .cleaningOverview }) {
                         Text($0.tabTitle).tag($0)
                     }
-                }.labelsHidden().frame(width: 225).accessibilityLabel("Outil de nettoyage").disabled(busy)
+                }.actionCursor().labelsHidden().frame(width: 225).accessibilityLabel("Outil de nettoyage").disabled(busy)
             }.padding(.horizontal, 24).frame(height: 56)
             Divider()
             Group {

@@ -33,7 +33,7 @@ struct AIClutterView: View {
                 }
             } actions: {
                 if model.isCleaning { ProgressView("Déplacement…") }
-                Button("Déplacer vers la corbeille…") { confirming = true }
+                Button("Déplacer vers la corbeille") { confirming = true }
                     .buttonStyle(.prominentPill).disabled(model.selection.isEmpty || model.busy)
             }
         }.sheet(isPresented: $confirming) { confirmation.modifier(ToolConfirmationStyle()) }
@@ -48,7 +48,7 @@ struct AIClutterView: View {
                 Text(model.hasScanned ? "\(model.items.count) \(pl(model.items.count, "emplacement"))" : "Prêt à analyser").font(AppFont.secondary)
                 Spacer()
                 Button { model.scan() } label: { Image(systemName: "arrow.clockwise").frame(width: 32, height: 32) }
-                    .buttonStyle(.plain).disabled(model.busy).accessibilityLabel("Actualiser les fichiers IA")
+                    .buttonStyle(.plainAction).disabled(model.busy).accessibilityLabel("Actualiser les fichiers IA")
             }
             ScrollView {
                 VStack(spacing: 7) {
@@ -66,7 +66,7 @@ struct AIClutterView: View {
                             }.padding(12).frame(maxWidth: .infinity, alignment: .leading)
                                 .background(group == category ? Theme.accent.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: 10))
                                 .contentShape(RoundedRectangle(cornerRadius: 10))
-                        }.buttonStyle(.plain).disabled(model.busy).accessibilityAddTraits(group == category ? .isSelected : [])
+                        }.buttonStyle(.plainAction).disabled(model.busy).accessibilityAddTraits(group == category ? .isSelected : [])
                     }
                 }
             }
@@ -79,7 +79,7 @@ struct AIClutterView: View {
             Text(group.detail).font(AppFont.secondary).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 12) {
                 TextField("Rechercher une application ou un fichier", text: $query).textFieldStyle(.roundedBorder)
-                Picker("Trier par", selection: $sortBySize) { Text("Taille").tag(true); Text("Nom").tag(false) }.frame(width: 150)
+                Picker("Trier par", selection: $sortBySize) { Text("Taille").tag(true); Text("Nom").tag(false) }.actionCursor().frame(width: 150)
             }
             HStack {
                 Button("Tout cocher ici") { model.selection.formUnion(visible.map(\.id)) }
@@ -108,7 +108,7 @@ struct AIClutterView: View {
                             HStack(spacing: 14) {
                                 Toggle("Retirer \(rowTitle(item))", isOn: Binding(get: { model.selection.contains(item.id) }, set: { value in
                                     if value { model.selection.insert(item.id) } else { model.selection.remove(item.id) }
-                                })).labelsHidden().toggleStyle(.checkbox).disabled(model.busy)
+                                })).actionCursor().labelsHidden().toggleStyle(.checkbox).disabled(model.busy)
                                 Image(nsImage: NSWorkspace.shared.icon(forFile: item.path)).resizable().scaledToFit().frame(width: 36, height: 36).accessibilityHidden(true)
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text(rowTitle(item)).font(AppFont.body.weight(.semibold)).fixedSize(horizontal: false, vertical: true)

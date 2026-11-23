@@ -8,11 +8,11 @@ struct AppUpdateSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Toggle("Rechercher automatiquement les mises à jour", isOn: $updater.automaticallyChecksForUpdates)
+            Toggle("Rechercher automatiquement les mises à jour", isOn: $updater.automaticallyChecksForUpdates).actionCursor()
                 .disabled(!updater.isAvailable)
             Text("MacCare consulte les releases GitHub. Vous choisissez quand installer une nouvelle version.")
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            Toggle("Notifier lorsqu’une mise à jour est disponible", isOn: $notificationsEnabled)
+            Toggle("Notifier lorsqu’une mise à jour est disponible", isOn: $notificationsEnabled).actionCursor()
                 .disabled(!updater.isAvailable)
                 .onChange(of: notificationsEnabled) { enabled in
                     if enabled { Task { await updater.requestUpdateNotificationPermission() } }
@@ -22,7 +22,7 @@ struct AppUpdateSettingsView: View {
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             if notificationsEnabled, updater.isAvailable {
                 if updater.notificationAuthorization == .notDetermined {
-                    Button("Autoriser les notifications…") {
+                    Button("Autoriser les notifications") {
                         Task { await updater.requestUpdateNotificationPermission() }
                     }
                     .buttonStyle(.actionPill)
@@ -51,7 +51,7 @@ struct AppUpdateSettingsView: View {
                     Text("Aucune recherche effectuée.").font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 12)
-                Button("Rechercher les mises à jour…", action: updater.checkForUpdates)
+                Button("Rechercher les mises à jour", action: updater.checkForUpdates)
                     .buttonStyle(.actionPill)
                     .disabled(!updater.canCheckForUpdates)
             }

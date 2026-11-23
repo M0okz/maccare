@@ -35,7 +35,7 @@ struct BatteryStatusAlertView: View {
                 Menu("Ignorer") {
                     Button("Pendant une journée") { snooze(1) }
                     Button("Pendant une semaine") { snooze(7) }
-                }
+                }.actionCursor()
                 .menuStyle(.button).buttonStyle(.actionPill).fixedSize()
                 Spacer(minLength: 12)
                 Button(completion == nil ? "Vérifier la protection" : "Ouvrir Batterie", action: openBattery)

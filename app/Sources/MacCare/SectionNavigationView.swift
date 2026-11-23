@@ -16,7 +16,7 @@ struct SectionNavigationView: View {
                 ForEach(destinations) { destination in
                     Text(destination.tabTitle).tag(destination)
                 }
-            }
+            }.actionCursor()
             .pickerStyle(.segmented)
             .controlSize(.large)
             .font(AppFont.body)

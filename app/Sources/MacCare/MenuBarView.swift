@@ -105,7 +105,7 @@ struct MenuBarView: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plainAction)
             .accessibilityHint("Afficher les critères et le calcul de la santé du Mac")
             .help("Indice estimé de l’état actuel. Cliquez pour voir son calcul.")
             .popover(isPresented: $showingHealth, arrowEdge: .bottom) { MacHealthDetails(assessment: health) }

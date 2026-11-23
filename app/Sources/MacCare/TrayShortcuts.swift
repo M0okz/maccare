@@ -42,7 +42,7 @@ struct TrayShortcutSettingsView: View {
                     ForEach(TrayShortcuts.available) { module in
                         Label(module.title, systemImage: module.symbol).tag(module.rawValue)
                     }
-                }
+                }.actionCursor()
             }
         }
     }

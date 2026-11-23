@@ -54,12 +54,12 @@ struct ApplicationsInsightsManager: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Toggle(item.url.lastPathComponent, isOn: Binding(
                                 get: { model.selectedInstallers.contains(item.id) },
-                                set: { if $0 { model.selectedInstallers.insert(item.id) } else { model.selectedInstallers.remove(item.id) } }))
+                                set: { if $0 { model.selectedInstallers.insert(item.id) } else { model.selectedInstallers.remove(item.id) } })).actionCursor()
                                 .disabled(model.isRemoving)
                             Button { selectedID = item.id } label: {
                                 Label("\(humanSize(item.size_bytes)) · Détails", systemImage: "doc.text.magnifyingglass")
                                     .font(AppFont.secondary).frame(maxWidth: .infinity, alignment: .leading)
-                            }.buttonStyle(.plain)
+                            }.buttonStyle(.plainAction)
                         }.padding(12).background(selectedInstaller?.id == item.id ? Theme.surface : .clear, in: RoundedRectangle(cornerRadius: 10))
                     }
                 } else {
@@ -70,7 +70,7 @@ struct ApplicationsInsightsManager: View {
                                 Text(item.app.name).font(AppFont.body).frame(maxWidth: .infinity, alignment: .leading)
                             }.padding(12).contentShape(Rectangle())
                                 .background(selectedApp?.id == item.id ? Theme.surface : .clear, in: RoundedRectangle(cornerRadius: 10))
-                        }.buttonStyle(.plain).accessibilityAddTraits(selectedApp?.id == item.id ? .isSelected : [])
+                        }.buttonStyle(.plainAction).accessibilityAddTraits(selectedApp?.id == item.id ? .isSelected : [])
                     }
                 }
             }.padding(18)

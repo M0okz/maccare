@@ -47,7 +47,7 @@ struct MacCareApp: App {
                 Button("À propos de MacCare") { app.show(.about) }
             }
             CommandGroup(after: .appInfo) {
-                Button("Rechercher les mises à jour…", action: updater.checkForUpdates)
+                Button("Rechercher les mises à jour", action: updater.checkForUpdates)
                     .disabled(!updater.canCheckForUpdates)
             }
             CommandGroup(after: .windowArrangement) {
@@ -74,10 +74,12 @@ enum MenuBarSetting {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var tray: TrayPanelController?
     private let dockVisibility = DockVisibilityController()
+    private let nativeButtonCursor = NativeButtonCursor()
     private var openSettingsAction: (() -> Void)?
     private var startsWithoutWindow = false
 
     func applicationWillFinishLaunching(_ notification: Notification) {
+        nativeButtonCursor.start()
         startsWithoutWindow = LoginLaunch.startsWithoutWindow(
             launchedAtLogin: LoginLaunch.launchedAtLogin(),
             menuBarEnabled: MenuBarSetting.enabled,

@@ -14,7 +14,7 @@ struct PNGOptimizationView: View {
                 Button(action: onBack) { Label("Retour", systemImage: "chevron.left") }
                     .buttonStyle(.toolbarPill).keyboardShortcut(.cancelAction).disabled(model.isRunning)
             } trailing: {
-                Button("Choisir des images…", action: chooseImages).disabled(model.isRunning)
+                Button("Choisir des images", action: chooseImages).disabled(model.isRunning)
                     .buttonStyle(.actionPill)
             }.padding(.horizontal, 24).frame(height: 56)
             Divider()
@@ -55,7 +55,7 @@ struct PNGOptimizationView: View {
                     }.frame(maxWidth: .infinity, minHeight: 32, alignment: .leading).padding(10)
                         .background(selectedItem?.id == item.id ? Theme.accent.opacity(0.09) : .clear,
                                     in: RoundedRectangle(cornerRadius: 9))
-                }.buttonStyle(.plain).accessibilityAddTraits(selectedItem?.id == item.id ? .isSelected : [])
+                }.buttonStyle(.plainAction).accessibilityAddTraits(selectedItem?.id == item.id ? .isSelected : [])
             }
         }
     }
@@ -78,7 +78,7 @@ struct PNGOptimizationView: View {
                 Button("Afficher les copies") { NSWorkspace.shared.activateFileViewerSelecting(model.outputURLs) }
                     .buttonStyle(.prominentPill).controlSize(.large)
             } else {
-                Button("Créer les copies optimisées…", action: chooseDestination)
+                Button("Créer les copies optimisées", action: chooseDestination)
                     .disabled(model.items.isEmpty).buttonStyle(.prominentPill).controlSize(.large)
             }
         }.padding(18).background(Theme.sidebar)

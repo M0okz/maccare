@@ -28,7 +28,7 @@ struct PrivacyView: View {
                 }
             } actions: {
                 if model.isCleaning { ProgressView("Retrait…") }
-                Button(model.directDeleteEnabled ? "Supprimer définitivement…" : "Déplacer vers la corbeille…") {
+                Button(model.directDeleteEnabled ? "Supprimer définitivement" : "Déplacer vers la corbeille") {
                     confirmedDirect = model.directDeleteEnabled; confirmingRemoval = true
                 }.buttonStyle(.prominentPill).disabled(model.selection.isEmpty || busy)
             }
@@ -44,7 +44,7 @@ struct PrivacyView: View {
                 Text(model.hasScanned ? "\(model.items.count) \(pl(model.items.count, "emplacement"))" : "Prêt à analyser").font(AppFont.secondary)
                 Spacer()
                 Button { model.scan() } label: { Image(systemName: "arrow.clockwise").frame(width: 32, height: 32) }
-                    .buttonStyle(.plain).disabled(busy).accessibilityLabel("Actualiser les données locales")
+                    .buttonStyle(.plainAction).disabled(busy).accessibilityLabel("Actualiser les données locales")
             }
             ScrollView {
                 VStack(spacing: 7) {
@@ -60,7 +60,7 @@ struct PrivacyView: View {
                             }.padding(12).frame(maxWidth: .infinity, alignment: .leading)
                                 .background(group == value ? Theme.accent.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: 10))
                                 .contentShape(RoundedRectangle(cornerRadius: 10))
-                        }.buttonStyle(.plain).disabled(busy).accessibilityAddTraits(group == value ? .isSelected : [])
+                        }.buttonStyle(.plainAction).disabled(busy).accessibilityAddTraits(group == value ? .isSelected : [])
                     }
                 }
             }
@@ -105,7 +105,7 @@ struct PrivacyView: View {
                                         Text(model.label(for: item)).font(AppFont.body.weight(.semibold))
                                         Text(item.path).font(AppFont.caption).foregroundStyle(Theme.muted).lineLimit(1).truncationMode(.middle).help(item.path)
                                     }
-                                }.toggleStyle(.checkbox).disabled(busy)
+                                }.actionCursor().toggleStyle(.checkbox).disabled(busy)
                                 Spacer(minLength: 8)
                                 Text(humanSize(item.size_bytes)).font(AppFont.body).monospacedDigit()
                             }.padding(.vertical, 16).contextMenu {

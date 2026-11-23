@@ -71,7 +71,7 @@ struct PopoverCloseButton: View {
             Image(systemName: "xmark.circle.fill").font(.body).foregroundStyle(.secondary)
                 .frame(width: 24, height: 24)
         }
-        .buttonStyle(.plain).keyboardShortcut(.cancelAction)
+        .buttonStyle(.plainAction).keyboardShortcut(.cancelAction)
         .accessibilityLabel("Fermer").help("Fermer")
     }
 }

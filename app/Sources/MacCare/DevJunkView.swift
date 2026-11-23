@@ -85,6 +85,7 @@ struct DevJunkView: View {
         .padding(.horizontal, 14).padding(.vertical, 10)
         .contentShape(Rectangle())
         .onTapGesture { model.toggle(item) }
+        .actionCursor()
         .contextMenu {
             Button("Afficher dans le Finder") {
                 NSWorkspace.shared.activateFileViewerSelecting([item.url])

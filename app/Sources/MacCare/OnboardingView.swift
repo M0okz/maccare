@@ -228,7 +228,7 @@ struct OnboardingView: View {
             Spacer()
             if step == .helper {
                 if system.phase == .off {
-                    Button("Activer l’assistant…") { system.enable() }
+                    Button("Activer l’assistant") { system.enable() }
                         .buttonStyle(.actionPill).controlSize(.large)
                 } else if system.phase == .needsApproval {
                     Button("Ouvrir les Réglages") { system.openApproval() }
@@ -244,7 +244,7 @@ struct OnboardingView: View {
                 if step == .disk {
                     primary("Ouvrir les Réglages") { model.openFullDiskSettings() }
                 } else {
-                    primary(model.requestingAutomation ? "En attente…" : model.automation == .denied ? "Ouvrir les Réglages" : "Autoriser l’Automatisation…") {
+                    primary(model.requestingAutomation ? "En attente…" : model.automation == .denied ? "Ouvrir les Réglages" : "Autoriser l’Automatisation") {
                         if model.automation == .denied { model.openAutomationSettings() }
                         else { model.requestAutomation() }
                     }

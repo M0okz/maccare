@@ -15,7 +15,7 @@ struct LoginLaunchToggle: View {
                     do { try LoginLaunch.set(on); failure = nil } catch { failure = error.localizedDescription }
                     status = LoginLaunch.status
                 }
-            )).disabled(status == .notFound)
+            )).actionCursor().disabled(status == .notFound)
             statusText
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in

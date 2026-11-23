@@ -95,7 +95,7 @@ struct BatteryView: View {
             .background(Color.white.opacity(0.065), in: RoundedRectangle(cornerRadius: 20))
             .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(Color.white.opacity(0.12)))
             .contentShape(RoundedRectangle(cornerRadius: 20))
-        }.buttonStyle(.plain).foregroundStyle(Theme.fg)
+        }.buttonStyle(.plainAction).foregroundStyle(Theme.fg)
             .accessibilityElement(children: .ignore).accessibilityAddTraits(.isButton)
             .accessibilityLabel(item.title)
             .accessibilityHint("\(item.subtitle) \(item.action).")

@@ -9,6 +9,7 @@ struct TrayTileStyle: ButtonStyle {
             .overlay(RoundedRectangle(cornerRadius: TrayAppearance.cardRadius).strokeBorder(.white.opacity(hovered ? 0.18 : 0.09)))
             .opacity(configuration.isPressed ? 0.85 : 1)
             .pressFeedback(configuration.isPressed, scale: 0.98)
+            .actionCursor()
             .onHover { hovered = $0 }
     }
 }

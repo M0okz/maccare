@@ -44,7 +44,7 @@ struct MemoryAlertView: View {
                 Menu("Ignorer") {
                     Button("Pendant une journée") { snooze(1) }
                     Button("Pendant une semaine") { snooze(7) }
-                }
+                }.actionCursor()
                 .menuStyle(.button).buttonStyle(.actionPill).fixedSize()
                 Spacer(minLength: 12)
                 // Au second plan : l'arrêt forcé peut faire perdre du travail.

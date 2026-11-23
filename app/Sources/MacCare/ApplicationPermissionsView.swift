@@ -49,7 +49,7 @@ struct ApplicationPermissionsView: View {
                 Text("\(entries.count) accès").font(AppFont.secondary).monospacedDigit()
                 Spacer()
                 Button { model.scan() } label: { Image(systemName: "arrow.clockwise").frame(width: 32, height: 32) }
-                    .buttonStyle(.plain).disabled(model.busy).accessibilityLabel("Actualiser les autorisations")
+                    .buttonStyle(.plainAction).disabled(model.busy).accessibilityLabel("Actualiser les autorisations")
             }
             ScrollView {
                 VStack(spacing: 7) {
@@ -59,7 +59,7 @@ struct ApplicationPermissionsView: View {
                     }
                 }
             }
-            Toggle("Autorisés uniquement", isOn: $grantedOnly).font(AppFont.secondary).padding(.horizontal, 8)
+            Toggle("Autorisés uniquement", isOn: $grantedOnly).actionCursor().font(AppFont.secondary).padding(.horizontal, 8)
         }.padding(20)
     }
 
@@ -124,7 +124,7 @@ struct ApplicationPermissionsView: View {
             if entry.canReset {
                 Toggle("Sélectionner \(model.name(for: entry)) pour \(entry.title)", isOn: Binding(get: { model.selection.contains(entry.id) }, set: { value in
                     if value { model.selection.insert(entry.id) } else { model.selection.remove(entry.id) }
-                })).toggleStyle(.checkbox).labelsHidden()
+                })).actionCursor().toggleStyle(.checkbox).labelsHidden()
             }
             applicationIcon(entry).frame(width: 46, height: 46).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 6) {
@@ -166,7 +166,7 @@ struct ApplicationPermissionsView: View {
             }.padding(.horizontal, 12).padding(.vertical, 13)
                 .background(service == key ? ModuleColor.privacy.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: 12))
                 .contentShape(RoundedRectangle(cornerRadius: 12))
-        }.buttonStyle(.plain).accessibilityAddTraits(service == key ? .isSelected : [])
+        }.buttonStyle(.plainAction).accessibilityAddTraits(service == key ? .isSelected : [])
     }
     private var footer: some View {
         ToolManagerFooter {
@@ -183,7 +183,7 @@ struct ApplicationPermissionsView: View {
                 Button("Ouvrir les réglages macOS", systemImage: "arrow.up.forward") { model.openSettings(pane) }
                     .buttonStyle(.prominentPill).disabled(model.busy)
             } else {
-                Button("Réinitialiser la sélection…") { confirming = true }
+                Button("Réinitialiser la sélection") { confirming = true }
                     .buttonStyle(.prominentPill).disabled(model.busy)
             }
         }

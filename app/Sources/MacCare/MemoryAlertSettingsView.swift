@@ -6,7 +6,7 @@ struct MemoryAlertSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Toggle("M’avertir lorsque la pression mémoire est élevée", isOn: $enabled)
+            Toggle("M’avertir lorsque la pression mémoire est élevée", isOn: $enabled).actionCursor()
             Text("MacCare signale une pression mémoire élevée persistante ou critique et propose jusqu’à trois applications à fermer. Un rappel au maximum par jour, avec les reports d’une journée ou d’une semaine.")
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Text("Quitter demande une fermeture normale. Tout forcer à quitter nécessite une confirmation et concerne uniquement les applications affichées.")

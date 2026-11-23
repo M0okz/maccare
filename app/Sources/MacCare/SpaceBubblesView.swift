@@ -131,7 +131,7 @@ struct SpaceBubblesView: View {
             .contentShape(Circle())
             .shadow(color: color.opacity(highlighted ? 0.65 : 0.3), radius: r * 0.2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plainAction)
         .contentShape(Circle())
         .simultaneousGesture(TapGesture(count: 2).onEnded {
             if b.child.is_dir { model.open(b.child) }

@@ -67,11 +67,11 @@ struct TrayProcessList: View {
                 .font(.system(size: 11, weight: .medium)).monospacedDigit().frame(minWidth: 65, alignment: .trailing)
             Menu {
                 Button("Quitter") { select(process, force: false) }
-                Button("Forcer à quitter…", role: .destructive) { select(process, force: true) }
+                Button("Forcer à quitter", role: .destructive) { select(process, force: true) }
             } label: {
                 Text(controller.pending.contains(process.id) ? "En attente" : "Quitter")
                     .font(.system(size: 11, weight: .semibold))
-            }
+            }.actionCursor()
             .menuStyle(.borderlessButton).fixedSize()
             .disabled(!process.canQuit)
             .accessibilityLabel("Quitter \(displayName(process)), PID \(process.id.pid)")

@@ -113,6 +113,7 @@ struct SimulatorsView: View {
         .padding(.horizontal, 14).padding(.vertical, 10)
         .contentShape(Rectangle())
         .onTapGesture { model.toggle(r) }
+        .actionCursor()
     }
 
     private func simRow(_ s: SimDevice) -> some View {
@@ -141,6 +142,7 @@ struct SimulatorsView: View {
         .padding(.horizontal, 14).padding(.vertical, 9)
         .contentShape(Rectangle())
         .onTapGesture { model.toggle(s) }
+        .actionCursor()
     }
 
     private var footer: some View {
@@ -155,7 +157,7 @@ struct SimulatorsView: View {
             if model.hasSelection {
                 Text("Sélection : \(humanSize(model.selectedSize))").font(AppFont.secondary)
             }
-            PrimaryButton(title: "Supprimer…", systemImage: "trash.slash", tint: Theme.danger) { confirming = true }
+            PrimaryButton(title: "Supprimer", systemImage: "trash.slash", tint: Theme.danger) { confirming = true }
                 .disabled(!model.hasSelection || model.isDeleting)
                 .opacity(!model.hasSelection || model.isDeleting ? 0.5 : 1)
         }

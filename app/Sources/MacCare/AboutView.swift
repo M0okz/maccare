@@ -73,7 +73,7 @@ struct AboutView: View {
                     .font(AppFont.secondary).foregroundStyle(VeilleBrand.lavender)
             }
             VStack(alignment: .leading, spacing: 10) {
-                Button(updater.availableVersion == nil ? "Rechercher les mises à jour…" : "Télécharger la mise à jour…",
+                Button(updater.availableVersion == nil ? "Rechercher les mises à jour" : "Télécharger la mise à jour",
                        systemImage: updater.availableVersion == nil ? "arrow.clockwise" : "arrow.down.circle",
                        action: updater.checkForUpdates)
                     .buttonStyle(.prominentPill).controlSize(.large)

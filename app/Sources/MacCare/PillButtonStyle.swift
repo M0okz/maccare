@@ -75,6 +75,7 @@ struct PillButtonStyle: ButtonStyle {
                 .contentShape(Capsule())
                 .opacity(enabled ? 1 : 0.48)
                 .pressFeedback(enabled && configuration.isPressed)
+                .actionCursor()
                 .onHover { hovered = $0 }
         }
     }

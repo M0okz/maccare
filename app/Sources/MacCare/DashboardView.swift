@@ -69,7 +69,7 @@ struct DashboardView: View {
                 .overlay(Capsule().strokeBorder(Theme.warn.opacity(0.48)))
                 .contentShape(Capsule())
         }
-        .buttonStyle(.plain).foregroundStyle(Theme.warn)
+        .buttonStyle(.plainAction).foregroundStyle(Theme.warn)
         .shadow(color: .black.opacity(0.24), radius: 5, y: 2)
         .accessibilityHint("Afficher les accès à configurer")
         .popover(isPresented: $showingPermissions, arrowEdge: .top) {

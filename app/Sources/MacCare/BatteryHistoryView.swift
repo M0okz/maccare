@@ -19,7 +19,7 @@ struct BatteryHistoryView: View {
             VStack(alignment: .leading, spacing: 18) {
                 Picker("Période", selection: $days) {
                     Text("24 heures").tag(1); Text("7 jours").tag(7); Text("30 jours").tag(30)
-                }.pickerStyle(.segmented)
+                }.actionCursor().pickerStyle(.segmented)
                 if let error = model.historyError { Label(error, systemImage: "exclamationmark.triangle").fixedSize(horizontal: false, vertical: true) }
                 if entries.isEmpty {
                     Text("L’historique commence avec les mesures de MacCare. Il se remplira pendant que l’app reste ouverte.")

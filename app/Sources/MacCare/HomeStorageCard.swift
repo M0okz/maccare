@@ -73,5 +73,6 @@ private struct HomeStorageCardSurface<Label: View>: View {
                 lineWidth: enabled && focused ? 2 : 1))
             .opacity(!enabled ? 0.45 : (pressed ? 0.85 : 1))
             .pressFeedback(pressed && enabled, scale: 0.985)
+            .actionCursor()
     }
 }

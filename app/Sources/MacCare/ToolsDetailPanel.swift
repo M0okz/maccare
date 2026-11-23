@@ -33,7 +33,7 @@ struct ToolsDetailPanel: View {
                     Picker("Catégorie de démarrage", selection: $startupCategory) {
                         Text("À la connexion").tag(PerformanceCategory.login)
                         Text("En arrière-plan").tag(PerformanceCategory.background)
-                    }.labelsHidden().accessibilityLabel("Catégorie de démarrage").frame(width: 200).disabled(writing)
+                    }.actionCursor().labelsHidden().accessibilityLabel("Catégorie de démarrage").frame(width: 200).disabled(writing)
                 }
             }.padding(.horizontal, 24).frame(height: 56)
             Divider()

@@ -123,13 +123,14 @@ struct DuplicatesView: View {
             } label: {
                 Image(systemName: "magnifyingglass.circle").font(AppFont.body)
             }
-            .buttonStyle(.plain).foregroundStyle(Theme.muted)
+            .buttonStyle(.plainAction).foregroundStyle(Theme.muted)
             .help("Afficher dans le Finder")
         }
         .padding(.horizontal, 14).padding(.vertical, 8)
         .padding(.leading, 30)
         .contentShape(Rectangle())
         .onTapGesture { model.toggle(f, in: g) }
+        .actionCursor()
         .contextMenu {
             Button("Afficher dans le Finder") { NSWorkspace.shared.activateFileViewerSelecting([f.url]) }
             Button("Ouvrir") { NSWorkspace.shared.open(f.url) }

@@ -286,7 +286,7 @@ struct CheckBox: View {
         Toggle(label, isOn: Binding(
             get: { on },
             set: { value in if value != on { toggle() } }
-        ))
+        )).actionCursor()
         .toggleStyle(.checkbox)
         .labelsHidden()
         .fixedSize()

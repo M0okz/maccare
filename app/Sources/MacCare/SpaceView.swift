@@ -169,7 +169,7 @@ struct SpaceView: View {
             Picker("Présentation", selection: $mode) {
                 Text("Carte").tag(SpaceDisplayMode.map)
                 Text("Liste").tag(SpaceDisplayMode.list)
-            }.pickerStyle(.segmented).frame(width: 150).labelsHidden()
+            }.actionCursor().pickerStyle(.segmented).frame(width: 150).labelsHidden()
                 .accessibilityLabel("Présentation de l’espace disque")
         }
     }
@@ -260,7 +260,7 @@ struct SpaceView: View {
             Button { infoChild = child } label: {
                 Image(systemName: "info.circle").font(.system(size: 15)).foregroundStyle(Theme.muted)
                     .frame(width: 30, height: 40).contentShape(Rectangle())
-            }.buttonStyle(.plain).accessibilityLabel("Informations sur \(child.name)")
+            }.buttonStyle(.plainAction).accessibilityLabel("Informations sur \(child.name)")
                 .help(model.canRemove(child) ? "Informations sur cet élément" : "Pourquoi cet élément est-il en lecture seule ?")
                 .popover(isPresented: Binding(get: { infoChild?.id == child.id }, set: { if !$0 { infoChild = nil } }), arrowEdge: .leading) {
                     VStack(alignment: .leading, spacing: 12) {
@@ -300,7 +300,7 @@ struct SpaceView: View {
             .background(highlighted ? Theme.accent.opacity(0.22) : .clear)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plainAction)
         .onHover { hover in
             model.highlight(hover ? child.id : nil, from: .row(child.id))
         }

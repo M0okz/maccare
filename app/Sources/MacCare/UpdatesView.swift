@@ -37,7 +37,7 @@ struct UpdatesView: View {
                                     .frame(maxWidth: .infinity, minHeight: 32, alignment: .leading).padding(10)
                                     .background(selectedEntry?.item.id == item.id ? Theme.accent.opacity(0.09) : .clear,
                                                 in: RoundedRectangle(cornerRadius: 9))
-                            }.buttonStyle(.plain).accessibilityAddTraits(selectedEntry?.item.id == item.id ? .isSelected : [])
+                            }.buttonStyle(.plainAction).accessibilityAddTraits(selectedEntry?.item.id == item.id ? .isSelected : [])
                         }
                     }
                 }

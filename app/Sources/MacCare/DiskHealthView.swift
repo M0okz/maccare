@@ -21,7 +21,7 @@ struct DiskHealthView: View {
                             .frame(maxWidth: .infinity, minHeight: 32, alignment: .leading).padding(10)
                             .background(selectedPath == volume.path ? Theme.accent.opacity(0.09) : .clear,
                                         in: RoundedRectangle(cornerRadius: 9))
-                    }.buttonStyle(.plain).accessibilityAddTraits(selectedPath == volume.path ? .isSelected : [])
+                    }.buttonStyle(.plainAction).accessibilityAddTraits(selectedPath == volume.path ? .isSelected : [])
                 }
             }
         } detail: {

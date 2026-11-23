@@ -122,6 +122,7 @@ struct SystemCleanView: View {
         .padding(.horizontal, 14).padding(.vertical, 9)
         .contentShape(Rectangle())
         .onTapGesture { model.toggle(item) }
+        .actionCursor()
     }
 
     // MARK: Activation
@@ -213,7 +214,7 @@ struct SystemCleanView: View {
             if !model.selectedItems.isEmpty {
                 Text("Sélection : \(humanSize(model.selectedSize))").font(AppFont.secondary)
             }
-            PrimaryButton(title: "Supprimer…", systemImage: "trash.slash", tint: Theme.danger) { confirming = true }
+            PrimaryButton(title: "Supprimer", systemImage: "trash.slash", tint: Theme.danger) { confirming = true }
                 .disabled(model.selectedItems.isEmpty || model.isRemoving)
                 .opacity(model.selectedItems.isEmpty || model.isRemoving ? 0.5 : 1)
         }

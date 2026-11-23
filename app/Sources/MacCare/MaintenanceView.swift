@@ -23,7 +23,7 @@ struct MaintenanceView: View {
                                         }.padding(12).frame(maxWidth: .infinity, alignment: .leading)
                                             .background(selected?.id == task.id ? Theme.accent.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: 10))
                                             .contentShape(RoundedRectangle(cornerRadius: 10))
-                                    }.buttonStyle(.plain).disabled(model.running != nil).accessibilityAddTraits(selected?.id == task.id ? .isSelected : [])
+                                    }.buttonStyle(.plainAction).disabled(model.running != nil).accessibilityAddTraits(selected?.id == task.id ? .isSelected : [])
                                 }
                             }
                         }
@@ -56,7 +56,7 @@ struct MaintenanceView: View {
                 }
             } actions: {
                 if model.running != nil { ProgressView("Réparation…") }
-                Button("Réparer…") { confirming = selected }.buttonStyle(.prominentPill).disabled(model.running != nil || selected == nil)
+                Button("Réparer") { confirming = selected }.buttonStyle(.prominentPill).disabled(model.running != nil || selected == nil)
             }
         }
         .sheet(item: $confirming) { task in

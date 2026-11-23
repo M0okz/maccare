@@ -104,7 +104,7 @@ struct SettingsView: View {
                 if pane == .protection {
                     groupCard("Suppression") {
                         VStack(alignment: .leading, spacing: 6) {
-                            Toggle("Supprimer définitivement (sans corbeille)", isOn: $model.directDelete)
+                            Toggle("Supprimer définitivement (sans corbeille)", isOn: $model.directDelete).actionCursor()
                             .toggleStyle(.switch)
                             if model.directDelete {
                                 Label("Irréversible. Les éléments ne passeront pas par la corbeille.",
@@ -146,7 +146,7 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Picker("Smart Scan automatique", selection: $frequency) {
                                 ForEach(ScanFrequency.allCases) { Text($0.title).tag($0.rawValue) }
-                            }
+                            }.actionCursor()
                             .pickerStyle(.segmented)
                             // Geste de l'utilisateur : seul moment où l'autorisation de notifier est demandée.
                             .onChange(of: frequency) { value in
@@ -185,7 +185,7 @@ struct SettingsView: View {
                 }
                 if pane == .menu {
                     groupCard("Barre des menus") {
-                        Toggle("Afficher MacCare dans la barre des menus", isOn: $menuBarShown)
+                        Toggle("Afficher MacCare dans la barre des menus", isOn: $menuBarShown).actionCursor()
                         Text(menuBarShown ? "MacCare reste actif lorsque vous fermez sa fenêtre. Le menu donne accès au dernier bilan et permet de lancer une analyse." : "MacCare quitte lorsque vous fermez sa dernière fenêtre. Les analyses planifiées sont alors interrompues.")
                             .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     }
@@ -212,7 +212,7 @@ struct SettingsView: View {
                 if pane == .analysis {
                     groupCard("Outils pour développeurs") {
                         VStack(alignment: .leading, spacing: 6) {
-                            Toggle("Afficher les catégories pour développeurs", isOn: $developerTools)
+                            Toggle("Afficher les catégories pour développeurs", isOn: $developerTools).actionCursor()
                             .toggleStyle(.switch)
                             Text("Xcode (archives, supports d'appareils, documentation), simulateurs et caches d'outils (npm, Cargo, Gradle…). Désactivé, MacCare ne les analyse pas.")
                             .font(AppFont.secondary).foregroundStyle(.secondary)
@@ -240,13 +240,13 @@ struct SettingsView: View {
                                             .accessibilityLabel("Retirer l’exclusion de \(p)")
                                     }.padding(.vertical, 6)
                                 }
-                                Button("Tout retirer…", role: .destructive) { clearExclusionsConfirmation = true }
+                                Button("Tout retirer", role: .destructive) { clearExclusionsConfirmation = true }
                                     .buttonStyle(.actionPill)
                                     .padding(.top, 4)
                             }
                         }
                     }
-                    Button("Ajouter un fichier ou un dossier…") { addExclusion() }
+                    Button("Ajouter un fichier ou un dossier") { addExclusion() }
                         .buttonStyle(.actionPill)
                     Text("Retirer une exclusion ne supprime aucun fichier. Les changements prennent effet à la prochaine analyse.")
                         .font(.caption).foregroundStyle(.secondary)

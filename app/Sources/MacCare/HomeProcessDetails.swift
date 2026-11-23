@@ -38,7 +38,7 @@ struct HomeProcessDetails: View {
                 Text(opened.name).font(.title2.bold()).lineLimit(2).accessibilityAddTraits(.isHeader)
                 Spacer()
                 Button { dismiss() } label: { Image(systemName: "xmark.circle.fill").font(.title2) }
-                    .buttonStyle(.plain).foregroundStyle(.secondary).keyboardShortcut(.cancelAction)
+                    .buttonStyle(.plainAction).foregroundStyle(.secondary).keyboardShortcut(.cancelAction)
                     .accessibilityLabel("Fermer la fiche")
             }
             Text(summary(current)).font(.callout).foregroundStyle(.secondary)
@@ -92,8 +92,8 @@ struct HomeProcessDetails: View {
                 Spacer()
                 if let process = inspected {
                     Group {
-                        Button("Quitter…") { confirmation = StopRequest(process: process, force: false) }
-                        Button("Forcer à quitter…", role: .destructive) { confirmation = StopRequest(process: process, force: true) }
+                        Button("Quitter") { confirmation = StopRequest(process: process, force: false) }
+                        Button("Forcer à quitter", role: .destructive) { confirmation = StopRequest(process: process, force: true) }
                     }.disabled(!process.canQuit || controller.pending.contains(process.id))
                 }
             }.buttonStyle(.actionPill).controlSize(.small)
@@ -147,7 +147,7 @@ struct HomeProcessDetails: View {
                     .font(.callout).monospacedDigit().padding(.horizontal, 6).padding(.vertical, 3)
                     .background(selected == member.id ? Theme.accent.opacity(0.18) : .clear, in: RoundedRectangle(cornerRadius: 4))
                     .contentShape(Rectangle())
-                }.buttonStyle(.plain)
+                }.buttonStyle(.plainAction)
                     .contextMenu {
                         Button("Copier le PID") {
                             NSPasteboard.general.clearContents()

@@ -36,10 +36,10 @@ struct ApplicationsUpdatesManager: View {
                         }
                         searchFocused = showSearch
                     } label: { Image(systemName: "magnifyingglass").frame(width: 36, height: 44) }
-                        .buttonStyle(.plain).accessibilityLabel("Rechercher une mise à jour")
+                        .buttonStyle(.plainAction).accessibilityLabel("Rechercher une mise à jour")
                     Picker("Trier par", selection: $sort) {
                         ForEach(ApplicationUpdateSort.allCases) { Text($0.title).tag($0) }
-                    }.frame(width: 220)
+                    }.actionCursor().frame(width: 220)
                 }
             }.padding(.horizontal, 24).frame(height: 56)
             Divider()
@@ -86,7 +86,7 @@ struct ApplicationsUpdatesManager: View {
                 Text("\(entries.count) \(pl(entries.count, "mise")) à jour").font(AppFont.secondary).monospacedDigit()
                 Spacer(minLength: 4)
                 Button { model.checkApplications() } label: { Image(systemName: "arrow.clockwise").frame(width: 32, height: 32) }
-                    .buttonStyle(.plain).disabled(model.isChecking || installer.isBusy).accessibilityLabel("Actualiser les mises à jour")
+                    .buttonStyle(.plainAction).disabled(model.isChecking || installer.isBusy).accessibilityLabel("Actualiser les mises à jour")
             }
             if showSearch {
                 TextField("Rechercher une application", text: $query).textFieldStyle(.roundedBorder)
@@ -116,7 +116,7 @@ struct ApplicationsUpdatesManager: View {
                                     .foregroundStyle(Theme.accent).accessibilityHidden(true)
                             }.padding(10).frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
                                 .background(selected?.id == entry.id ? Theme.accent.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: 9))
-                        }.buttonStyle(.plain).accessibilityLabel("Examiner la mise à jour de \(entry.item.name)")
+                        }.buttonStyle(.plainAction).accessibilityLabel("Examiner la mise à jour de \(entry.item.name)")
                             .accessibilityAddTraits(selected?.id == entry.id ? .isSelected : [])
                     }
                     if entries.isEmpty && !query.isEmpty {
