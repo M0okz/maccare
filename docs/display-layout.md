@@ -1,5 +1,29 @@
 # Échelle automatique de la fenêtre principale
 
+## Taille minimale choisie dans MacCare Dev
+
+Le 23 novembre 2026, la fenêtre que Gregory venait de redimensionner dans la DEV
+mesurait **1 311 × 773 points**, barre de titre comprise. Ce format devient la
+taille d’ouverture des nouvelles fenêtres principales et leur minimum sur chaque
+axe. La fenêtre peut toujours être agrandie. Cette évolution est disponible dans
+MacCare Dev 0.2.33 (build local 22) sur `codex/main-window-minimum`.
+
+`MainWindowLayout` déduit du cadre la hauteur réelle de la barre de titre pour
+calculer le minimum du contenu. Avec une barre de 28 points, il est de
+1 311 × 745 points. Même à 85 % de densité, le cadre garde ses dimensions.
+Quand l’espace utilisable d’un écran est inférieur au minimum, seul l’axe
+concerné est plafonné. La scène et `RootView` partagent cette règle. Les
+anciennes migrations qui redimensionnaient et recentraient la fenêtre à
+l’ouverture ont été retirées.
+
+Dans la DEV native, depuis 1 480 × 900 points, une demande de 800 × 900 donne
+1 311 × 900, et une demande de 1 480 × 500 donne 1 480 × 773. Une réduction
+sur les deux axes donne 1 311 × 773. Ces mesures ont été reproduites sur
+Accueil et Applications, sur l’écran de développement et dans l’aperçu à 85 %.
+Une nouvelle fenêtre ouverte au clavier dans l’aperçu mesure aussi 1 311 × 773.
+Les cas d’écrans physiquement plus petits sont couverts par les tests de géométrie.
+Les relevés natifs sont conservés dans `build/window-floor-dev/`.
+
 ## Densité de l’accueil selon la largeur de la fenêtre
 
 Disponible dans [MacCare 0.2.33, build 35](https://github.com/M0okz/maccare/releases/tag/v0.2.33). [Vérifications de publication](release-integration-0.2.33.md).
@@ -23,7 +47,7 @@ La saisie et l’effacement d’une recherche au clavier ont été exercés dans
 Ces mesures proviennent de la fenêtre native sur le Mac de développement. Le
 rendu physique du moniteur 27 pouces 4K reste à confirmer sur l’autre Mac.
 
-## Limites de redimensionnement de la fenêtre principale
+## Anciennes limites de redimensionnement livrées en 0.2.31
 
 En développement dans MacCare Dev sur `codex/stability-footprint`, après `a30874e`.
 Les dimensions minimales du contenu sont de 1 120 × 700 points à l’échelle standard.

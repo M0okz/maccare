@@ -12,22 +12,17 @@ struct MainWindowLayoutTests {
         #expect(compact.dashboardScale(forContentWidth: 1080) == compact.scale)
     }
 
-    @Test func theCurrentMacKeepsItsExistingScaleAndDefaultWindow() {
-        let layout = MainWindowLayout(visibleScreenSize: CGSize(width: 2560, height: 1488))
-        #expect(layout == .standard)
-        #expect(layout.preferredWindowSize == CGSize(width: 1200, height: 720))
+    @Test(arguments: [CGSize(width: 2560, height: 1488), CGSize(width: 1800, height: 1053),
+                      CGSize(width: 1512, height: 894)])
+    func windowFrameKeepsTheChosenMinimumAtEveryDisplayScale(screen: CGSize) {
+        let layout = MainWindowLayout(visibleScreenSize: screen, titleBarHeight: 28)
+        #expect(layout.minimumContentSize == CGSize(width: 1311, height: 745))
+        #expect(layout.scale == (screen.width >= 2400 ? 1 : 0.85))
     }
 
-    @Test(arguments: [CGSize(width: 1800, height: 1053), CGSize(width: 1728, height: 1029),
-                      CGSize(width: 1512, height: 894)])
-    func smallerRetinaWorkspacesUseACompactWindowWithTheSameWideLayout(screen: CGSize) {
-        let layout = MainWindowLayout(visibleScreenSize: screen)
-        #expect(layout.scale == 0.85)
-        #expect(layout.preferredWindowSize.width < 1200)
-        let canvas = layout.contentSize(in: layout.preferredWindowSize)
-        #expect(abs(canvas.width - 1360) < 0.001)
-        #expect(abs(canvas.height - 760) < 0.001)
-        #expect(canvas.width - 240 - 56 >= 1040)
+    @Test func actualTitleBarHeightIsIncludedInTheMinimumFrame() {
+        let layout = MainWindowLayout(visibleScreenSize: CGSize(width: 2560, height: 1488), titleBarHeight: 40)
+        #expect(layout.minimumContentSize == CGSize(width: 1311, height: 733))
     }
 
     @Test(arguments: [CGSize.zero, CGSize(width: CGFloat.infinity, height: 900)])
@@ -35,31 +30,20 @@ struct MainWindowLayoutTests {
         #expect(MainWindowLayout(visibleScreenSize: screen) == .standard)
     }
 
-    @Test func restorationPreservesManualSizesWithinTheResizeLimits() {
+    @Test func contentScalingPreservesTheNativeViewport() {
         let layout = MainWindowLayout(visibleScreenSize: CGSize(width: 1800, height: 1000))
-        #expect(layout.reducedRestoredSize(CGSize(width: 1470, height: 790)) == layout.preferredWindowSize)
-        let small = CGSize(width: 1000, height: 630)
-        #expect(layout.reducedRestoredSize(small) == small)
-        #expect(layout.reducedRestoredSize(.zero) == layout.minimumWindowSize)
-        #expect(layout.reducedRestoredSize(CGSize(width: 900, height: 630)) == CGSize(width: 952, height: 630))
-    }
-
-    @Test func scalingPreservesTheMinimumLogicalCanvas() {
-        let layout = MainWindowLayout(visibleScreenSize: CGSize(width: 1800, height: 1000))
-        let viewport = CGSize(width: 1156, height: 646)
+        let viewport = layout.minimumContentSize
         let canvas = layout.contentSize(in: viewport)
         #expect(abs(canvas.width * layout.scale - viewport.width) < 0.001)
         #expect(abs(canvas.height * layout.scale - viewport.height) < 0.001)
-        let minimum = layout.contentSize(in: layout.minimumWindowSize)
-        #expect(abs(minimum.width - 1120) < 0.001)
-        #expect(abs(minimum.height - 700) < 0.001)
     }
-    @Test func minimumAndPreferredSizeRespectTheUsableScreenIncludingTheTitleBar() {
-        let layout = MainWindowLayout(visibleScreenSize: CGSize(width: 900, height: 580), titleBarHeight: 28)
-        #expect(layout.minimumWindowSize == CGSize(width: 900, height: 552))
-        #expect(layout.preferredWindowSize == layout.minimumWindowSize)
-        let shallow = MainWindowLayout(visibleScreenSize: CGSize(width: 1500, height: 600), titleBarHeight: 28)
-        #expect(shallow.minimumWindowSize == CGSize(width: 952, height: 572))
-        #expect(shallow.preferredWindowSize == CGSize(width: 1156, height: 572))
+
+    @Test func onlyDimensionsThatExceedTheScreenAreCapped() {
+        let small = MainWindowLayout(visibleScreenSize: CGSize(width: 900, height: 580))
+        #expect(small.minimumContentSize == CGSize(width: 900, height: 552))
+        let shallow = MainWindowLayout(visibleScreenSize: CGSize(width: 1500, height: 600))
+        #expect(shallow.minimumContentSize == CGSize(width: 1311, height: 572))
+        let narrow = MainWindowLayout(visibleScreenSize: CGSize(width: 1000, height: 900))
+        #expect(narrow.minimumContentSize == CGSize(width: 1000, height: 745))
     }
 }

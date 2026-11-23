@@ -35,9 +35,11 @@ struct MacCareApp: App {
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentMinSize)
         #if DEBUG
-        .defaultSize(width: TrayMetricPreview.isOverviewRequested ? TrayPanelLayout.width : 1200, height: TrayMetricPreview.isOverviewRequested ? TrayPanelLayout.maximumBodyHeight + TrayPanelLayout.footerHeight : 720)
+        .defaultSize(width: TrayMetricPreview.isOverviewRequested ? TrayPanelLayout.width : MainWindowLayout.standard.minimumContentSize.width,
+                     height: TrayMetricPreview.isOverviewRequested ? TrayPanelLayout.maximumBodyHeight + TrayPanelLayout.footerHeight : MainWindowLayout.standard.minimumContentSize.height)
         #else
-        .defaultSize(width: 1200, height: 720)
+        .defaultSize(width: MainWindowLayout.standard.minimumContentSize.width,
+                     height: MainWindowLayout.standard.minimumContentSize.height)
         #endif
 
         .commands {
