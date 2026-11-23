@@ -89,3 +89,7 @@ et ancres sont validés. Le M1 Max reste explicitement en validation matérielle
 ## Publication 0.2.31 — 23 novembre 2026
 
 La page de téléchargement et les neuf pages de documentation décrivent la version publique 0.2.31 (build 33). [Contrôles du site et de la distribution](../docs/release-integration-0.2.31.md).
+
+## Publication 0.2.32 — 23 novembre 2026
+
+Les dix pages publiques prennent la 0.2.32 comme référence. Les icônes du site et le guide de prise en main reprennent Veille Améthyste. [Contrôles HTTPS et preuves de distribution](../docs/release-integration-0.2.32.md).
