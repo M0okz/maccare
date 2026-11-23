@@ -7,6 +7,8 @@ struct OnboardingView: View {
     @State private var step = Step.disk
     @ScaledMetric(relativeTo: .largeTitle) private var headingSize = 36
 
+    @ScaledMetric(relativeTo: .headline) private var logoHeight = 24
+
     private enum Step: Int, CaseIterable {
         case disk, automation, helper
         var title: String {
@@ -52,8 +54,18 @@ struct OnboardingView: View {
 
     private var header: some View {
         HStack {
-            Label("MacCare", systemImage: "checkmark.shield.fill")
-                .font(AppFont.emphasis.weight(.semibold)).foregroundStyle(Theme.fg)
+            if let logo = Bundle.main.image(forResource: "MacCare-logo") {
+                Image(nsImage: logo)
+                    .renderingMode(.template)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .frame(height: logoHeight)
+                    .foregroundStyle(VeilleBrand.lavender)
+                    .accessibilityLabel("MacCare")
+            } else {
+                Text("MacCare").font(AppFont.emphasis.weight(.semibold))
+            }
             Spacer()
             Text("Étape \(step.rawValue + 1) sur 3 · \(step.title)")
                 .font(AppFont.secondary).foregroundStyle(Theme.muted)

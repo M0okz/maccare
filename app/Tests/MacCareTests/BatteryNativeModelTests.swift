@@ -2,6 +2,7 @@ import Foundation
 import ServiceManagement
 import Testing
 import MacCareBattery
+import MacCareHelperProtocol
 @testable import MacCare
 
 @MainActor
@@ -51,7 +52,7 @@ struct BatteryNativeModelTests {
         func updateHelper() async throws -> HelperUpdateResult {
             updates += 1
             if updateFails { throw NSError(domain: "fixture", code: 1) }
-            if updateResult == .ready { loadedProtocol = 10 }
+            if updateResult == .ready { loadedProtocol = HelperIdentity.protocolVersion }
             else { status = .requiresApproval }
             return updateResult
         }
@@ -314,7 +315,7 @@ struct BatteryNativeModelTests {
         defer { defaults.removePersistentDomain(forName: suite) }
         await model.refresh(force: true)
         await model.updateHelper()
-        #expect(client.updates == 1 && model.loadedHelperProtocol == 10)
+        #expect(client.updates == 1 && model.loadedHelperProtocol == HelperIdentity.protocolVersion)
         #expect(!model.helperUpdateRequired && !model.active)
         #expect(client.calls == [.status] && client.preparations == 0 && client.approvals == 0)
     }

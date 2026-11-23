@@ -8,20 +8,7 @@ struct AboutSidebarButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 16) {
-                Image(systemName: "info.circle")
-                    .font(AppFont.emphasis)
-                    .foregroundStyle(selected ? Color.white : Theme.muted)
-                    .frame(width: compact ? 24 : 20, height: 20)
-                    .accessibilityHidden(true)
-                if !compact {
-                    Text("À propos").font(AppFont.body.weight(.medium)).foregroundStyle(Theme.fg)
-                    Spacer(minLength: 0)
-                }
-            }
-            .padding(.horizontal, compact ? 0 : 24).padding(.vertical, 14)
-            .frame(maxWidth: .infinity, alignment: compact ? .center : .leading)
-            .contentShape(Rectangle())
+            SidebarLabel(title: "À propos", symbol: "info.circle", compact: compact)
         }
         .buttonStyle(SidebarRowStyle(selected: selected))
         .overlay {

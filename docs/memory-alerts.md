@@ -9,7 +9,10 @@ ci-dessous restent datées et conservent leurs limites.
 Historique de développement : branche `codex/menu-bar-alerts`, mise à jour
 sur la base 0.2.5 avant intégration dans la PR nº 4.
 
-L’alerte reprend le panneau de l’alerte disque : largeur de 340 points,
+Depuis le 22 novembre 2026, la version DEV présente la liste des applications
+et ses commandes dans le [popover natif commun aux alertes](storage-alerts.md).
+
+Dans la version livrée en 0.2.8, l’alerte reprend le panneau de l’alerte disque : largeur de 340 points,
 pointe ancrée sous l’icône MacCare, un seul flou AppKit natif et un trait
 sombre de 1 point. Les apparences claire et sombre suivent macOS. Le panneau
 ne prend pas le premier plan et se ferme avec Échap ou un clic extérieur.
@@ -65,8 +68,8 @@ L’aperçu Helium à 1,43 Go ne ferme rien et ne modifie aucun rappel réel.
 `MemoryAlertCandidate`, `MemoryAlertModel`, `MemoryAlertController`,
 `MemoryAlertView` et `MemoryAlertSettingsView` portent la fonctionnalité.
 `MenuBarAlertPresenter` partage la présentation avec `StorageAlertController`
-et réutilise la surface native déjà validée (`StorageAlertPanel`,
-`StorageAlertOutlineView`, `StorageAlertPrimaryButtonStyle`). Le contrôleur
+et utilisait en 0.2.8 la surface `StorageAlertPanel` avec
+`StorageAlertOutlineView`. Le contrôleur
 de barre des menus coordonne visibilité, veille, écrans et arrêt.
 
 Les 22 tests ciblés passent : neuf tests mémoire (flags, pression persistante,

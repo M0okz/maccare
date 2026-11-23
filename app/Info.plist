@@ -9,6 +9,7 @@
   <key>CFBundleExecutable</key><string>MacCare</string>
   <key>CFBundleIdentifier</key><string>org.maccare.app</string>
   <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleIconName</key><string>VeilleAmethyste</string>
   <key>CFBundleIconFile</key><string>MacCare</string>
   <key>CFBundleShortVersionString</key><string>0.2.28</string>
   <key>CFBundleVersion</key><string>8</string>

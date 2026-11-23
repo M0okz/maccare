@@ -32,6 +32,7 @@ struct AdditionalAlertSettingsView: View {
     }
     private var detail: String {
         switch kind {
+        case .thermal: return "MacCare vous avertit après une minute au niveau thermique sérieux, ou dès que macOS signale un niveau critique. Une seule alerte apparaît par épisode."
         case .deviceBattery: return "Désactivé par défaut. Une alerte signale un iPhone ou iPad dont un relevé direct de moins de trois minutes atteint le seuil choisi. Une seule alerte par épisode ; un niveau remonté de cinq points au-dessus du seuil réarme l’appareil. Le dernier niveau Watch connu par l’iPhone et les accessoires sans date fiable ne déclenchent pas d’alerte. Les lectures sont partagées : au plus une par minute, deux en économie d’énergie, cinq après absence ou échec. Aucun scan Bluetooth permanent."
         case .cpu: return "Une charge globale d’au moins 85 % pendant deux minutes déclenche une alerte. Les applications proposées peuvent être quittées normalement."
         case .protection: return "L’alerte apparaît si une protection attendue n’est plus confirmée pendant 30 secondes. Les pauses de charge normales et une désactivation volontaire ne déclenchent rien."

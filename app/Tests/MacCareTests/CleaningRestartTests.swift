@@ -3,6 +3,27 @@ import XCTest
 
 final class CleaningRestartTests: XCTestCase {
     @MainActor
+    func testTogglingLargeGroupPublishesOnlyTheFinalSelection() throws {
+        let group = ScanGroup(category: try category(root: FileManager.default.temporaryDirectory),
+                              items: (0..<2000).map { index in
+            ScanItem(id: "item-\(index)", path: "/fixture/\(index)", category: "user-cache",
+                     size_bytes: 1, reason: "", autoselect: true,
+                     identity: .init(device: 1, inode: UInt64(index)), owner: nil)
+        })
+        let model = SmartScanModel(categories: { [group.category] })
+        model.selection = ["another-category"]
+        model.toggleGroup(group)
+        var publications = 0
+        let observation = model.$selection.dropFirst().sink { _ in publications += 1 }
+        defer { observation.cancel() }
+
+        model.toggleGroup(group)
+
+        XCTAssertEqual(publications, 1)
+        XCTAssertEqual(model.selection, ["another-category"])
+    }
+
+    @MainActor
     func testPreparingAnotherAnalysisReturnsToIdleWithoutScanningOrLosingLastCompletedSummary() async throws {
         let suite = testPreferencesSuite("MacCare.CleaningRestartTests")
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -83,6 +104,33 @@ final class CleaningRestartTests: XCTestCase {
         XCTFail("La fixture de scan n’a pas terminé")
     }
 
+    @MainActor
+    func testChangingReviewCategoryDiscardsPendingResults() async throws {
+        let first = try fixture()
+        defer { try? FileManager.default.removeItem(at: first) }
+        let second = try fixture()
+        defer { try? FileManager.default.removeItem(at: second) }
+        let model = ReviewModel()
+        model.category = try category(root: first)
+        model.scan()
+        model.category = try category(root: second, id: "cache.second")
+        XCTAssertFalse(model.isScanning)
+
+        let outdated = expectation(description: "Publication de la catégorie précédente")
+        outdated.isInverted = true
+        let observation = model.$items.sink { items in
+            if items.contains(where: { $0.path.hasPrefix(first.path + "/") }) { outdated.fulfill() }
+        }
+        defer { observation.cancel() }
+        model.scan()
+        await fulfillment(of: [outdated], timeout: 0.3)
+        for _ in 0..<200 where model.isScanning { try await Task.sleep(for: .milliseconds(10)) }
+        XCTAssertFalse(model.isScanning)
+        XCTAssertFalse(model.items.isEmpty)
+        XCTAssertTrue(model.items.allSatisfy { $0.path.hasPrefix(second.path + "/") })
+        XCTAssertNil(model.statusMessage)
+    }
+
     private func fixture() throws -> URL {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).resolvingSymlinksInPath()
         let folder = root.appendingPathComponent("test-app")
@@ -91,9 +139,9 @@ final class CleaningRestartTests: XCTestCase {
         return root
     }
 
-    private func category(root: URL) throws -> CleaningCategory {
+    private func category(root: URL, id: String = "cache.restart-test") throws -> CleaningCategory {
         try XCTUnwrap(RuleCatalog.category(fromTOML: """
-        id = "cache.restart-test"
+        id = "\(id)"
         category = "user-cache"
         version = 1
         root = "\(tomlEscape(root.path))"

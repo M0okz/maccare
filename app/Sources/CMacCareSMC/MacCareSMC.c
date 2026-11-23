@@ -303,6 +303,78 @@ static int fanValue(const SMCMessage *field, double *value) {
     return 1;
 }
 
+// Direct per-fan modes only. Firmware-managed and unknown key layouts stay read-only.
+static int fanMode(io_connect_t connection, char *key, SMCMessage *mode) {
+    key[2] = 'M'; key[3] = 'd';
+    return !readKey(connection, key, mode) && mode->info.type == code("ui8 ") &&
+        mode->info.size == 1 && mode->bytes[0] <= 1;
+}
+
+static int fanTarget(io_connect_t connection, char *key, SMCMessage *target) {
+    key[2] = 'T'; key[3] = 'g';
+    return !readKey(connection, key, target) && (target->info.attributes & 0x40) &&
+        target->info.type == code("flt ") && target->info.size == sizeof(float);
+}
+
+static int32_t openFanConnection(io_connect_t *connection) {
+    io_service_t service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSMC"));
+    if (!service) return kIOReturnNotFound;
+    int32_t result = IOServiceOpen(service, mach_task_self(), 0, connection);
+    IOObjectRelease(service);
+    return result;
+}
+
+int32_t maccare_fan_auto(uint32_t index) {
+    if (index >= 8) return kIOReturnBadArgument;
+    io_connect_t connection = 0;
+    int32_t result = openFanConnection(&connection);
+    if (result) return result;
+    char key[] = {'F', (char)('0' + index), 'M', 'd', 0};
+    SMCMessage mode = {0};
+    uint8_t automatic = 0;
+    if (!fanMode(connection, key, &mode)) result = kIOReturnUnsupported;
+    else if (mode.bytes[0]) result = writeField(connection, key, &mode, &automatic);
+    IOServiceClose(connection);
+    return result;
+}
+
+int32_t maccare_fan_boost(uint32_t index, uint8_t maximum, uint8_t replacingBoost, uint8_t *attempted) {
+    if (index >= 8 || maximum > 1 || replacingBoost > 1 || !attempted) return kIOReturnBadArgument;
+    *attempted = 0;
+    io_connect_t connection = 0;
+    int32_t result = openFanConnection(&connection);
+    if (result) return result;
+    char key[] = {'F', (char)('0' + index), 'M', 'd', 0};
+    SMCMessage mode = {0}, target = {0}, field = {0};
+    double lo, hi, current, previousTarget;
+    uint8_t manual = 1;
+    if (!fanMode(connection, key, &mode) || !(mode.info.attributes & 0x40) ||
+        !fanTarget(connection, key, &target) || !fanValue(&target, &previousTarget)) goto unsupported;
+    if (mode.bytes[0] != 0) { result = kIOReturnBusy; goto done; }
+    key[2] = 'M'; key[3] = 'n';
+    if (readKey(connection, key, &field) || !fanValue(&field, &lo)) goto unsupported;
+    key[3] = 'x';
+    if (readKey(connection, key, &field) || !fanValue(&field, &hi) || hi <= lo || hi <= 0) goto unsupported;
+    key[2] = 'A'; key[3] = 'c';
+    if (readKey(connection, key, &field) || !fanValue(&field, &current)) goto unsupported;
+    // Never lower a speed requested by macOS when taking control.
+    double floor = fmax(lo, hi * 0.65);
+    if (!replacingBoost) floor = fmax(floor, fmax(current, previousTarget));
+    float speed = (float)(maximum ? hi : fmin(hi, ceil(floor)));
+    *attempted = 1;
+    key[2] = 'M'; key[3] = 'd';
+    result = writeField(connection, key, &mode, &manual);
+    if (result) goto done;
+    key[2] = 'T'; key[3] = 'g';
+    result = writeField(connection, key, &target, (uint8_t *)&speed);
+    goto done;
+unsupported:
+    result = kIOReturnUnsupported;
+done:
+    IOServiceClose(connection);
+    return result;
+}
+
 int32_t maccare_fans_read(MCFanSnapshot *snapshot) {
     if (!snapshot) return kIOReturnBadArgument;
     memset(snapshot, 0, sizeof(*snapshot));
@@ -326,6 +398,13 @@ int32_t maccare_fans_read(MCFanSnapshot *snapshot) {
             if (!readKey(connection, key, &field)) snapshot->currentValid[i] = fanValue(&field, &snapshot->current[i]);
             key[2] = 'M'; key[3] = 'x';
             if (!readKey(connection, key, &field)) snapshot->maximumValid[i] = fanValue(&field, &snapshot->maximum[i]);
+            if (fanMode(connection, key, &field)) {
+                snapshot->modeValid[i] = 1;
+                snapshot->mode[i] = field.bytes[0];
+                snapshot->controllable[i] = (field.info.attributes & 0x40) && transport == 0 &&
+                    snapshot->maximumValid[i] && snapshot->maximum[i] > 0 && fanTarget(connection, key, &field) &&
+                    fanValue(&field, &snapshot->target[i]);
+            }
         }
         IOServiceClose(connection);
         return 0;

@@ -81,7 +81,7 @@ final class HomeStatusTests: XCTestCase {
     @MainActor func testActivityWindowsKeepFastMonitoringUntilTheLastConsumerCloses() {
         let store = TrayMetricsStore()
         let home = TrayMetricsStore.Consumer.dashboard(UUID())
-        let windows = (0..<3).map { _ in TrayMetricsStore.Consumer.activityDetail(UUID()) }
+        let windows = (0..<3).map { _ in TrayMetricsStore.Consumer.dashboard(UUID()) }
         defer { store.stop() }
         store.setMonitoring(for: .menuBar, enabled: true)
         store.setMonitoring(for: home, enabled: true)

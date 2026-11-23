@@ -1,5 +1,15 @@
 # Survol des catégories — 6 novembre 2026
 
+## Volet superposé — aperçu DEV du 22 novembre 2026
+
+Le rail occupe 76 points de la mise en page. Son survol révèle les libellés
+dans un volet de 222 points qui recouvre le bord du contenu. En sortant du
+volet, on retrouve les icônes seules. Le bouton inférieur permet aussi de le
+développer ou de le réduire au clavier. Le réglage macOS Réduire les animations
+désactive la transition latérale. Hors de l’accueil, « Accès rapide » est
+accessible depuis le pied du volet. Cette proposition locale attend la
+validation de Gregory. [Disposition de l’accueil](dashboard-cards.md).
+
 Disponible dans [MacCare 0.2.14 (build 16)](https://github.com/M0okz/maccare/releases/tag/v0.2.14). Les descriptions Dev ci-dessous restent un historique daté avec leurs limites de validation.
 
 Évolution Dev du 8 novembre : rayon porté à 12 points, lignes plus aérées et

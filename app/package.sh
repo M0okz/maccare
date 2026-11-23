@@ -35,10 +35,13 @@ print(output)
 PYCODE
 )"
 assets="$repo_root/build/installer-assets"
-mkdir -p "$assets"
+mkdir -p "$assets/veille"
+xcrun actool app/branding/VeilleAmethyste.icon --compile "$assets/veille" \
+    --platform macosx --target-device mac --minimum-deployment-target 13.0 \
+    --app-icon VeilleAmethyste --output-partial-info-plist "$assets/veille/icon-info.plist"
 swift app/installer/render-assets.swift "$assets"
-iconutil -c icns "$assets/MacCare.iconset" -o "$assets/MacCare.icns"
-rm -rf "$assets/MacCare.iconset"
+cp app/branding/MacCare.icns "$assets/MacCare.icns"
+sips -s format png "$assets/MacCare.icns" --out "$assets/app-icon-preview.png" >/dev/null
 echo "==> Assemblage de $app"
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$app/Contents/Library/LaunchDaemons"
@@ -47,7 +50,7 @@ cp app/Info.plist "$app/Contents/Info.plist"
 python3 app/release/configure_bundle.py "$app/Contents/Info.plist"
 cp THIRD_PARTY_NOTICES.md "$app/Contents/Resources/THIRD_PARTY_NOTICES.md"
 cp -R app/vendor/oxipng "$app/Contents/Resources/oxipng"
-cp "$assets/MacCare.icns" "$app/Contents/Resources/MacCare.icns"
+cp "$assets/veille/Assets.car" "$assets/MacCare.icns" app/branding/{MacCare-logo,VeilleTemplate,VeilleTemplate@2x}.png "$app/Contents/Resources/"
 # Assistant privilégié (nettoyage système) : l'exécutable vit dans le paquet et le plist launchd
 # est enregistré par SMAppService.daemon (voir docs/architecture.md). Il disparaît avec l'app.
 cp "$helper_bin" "$app/Contents/MacOS/MacCareHelper"

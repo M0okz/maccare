@@ -35,6 +35,7 @@ final class ReviewModel: ObservableObject {
     }
 
     private let defaults = UserDefaults.standard
+    private var activeScan: EngineTask?
 
     init() {
         directDelete = defaults.bool(forKey: Keys.directDelete)
@@ -53,6 +54,9 @@ final class ReviewModel: ObservableObject {
     }
 
     private func reset() {
+        activeScan?.cancel()
+        activeScan = nil
+        isScanning = false
         items = []
         selection = []
         statusMessage = nil
@@ -82,6 +86,9 @@ final class ReviewModel: ObservableObject {
 
     /// Lance un scan. N'altère rien sur le disque.
     func scan(keepReport: Bool = false) {
+        activeScan?.cancel()
+        let task = EngineTask()
+        activeScan = task
         isScanning = true
         statusMessage = nil
         if !keepReport { lastReport = nil }
@@ -91,14 +98,17 @@ final class ReviewModel: ObservableObject {
             defer { PowerAssertion.end(token) }
             let result: Result<[ScanItem], Error>
             do {
-                result = .success(try Engine.scan(ruleTOML: rule))
+                let items = try Engine.scan(ruleTOML: rule, task: task)
+                result = .success(items.sorted { $0.size_bytes > $1.size_bytes })
             } catch {
                 result = .failure(error)
             }
             await MainActor.run {
+                guard self.activeScan === task else { return }
+                self.activeScan = nil
                 switch result {
                 case .success(let found):
-                    self.items = found.sorted { $0.size_bytes > $1.size_bytes }
+                    self.items = found
                     self.selection = []
                 case .failure(let err):
                     self.items = []
@@ -180,7 +190,12 @@ final class ReviewModel: ObservableObject {
 
 /// Formatage lisible d'une taille en octets, en unités françaises (o, Ko, Mo, Go, To) et en
 /// base 1000 comme le Finder. Virgule décimale, espace insécable avant l'unité.
-func humanSize(_ bytes: UInt64) -> String {
+func humanSize(_ bytes: UInt64, fractionalAbove: UInt64 = 1_000_000) -> String {
+    let size = humanSizeParts(bytes, fractionalAbove: fractionalAbove)
+    return "\(size.value)\u{00A0}\(size.unit)"
+}
+
+func humanSizeParts(_ bytes: UInt64, fractionalAbove: UInt64 = 1_000_000) -> (value: String, unit: String) {
     let units = ["o", "Ko", "Mo", "Go", "To"]
     var value = Double(bytes)
     var unit = 0
@@ -188,11 +203,11 @@ func humanSize(_ bytes: UInt64) -> String {
         value /= 1000
         unit += 1
     }
-    let decimals = unit <= 1 ? 0 : (value < 100 ? 2 : 1)
+    let decimals = bytes <= fractionalAbove || unit <= 1 ? 0 : (value < 100 ? 2 : 1)
     var text = String(format: "%.\(decimals)f", value)
     if text.contains(".") {
         while text.hasSuffix("0") { text.removeLast() }
         if text.hasSuffix(".") { text.removeLast() }
     }
-    return "\(text.replacingOccurrences(of: ".", with: ","))\u{00A0}\(units[unit])"
+    return (text.replacingOccurrences(of: ".", with: ","), units[unit])
 }

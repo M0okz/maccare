@@ -34,3 +34,25 @@ private struct SidebarRowSurface<Label: View>: View {
             .onHover { hovered = $0 }
     }
 }
+
+/// L’icône reste centrée sur le rail pendant l’ouverture et la fermeture.
+struct SidebarLabel: View {
+    let title: String
+    let symbol: String
+    let compact: Bool
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Image(systemName: symbol).font(AppFont.emphasis)
+                .frame(width: Sidebar.railWidth - 16)
+                .accessibilityHidden(true)
+            if !compact {
+                Text(title).font(AppFont.body.weight(.medium)).lineLimit(1).fixedSize()
+                    .transition(.opacity.combined(with: .offset(x: -8)))
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 42, alignment: .leading)
+        .foregroundStyle(Theme.fg)
+        .contentShape(Rectangle())
+    }
+}

@@ -29,6 +29,17 @@ est disponible. L’aperçu affiche un exemple à 43,17 Go libres ; il ne modifi
 ni le dernier rappel ni un report réel. Il n’utilise pas le centre de
 notifications macOS et ne demande pas d’autorisation de notification.
 
+## Présentation en développement — 22 novembre 2026
+
+Dans MacCare Dev, `MenuBarAlertPresenter` affiche la vue SwiftUI dans un
+`NSPopover` transitoire, ancré au bouton de la barre des menus. AppKit choisit
+la position et dessine la pointe, le fond et l’ombre. Le même composant présente
+les alertes mémoire, CPU, protection batterie, fin d’opération, batterie faible
+d’un appareil et [état thermique élevé du Mac](additional-alerts.md).
+Les aperçus sont accessibles depuis **Réglages → Menu**.
+
+## Présentation livrée en 0.2.8 et validations historiques
+
 Le panneau AppKit ne vole pas le premier plan. Son fond est une unique
 `NSVisualEffectView` avec le matériau natif `popover` ; le masque inclut la
 pointe. Un trait sombre d’un point suit la forme et l’ombre vient de la fenêtre.

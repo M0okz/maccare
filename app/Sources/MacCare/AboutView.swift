@@ -5,6 +5,9 @@ import SwiftUI
 struct AboutView: View {
     @ObservedObject var updater: AppUpdater
 
+    private static let brandIcon: NSImage = Bundle.main.url(forResource: "MacCare", withExtension: "icns")
+        .flatMap { NSImage(contentsOf: $0) } ?? NSApplication.shared.applicationIconImage
+
     private var version: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Développement"
     }
@@ -26,7 +29,8 @@ struct AboutView: View {
 
     private var identity: some View {
         VStack(spacing: 10) {
-            Image(nsImage: NSApplication.shared.applicationIconImage)
+            Image(nsImage: Self.brandIcon)
+                .renderingMode(.original)
                 .resizable().interpolation(.high)
                 .frame(width: 80, height: 80)
                 .accessibilityHidden(true)
@@ -46,7 +50,7 @@ struct AboutView: View {
         VStack(alignment: .leading, spacing: 20) {
             HStack(spacing: 12) {
                 Image(systemName: updater.availableVersion == nil ? "arrow.triangle.2.circlepath" : "arrow.down.circle")
-                    .font(.title2).foregroundStyle(Theme.accentInk)
+                    .font(.title2).foregroundStyle(VeilleBrand.lavender)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Mises à jour").font(AppFont.section).accessibilityAddTraits(.isHeader)
@@ -65,7 +69,7 @@ struct AboutView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Link("Voir les notes de version", destination: URL(string: "https://github.com/M0okz/maccare/releases")!)
-                    .font(AppFont.secondary).foregroundStyle(Theme.accentInk)
+                    .font(AppFont.secondary).foregroundStyle(VeilleBrand.lavender)
             }
             VStack(alignment: .leading, spacing: 10) {
                 Button(updater.availableVersion == nil ? "Rechercher les mises à jour…" : "Télécharger la mise à jour…",
@@ -102,7 +106,7 @@ struct AboutView: View {
                 HStack(spacing: 24) { links }
                 VStack(spacing: 12) { links }
             }
-            .font(AppFont.secondary).foregroundStyle(Theme.accentInk)
+            .font(AppFont.secondary).foregroundStyle(VeilleBrand.lavender)
             Text("Créé par Grégory NARCIN · Licence MIT")
                 .font(AppFont.caption).foregroundStyle(Theme.faint)
         }

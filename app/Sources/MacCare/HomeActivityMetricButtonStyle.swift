@@ -7,7 +7,7 @@ struct HomeActivityMetricButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .foregroundStyle(Theme.fg)
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(
+            .overlay(RoundedRectangle(cornerRadius: Radius.card).strokeBorder(
                 .white.opacity(enabled && focused ? 0.8 : 0), lineWidth: 2))
             .opacity(!enabled ? 0.45 : (configuration.isPressed ? 0.85 : 1))
             .pressFeedback(configuration.isPressed && enabled)

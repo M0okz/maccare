@@ -81,9 +81,9 @@ final class TrayEnergyTests: XCTestCase {
         let store = TrayMetricsStore()
         defer { store.stop() }
         let id = UUID()
-        store.setMonitoring(for: .activityDetail(id), enabled: true)
+        store.setMonitoring(for: .dashboard(id), enabled: true)
         XCTAssertTrue(store.isMonitoring)
-        store.setMonitoring(for: .activityDetail(id), enabled: false)
+        store.setMonitoring(for: .dashboard(id), enabled: false)
         XCTAssertTrue(store.isMonitoring)
         XCTAssertFalse(store.isForeground, "Une fenêtre masquée ne maintient plus les lectures rapides ni les capteurs")
     }
@@ -100,7 +100,7 @@ final class TrayMetricsStartTests: XCTestCase {
     @MainActor func testLastConsumerReleasesFastMonitoringAndAnotherKeepsItRunning() {
         let store = TrayMetricsStore()
         defer { store.stop() }
-        let window = TrayMetricsStore.Consumer.activityDetail(UUID())
+        let window = TrayMetricsStore.Consumer.dashboard(UUID())
         store.setMonitoring(for: .menuBar, enabled: true)
         store.setMonitoring(for: window, enabled: true)
         store.setMonitoring(for: .menuBar, enabled: false)

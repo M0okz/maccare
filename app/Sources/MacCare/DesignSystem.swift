@@ -63,6 +63,12 @@ enum Theme {
     static let updateAttention = Color.orange
 }
 
+enum VeilleBrand {
+    static let plum = Color(hex: "#452569")
+    static let amethyst = Color(hex: "#7642C4")
+    static let lavender = Color(hex: "#F7F1FF")
+}
+
 /// Une couleur par module (identiques en clair et sombre).
 enum ModuleColor {
     static let clean     = Color(hex: "#6A5FE0")   // iris (teinte de marque)

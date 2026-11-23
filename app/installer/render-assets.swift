@@ -23,51 +23,6 @@ func bitmap(size: NSSize, scale: Int, draw: () -> Void) -> NSBitmapImageRep {
     return rep
 }
 
-func checkmark(in box: NSRect, line: CGFloat) {
-    let path = NSBezierPath()
-    path.move(to: NSPoint(x: box.minX + box.width * 0.24, y: box.minY + box.height * 0.49))
-    path.line(to: NSPoint(x: box.minX + box.width * 0.43, y: box.minY + box.height * 0.31))
-    path.line(to: NSPoint(x: box.minX + box.width * 0.77, y: box.minY + box.height * 0.70))
-    path.lineWidth = line
-    path.lineCapStyle = .round
-    path.lineJoinStyle = .round
-    NSColor.white.setStroke()
-    path.stroke()
-}
-
-func appIcon(points: CGFloat, scale: Int) -> NSBitmapImageRep {
-    bitmap(size: NSSize(width: points, height: points), scale: scale) {
-        let box = NSRect(x: points * 0.10, y: points * 0.10, width: points * 0.80, height: points * 0.80)
-        let shape = NSBezierPath(roundedRect: box, xRadius: points * 0.18, yRadius: points * 0.18)
-        NSGraphicsContext.saveGraphicsState()
-        let shadow = NSShadow()
-        shadow.shadowColor = NSColor.black.withAlphaComponent(0.22)
-        shadow.shadowBlurRadius = points * 0.035
-        shadow.shadowOffset = NSSize(width: 0, height: -points * 0.015)
-        shadow.set()
-        color(0x7135DB).setFill()
-        shape.fill()
-        NSGraphicsContext.restoreGraphicsState()
-        NSGradient(starting: color(0xAC7AFF), ending: color(0x6724D7))!.draw(in: shape, angle: -75)
-        color(0xC8AAFF).withAlphaComponent(0.5).setStroke()
-        shape.lineWidth = max(1, points * 0.003)
-        shape.stroke()
-        checkmark(in: box, line: points * 0.075)
-    }
-}
-
-let iconset = output.appendingPathComponent("MacCare.iconset", isDirectory: true)
-try FileManager.default.createDirectory(at: iconset, withIntermediateDirectories: true)
-for points in [16, 32, 128, 256, 512] {
-    for scale in [1, 2] {
-        let name = "icon_\(points)x\(points)\(scale == 2 ? "@2x" : "").png"
-        let rep = appIcon(points: CGFloat(points), scale: scale)
-        try rep.representation(using: .png, properties: [:])!.write(to: iconset.appendingPathComponent(name))
-    }
-}
-try appIcon(points: 512, scale: 2).representation(using: .png, properties: [:])!
-    .write(to: output.appendingPathComponent("app-icon-preview.png"))
-
 let canvas = NSSize(width: 680, height: 460)
 func text(_ string: String, top: CGFloat, size: CGFloat, weight: NSFont.Weight, ink: UInt32) {
     let style = NSMutableParagraphStyle()

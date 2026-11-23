@@ -42,8 +42,8 @@ final class TrayPanelController: NSObject {
         },
         openBattery: { [weak self] in self?.app.show(.battery) },
         openCPU: { [weak self] in
-            NSApp.activate(ignoringOtherApps: true)
-            self?.app.openCPUActivity?()
+            self?.app.module = .dashboard
+            self?.openMainWindow()
         })
 
     init(app: AppState, openMainWindow: @escaping () -> Void, openSettings: (() -> Void)?) {
@@ -89,7 +89,8 @@ final class TrayPanelController: NSObject {
             guard statusItem == nil else { return }
             let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
             if let button = item.button {
-                let icon = NSImage(systemSymbolName: "sparkles", accessibilityDescription: "MacCare")
+                let icon = Bundle.main.image(forResource: "VeilleTemplate")
+                    ?? NSImage(systemSymbolName: "macwindow", accessibilityDescription: "MacCare")
                 icon?.isTemplate = true
                 button.image = icon
                 button.target = self

@@ -3,7 +3,12 @@ import SwiftUI
 /// Action de départ des rubriques : cercle identique, couleur propre à chaque catégorie.
 struct CircularOverviewActionStyle: ButtonStyle {
     let tint: Color
-    @ScaledMetric(relativeTo: .body) private var diameter: CGFloat = 90
+    @ScaledMetric private var diameter: CGFloat
+
+    init(tint: Color, diameter: CGFloat = 90) {
+        self.tint = tint
+        _diameter = ScaledMetric(wrappedValue: diameter, relativeTo: .body)
+    }
 
     func makeBody(configuration: Configuration) -> some View {
         CircularOverviewActionSurface(label: configuration.label, tint: tint,

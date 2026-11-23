@@ -15,8 +15,8 @@ extension NavigationSection {
             return .init(base: Color(hex: "10382E"), middle: Color(hex: "185B45"), edge: Color(hex: "123D34"),
                          sidebar: Color(hex: "102F29"), accent: Theme.ok)
         case .home, .about:
-            return .init(base: Color(hex: "160C2E"), middle: Color(hex: "392166"), edge: Color(hex: "21123F"),
-                         sidebar: Color(hex: "211536"), accent: ModuleColor.clean)
+            return .init(base: Color(hex: "160C2E"), middle: VeilleBrand.plum, edge: Color(hex: "21123F"),
+                         sidebar: Color(hex: "211536"), accent: VeilleBrand.amethyst)
         case .cleaning:
             return .init(base: Color(hex: "21184D"), middle: Color(hex: "413581"), edge: Color(hex: "2B225C"),
                          sidebar: Color(hex: "241C48"), accent: ModuleColor.clean)
