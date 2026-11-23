@@ -10,16 +10,27 @@ struct HomeFanControls: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             if fans?.supportsControl == true {
-                HStack(spacing: 5) {
+                HStack(spacing: Space.s) {
                     ForEach(FanPreset.allCases, id: \.self) { preset in
-                        Button(preset.title) { apply(preset) }
-                            .font(.system(size: 12, weight: .semibold))
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            .tint(selected == preset ? Theme.accent : nil)
-                            .accessibilityAddTraits(selected == preset ? .isSelected : [])
-                            .accessibilityLabel("Ventilation " + preset.title)
-                            .help(hint(for: preset))
+                        let isSelected = selected == preset
+                        Button { apply(preset) } label: {
+                            Text(preset.title)
+                                .font(.callout.weight(.semibold))
+                                .foregroundStyle(isSelected ? Theme.fg : Theme.muted)
+                                .lineLimit(1)
+                                .frame(minWidth: 0, maxWidth: 56, minHeight: 24)
+                                .background(isSelected ? Theme.accent.opacity(0.28) : Theme.fg.opacity(0.09), in: Capsule())
+                                .overlay {
+                                    if isSelected {
+                                        Capsule().strokeBorder(Theme.accentInk.opacity(0.55))
+                                    }
+                                }
+                                .contentShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(isSelected ? .isSelected : [])
+                        .accessibilityLabel("Ventilation " + preset.title)
+                        .help(hint(for: preset))
                     }
                 }
                 .disabled(applying)
