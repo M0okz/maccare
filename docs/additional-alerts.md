@@ -162,3 +162,7 @@ Après mise à jour avec `main`, la suite complète passe : **212 XCTest et
 signatures Sparkle. Un test supplémentaire couvre les disponibilités finales :
 décharge autorisée, étalonnage toujours désactivé. Les préférences des tests
 d’alertes utilisent le dossier temporaire commun des tests.
+
+## Publication 0.2.31 — 23 novembre 2026
+
+L’alerte thermique est disponible dans MacCare 0.2.31 (build 33). Voir les [preuves de livraison](release-integration-0.2.31.md).

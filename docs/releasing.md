@@ -268,3 +268,7 @@ publié après la PR #39 : demande Apple actualisable et diagnostic de jauge en
 lecture seule. CI, signature, notarisation, flux Sparkle et site vérifiés.
 [Preuves et limites](release-integration-0.2.30.md). Aucune installation effectuée ;
 la validation matérielle M1 Max et la synchronisation Outline restent distinctes.
+
+## Publication 0.2.31 — 23 novembre 2026
+
+[MacCare 0.2.31, build 33](https://github.com/M0okz/maccare/releases/tag/v0.2.31) est publié sur GitHub et dans le flux Sparkle. Voir les [preuves de livraison](release-integration-0.2.31.md).
