@@ -2,6 +2,27 @@ import XCTest
 @testable import MacCare
 
 final class TrayBatteryTelemetryTests: XCTestCase {
+    func testHomeConsumerNamesTheOuterApplicationAndKeepsTheProcessForDetails() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let app = root.appendingPathComponent("Client_5.app")
+        let contents = app.appendingPathComponent("Contents")
+        try FileManager.default.createDirectory(at: contents, withIntermediateDirectories: true)
+        let info = ["CFBundleIdentifier": "org.example.client", "CFBundleName": "Client_5",
+                    "CFBundleDisplayName": "Client (Beta)", "CFBundlePackageType": "APPL"]
+        let plist = try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)
+        try plist.write(to: contents.appendingPathComponent("Info.plist"))
+        let renderer = "Codex (Aperitif Renderer)"
+        let path = contents.appendingPathComponent("Frameworks/\(renderer).app/Contents/MacOS/\(renderer)").path
+        let sample = TrayBatteryTelemetry.Consumer(name: renderer, value: 0.22, measuredPower: true, executable: path)
+        XCTAssertEqual(sample.applicationName, "Client (Beta)")
+        XCTAssertEqual(sample.name, renderer)
+        XCTAssertEqual(sample.formattedValue, "0,22 W")
+        let service = TrayBatteryTelemetry.Consumer(name: "WindowServer", value: 5, measuredPower: false,
+                                                   executable: "/System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer")
+        XCTAssertNil(service.applicationName)
+    }
+
     func testAdapterRatingRejectsMissingUnknownAndBooleanValues() {
         XCTAssertEqual(TrayBatteryTelemetry.adapterPower(["Watts": 60]), 60)
         XCTAssertNil(TrayBatteryTelemetry.adapterPower([:]))

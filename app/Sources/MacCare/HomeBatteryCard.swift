@@ -130,9 +130,10 @@ struct HomeBatteryCard: View {
     private var consumer: some View {
         Group {
             if let consumer = telemetry.consumer {
+                let application = consumer.applicationName ?? "App non identifiée"
                 let label = Text(consumer.measuredPower ? "Plus énergivore" : "CPU le plus actif")
                     .foregroundStyle(Theme.muted)
-                let name = Text(consumer.name).fontWeight(.semibold).lineLimit(1).truncationMode(.tail)
+                let name = Text(application).fontWeight(.semibold).lineLimit(1).truncationMode(.tail)
                 let value = Text(consumer.formattedValue).monospacedDigit().foregroundStyle(Theme.muted).fixedSize()
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 5) {
@@ -146,9 +147,9 @@ struct HomeBatteryCard: View {
                         HStack(spacing: 4) { name; Spacer(minLength: 2); value }
                     }
                 }
-                .help("\(consumer.name) · \(consumer.formattedValue) · " + (consumer.measuredPower
-                    ? "Puissance moyenne estimée sur le dernier relevé des processus accessibles."
-                    : "Classement selon la charge CPU des processus accessibles."))
+                .help("\(application) · \(consumer.formattedValue) · " + (consumer.measuredPower
+                    ? "Puissance estimée du processus le plus énergivore."
+                    : "Charge du processus le plus actif."))
             } else {
                 Text(context.hasSampled ? "Consommation indisponible." : "Lecture des processus accessibles…")
                     .foregroundStyle(Theme.muted).lineLimit(1)
@@ -184,7 +185,8 @@ struct HomeBatteryCard: View {
         if let powerDetail { parts.append(powerDetail) }
         parts += context.homeAccessories.map { "\($0.name) : \($0.levelDescription)" }
         if let consumer = telemetry.consumer {
-            parts.append("\(consumer.measuredPower ? "Processus le plus énergivore" : "Processus le plus actif CPU") : \(consumer.name), \(consumer.formattedValue)")
+            let application = consumer.applicationName ?? "App non identifiée"
+            parts.append("\(consumer.measuredPower ? "Plus énergivore" : "CPU le plus actif"), \(application), \(consumer.formattedValue)")
         }
         return parts.joined(separator: ", ")
     }

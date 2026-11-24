@@ -25,10 +25,18 @@ struct TrayBatteryTelemetry: Sendable {
         let name: String
         let value: Double
         let measuredPower: Bool
-        var executable: String? = nil
-        var appBundlePath: String? {
-            guard let executable, executable.hasPrefix("/"), let range = executable.range(of: ".app/") else { return nil }
-            return String(executable[..<range.lowerBound]) + ".app"
+        let applicationName: String?
+
+        init(name: String, value: Double, measuredPower: Bool, executable: String = "") {
+            self.name = name
+            self.value = value
+            self.measuredPower = measuredPower
+            applicationName = TrayProcessIconResolver.owningApplication(in: executable).map { url in
+                let bundle = Bundle(url: url)
+                return bundle?.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
+                    ?? bundle?.object(forInfoDictionaryKey: "CFBundleName") as? String
+                    ?? url.deletingPathExtension().lastPathComponent
+            }
         }
         var formattedValue: String {
             if measuredPower {
