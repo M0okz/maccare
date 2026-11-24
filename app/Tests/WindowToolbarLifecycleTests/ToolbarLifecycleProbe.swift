@@ -59,6 +59,9 @@ import Combine
                     try? await Task.sleep(nanoseconds:40_000_000)
                     if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
                         if let toolbar = window.toolbar { identities.insert(ObjectIdentifier(toolbar)) }
+                        guard Self.windowButtonsClickable(in: window) else {
+                            print("WINDOW_BUTTON_COVERED step=\(i)"); fflush(stdout); exit(1)
+                        }
                         guard !(window.toolbar?.items ?? []).contains(where: { $0.itemIdentifier.rawValue.contains("MacCareUpdateAvailability") }) else {
                             print("REMOVED_TOOLBAR_ITEM_RETURNED"); fflush(stdout); exit(1)
                         }
@@ -66,6 +69,14 @@ import Combine
                     }
                 }
                 if windowChecks == 0 { print("NO_WINDOW_CHECKS"); fflush(stdout); exit(1) }
+                guard let window = NSApp.windows.first(where: { $0.canBecomeMain }) else { exit(1) }
+                window.miniaturize(nil)
+                try? await Task.sleep(for: .milliseconds(400))
+                guard window.isMiniaturized, WindowConfigurator.raiseExistingWindow() else { exit(1) }
+                try? await Task.sleep(for: .milliseconds(400))
+                guard !window.isMiniaturized, Self.windowButtonsClickable(in: window) else {
+                    print("WINDOW_BUTTON_COVERED after restore"); fflush(stdout); exit(1)
+                }
                 print("TOOLBAR_PROBE completed=160 toolbarIdentities=\(identities.count) windowChecks=\(windowChecks)");fflush(stdout)
                 if let domain = Bundle.main.bundleIdentifier, domain.hasPrefix("org.maccare.toolbar-regression-probe.") {
                     UserDefaults.standard.removePersistentDomain(forName: domain)
@@ -73,6 +84,16 @@ import Combine
                 NSApp.terminate(nil)
             }
         }.windowStyle(.hiddenTitleBar).defaultSize(width:900,height:600)
+    }
+
+    @MainActor private static func windowButtonsClickable(in window: NSWindow) -> Bool {
+        guard let frame = window.contentView?.superview else { return false }
+        return [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton].allSatisfy { kind in
+            guard let button = window.standardWindowButton(kind), !button.isHiddenOrHasHiddenAncestor else { return false }
+            let center = NSPoint(x: button.bounds.midX, y: button.bounds.midY)
+            let hit = frame.hitTest(button.convert(center, to: frame.superview))
+            return hit === button || hit?.isDescendant(of: button) == true
+        }
     }
 }
 // Unused DesignSystem row dependencies; no file scan is performed by this probe.

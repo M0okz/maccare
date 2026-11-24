@@ -22,17 +22,21 @@ struct WindowConfigurator: NSViewRepresentable {
             super.viewDidMoveToWindow()
             guard let window else { return }
             mainWindows.add(window)
-            // SwiftUI conserve la propriété de la barre d’outils.
-            window.toolbar?.showsBaselineSeparator = false
-            window.toolbar?.allowsUserCustomization = false
-            window.toolbar?.displayMode = .iconOnly
-            window.toolbarStyle = .unified
-            window.titlebarAppearsTransparent = true
-            window.titleVisibility = .hidden
-            window.title = AppBuildIdentity.name
-            window.styleMask.insert(.fullSizeContentView)
-            window.isMovableByWindowBackground = false
-            window.backgroundColor = NSColor(Color(hex: "#160C2E"))
+            // SwiftUI must finish attaching the full-height content before AppKit lays out its titlebar.
+            DispatchQueue.main.async { [weak self, weak window] in
+                guard let window, self?.window === window else { return }
+                // SwiftUI conserve la propriété de la barre d’outils.
+                window.toolbar?.showsBaselineSeparator = false
+                window.toolbar?.allowsUserCustomization = false
+                window.toolbar?.displayMode = .iconOnly
+                window.toolbarStyle = .unified
+                window.titlebarAppearsTransparent = true
+                window.titleVisibility = .hidden
+                window.title = AppBuildIdentity.name
+                window.styleMask.insert(.fullSizeContentView)
+                window.isMovableByWindowBackground = false
+                window.backgroundColor = NSColor(Color(hex: "#160C2E"))
+            }
         }
     }
 }

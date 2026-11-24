@@ -37,6 +37,30 @@ final class DockVisibilityTests: XCTestCase {
         XCTAssertFalse(settings.wasRaised)
     }
 
+    @MainActor func testMainWindowIsStyledAfterAttachmentAndKeepsNativeButtonsClickable() async throws {
+        _ = NSApplication.shared
+        let window = NSWindow(contentRect: NSRect(x: 20, y: 20, width: 640, height: 480),
+                              styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+                              backing: .buffered, defer: false)
+        window.title = "Before attachment"
+        let content = try XCTUnwrap(window.contentView)
+        content.addSubview(WindowConfigurator.ObserverView())
+        XCTAssertEqual(window.title, "Before attachment", "Restyling a window during attachment can cover the titlebar.")
+
+        await withCheckedContinuation { continuation in
+            DispatchQueue.main.async { continuation.resume() }
+        }
+        XCTAssertEqual(window.title, AppBuildIdentity.name)
+        let frame = try XCTUnwrap(content.superview)
+        for kind in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] {
+            let button = try XCTUnwrap(window.standardWindowButton(kind))
+            XCTAssertFalse(button.isHiddenOrHasHiddenAncestor)
+            let center = NSPoint(x: button.bounds.midX, y: button.bounds.midY)
+            let hit = frame.hitTest(button.convert(center, to: frame.superview))
+            XCTAssertTrue(hit === button || hit?.isDescendant(of: button) == true)
+        }
+    }
+
     @MainActor func testMenuBarDisabledKeepsRegularApplicationPolicy() {
         XCTAssertEqual(DockVisibilityController.policy(menuBarEnabled: false, windows: []), .regular)
     }
