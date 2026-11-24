@@ -11,7 +11,7 @@ struct TraySceneLifecycle: View {
             let action = openWindow
             let open = {
                 DockVisibilityController.activateForWindow()
-                action(id: MacCareApp.mainWindowID)
+                if !WindowConfigurator.raiseExistingWindow() { action(id: MacCareApp.mainWindowID) }
             }
             app.openMainWindow = open
             AppDelegate.openMainWindow = open

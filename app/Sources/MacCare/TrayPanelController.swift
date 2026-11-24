@@ -133,10 +133,9 @@ final class TrayPanelController: NSObject {
         let panel = self.panel ?? makePanel()
         self.panel = panel
         let root = MenuBarView(app: app, smart: app.smartScan, metricsStore: app.trayMetrics,
-                               openMainWindowAction: { [weak self] in self?.openMainWindow() },
                                dismissPanel: { [weak self] in self?.dismiss(animated: false) },
                                openSettingsAction: { [weak self] in self?.showSettings() },
-                               panelSize: frame.size, animateEntrance: true)
+                               panelSize: frame.size)
         let host = NSHostingView(rootView: root)
         host.frame = CGRect(origin: .zero, size: frame.size)
         host.autoresizingMask = [.width, .height]

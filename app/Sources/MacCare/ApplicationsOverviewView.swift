@@ -26,7 +26,12 @@ struct ApplicationsOverviewView: View {
 
     var body: some View {
         ZStack {
-            overview.allowsHitTesting(detail == nil).accessibilityHidden(detail != nil)
+            overview
+                .opacity(detail == nil ? 1 : 0)
+                .allowsHitTesting(detail == nil)
+                .disabled(detail != nil)
+                .accessibilityElement(children: .contain)
+                .accessibilityHidden(detail != nil)
             if let destination = detail {
                 ApplicationsDetailPanel(app: app, detail: destination)
                     .transition(ManagerPanelMotion.transition(reduceMotion: reduceMotion)).zIndex(1)
@@ -214,7 +219,7 @@ struct ApplicationsOverviewView: View {
         var seen = Set<URL>()
         let urls = entries.compactMap { $0.applicationURL(in: uninstall.apps) }
             .filter { FileManager.default.fileExists(atPath: $0.path) && seen.insert($0).inserted }
-        previewURLs = Array(urls.shuffled().prefix(3))
+        previewURLs = Array(urls.prefix(3))
     }
 
     private var leftoversCard: some View {

@@ -44,8 +44,6 @@ struct DashboardView: View {
         }
         .onAppear {
             disk = DiskSpace.current()
-            if !app.uninstall.leftoversScanned { app.uninstall.scanLeftovers() }
-            app.updates.quickCheck()
         }
     }
 

@@ -1,29 +1,28 @@
 import SwiftUI
 import AppKit
 
-/// Rend la barre de titre transparente : le dégradé violet monte jusqu'en haut (plus de bandeau gris).
+/// Configure uniquement les fenêtres principales qui hébergent cette vue.
 struct WindowConfigurator: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        apply(to: view)
-        return view
+    @MainActor private static let mainWindows = NSHashTable<NSWindow>.weakObjects()
+
+    static func raiseExistingWindow() -> Bool {
+        let window = NSApp.orderedWindows.first { mainWindows.contains($0) && $0.isVisible }
+            ?? mainWindows.allObjects.first { $0.isMiniaturized }
+        guard let window else { return false }
+        if window.isMiniaturized { window.deminiaturize(nil) }
+        window.makeKeyAndOrderFront(nil)
+        return true
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) { apply(to: nsView) }
+    func makeNSView(context: Context) -> ObserverView { ObserverView() }
+    func updateNSView(_ view: ObserverView, context: Context) {}
 
-    /// Ne configure que la fenêtre qui héberge cette vue, jamais les dialogues ou le panneau de menu.
-    private func apply(to view: NSView, attempt: Int = 0) {
-        DispatchQueue.main.async {
-            guard let window = view.window else {
-                if attempt < 30 {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        apply(to: view, attempt: attempt + 1)
-                    }
-                }
-                return
-            }
-            // SwiftUI owns the toolbar for this window. Assigning window.toolbar here
-            // races its observer lifecycle when the update notice changes visibility.
+    final class ObserverView: NSView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard let window else { return }
+            mainWindows.add(window)
+            // SwiftUI conserve la propriété de la barre d’outils.
             window.toolbar?.showsBaselineSeparator = false
             window.toolbar?.allowsUserCustomization = false
             window.toolbar?.displayMode = .iconOnly

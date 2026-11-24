@@ -5,14 +5,9 @@ struct MenuBarView: View {
     @ObservedObject var app: AppState
     @ObservedObject var smart: SmartScanModel
     @ObservedObject var metricsStore: TrayMetricsStore
-    var openMainWindowAction: (() -> Void)? = nil
     var dismissPanel: (() -> Void)? = nil
     var openSettingsAction: (() -> Void)? = nil
     var panelSize: CGSize? = nil
-    var animateEntrance = false
-    @Environment(\.openWindow) private var openWindow
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var entered = false
     @AppStorage(TrayShortcuts.key) private var shortcuts = TrayShortcuts.defaults
     private var metrics: TrayMetrics { metricsStore.snapshot.compact.metrics }
     private var networkRates: TrayMetrics.WiFi? { metricsStore.snapshot.compactNetwork.wifi ?? metrics.wifi }
@@ -55,9 +50,6 @@ struct MenuBarView: View {
             if app.battery.snapshot?.present == true { await batteryContext.monitor() }
         }
         .task {
-            await Task.yield()
-            guard !Task.isCancelled else { return }
-            entered = true
             while !Task.isCancelled {
                 disk = DiskSpace.current()
                 do { try await Task.sleep(for: .seconds(10)) } catch { return }
@@ -67,14 +59,14 @@ struct MenuBarView: View {
 
     private var overview: some View {
         VStack(alignment: .leading, spacing: 8) {
-            header.modifier(entrance(0))
-            scanCard.modifier(entrance(1))
+            header
+            scanCard
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) { processorCard; gpuCard }
                 HStack(spacing: 6) { memoryCard; fansCard }
                 HStack(spacing: 6) { storageCard; wifiCard }
-            }.modifier(entrance(2))
-            BatteryTrayButton(model: app.battery, telemetry: batteryContext.telemetry) { detail = .battery }.modifier(entrance(3))
+            }
+            BatteryTrayButton(model: app.battery, telemetry: batteryContext.telemetry) { detail = .battery }
         }
         .padding(12)
         .fixedSize(horizontal: false, vertical: true)
@@ -320,12 +312,7 @@ struct MenuBarView: View {
         .background(.black.opacity(0.20))
     }
 
-    private func entrance(_ index: Int) -> TrayEntranceModifier {
-        TrayEntranceModifier(index: index, enabled: animateEntrance, entered: entered, reduceMotion: reduceMotion)
-    }
-
     private func show(_ section: Module) {
-        app.openMainWindow = openMainWindowAction ?? { openWindow(id: MacCareApp.mainWindowID) }
         dismissPanel?()
         app.show(section)
     }

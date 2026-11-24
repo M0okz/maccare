@@ -21,7 +21,6 @@ struct SettingsView: View {
 
     @Environment(\.openWindow) private var openWindow
     @State private var tab = SettingsTab.general
-    @State private var paneHeights: [SettingsTab: CGFloat] = [:]
 
     var body: some View {
         TabView(selection: $tab) {
@@ -31,13 +30,11 @@ struct SettingsView: View {
                 .tag(pane)
             }
         }
-        .frame(width: 860, height: min(paneHeights[tab] ?? 660, 620))
+        .frame(width: 860, height: 620)
         .background(Color.white)
         .defaultContentCursor()
         .preferredColorScheme(.light)
-        .onPreferenceChange(SettingsPaneHeightKey.self) { heights in
-            paneHeights.merge(heights) { _, measured in measured }
-        }
+        .onAppear { refreshStatus() }
         .onChange(of: scenePhase) { phase in
             if phase == .active { refreshStatus() }
         }
@@ -256,14 +253,7 @@ struct SettingsView: View {
             .padding(30)
             .background(Color.white)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .onAppear { refreshStatus() }
-            .frame(maxWidth: .infinity, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
-            .background {
-                GeometryReader { geometry in
-                    Color.clear.preference(key: SettingsPaneHeightKey.self, value: [pane: geometry.size.height])
-                }
-            }
     }
 
     private func refreshStatus() {

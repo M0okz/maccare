@@ -176,8 +176,7 @@ final class AppState: ObservableObject {
     /// Ramène MacCare au premier plan sur un module (fenêtre rouverte si elle était fermée).
     func show(_ m: Module) {
         module = m
-        DockVisibilityController.activateForWindow()
-        if !NSApp.windows.contains(where: { $0.isVisible && $0.canBecomeMain }) { openMainWindow?() }
+        openMainWindow?()
     }
 }
 
@@ -192,8 +191,6 @@ struct RootView: View {
         self.updater = updater
         self.permissions = app.permissions
     }
-
-    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         ZStack {
@@ -215,8 +212,6 @@ struct RootView: View {
         .onAppear {
             app.permissions.recheck()
             app.systemClean.refreshStatus()
-            app.openMainWindow = { openWindow(id: MacCareApp.mainWindowID) }
-            AppDelegate.openMainWindow = app.openMainWindow
         }
         // Après avoir activé l'autorisation dans Réglages, on revérifie dès le retour dans l'app.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
