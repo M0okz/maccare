@@ -8,10 +8,12 @@ struct TrayHistoryChart: View {
     var color: Color = .cyan
     var maximum: Double = 1
     var filled = false
+    var marksLatestPoint = false
+    var endTime: TimeInterval?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        let end = points.last?.time ?? 0
+        let end = endTime ?? points.last?.time ?? 0
         let visible = TrayMetricHistory.window(points, duration: duration, end: end)
         ZStack {
             if filled {
@@ -20,6 +22,15 @@ struct TrayHistoryChart: View {
             }
             TrayHistoryPlot(points: visible, end: end, duration: duration, maximum: maximum)
                 .stroke(color, style: StrokeStyle(lineWidth: 1.7, lineCap: .round, lineJoin: .round))
+            if marksLatestPoint, let last = visible.last, last.time >= end - duration {
+                GeometryReader { geometry in
+                    let bounds = CGRect(origin: .zero, size: geometry.size)
+                    let point = TrayHistoryPlot.position(of: last, in: bounds, end: end, duration: duration, maximum: maximum)
+                    Circle().fill(color).frame(width: 4, height: 4)
+                        .position(x: min(max(2, point.x), max(2, bounds.width - 2)),
+                                  y: min(max(2, point.y), max(2, bounds.height - 2)))
+                }
+            }
         }
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.8), value: maximum)
         .clipped()
@@ -37,6 +48,12 @@ struct TrayHistoryPlot: Shape {
         set { maximum = newValue }
     }
 
+    static func position(of sample: TrayHistoryPoint, in rect: CGRect, end: TimeInterval,
+                         duration: TimeInterval, maximum: Double) -> CGPoint {
+        CGPoint(x: rect.width * (sample.time - (end - duration)) / duration,
+                y: rect.height * (1 - min(1, max(0, sample.value / max(1, maximum)))))
+    }
+
     func path(in rect: CGRect) -> Path {
         return Path { path in
             var last: CGPoint?
@@ -51,8 +68,7 @@ struct TrayHistoryPlot: Shape {
                 }
             }
             for sample in points {
-                let point = CGPoint(x: rect.width * (sample.time - (end - duration)) / duration,
-                                    y: rect.height * (1 - min(1, max(0, sample.value / max(1, maximum)))))
+                let point = Self.position(of: sample, in: rect, end: end, duration: duration, maximum: maximum)
                 if last == nil {
                     if filled { path.move(to: .init(x: point.x, y: rect.height)); path.addLine(to: point) }
                     else { path.move(to: point) }

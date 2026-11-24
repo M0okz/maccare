@@ -89,12 +89,20 @@ struct HomeActivityCard<Health: View, Battery: View>: View {
             reading(metrics.memory.map { "\(Int(($0.fraction * 100).rounded()))" }, unit: "%")
                 .accessibilityLabel("Utilisation mémoire estimée : \(metrics.memory.map { "\(Int(($0.fraction * 100).rounded())) %" } ?? "indisponible")")
         } footer: {
-            usageBar(metrics.memory?.fraction, color: ModuleColor.space)
+            TrayHistoryChart(points: store.snapshot.memory.points, duration: 60, color: ModuleColor.space,
+                             filled: true, marksLatestPoint: true, endTime: store.snapshot.raw.sampledAt)
+                .frame(height: 24)
                 .modifier(HomeActivityGlow(active: memoryHovered, color: ModuleColor.space))
-            detail(metrics.memory.map { "\(humanSize($0.used, fractionalAbove: 1_000_000_000)) sur \(humanSize($0.total, fractionalAbove: 1_000_000_000))" } ?? "Mémoire indisponible")
+                .accessibilityHidden(true)
+            HStack(spacing: 4) {
+                detail(metrics.memory.map { "\(humanSize($0.used, fractionalAbove: 1_000_000_000)) sur \(humanSize($0.total, fractionalAbove: 1_000_000_000))" } ?? "Mémoire indisponible")
+                Spacer(minLength: 0)
+                Text("60 s").font(.caption2).foregroundStyle(Theme.muted)
+                    .fixedSize().accessibilityLabel("Historique sur 60 secondes")
+            }
         }
         .onHover { memoryHovered = $0 }
-        .help("Utilisation estimée et pression mesurée par macOS : deux indicateurs distincts.")
+        .help("La courbe montre l’utilisation mémoire estimée sur les 60 dernières secondes. Le badge indique la pression mémoire mesurée par macOS.")
         .accessibilityElement(children: .combine)
     }
 
