@@ -288,3 +288,7 @@ la validation matérielle M1 Max et la synchronisation Outline restent distincte
 ## Publication 0.2.35 — 24 novembre 2026
 
 La [livraison 0.2.35](release-integration-0.2.35.md) documente la signature, les contrôles du flux Sparkle et le déploiement du site pour la version des boutons en pilule.
+
+## MacCare 0.2.36
+
+Les [contrôles de distribution de la 0.2.36](release-integration-0.2.36.md) couvrent le DMG notarié, la signature du flux et la publication du correctif de défilement.
