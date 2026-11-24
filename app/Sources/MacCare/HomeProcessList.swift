@@ -57,9 +57,10 @@ struct HomeProcessList: NSViewRepresentable {
         container.isCardHovered = isCardHovered
         guard let table = container.scroll.documentView as? ProcessTableView,
               let name = table.tableColumns.first else { return }
-        let title = "Nom (\(processCount.formatted()))"
+        let title = "Nom (\(rows.count.formatted()))"
         if name.title != title { name.title = title; table.headerView?.needsDisplay = true }
-        name.headerToolTip = cpuSummary.isEmpty ? "Trier par nom" : "Applications au-dessus de 40 % de CPU\n" + cpuSummary
+        let summary = cpuSummary.isEmpty ? "Trier par nom" : "Applications au-dessus de 40 % de CPU\n" + cpuSummary
+        name.headerToolTip = "\(processCount.formatted()) processus relevés avant regroupement.\n" + summary
         let coordinator = context.coordinator
         let selection = coordinator.owner.rows.indices.contains(table.selectedRow) ? coordinator.owner.rows[table.selectedRow].id : nil
         let countChanged = coordinator.owner.rows.count != rows.count
@@ -116,7 +117,7 @@ struct HomeProcessList: NSViewRepresentable {
             case .name:
                 cell.indicator?.fillColor = group.cpuLevel.accent ?? .labelColor.withAlphaComponent(0.13)
                 cell.label.stringValue = group.name
-                cell.imageView?.image = owner.controller.presentation(for: group.primary ?? group.members[0]).icon
+                cell.imageView?.image = owner.controller.presentation(for: group.representative).icon
                     ?? NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil)
                 cell.toolTip = group.application?.path ?? group.members[0].executable
             case .memory: cell.label.stringValue = HomeProcessMetric.memory(group.memory)
@@ -126,8 +127,13 @@ struct HomeProcessList: NSViewRepresentable {
                 cell.meter?.cpuLevel = group.cpuLevel
             case .power:
                 cell.label.stringValue = group.powerLabel
-                cell.toolTip = "Somme des puissances mesurées sur le dernier intervalle."
-            case .pid: cell.label.stringValue = group.primary.map { String($0.id.pid) } ?? "—"
+                cell.toolTip = group.power == nil ? "Mesure d’énergie indisponible pour ce relevé."
+                    : "Somme des puissances mesurées sur le dernier intervalle."
+            case .pid:
+                cell.label.stringValue = String(group.representative.id.pid)
+                cell.toolTip = group.primary == nil
+                    ? "PID de \(group.representative.name), membre affiché du groupe selon son empreinte mémoire."
+                    : "PID de \(group.representative.name)."
             }
             let accent = field == .cpu || field == .power ? group.cpuLevel.accent : nil
             cell.label.textColor = accent ?? (field == .pid ? .secondaryLabelColor : .labelColor)

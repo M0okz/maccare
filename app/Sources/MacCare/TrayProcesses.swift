@@ -80,7 +80,7 @@ actor TrayProcessSampler {
             result.append(.init(id: identity, name: name, userID: info.pbsd.pbi_uid,
                                 memory: footprint, cpuPercent: percent, executable: path, energyWatts: watts))
         }
-        if includeWindowServer && !result.contains(where: { $0.name == "WindowServer" }), let sample = WindowServerSample.read() {
+        if includeWindowServer && !result.contains(where: { $0.name == "WindowServer" }), let sample = WindowServerSample.read(previous: previousWindowServer) {
             result.append(sample.process(after: previousWindowServer, maximumInterval: maximumInterval))
             previousWindowServer = sample
         } else {

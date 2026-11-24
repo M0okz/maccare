@@ -28,7 +28,7 @@ final class HomeProcessPresentation: ObservableObject {
     func open(_ group: HomeProcessGroup, member: TrayProcess?, controller: TrayProcessController) {
         let session = HomeProcessDetailSession(group, controller: controller)
         preparing = session
-        select(member ?? group.primary ?? group.members[0], in: session)
+        select(member ?? group.representative, in: session)
     }
 
     func select(_ process: TrayProcess, in session: HomeProcessDetailSession) {

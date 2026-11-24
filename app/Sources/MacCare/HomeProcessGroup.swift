@@ -16,6 +16,9 @@ struct HomeProcessGroup: Identifiable {
     let application: URL?
     let members: [TrayProcess]
     let primary: TrayProcess?
+    /// Le PID de la ligne et la fiche désignent toujours le même membre au moment du clic.
+    var representative: TrayProcess { primary ?? members[0] }
+
     let memory: UInt64?
     let cpu: Double?
     let power: Double?
@@ -53,8 +56,18 @@ struct HomeProcessGroup: Identifiable {
             case .application(let url, _):
                 owner = url
                 let mains = members.filter { registered[$0.id.pid]?.url.standardizedFileURL.path == url.path }
-                primary = mains.count == 1 ? mains.first : nil
-                name = mains.first.flatMap { registered[$0.id.pid]?.name } ?? url.deletingPathExtension().lastPathComponent
+                if mains.count == 1, let main = mains.first {
+                    primary = main
+                    name = registered[main.id.pid]?.name ?? url.deletingPathExtension().lastPathComponent
+                } else {
+                    let bundle = Bundle(url: url)
+                    let executable = bundle?.executableURL?.standardizedFileURL.path
+                    let candidates = members.filter { $0.executable == executable }
+                    primary = candidates.count == 1 ? candidates.first : nil
+                    name = bundle?.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
+                        ?? bundle?.object(forInfoDictionaryKey: "CFBundleName") as? String
+                        ?? url.deletingPathExtension().lastPathComponent
+                }
             case .process:
                 primary = members[0]
                 name = members[0].name

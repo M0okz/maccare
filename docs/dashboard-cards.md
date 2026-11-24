@@ -29,7 +29,7 @@ Le tableau juste en dessous affiche les processus accessibles, leur empreinte
 mémoire, leur charge CPU, leur puissance moyenne estimée et leur PID. Le tri
 initial privilégie la mémoire. Le tableau s’étire jusqu’au bas de la fenêtre et
 défile indépendamment. Dans l’aperçu DEV, la même ligne contient les titres
-triables, le nombre de processus accessibles et la loupe. La loupe devient
+triables, le compteur de la liste et la loupe. La loupe devient
 bleue au survol de la carte Processus. Un clic sur la loupe ouvre la
 recherche par nom ou PID à la place de « Nom ». Échap ou la croix referme la
 recherche et rétablit la liste complète. L’infobulle de « Nom » conserve le
@@ -104,6 +104,25 @@ La recherche par nom ou PID et le tri CPU incluent WindowServer. macOS
 permet de mesurer sa charge CPU sur deux relevés successifs. Si la mémoire
 ou la puissance sont inaccessibles, leurs cellules affichent un tiret.
 La fiche identifie ce processus système et désactive les actions d’arrêt.
+
+## Classement mémoire et PID des groupes — DEV 0.2.39 (37)
+
+L’accueil classe WindowServer selon son empreinte physique, y compris lorsque
+le relevé direct de macOS réserve cette donnée. La DEV lit alors la colonne
+MEM de `top` pour ce PID, avec un intervalle minimal de 30 secondes entre
+deux lectures. La charge CPU conserve sa cadence habituelle. La colonne
+Puissance affiche un tiret si le compteur d’énergie est inaccessible.
+
+La ligne d’une application regroupe la mémoire de ses processus. Le PID
+affiché est celui du processus principal lorsqu’il est identifié. Pour
+une application qui tourne via ses composants, MacCare affiche le PID du
+membre ayant la plus grande empreinte mémoire. Son infobulle explique ce
+choix. Le tri PID et l’ouverture de la fiche utilisent le même membre.
+Une recherche par PID permet toujours d’ouvrir directement un autre membre.
+
+Le compteur « Nom » correspond aux lignes du tableau après regroupement.
+Son infobulle indique aussi le nombre de processus individuels relevés.
+Les tailles restent exprimées en Mo et Go décimaux.
 
 ## Jauge Espace libre et survol des métriques
 

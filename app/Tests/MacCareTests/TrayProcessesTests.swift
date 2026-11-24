@@ -2,6 +2,38 @@ import XCTest
 @testable import MacCare
 
 final class TrayProcessesTests: XCTestCase {
+    func testPIDColumnAndSortUseTheLargestMemberForBackgroundApplications() throws {
+        func member(_ pid: pid_t, _ path: String, _ bytes: UInt64) -> TrayProcess {
+            TrayProcess(id: .init(pid: pid, startedSeconds: 1, startedMicroseconds: 0),
+                        name: "node", userID: getuid(), memory: bytes, cpuPercent: 0, executable: path)
+        }
+        let runtime = "/tmp/Timon.app/Contents/Resources/node/node"
+        let groups = HomeProcessGroup.collect([member(83445, runtime, 130), member(83450, runtime, 400),
+                                               member(90_000, "/usr/bin/other", 20)])
+        let group = try XCTUnwrap(groups.first { $0.name == "Timon" })
+        XCTAssertNil(group.primary)
+        XCTAssertEqual(group.representative.id.pid, 83450)
+        XCTAssertEqual(group.memory, 530)
+        XCTAssertEqual(HomeProcessSort(column: .pid, ascending: true).ordered(groups).first?.representative.id.pid, 83450)
+        XCTAssertTrue(group.matches("83445"))
+    }
+
+    func testWindowServerFootprintParticipatesInNormalMemorySort() throws {
+        let output = "PhysMem: 7500M used.\nPID  MEM\n416  605M\n"
+        let bytes = try XCTUnwrap(WindowServerSample.footprint(in: output, pid: 416))
+        XCTAssertEqual(bytes, 605 * 1_048_576)
+        XCTAssertNil(WindowServerSample.footprint(in: output, pid: 123))
+        XCTAssertNil(WindowServerSample.footprint(in: "416 N/A", pid: 416))
+        let ws = WindowServerSample(id: .init(pid: 416, startedSeconds: 1, startedMicroseconds: 0),
+                                    userID: 88, cpuSeconds: nil, timestamp: 1,
+                                    footprint: .init(bytes: bytes, timestamp: 1)).process(after: nil, maximumInterval: 10)
+        let app = TrayProcess(id: .init(pid: 83450, startedSeconds: 1, startedMicroseconds: 0),
+                              name: "Timon", userID: getuid(), memory: 579_000_000, cpuPercent: 0, executable: "")
+        XCTAssertFalse(ws.canQuit)
+        XCTAssertEqual(HomeProcessSort().ordered(HomeProcessGroup.collect([ws, app])).map(\.name), ["WindowServer", "Timon"])
+        XCTAssertEqual(HomeProcessSort(column: .memory, ascending: true).ordered(HomeProcessGroup.collect([ws, app])).first?.name, "Timon")
+    }
+
     func testWindowServerUsesCPUTimeAcrossSamplesOfTheSameProcess() throws {
         XCTAssertEqual(WindowServerSample.seconds(" 2496:50.77\n"), 149810.77)
         XCTAssertEqual(WindowServerSample.seconds("1:02:03.50"), 3723.5)

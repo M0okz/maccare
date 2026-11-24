@@ -171,6 +171,20 @@ temps CPU est rapporté à l’intervalle monotone entre relevés. La mémoire e
 la puissance demeurent optionnelles. Les alertes mémoire exigent une empreinte
 mesurée.
 
+Dans la DEV 0.2.39 (37), `WindowServerSample` lit aussi l’empreinte physique
+arrondie que fournit `/usr/bin/top -l 1 -F -R -pid PID -n 1 -stats pid,mem`.
+Les deux contrôles d’identité encadrent les mesures de mémoire et de CPU.
+Le cache de 30 secondes est lié au PID et à sa date de démarrage. Un échec
+de lecture mémoire préserve le relevé CPU. La puissance moyenne exige un
+delta du compteur d’énergie en nanojoules. [Champ MEM de top chez Apple](https://github.com/apple-oss-distributions/top/blob/main/top.1).
+
+`HomeProcessGroup.representative` désigne le membre présenté dans la colonne
+PID, le tri PID et la fiche. Le groupe cherche le processus principal dans
+les applications enregistrées puis à partir de l’exécutable du bundle.
+En son absence, il prend le premier membre du classement mémoire. Les mesures
+agrégées portent sur tout le groupe. Le nom localisé du bundle identifie
+également les applications représentées par leurs seuls composants.
+
 `HomeProcessPresentation` prépare l’inspection du PID hors du fil principal.
 La sélection et les champs associés sont publiés ensemble. La fenêtre affiche
 la fiche au centre par transition d’opacité et borne son contenu défilant

@@ -72,7 +72,7 @@ struct HomeProcessSort: Equatable {
             case .cpu: if a.cpu != b.cpu { return (a.cpu ?? -1) < (b.cpu ?? -1) }
             case .power: if a.power != b.power { return (a.power ?? -1) < (b.power ?? -1) }
             case .pid:
-                let ap = a.primary?.id.pid ?? -1, bp = b.primary?.id.pid ?? -1
+                let ap = a.representative.id.pid, bp = b.representative.id.pid
                 if ap != bp { return ap < bp }
             }
             if left.application?.path != right.application?.path {

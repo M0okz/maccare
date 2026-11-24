@@ -107,7 +107,7 @@ struct HomeProcessDetails: View {
     private func header(_ group: HomeProcessGroup) -> some View {
         HStack(spacing: 12) {
             Group {
-                if let icon = controller.presentation(for: opened.primary ?? opened.members[0]).icon {
+                if let icon = controller.presentation(for: opened.representative).icon {
                     Image(nsImage: icon).renderingMode(.original).resizable()
                 } else {
                     Image(systemName: "gearshape").font(.system(size: 22, weight: .medium))

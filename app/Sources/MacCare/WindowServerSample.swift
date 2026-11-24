@@ -1,14 +1,20 @@
 import Darwin
 import Foundation
 
-/// WindowServer autorise la lecture de son identité BSD et de son temps CPU via ps.
+/// Les outils macOS permettent de lire le temps CPU et l’empreinte de ce processus protégé.
 struct WindowServerSample {
     let id: TrayProcess.Identity
     let userID: uid_t
     let cpuSeconds: TimeInterval?
     let timestamp: TimeInterval
 
-    static func read() -> Self? {
+    struct Footprint {
+        let bytes: UInt64?
+        let timestamp: TimeInterval
+    }
+    var footprint: Footprint? = nil
+
+    static func read(previous: Self?) -> Self? {
         var entry = passwd(), user: UnsafeMutablePointer<passwd>?
         var buffer = [CChar](repeating: 0, count: 16384)
         guard getpwnam_r("_windowserver", &entry, &buffer, buffer.count, &user) == 0, user != nil else { return nil }
@@ -21,10 +27,22 @@ struct WindowServerSample {
         guard bytes > 0 else { return nil }
         for pid in pids.prefix(Int(bytes) / MemoryLayout<pid_t>.stride) where pid > 0 {
             guard let id = identity(pid, uid: uid) else { continue }
-            let output = SystemTools.run("/bin/ps", ["-p", String(pid), "-o", "time="], environment: ["LC_ALL": "C"])
+            // top effectue un relevé système même avec -pid. Espacer cette mesure,
+            // y compris en cas d’échec, indépendamment des relevés CPU plus fréquents.
             let now = ProcessInfo.processInfo.systemUptime
+            let memory: Footprint
+            if previous?.id == id, let cached = previous?.footprint, now - cached.timestamp < 30 {
+                memory = cached
+            } else {
+                let output = SystemTools.run("/usr/bin/top", ["-l", "1", "-F", "-R", "-pid", String(pid),
+                                                              "-n", "1", "-stats", "pid,mem"], environment: ["LC_ALL": "C"])
+                memory = Footprint(bytes: output.ok ? footprint(in: output.stdout, pid: pid) : nil, timestamp: now)
+            }
+            let cpu = SystemTools.run("/bin/ps", ["-p", String(pid), "-o", "time="], environment: ["LC_ALL": "C"])
+            let timestamp = ProcessInfo.processInfo.systemUptime
             guard identity(pid, uid: uid) == id else { continue }
-            return Self(id: id, userID: uid, cpuSeconds: output.ok ? seconds(output.stdout) : nil, timestamp: now)
+            return Self(id: id, userID: uid, cpuSeconds: cpu.ok ? seconds(cpu.stdout) : nil,
+                        timestamp: timestamp, footprint: memory)
         }
         return nil
     }
@@ -38,6 +56,20 @@ struct WindowServerSample {
         guard name == "WindowServer" else { return nil }
         let start = info.kp_proc.p_starttime
         return .init(pid: pid, startedSeconds: UInt64(start.tv_sec), startedMicroseconds: UInt64(start.tv_usec))
+    }
+
+    static func footprint(in output: String, pid: pid_t) -> UInt64? {
+        for line in output.split(separator: "\n") {
+            let fields = line.split(whereSeparator: \.isWhitespace)
+            guard fields.count == 2, Int32(fields[0]) == pid else { continue }
+            let value = fields[1]
+            // top utilise les multiples binaires de humanize_number pour la colonne MEM.
+            let units: [Character] = ["B", "K", "M", "G", "T"]
+            guard let unit = value.last, let exponent = units.firstIndex(of: unit) else { return nil }
+            guard let amount = Double(value.dropLast()), amount.isFinite, amount >= 0 else { return nil }
+            return UInt64(exactly: (amount * Double(UInt64(1) << (10 * exponent))).rounded())
+        }
+        return nil
     }
 
     static func seconds(_ text: String) -> TimeInterval? {
@@ -60,6 +92,6 @@ struct WindowServerSample {
                 percent = (cpuSeconds - prior) / interval * 100
             }
         }
-        return .init(id: id, name: "WindowServer", userID: userID, memory: nil, cpuPercent: percent, executable: "")
+        return .init(id: id, name: "WindowServer", userID: userID, memory: footprint?.bytes, cpuPercent: percent, executable: "")
     }
 }
