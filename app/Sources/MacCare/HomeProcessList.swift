@@ -185,7 +185,9 @@ private final class ProcessRowView: NSTableRowView {
     }
 }
 
-private final class ProcessHeader: NSTableHeaderView {
+final class ProcessHeader: NSTableHeaderView {
+    override var isOpaque: Bool { true }
+
     override func resetCursorRects() {
         super.resetCursorRects()
         guard let tableView else { return }
@@ -197,9 +199,10 @@ private final class ProcessHeader: NSTableHeaderView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        guard let table = tableView else { return }
-        NSColor.white.withAlphaComponent(0.04).setFill()
+        // AppKit fait défiler les lignes sous l’en-tête fixe.
+        NSColor(Theme.surface).setFill()
         dirtyRect.fill()
+        guard let table = tableView else { return }
         for (index, column) in table.tableColumns.enumerated() {
             let rect = headerRect(ofColumn: index)
             guard rect.intersects(dirtyRect) else { continue }
