@@ -29,7 +29,8 @@ Le tableau juste en dessous affiche les processus accessibles, leur empreinte
 mémoire, leur charge CPU, leur puissance moyenne estimée et leur PID. Le tri
 initial privilégie la mémoire. Le tableau s’étire jusqu’au bas de la fenêtre et
 défile indépendamment. Dans l’aperçu DEV, la même ligne contient les titres
-triables, le nombre de processus accessibles et la loupe. La loupe ouvre la
+triables, le nombre de processus accessibles et la loupe. La loupe devient
+bleue au survol de la carte Processus. Un clic sur la loupe ouvre la
 recherche par nom ou PID à la place de « Nom ». Échap ou la croix referme la
 recherche et rétablit la liste complète. L’infobulle de « Nom » conserve le
 classement des trois applications les plus actives au-dessus de 40 % de CPU.

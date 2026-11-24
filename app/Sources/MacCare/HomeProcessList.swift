@@ -7,6 +7,7 @@ struct HomeProcessList: NSViewRepresentable {
     let processCount: Int
     let cpuSummary: String
     let controller: TrayProcessController
+    let isCardHovered: Bool
     @Binding var sort: HomeProcessSort
     @Binding var query: String
     let open: (HomeProcessGroup) -> Void
@@ -53,6 +54,7 @@ struct HomeProcessList: NSViewRepresentable {
     }
 
     func updateNSView(_ container: ProcessListContainer, context: Context) {
+        container.isCardHovered = isCardHovered
         guard let table = container.scroll.documentView as? ProcessTableView,
               let name = table.tableColumns.first else { return }
         let title = "Nom (\(processCount.formatted()))"

@@ -6,6 +6,11 @@ final class ProcessListContainer: NSView, NSTextFieldDelegate {
     static let pidInset: CGFloat = 38
     let scroll = ProcessScrollView()
     var queryChanged: ((String) -> Void)?
+    var isCardHovered = false {
+        didSet {
+            if isCardHovered != oldValue { updateSearchTint() }
+        }
+    }
 
     private let field = NSTextField()
     private let searchIcon = NSImageView()
@@ -20,7 +25,6 @@ final class ProcessListContainer: NSView, NSTextFieldDelegate {
         addSubview(scroll)
 
         searchIcon.image = NSImage(systemSymbolName: "magnifyingglass", accessibilityDescription: nil)
-        searchIcon.contentTintColor = .secondaryLabelColor
         searchIcon.setAccessibilityElement(false)
         searchIcon.isHidden = true
         addSubview(searchIcon)
@@ -80,6 +84,13 @@ final class ProcessListContainer: NSView, NSTextFieldDelegate {
         button.image = NSImage(systemSymbolName: field.isHidden ? "magnifyingglass" : "xmark", accessibilityDescription: nil)
         button.toolTip = label
         button.setAccessibilityLabel(label)
+        updateSearchTint()
+    }
+
+    private func updateSearchTint() {
+        let tint: NSColor? = isCardHovered ? .systemBlue : nil
+        button.contentTintColor = field.isHidden ? tint : nil
+        searchIcon.contentTintColor = tint ?? .secondaryLabelColor
     }
 
     func controlTextDidChange(_ notification: Notification) { queryChanged?(field.stringValue) }

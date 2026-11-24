@@ -5,6 +5,7 @@ import SwiftUI
 struct HomeProcessTable: View {
     @ObservedObject var controller: TrayProcessController
     @State private var query = ""
+    @State private var isCardHovered = false
     @State private var groups: [HomeProcessGroup] = []
     @State private var cpuSummary = ""
     @State private var sort = HomeProcessSort()
@@ -20,7 +21,7 @@ struct HomeProcessTable: View {
             let term = query.trimmingCharacters(in: .whitespacesAndNewlines)
             let rows = term.isEmpty ? groups : groups.filter { $0.matches(term) }
             HomeProcessList(rows: rows, processCount: controller.processes.count, cpuSummary: cpuSummary,
-                            controller: controller, sort: $sort, query: $query) { group in
+                            controller: controller, isCardHovered: isCardHovered, sort: $sort, query: $query) { group in
                 detail = Selection(group: group, member: group.members.first { String($0.id.pid) == term }?.id)
             }
                 .frame(minHeight: 82, maxHeight: .infinity)
@@ -37,6 +38,7 @@ struct HomeProcessTable: View {
         .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: Radius.card))
         .clipShape(RoundedRectangle(cornerRadius: Radius.card))
         .overlay(RoundedRectangle(cornerRadius: Radius.card).strokeBorder(.white.opacity(0.1)).allowsHitTesting(false))
+        .onHover { isCardHovered = $0 }
         .onReceive(controller.$processes) { processes in
             let snapshot = HomeProcessGroup.collect(processes, registered: HomeProcessGroup.registeredApplications())
             groups = sort.ordered(snapshot)
