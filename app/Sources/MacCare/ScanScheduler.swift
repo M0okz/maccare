@@ -131,6 +131,7 @@ final class ScanScheduler: ObservableObject {
     /// Vrai si le moment s'y prête (hors autorisations, vérifiées à part).
     private var quietMoment: Bool {
         !NSApp.isActive
+            && !smart.hasPendingCaches
             && (smart.stage == .idle || (smart.stage == .results && !mainWindowVisible))
             && !ProcessInfo.processInfo.isLowPowerModeEnabled
             && !Self.tooHot

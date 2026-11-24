@@ -15,7 +15,7 @@
 //! - **Aller vite.** Pool borné de workers partageant une file de dossiers ; sur macOS,
 //!   `getattrlistbulk` lit nom, type, identité et taille de tout un dossier en quelques appels.
 
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
@@ -193,14 +193,26 @@ pub fn measure_paths_with(roots: &[PathBuf], budget: Budget, control: &Arc<Contr
 
 /// Parcours général : mesure les racines selon `options`, et collecte les gros fichiers si demandé.
 pub fn walk_paths(roots: &[PathBuf], budget: Budget, control: &Arc<Control>, options: WalkOptions) -> WalkResult {
-    let shared = Arc::new(Shared::new(roots.len(), Arc::clone(control), options));
+    walk_with_coverage(roots, budget, control, options, false)
+}
+
+/// Pour comparer deux mesures, une partie illisible doit rester identifiable.
+pub(crate) fn measure_space_paths(roots: &[PathBuf], budget: Budget, control: &Arc<Control>) -> Vec<Measured> {
+    walk_with_coverage(roots, budget, control, WalkOptions::default(), true).sizes
+}
+
+fn walk_with_coverage(roots: &[PathBuf], budget: Budget, control: &Arc<Control>, options: WalkOptions, strict: bool) -> WalkResult {
+    let shared = Arc::new(Shared::new(roots.len(), Arc::clone(control), options, strict));
     let mut initial = Vec::new();
 
     for (i, root) in roots.iter().enumerate() {
         if control.is_cancelled() {
             break;
         }
-        let Ok(md) = std::fs::symlink_metadata(root) else { continue };
+        let Ok(md) = std::fs::symlink_metadata(root) else {
+            shared.incomplete[i].store(true, Ordering::Relaxed);
+            continue;
+        };
         let ft = md.file_type();
         if ft.is_file() {
             let bytes = md.blocks() * 512;
@@ -218,7 +230,9 @@ pub fn walk_paths(roots: &[PathBuf], budget: Budget, control: &Arc<Control>, opt
         } else if ft.is_dir() && !is_dataless(st_flags(&md)) {
             initial.push(Task { root: i, path: root.clone(), device: md.dev() });
         }
-        // Lien symbolique, dossier dataless ou objet spécial : 0, sans descendre.
+        if ft.is_dir() && is_dataless(st_flags(&md)) {
+            shared.incomplete[i].store(true, Ordering::Relaxed);
+        }
     }
 
     if !initial.is_empty() && !control.is_cancelled() {
@@ -245,7 +259,8 @@ pub fn walk_paths(roots: &[PathBuf], budget: Budget, control: &Arc<Control>, opt
     let sizes = (0..roots.len())
         .map(|i| Measured {
             bytes: shared.totals[i].load(Ordering::SeqCst),
-            complete: !cancelled && shared.pending[i].load(Ordering::SeqCst) == 0,
+            complete: !cancelled && shared.pending[i].load(Ordering::SeqCst) == 0
+                && !(strict && shared.incomplete[i].load(Ordering::Relaxed)),
         })
         .collect();
     let found = std::mem::take(&mut *shared.found.lock().unwrap());
@@ -326,14 +341,16 @@ struct Shared {
     /// Compteur d'entrées lues, pour détecter un blocage.
     progress: AtomicU64,
     cancel: AtomicBool,
-    hardlinks: Mutex<HashSet<(u64, u64)>>,
+    hardlinks: Mutex<HashMap<(u64, u64), (usize, u64)>>,
+    incomplete: Vec<AtomicBool>,
+    strict: bool,
     control: Arc<Control>,
     options: WalkOptions,
     found: Mutex<Vec<FoundFile>>,
 }
 
 impl Shared {
-    fn new(roots: usize, control: Arc<Control>, options: WalkOptions) -> Self {
+    fn new(roots: usize, control: Arc<Control>, options: WalkOptions, strict: bool) -> Self {
         Shared {
             queue: Mutex::new(Queue::new(roots)),
             work: Condvar::new(),
@@ -342,7 +359,9 @@ impl Shared {
             totals: (0..roots).map(|_| AtomicU64::new(0)).collect(),
             progress: AtomicU64::new(0),
             cancel: AtomicBool::new(false),
-            hardlinks: Mutex::new(HashSet::new()),
+            hardlinks: Mutex::new(HashMap::new()),
+            incomplete: (0..roots).map(|_| AtomicBool::new(false)).collect(),
+            strict,
             control,
             options,
             found: Mutex::new(Vec::new()),
@@ -362,10 +381,23 @@ impl Shared {
             return false;
         }
         // Un fichier à liens multiples n'est compté qu'à sa première rencontre.
-        if nlink > 1 && !self.hardlinks.lock().unwrap().insert((dev, ino)) {
-            return false;
+        if nlink > 1 {
+            let mut links = self.hardlinks.lock().unwrap();
+            if let Some((owner, counted)) = links.get_mut(&(dev, ino)) {
+                // Espace trie les racines par chemin. Affecter le lien à la première
+                // stabilise la comparaison indépendamment de l’ordre des workers.
+                if self.strict && root < *owner {
+                    self.totals[*owner].fetch_sub(*counted, Ordering::Relaxed);
+                    self.totals[root].fetch_add(*counted, Ordering::Relaxed);
+                    *owner = root;
+                }
+                return false;
+            }
+            links.insert((dev, ino), (root, bytes));
+            self.totals[root].fetch_add(bytes, Ordering::Relaxed);
+        } else {
+            self.totals[root].fetch_add(bytes, Ordering::Relaxed);
         }
-        self.totals[root].fetch_add(bytes, Ordering::Relaxed);
         self.control.bytes.fetch_add(bytes, Ordering::Relaxed);
         true
     }
@@ -507,12 +539,16 @@ fn list_dir(shared: &Shared, task: &Task, buf: &mut [u8], subdirs: &mut Vec<Path
                     subdirs.push(child);
                 }
             }
+            Kind::Dir => { shared.incomplete[task.root].store(true, Ordering::Relaxed); }
             _ => {}
         }
     };
-    if platform::list_bulk(&task.path, buf, &mut on_entry).is_err() {
-        list_std(&task.path, &mut on_entry);
-    }
+    let complete = match platform::list_bulk(&task.path, buf, &mut on_entry) {
+        Ok(complete) => complete,
+        Err(err) if err.kind() == std::io::ErrorKind::PermissionDenied => false,
+        Err(_) => list_std(&task.path, &mut on_entry),
+    };
+    if !complete { shared.incomplete[task.root].store(true, Ordering::Relaxed); }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -538,10 +574,12 @@ struct Entry<'a> {
 }
 
 /// Listeur portable (repli si `getattrlistbulk` n'est pas pris en charge par le volume).
-fn list_std(dir: &Path, on_entry: &mut dyn FnMut(Entry<'_>)) {
-    let Ok(rd) = std::fs::read_dir(dir) else { return };
-    for entry in rd.flatten() {
-        let Ok(md) = entry.metadata() else { continue }; // ne suit pas les liens
+fn list_std(dir: &Path, on_entry: &mut dyn FnMut(Entry<'_>)) -> bool {
+    let Ok(rd) = std::fs::read_dir(dir) else { return false };
+    let mut complete = true;
+    for entry in rd {
+        let Ok(entry) = entry else { complete = false; continue };
+        let Ok(md) = entry.metadata() else { complete = false; continue }; // ne suit pas les liens
         let ft = md.file_type();
         let kind = if ft.is_file() {
             Kind::File
@@ -563,6 +601,7 @@ fn list_std(dir: &Path, on_entry: &mut dyn FnMut(Entry<'_>)) {
             modified: md.mtime(),
         });
     }
+    complete
 }
 
 /// `SF_DATALESS` : contenu non présent localement (iCloud Drive, File Provider).
@@ -693,18 +732,9 @@ mod platform {
         Ok(fd)
     }
 
-    pub fn list_bulk(dir: &Path, buf: &mut [u8], on_entry: &mut dyn FnMut(Entry<'_>)) -> io::Result<()> {
-        let fd = open_dir(dir);
-        if let Err(err) = fd {
-            // Droits insuffisants : le repli n'y changerait rien, on ne retente pas.
-            return if err.raw_os_error() == Some(libc::EACCES) || err.raw_os_error() == Some(libc::EPERM) {
-                Ok(())
-            } else {
-                Err(err)
-            };
-        }
-        let fd = Fd(fd.expect("erreur traitée ci-dessus"));
-
+    pub fn list_bulk(dir: &Path, buf: &mut [u8], on_entry: &mut dyn FnMut(Entry<'_>)) -> io::Result<bool> {
+        let fd = Fd(open_dir(dir)?);
+        let mut complete = true;
         let mut al: libc::attrlist = unsafe { std::mem::zeroed() };
         al.bitmapcount = libc::ATTR_BIT_MAP_COUNT;
         al.commonattr = COMMON;
@@ -724,15 +754,16 @@ mod platform {
             if n < 0 {
                 let err = io::Error::last_os_error();
                 // Non pris en charge par ce volume : repli seulement si rien n'a encore été compté.
-                return if first { Err(err) } else { Ok(()) };
+                return if first { Err(err) } else { Ok(false) };
             }
             if n == 0 {
-                return Ok(());
+                return Ok(complete);
             }
             first = false;
             let mut off = 0usize;
             for _ in 0..n {
-                let Some(len) = parse_entry(&buf[off..], on_entry) else { return Ok(()) };
+                let Some((len, readable)) = parse_entry(&buf[off..], on_entry) else { return Ok(false) };
+                complete &= readable;
                 off += len;
             }
         }
@@ -740,7 +771,7 @@ mod platform {
 
     /// Décode une entrée et renvoie sa longueur. Les attributs sont présents dans l'ordre de
     /// leurs bits, `ATTR_CMN_ERROR` juste après `ATTR_CMN_RETURNED_ATTRS` (cf. getattrlistbulk(2)).
-    fn parse_entry(b: &[u8], on_entry: &mut dyn FnMut(Entry<'_>)) -> Option<usize> {
+    fn parse_entry(b: &[u8], on_entry: &mut dyn FnMut(Entry<'_>)) -> Option<(usize, bool)> {
         let len = u32_at(b, 0)? as usize;
         if len < 24 || len > b.len() {
             return None;
@@ -814,7 +845,7 @@ mod platform {
             };
             on_entry(Entry { name: OsStr::from_bytes(name), kind, dev, ino, nlink, flags, alloc, len: data_len, modified });
         }
-        Some(len)
+        Some((len, error == 0 && !name.is_empty()))
     }
 }
 
@@ -825,7 +856,7 @@ mod platform {
 
     pub fn disable_materialization() {}
 
-    pub fn list_bulk(_: &Path, _: &mut [u8], _: &mut dyn FnMut(Entry<'_>)) -> std::io::Result<()> {
+    pub fn list_bulk(_: &Path, _: &mut [u8], _: &mut dyn FnMut(Entry<'_>)) -> std::io::Result<bool> {
         Err(std::io::ErrorKind::Unsupported.into())
     }
 }

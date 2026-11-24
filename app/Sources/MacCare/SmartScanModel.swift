@@ -46,7 +46,8 @@ final class SmartScanModel: ObservableObject {
     @Published private(set) var groups: [ScanGroup] = []
     @Published var selection: Set<String> = []
     @Published var statusMessage: String?
-    @Published private(set) var lastReport: RemovalReport?
+    @Published private(set) var cleanup: SmartScanCleanup?
+    var hasPendingCaches: Bool { cleanup?.waiting.isEmpty == false }
     /// Progression en direct du moteur : entrées lues et octets examinés depuis le début du scan.
     @Published private(set) var liveEntries: UInt64 = 0
     @Published private(set) var liveBytes: UInt64 = 0
@@ -76,7 +77,12 @@ final class SmartScanModel: ObservableObject {
     private let defaults: UserDefaults
     private var categories: [CleaningCategory] { categorySource() }
 
-    init(categories: @escaping () -> [CleaningCategory] = { ScanPreferences.currentCategories }, defaults: UserDefaults = .standard) {
+    private let makeCacheLookup: @Sendable () -> RunningCacheApplications.Lookup
+
+    init(categories: @escaping () -> [CleaningCategory] = { ScanPreferences.currentCategories },
+         defaults: UserDefaults = .standard,
+         makeCacheLookup: @escaping @Sendable () -> RunningCacheApplications.Lookup = { RunningCacheApplications.liveLookup() }) {
+        self.makeCacheLookup = makeCacheLookup
         categorySource = categories
         self.defaults = defaults
         let completedAt = defaults.object(forKey: LastScan.dateKey) as? Date
@@ -138,7 +144,7 @@ final class SmartScanModel: ObservableObject {
         selection = []
         currentLabel = nil
         statusMessage = nil
-        lastReport = nil
+        cleanup = nil
         liveEntries = 0
         liveBytes = 0
         isComplete = false
@@ -149,7 +155,13 @@ final class SmartScanModel: ObservableObject {
         categoryStartEntries = 0
     }
 
-    func scan(keepReport: Bool = false) {
+    func scan() {
+        guard stage != .cleaning else { return }
+        cleanup = nil
+        startScan()
+    }
+
+    private func startScan() {
         let cats = categories
         guard !cats.isEmpty else {
             task?.cancel()
@@ -183,7 +195,6 @@ final class SmartScanModel: ObservableObject {
         statusMessage = nil
         liveEntries = 0
         liveBytes = 0
-        if !keepReport { lastReport = nil }
 
         let threshold = logThresholdKB
         let exclusions = userExclusions
@@ -315,71 +326,80 @@ final class SmartScanModel: ObservableObject {
 
     // MARK: Nettoyage
 
-    /// Déplace vers la corbeille (ou supprime, selon le réglage) la sélection, re-validée
-    /// par le moteur catégorie par catégorie — chaque catégorie avec sa propre racine de confinement.
     func cleanSelected() {
-        let chosen = selectedItems
-        guard !chosen.isEmpty else { return }
+        clean(selectedItems, direct: directDelete, retry: false)
+    }
+
+    func retryPendingCaches() {
+        guard let waiting = cleanup?.waiting, !waiting.isEmpty else { return }
+        // Une préférence modifiée entre les essais ne transforme pas un accord Corbeille
+        // en accord de suppression définitive.
+        clean(waiting.map(\.item), direct: directDelete && waiting.allSatisfy(\.direct), retry: true)
+    }
+
+    private func clean(_ items: [ScanItem], direct: Bool, retry: Bool) {
+        guard stage == .results, !items.isEmpty else { return }
         stage = .cleaning
         statusMessage = nil
-
-        let direct = directDelete
-        let scannedCategories = groups.map(\.category)
-        let rootByCategory = Dictionary(scannedCategories.map { ($0.category, $0.root) }, uniquingKeysWith: { first, _ in first })
-        // Même règle (seuil et exclusions compris) que pour le scan : le moteur re-vérifie chaque élément.
+        let chosen = Set(items.map(\.id))
+        let retained = (cleanup?.waiting ?? []).filter { !chosen.contains($0.item.id) }
+        let lookupFactory = makeCacheLookup
         let threshold = logThresholdKB
         let exclusions = userExclusions
-        let ruleByCategory = Dictionary(scannedCategories.map { cat -> (String, String) in
-            let bytes: UInt64? = cat.usesThreshold ? UInt64(max(0, threshold)) * 1024 : nil
-            return (cat.category, cat.ruleTOML(thresholdBytes: bytes, userExclusions: exclusions))
+        let protectedPaths = exclusions.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath).standardizedFileURL.path }
+        let rules = Dictionary(categories.map { category in
+            let bytes: UInt64? = category.usesThreshold ? UInt64(max(0, threshold)) * 1024 : nil
+            return (category.id, (category, category.ruleTOML(thresholdBytes: bytes, userExclusions: exclusions)))
         }, uniquingKeysWith: { first, _ in first })
-        let byCategory = Dictionary(grouping: chosen, by: \.category)
 
-        Task.detached(priority: .userInitiated) {
-            let token = PowerAssertion.beginUserActivity("MacCare · nettoyage")
-            defer { PowerAssertion.end(token) }
-
-            var report = RemovalReport(direct: direct)
-            do {
-                for (cat, items) in byCategory {
-                    guard let root = rootByCategory[cat] else { continue }
-                    let input = PlanInput(
-                        scope_root: root,
-                        items: items.map { PlanItem(path: $0.path, identity: $0.identity) },
-                        rule: ruleByCategory[cat]
-                    )
-                    if direct {
-                        for r in try Engine.executeRemoval(input) {
-                            if r.removed { report.removed += 1 }
-                            else if !r.allowed { report.refused.append((r.path, r.refusal ?? "refusé")) }
-                            else if let e = r.error { report.failed.append((r.path, e)) }
+        Task {
+            let result = await Task.detached(priority: .userInitiated) {
+                let token = PowerAssertion.beginUserActivity("MacCare · nettoyage")
+                defer { PowerAssertion.end(token) }
+                var result = SmartScanCleanup(report: RemovalReport(direct: direct), waiting: retained)
+                let blockers = lookupFactory()
+                for (ruleID, candidates) in Dictionary(grouping: items, by: \.reason) {
+                    guard let (category, rule) = rules[ruleID] else {
+                        result.report.refused += candidates.map { ($0.path, "catégorie retirée du profil") }
+                        continue
+                    }
+                    // Une exclusion placée à l’intérieur d’un dossier sélectionné doit
+                    // aussi survivre au retrait récursif de ce dossier.
+                    let eligible = candidates.filter { item in
+                        let prefix = item.path + "/"
+                        if protectedPaths.contains(where: { $0 == item.path || $0.hasPrefix(prefix) || item.path.hasPrefix($0 + "/") }) {
+                            result.report.refused.append((item.path, "exclusion personnalisée"))
+                            return false
                         }
-                    } else {
-                        let decisions = try Engine.planRemoval(input)
-                        let allowed = Set(decisions.filter(\.allowed).map(\.path))
-                        for d in decisions where !d.allowed {
-                            report.refused.append((d.path, d.refusal ?? "refusé"))
-                        }
-                        for item in items where allowed.contains(item.path) {
-                            do {
-                                try FileManager.default.trashItem(at: item.url, resultingItemURL: nil)
-                                report.removed += 1
-                            } catch {
-                                report.failed.append((item.path, error.localizedDescription))
+                        return true
+                    }
+                    if RunningCacheApplications.isApplicationCache(category.category) {
+                        for item in eligible {
+                            let names = blockers(item, category.root)
+                            if names.isEmpty {
+                                result.remove([item], category: category, rule: rule)
+                            } else {
+                                result.waiting.append(DeferredCache(item: item, apps: names, direct: direct))
                             }
                         }
+                    } else {
+                        if !eligible.isEmpty { result.remove(eligible, category: category, rule: rule) }
                     }
                 }
-                let final = report
-                await MainActor.run {
-                    self.lastReport = final
-                    self.scan(keepReport: true)  // re-scan pour refléter ce qui reste
+                return result
+            }.value
+
+            cleanup = result
+            if !retry && result.waiting.isEmpty {
+                startScan()
+            } else {
+                // Conserve les identités d’origine et les choix manuels. Le nouvel essai
+                // ne doit ni examiner à nouveau le disque ni sélectionner de nouveaux fichiers.
+                groups = groups.map { group in
+                    ScanGroup(category: group.category, items: group.items.filter { !result.removedPaths.contains($0.path) })
                 }
-            } catch {
-                await MainActor.run {
-                    self.statusMessage = error.localizedDescription
-                    self.stage = .results
-                }
+                selection.subtract(chosen)
+                stage = .results
             }
         }
     }
