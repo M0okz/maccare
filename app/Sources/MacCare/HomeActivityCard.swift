@@ -18,8 +18,9 @@ struct HomeActivityCard<Health: View, Battery: View>: View {
         store.snapshot.traffic.received.points
     }
 
+    private var wide: Bool { availableWidth >= 810 }
+
     var body: some View {
-        let wide = availableWidth >= 810
         HomeCardGrid(width: availableWidth, wide: wide) {
             health()
             if wide {
@@ -111,7 +112,7 @@ struct HomeActivityCard<Health: View, Battery: View>: View {
 
     private var disk: some View {
         Button(action: onStorage) {
-            HomeActivityTile {
+            HomeActivityTile(alignsWithBattery: wide) {
                 metricHeader(availableWidth < 960 ? "Disque" : "Espace libre", symbol: "internaldrive") {
                     badge(storage.map { humanSize($0.total, fractionalAbove: 1_000_000_000) } ?? "—")
                 }
@@ -133,7 +134,7 @@ struct HomeActivityCard<Health: View, Battery: View>: View {
     }
 
     private var network: some View {
-        HomeActivityTile {
+        HomeActivityTile(alignsWithBattery: wide) {
             metricHeader("Réseau", symbol: wifi?.symbol ?? "network") {
                 badge(wifi?.connected == true ? wifi?.kind.rawValue ?? "—" : "Hors ligne")
             }
@@ -162,7 +163,7 @@ struct HomeActivityCard<Health: View, Battery: View>: View {
     }
 
     private var fans: some View {
-        HomeActivityTile {
+        HomeActivityTile(alignsWithBattery: wide) {
             metricHeader("Ventilateurs", symbol: "fanblades") {
                 badge(metrics.fans?.load.map { "\(Int(($0 * 100).rounded())) %" } ?? "—")
                     .accessibilityLabel(metrics.fans?.load.map { "Vitesse relative maximale : \(Int(($0 * 100).rounded())) %" } ?? "Vitesse relative indisponible")

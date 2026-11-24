@@ -34,9 +34,8 @@ struct HomeBatteryCard: View {
     }
 
     private var content: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        ActivityTileLayout(alignsWithBattery: true) {
             header
-            Spacer(minLength: 8)
             HStack(spacing: 6) {
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .firstTextBaseline, spacing: 7) { charge; adapter }
@@ -45,16 +44,17 @@ struct HomeBatteryCard: View {
                 Spacer(minLength: 0)
                 if !context.homeAccessories.isEmpty { accessories }
             }
-            Spacer(minLength: 14)
-            HStack(spacing: 6) {
-                Text(source)
-                if snapshot?.onAC == false, let powerDetail {
-                    Text("· " + powerDetail).lineLimit(1).truncationMode(.tail)
+            VStack(alignment: .leading, spacing: 9) {
+                HStack(spacing: 6) {
+                    Text(source)
+                    if snapshot?.onAC == false, let powerDetail {
+                        Text("· " + powerDetail).lineLimit(1).truncationMode(.tail)
+                    }
                 }
+                .font(AppFont.caption).foregroundStyle(Theme.muted)
+                .help(powerDetail ?? source)
+                consumer
             }
-            .font(AppFont.caption).foregroundStyle(Theme.muted)
-            .help(powerDetail ?? source)
-            consumer.padding(.top, 9)
         }
     }
 
@@ -98,6 +98,7 @@ struct HomeBatteryCard: View {
             }
         }
         .font(.system(size: chargeSize, weight: .bold)).monospacedDigit().fixedSize()
+        .alignmentGuide(.homeReadingBaseline) { $0[.firstTextBaseline] }
     }
 
     @ViewBuilder private var adapter: some View {
