@@ -68,7 +68,9 @@ Max à Frais recalcule la cible. Max demande le maximum de chaque ventilateur. L
 les ventilateurs pris en charge par MacCare. La mesure reste accessible sans
 assistant. Le changement de profil exige l’assistant système au protocole 11.
 
-## Jauge Espace libre et survol des métriques — DEV du 24 novembre 2026
+## Jauge Espace libre et survol des métriques
+
+Disponible dans [MacCare 0.2.39](release-integration-0.2.39.md).
 
 La barre de 7 points indique la part **utilisée** du disque. Sa couleur suit
 le pourcentage arrondi affiché sous la barre. Elle est bleue jusqu’à 69 %,

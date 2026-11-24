@@ -296,3 +296,7 @@ Les [contrôles de distribution de la 0.2.36](release-integration-0.2.36.md) cou
 ## Publication 0.2.38 — 24 novembre 2026
 
 La version 0.2.38 (build 40) publie la liste des processus et la taille de fenêtre validées dans la DEV. [Compte rendu de publication](release-integration-0.2.38.md).
+
+## Publication 0.2.39 — 24 novembre 2026
+
+La version 0.2.39 (build 41) livre la jauge disque et le survol des tuiles. [Vérifications de publication](release-integration-0.2.39.md).

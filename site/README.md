@@ -113,3 +113,7 @@ Le site propose le DMG officiel 0.2.36. Le guide de prise en main décrit l’en
 ## Version 0.2.38
 
 Les guides Premiers pas et Performances décrivent le nouveau minimum de la fenêtre, la recherche dans l’en-tête des processus et les seuils de charge CPU. [Validation de la distribution](../docs/release-integration-0.2.38.md).
+
+## Version 0.2.39
+
+Les guides Premiers pas et Performances décrivent la couleur de la jauge disque et le survol des cinq tuiles métriques. [Contrôles de livraison](../docs/release-integration-0.2.39.md).
