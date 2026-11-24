@@ -2,6 +2,15 @@ import XCTest
 @testable import MacCare
 
 final class TrayProcessesTests: XCTestCase {
+    func testCPUWarningAndCriticalThresholdsAreStrict() {
+        XCTAssertEqual(ProcessCPULevel(nil), .normal)
+        XCTAssertEqual(ProcessCPULevel(40), .normal)
+        XCTAssertEqual(ProcessCPULevel(40.1), .elevated)
+        XCTAssertEqual(ProcessCPULevel(80), .elevated)
+        XCTAssertEqual(ProcessCPULevel(80.1), .critical)
+        XCTAssertEqual(ProcessCPULevel(220), .critical)
+    }
+
     func testHomeRanksDistinctApplicationsIndependentlyOfRowOrder() {
         func process(_ pid: pid_t, _ cpu: Double?, _ path: String) -> TrayProcess {
             TrayProcess(id: .init(pid: pid, startedSeconds: 1, startedMicroseconds: 0),

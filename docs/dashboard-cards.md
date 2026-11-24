@@ -28,10 +28,15 @@ l’adresse réseau peuvent également se placer sur deux lignes.
 Le tableau juste en dessous affiche les processus accessibles, leur empreinte
 mémoire, leur charge CPU, leur puissance moyenne estimée et leur PID. Le tri
 initial privilégie la mémoire. Le tableau s’étire jusqu’au bas de la fenêtre et
-défile indépendamment. Dans l’en-tête, jusqu’à trois applications sont classées
-par charge CPU cumulée de leurs processus, au-dessus de 40 % d’un cœur. Une
-recherche ou un tri de lignes conserve ce classement. Les tailles en base
-décimale sont arrondies à l’entier jusqu’à 1 Go inclus. Les en-têtes utilisent le fond violet de la carte.
+défile indépendamment. Dans l’aperçu DEV, la même ligne contient les titres
+triables, le nombre de processus accessibles et la loupe. La loupe ouvre la
+recherche par nom ou PID à la place de « Nom ». Échap ou la croix referme la
+recherche et rétablit la liste complète. L’infobulle de « Nom » conserve le
+classement des trois applications les plus actives au-dessus de 40 % de CPU.
+Le repère de ligne, la jauge CPU et les valeurs CPU et puissance passent à
+l’ambre au-dessus de 40 % d’un cœur, puis au rouge au-dessus de 80 %. La fiche
+détaillée applique les mêmes seuils au CPU de chaque processus. Les tailles en base
+décimale sont arrondies à l’entier jusqu’à 1 Go inclus. Le fond de la carte reste visible derrière les titres. Les lignes défilent dans la zone située sous cet en-tête transparent.
 Un clic sur un en-tête change le tri et la
 recherche accepte un nom ou un PID. Le menu d’une ligne permet de copier le
 PID, de révéler l’exécutable dans le Finder ou de demander la fermeture d’un

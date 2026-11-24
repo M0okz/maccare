@@ -4,21 +4,25 @@ import SwiftUI
 /// AppKit conserve le défilement et les colonnes redimensionnables pendant les relevés.
 struct HomeProcessList: NSViewRepresentable {
     let rows: [HomeProcessGroup]
+    let processCount: Int
+    let cpuSummary: String
     let controller: TrayProcessController
     @Binding var sort: HomeProcessSort
+    @Binding var query: String
     let open: (HomeProcessGroup) -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
-    func makeNSView(context: Context) -> NSScrollView {
-        let scroll = NSScrollView()
+    func makeNSView(context: Context) -> ProcessListContainer {
+        let container = ProcessListContainer()
+        let scroll = container.scroll
         scroll.drawsBackground = false
         scroll.hasVerticalScroller = true
         scroll.autohidesScrollers = true
         let table = ProcessTableView()
         table.style = .plain
         table.backgroundColor = .clear
-        table.headerView = ProcessHeader()
+        table.headerView = ProcessHeader(frame: NSRect(x: 0, y: 0, width: 0, height: 24))
         table.rowHeight = 27
         table.intercellSpacing = .zero
         table.usesAlternatingRowBackgroundColors = false
@@ -29,8 +33,8 @@ struct HomeProcessList: NSViewRepresentable {
         for field in HomeProcessColumn.allCases {
             let column = NSTableColumn(identifier: .init(field.rawValue))
             column.title = field.rawValue
-            column.width = [.name: 280, .memory: 105, .cpu: 124, .power: 112, .pid: 80][field]!
-            column.minWidth = [.name: 115, .memory: 76, .cpu: 88, .power: 84, .pid: 56][field]!
+            column.width = [.name: 280, .memory: 105, .cpu: 124, .power: 112, .pid: 108][field]!
+            column.minWidth = [.name: 115, .memory: 76, .cpu: 88, .power: 84, .pid: 88][field]!
             column.resizingMask = field == .name ? [.userResizingMask, .autoresizingMask] : [.userResizingMask]
             column.sortDescriptorPrototype = NSSortDescriptor(key: field.rawValue, ascending: field == .name || field == .pid)
             if field == .power { column.headerToolTip = "Puissance moyenne estimée par macOS sur le dernier intervalle." }
@@ -44,11 +48,16 @@ struct HomeProcessList: NSViewRepresentable {
         table.action = #selector(Coordinator.clicked(_:))
         table.openSelection = { [weak coordinator = context.coordinator] index in coordinator?.show(index) }
         scroll.documentView = table
-        return scroll
+        container.queryChanged = { [weak coordinator = context.coordinator] text in coordinator?.owner.query = text }
+        return container
     }
 
-    func updateNSView(_ scroll: NSScrollView, context: Context) {
-        guard let table = scroll.documentView as? ProcessTableView else { return }
+    func updateNSView(_ container: ProcessListContainer, context: Context) {
+        guard let table = container.scroll.documentView as? ProcessTableView,
+              let name = table.tableColumns.first else { return }
+        let title = "Nom (\(processCount.formatted()))"
+        if name.title != title { name.title = title; table.headerView?.needsDisplay = true }
+        name.headerToolTip = cpuSummary.isEmpty ? "Trier par nom" : "Applications au-dessus de 40 % de CPU\n" + cpuSummary
         let coordinator = context.coordinator
         let selection = coordinator.owner.rows.indices.contains(table.selectedRow) ? coordinator.owner.rows[table.selectedRow].id : nil
         let countChanged = coordinator.owner.rows.count != rows.count
@@ -64,6 +73,10 @@ struct HomeProcessList: NSViewRepresentable {
     final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate {
         var owner: HomeProcessList
         init(_ owner: HomeProcessList) { self.owner = owner }
+        func tableViewColumnDidResize(_ notification: Notification) {
+            guard let table = notification.object as? NSTableView else { return }
+            table.enclosingScrollView?.superview?.needsLayout = true
+        }
         func numberOfRows(in tableView: NSTableView) -> Int { owner.rows.count }
         @objc func clicked(_ sender: NSTableView) {
             let row = sender.clickedRow
@@ -83,7 +96,7 @@ struct HomeProcessList: NSViewRepresentable {
         }
         func tableView(_ table: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
             let view = ProcessRowView()
-            view.hot = owner.rows[row].highCPU
+            view.cpuLevel = owner.rows[row].cpuLevel
             view.hovered = (table as? ProcessTableView)?.hoverIndex == row
             view.open = { [weak self, weak table, weak view] in
                 guard let table, let view else { return false }
@@ -108,14 +121,14 @@ struct HomeProcessList: NSViewRepresentable {
             case .cpu:
                 cell.label.stringValue = group.cpuLabel
                 cell.meter?.value = min(1, (group.cpu ?? 0) / 100)
-                cell.meter?.hot = group.highCPU
+                cell.meter?.cpuLevel = group.cpuLevel
             case .power:
                 cell.label.stringValue = group.powerLabel
                 cell.toolTip = "Somme des puissances mesurées sur le dernier intervalle."
             case .pid: cell.label.stringValue = group.primary.map { String($0.id.pid) } ?? "—"
             }
-            let hotMetric = group.highCPU && (field == .cpu || field == .power)
-            cell.label.textColor = hotMetric ? .systemOrange : (field == .pid ? .secondaryLabelColor : .labelColor)
+            let accent = field == .cpu || field == .power ? group.cpuLevel.accent : nil
+            cell.label.textColor = accent ?? (field == .pid ? .secondaryLabelColor : .labelColor)
             return cell
         }
     }
@@ -170,7 +183,7 @@ private final class ProcessTableView: NSTableView {
 
 private final class ProcessRowView: NSTableRowView {
     var hovered = false { didSet { needsDisplay = true } }
-    var hot = false
+    var cpuLevel = ProcessCPULevel.normal
     var open: (() -> Bool)?
     override func accessibilityPerformPress() -> Bool { open?() ?? false }
     override func drawBackground(in dirtyRect: NSRect) {
@@ -178,15 +191,16 @@ private final class ProcessRowView: NSTableRowView {
             NSColor.white.withAlphaComponent(0.12).setFill()
             NSBezierPath(roundedRect: bounds.insetBy(dx: 4, dy: 1), xRadius: 5, yRadius: 5).fill()
         }
-        if hot {
-            NSColor.systemOrange.setFill()
+        if let accent = cpuLevel.accent {
+            accent.setFill()
             NSBezierPath(roundedRect: NSRect(x: 5, y: 6, width: 3, height: bounds.height - 12), xRadius: 1.5, yRadius: 1.5).fill()
         }
     }
 }
 
 final class ProcessHeader: NSTableHeaderView {
-    override var isOpaque: Bool { true }
+    var searching = false { didSet { needsDisplay = true } }
+    override var isOpaque: Bool { false }
 
     override func resetCursorRects() {
         super.resetCursorRects()
@@ -199,20 +213,20 @@ final class ProcessHeader: NSTableHeaderView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        // AppKit fait défiler les lignes sous l’en-tête fixe.
-        NSColor(Theme.surface).setFill()
-        dirtyRect.fill()
         guard let table = tableView else { return }
         for (index, column) in table.tableColumns.enumerated() {
+            if searching && index == 0 { continue }
             let rect = headerRect(ofColumn: index)
             guard rect.intersects(dirtyRect) else { continue }
             let sort = table.sortDescriptors.first
             let selected = sort?.key == column.identifier.rawValue
             let attributes: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 11, weight: .semibold),
                 .foregroundColor: selected ? NSColor.labelColor : NSColor.secondaryLabelColor]
-            let label = column.title + (selected ? (sort?.ascending == true ? "  ▴" : "  ▾") : "")
+            let title = column.identifier.rawValue == HomeProcessColumn.cpu.rawValue ? "% CPU" : column.title.uppercased()
+            let label = title + (selected ? (sort?.ascending == true ? "  ▴" : "  ▾") : "")
             let size = (label as NSString).size(withAttributes: attributes)
-            let x = index == 0 ? rect.minX + 14 : rect.maxX - 14 - size.width
+            let trailing: CGFloat = column.identifier.rawValue == HomeProcessColumn.pid.rawValue ? ProcessListContainer.pidInset : 14
+            let x = index == 0 ? rect.minX + 14 : rect.maxX - trailing - size.width
             (label as NSString).draw(at: CGPoint(x: x, y: rect.midY - size.height / 2), withAttributes: attributes)
         }
     }
@@ -255,7 +269,7 @@ private final class ProcessCell: NSTableCellView {
             leading = visual.trailingAnchor
         }
         NSLayoutConstraint.activate([label.leadingAnchor.constraint(equalTo: leading, constant: 6),
-            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: field == .pid ? -ProcessListContainer.pidInset : -12),
             label.centerYAnchor.constraint(equalTo: centerYAnchor)])
     }
     required init?(coder: NSCoder) { nil }
@@ -263,12 +277,12 @@ private final class ProcessCell: NSTableCellView {
 
 private final class ProcessMeter: NSView {
     var value: Double = 0 { didSet { needsDisplay = true } }
-    var hot = false { didSet { needsDisplay = true } }
+    var cpuLevel = ProcessCPULevel.normal { didSet { needsDisplay = true } }
     override func draw(_ dirtyRect: NSRect) {
         NSColor.white.withAlphaComponent(0.13).setFill()
         NSBezierPath(roundedRect: bounds, xRadius: 2.5, yRadius: 2.5).fill()
         guard value > 0 else { return }
-        (hot ? NSColor.systemOrange : NSColor(hex: "#BEA8EC")).setFill()
+        (cpuLevel.accent ?? NSColor(hex: "#BEA8EC")).setFill()
         NSBezierPath(roundedRect: NSRect(x: 0, y: 0, width: max(1, bounds.width * value), height: bounds.height),
                      xRadius: 2.5, yRadius: 2.5).fill()
     }
