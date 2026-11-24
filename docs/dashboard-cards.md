@@ -68,6 +68,20 @@ Max à Frais recalcule la cible. Max demande le maximum de chaque ventilateur. L
 les ventilateurs pris en charge par MacCare. La mesure reste accessible sans
 assistant. Le changement de profil exige l’assistant système au protocole 11.
 
+## Fiche processus — développement du 24 novembre 2026
+
+Dans la DEV, la fiche ouverte depuis l’accueil reprend les teintes améthyste
+de la fenêtre. L’en-tête présente le nom, l’icône et le PID ou le nombre de
+processus. La charge CPU, la mémoire et la puissance du groupe précèdent le
+détail du PID consulté. Les chemins restent sélectionnables et se replient
+sur plusieurs lignes si nécessaire.
+
+Un processus seul propose « Copier le PID » sur son identifiant. Pour une
+application à plusieurs processus, la liste permet de choisir le PID et de
+copier son identifiant via le menu contextuel. Le PID consulté figure dans
+le titre du détail. La sélection ne colore pas la ligne. L’espacement sépare
+les informations, et les actions restent accessibles sous la zone défilante.
+
 ## Jauge Espace libre et survol des métriques
 
 Disponible dans [MacCare 0.2.39](release-integration-0.2.39.md).
