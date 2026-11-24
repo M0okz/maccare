@@ -249,6 +249,7 @@ struct Sidebar: View {
     @ObservedObject private var performanceRepairs: MaintenanceModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var expanded = false
+    @State private var pendingHover: Task<Void, Never>?
     @State private var showingTools = false
     private var compact: Bool { !expanded && !showingTools }
 
@@ -275,7 +276,7 @@ struct Sidebar: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             ScrollView(.vertical) {
-                VStack(spacing: 5) {
+                VStack(alignment: .leading, spacing: 5) {
                     ForEach(NavigationSection.primary.filter { $0 != .tools && $0 != .about }) { row($0) }
                 }
             }
@@ -287,12 +288,12 @@ struct Sidebar: View {
                 .buttonStyle(SidebarRowStyle(selected: app.module?.section == .tools))
                 .accessibilityLabel("Accès rapide").help("Accès rapide aux outils")
                 .popover(isPresented: $showingTools, arrowEdge: .trailing) {
-                    QuickToolsList(app: app) { showingTools = false; expanded = false }
+                    QuickToolsList(app: app) { showingTools = false; setExpanded(false) }
                 }
             }
             row(.about)
             Divider().padding(.vertical, 3)
-            Button { expanded = compact } label: {
+            Button { setExpanded(compact) } label: {
                 SidebarLabel(title: compact ? "Développer" : "Réduire", symbol: "sidebar.left", compact: compact)
             }
             .buttonStyle(SidebarRowStyle(selected: false))
@@ -302,7 +303,7 @@ struct Sidebar: View {
         .padding(.horizontal, 8)
         .padding(.top, 62)
         .padding(.bottom, 14)
-        .frame(width: compact ? SidebarLabel.railWidth : 222)
+        .frame(width: compact ? SidebarLabel.railWidth : 222, alignment: .leading)
         .frame(maxHeight: .infinity, alignment: .top)
         .overlay(alignment: .topLeading) {
             if AppBuildIdentity.isDevelopment {
@@ -316,11 +317,28 @@ struct Sidebar: View {
         .clipped()
         .shadow(color: .black.opacity(compact ? 0 : 0.25), radius: 12, x: 4)
         .contentShape(Rectangle())
-        .onHover { expanded = $0 }
+        .onHover(perform: hoverChanged)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.19), value: compact)
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
-            expanded = false
+            setExpanded(false)
         }
+        .onDisappear { setExpanded(false) }
+    }
+
+    private func hoverChanged(_ inside: Bool) {
+        pendingHover?.cancel()
+        guard inside != expanded, !inside || NSApp.isActive else { return }
+        pendingHover = Task { @MainActor in
+            do { try await Task.sleep(for: inside ? .milliseconds(250) : .milliseconds(320)) }
+            catch { return }
+            expanded = inside
+        }
+    }
+
+    private func setExpanded(_ value: Bool) {
+        pendingHover?.cancel()
+        pendingHover = nil
+        expanded = value
     }
 
     @ViewBuilder

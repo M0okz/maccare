@@ -1,7 +1,22 @@
 import XCTest
+import SwiftUI
 @testable import MacCare
 
 final class NavigationTests: XCTestCase {
+    @MainActor func testSidebarLabelFitsEveryWidthDuringExpansion() throws {
+        for compact in [true, false] {
+            let label = SidebarLabel(title: "Espace disque", symbol: "chart.pie", compact: compact)
+            let renderer = ImageRenderer(content: label)
+            renderer.scale = 1
+            for width in [60, 80, 105, 132, 206] {
+                renderer.proposedSize = .init(width: CGFloat(width), height: nil)
+                let image = try XCTUnwrap(renderer.cgImage)
+                XCTAssertEqual(image.width, width)
+                XCTAssertEqual(image.height, 42)
+            }
+        }
+    }
+
     func testEveryExistingModuleHasOneReachableDestination() {
         let destinations = NavigationSection.allCases.flatMap(\.destinations)
         XCTAssertEqual(destinations.count, Set(destinations).count, "Aucune fonction ne doit être dupliquée ou masquer une autre route")
