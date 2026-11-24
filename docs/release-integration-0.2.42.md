@@ -1,0 +1,13 @@
+# MacCare 0.2.42 — Stabilité de l’interface et cases du désinstalleur
+
+MacCare **0.2.42 (build 44)** est disponible pour les Mac Apple Silicon sous macOS 13 ou ultérieur. Le tag `v0.2.42` désigne la fusion `fdc7bfd2b034fa3b5cb055fa9828c44037dcee10`. [Notes de version](https://github.com/M0okz/maccare/releases/tag/v0.2.42) · [PR 51](https://github.com/M0okz/maccare/pull/51).
+
+La fenêtre des Réglages conserve sa hauteur, les commandes de navigation restent disponibles pendant les inventaires et le volet de menus peut restaurer la fenêtre principale. Dans Applications, la mise à l’échelle de chaque colonne aligne le centre de la case avec le fichier qu’elle sélectionne, même après défilement.
+
+En DEV, la [campagne de stabilité](ui-stability-0.2.42.md) couvre 489 transitions sur 132 parcours. Après correction, la régression des cases passe à 85 %, 90 % et 100 %. Le banc d’essai a aussi exercé ces trois densités aux largeurs de 1 024 et 1 211 points. La première CI a révélé une hypothèse incorrecte sur la largeur du bureau virtuel. Le test tient désormais compte de l’écran disponible et vérifie le défilement lorsque les lignes du haut ont quitté la zone visible. Les contrôles du clic et de l’identité du fichier sélectionné portent sur la vue native du désinstalleur.
+
+Les CI de [branche](https://github.com/M0okz/maccare/actions/runs/45490082013), de [PR](https://github.com/M0okz/maccare/actions/runs/45490100710) et de [fusion](https://github.com/M0okz/maccare/actions/runs/45492098803) ont réussi, ainsi que la [distribution](https://github.com/M0okz/maccare/actions/runs/45492107995).
+
+Le [DMG public](https://github.com/M0okz/maccare/releases/download/v0.2.42/MacCare-0.2.42-arm64.dmg) fait 16821235 octets. Son SHA-256 `5b2db64f8b7d8a63b41a25621da138c6d7020eb2f85d00e0b4b4daa426530c7a` concorde avec la somme de contrôle, le manifeste et les métadonnées GitHub. Les signatures Developer ID, Gatekeeper et les tickets de notarisation ont été vérifiés sur le DMG téléchargé et l’application qu’il contient. Les signatures Ed25519 du [flux Sparkle stable](https://github.com/M0okz/maccare/releases/latest/download/appcast.xml) et du DMG ont été vérifiées avec la clé publique qui valide également le flux de la 0.2.41, build 43. L’app embarque cette clé et l’adresse du flux stable.
+
+Les dix pages HTML et le plan du site ont été relus en HTTPS après déploiement. Les guides [Premiers pas](https://maccare.homeblack.fr/documentation/demarrer.html), [Nettoyage](https://maccare.homeblack.fr/documentation/nettoyage.html) et [Applications](https://maccare.homeblack.fr/documentation/applications.html) décrivent le retour à la fenêtre principale, la navigation pendant l’inventaire et la sélection des fichiers du désinstalleur.

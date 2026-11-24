@@ -308,3 +308,7 @@ La build 42 livre le tableau des processus et la carte Mémoire via GitHub et Sp
 ## Version 0.2.41
 
 La build 43 livre les correctifs des cartes de l’accueil et du volet latéral sur GitHub et Sparkle. [Contrôles de livraison](release-integration-0.2.41.md).
+
+## MacCare 0.2.42
+
+La [0.2.42 (build 44)](https://github.com/M0okz/maccare/releases/tag/v0.2.42) livre les correctifs de stabilité et de sélection du désinstalleur. [Contrôles de la publication GitHub et Sparkle](release-integration-0.2.42.md).

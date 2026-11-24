@@ -125,3 +125,7 @@ Les guides Premiers pas et Performances décrivent le PID des groupes de process
 ## Version 0.2.41
 
 Les guides Premiers pas et Batterie décrivent le survol du volet, les valeurs alignées sur l’accueil et le nom de l’application énergivore. [Contrôles de livraison](../docs/release-integration-0.2.41.md).
+
+## Version 0.2.42
+
+Les guides Premiers pas, Nettoyage et Applications décrivent le retour à la fenêtre principale, la navigation pendant les inventaires et la sélection dans le désinstalleur. [Vérification des téléchargements et du site](../docs/release-integration-0.2.42.md).
