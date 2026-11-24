@@ -1,6 +1,8 @@
 # Échelle automatique de la fenêtre principale
 
-## Taille minimale en DEV — 24 novembre 2026
+## Taille minimale livrée en 0.2.38
+
+[Publication et vérifications](release-integration-0.2.38.md).
 
 Une nouvelle fenêtre principale a une taille par défaut de **1 211 × 773 points**, barre de titre comprise.
 Ce format est aussi son minimum de redimensionnement. Sur les MacBook 13, 14 et

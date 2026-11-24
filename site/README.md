@@ -109,3 +109,7 @@ Le site propose le DMG officiel 0.2.35. Le guide de prise en main décrit le cur
 ## Publication 0.2.36 — 24 novembre 2026
 
 Le site propose le DMG officiel 0.2.36. Le guide de prise en main décrit l’en-tête fixe du tableau des processus. [Contrôles de livraison](../docs/release-integration-0.2.36.md).
+
+## Version 0.2.38
+
+Les guides Premiers pas et Performances décrivent le nouveau minimum de la fenêtre, la recherche dans l’en-tête des processus et les seuils de charge CPU. [Validation de la distribution](../docs/release-integration-0.2.38.md).

@@ -292,3 +292,7 @@ La [livraison 0.2.35](release-integration-0.2.35.md) documente la signature, les
 ## MacCare 0.2.36
 
 Les [contrôles de distribution de la 0.2.36](release-integration-0.2.36.md) couvrent le DMG notarié, la signature du flux et la publication du correctif de défilement.
+
+## Publication 0.2.38 — 24 novembre 2026
+
+La version 0.2.38 (build 40) publie la liste des processus et la taille de fenêtre validées dans la DEV. [Compte rendu de publication](release-integration-0.2.38.md).
