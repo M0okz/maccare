@@ -39,22 +39,23 @@ private struct SidebarRowSurface<Label: View>: View {
 /// L’icône reste centrée sur le rail pendant l’ouverture et la fermeture.
 struct SidebarLabel: View {
     static let railWidth: CGFloat = 76
+    private static let iconColumnWidth = railWidth - 16
     let title: String
     let symbol: String
     let compact: Bool
 
     var body: some View {
-        HStack(spacing: 0) {
-            Image(systemName: symbol).font(AppFont.emphasis)
-                .frame(width: Self.railWidth - 16)
-                .accessibilityHidden(true)
-            if !compact {
-                Text(title).font(AppFont.body.weight(.medium)).lineLimit(1).fixedSize()
-                    .transition(.opacity.combined(with: .offset(x: -8)))
+        Image(systemName: symbol).font(AppFont.emphasis)
+            .frame(width: Self.iconColumnWidth)
+            .frame(maxWidth: .infinity, minHeight: 42, alignment: .leading)
+            .overlay(alignment: .leading) {
+                Text(title).font(AppFont.body.weight(.medium)).fixedSize()
+                    .padding(.leading, Self.iconColumnWidth)
+                    .opacity(compact ? 0 : 1)
+                    .allowsHitTesting(false)
             }
-        }
-        .frame(maxWidth: .infinity, minHeight: 42, alignment: .leading)
-        .foregroundStyle(Theme.fg)
-        .contentShape(Rectangle())
+            .clipped()
+            .foregroundStyle(Theme.fg)
+            .contentShape(Rectangle())
     }
 }

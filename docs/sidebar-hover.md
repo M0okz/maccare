@@ -1,5 +1,17 @@
 # Survol des catégories — 6 novembre 2026
 
+## Stabilité du volet — DEV du 24 novembre 2026
+
+Le survol du rail pendant 250 ms ouvre le volet. Sa fermeture commence après
+320 ms passées à l’extérieur. Un retour avant ce délai annule la fermeture.
+Le bouton inférieur répond immédiatement au clic ou au clavier. La fermeture
+explicite et la perte d’activité de MacCare annulent le délai en cours.
+
+Les libellés apparaissent en surimpression à droite de la colonne d’icônes.
+Leur largeur ne participe plus au calcul de la largeur des lignes pendant
+la transition. Dans la DEV 0.2.40 (42), les neuf symboles de l’accueil ont
+gardé la même position sur 251 images capturées pendant deux cycles.
+
 ## Volet superposé — aperçu DEV du 22 novembre 2026
 
 Le rail occupe 76 points de la mise en page. Son survol révèle les libellés

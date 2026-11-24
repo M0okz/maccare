@@ -14,7 +14,7 @@ struct HomeHealthCard<ScanAction: View>: View {
     var body: some View {
         HealthCardLayout {
             Button { showingDetails = true } label: {
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: 13) {
                     HStack(spacing: 5) {
                         Label("Santé du Mac", systemImage: "waveform.path.ecg")
                             .font(AppFont.secondary.weight(.semibold)).foregroundStyle(Theme.ok)
@@ -101,7 +101,10 @@ private struct HealthCardLayout: Layout {
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         let (leading, below, sizes) = measurements(width: bounds.width, subviews: subviews)
         let action = sizes[3]
-        let summaryY = max(bounds.minY + sizes[0].height + gap, below ? bounds.midY + action.height / 2 + gap : bounds.minY)
+        let scoreBottom = bounds.minY + sizes[0].height
+        let footerTop = bounds.maxY - sizes[2].height
+        let centeredSummaryY = (scoreBottom + footerTop - sizes[1].height) / 2
+        let summaryY = max(centeredSummaryY, below ? bounds.midY + action.height / 2 + gap : scoreBottom + gap)
         subviews[0].place(at: bounds.origin, anchor: .topLeading, proposal: .init(width: leading, height: nil))
         subviews[1].place(at: .init(x: bounds.minX, y: summaryY), anchor: .topLeading,
                           proposal: .init(width: below ? bounds.width : leading, height: nil))
