@@ -8,9 +8,9 @@ struct TrayProcessList: View {
     @State private var confirming = false
 
     private var ranked: [TrayProcess] {
-        Array(controller.processes.sorted {
-            let left = memory ? Double($0.memory) : ($0.cpuPercent ?? -1)
-            let right = memory ? Double($1.memory) : ($1.cpuPercent ?? -1)
+        Array(controller.processes.filter { !memory || $0.memory != nil }.sorted {
+            let left = memory ? Double($0.memory ?? 0) : ($0.cpuPercent ?? -1)
+            let right = memory ? Double($1.memory ?? 0) : ($1.cpuPercent ?? -1)
             return left == right ? $0.id.pid < $1.id.pid : left > right
         }.prefix(6))
     }
@@ -63,7 +63,7 @@ struct TrayProcessList: View {
                 Text("PID \(process.id.pid)").font(.system(size: 10)).foregroundStyle(.white.opacity(0.55))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            Text(memory ? humanSize(process.memory) : process.cpuPercent.map { String(format: "%.1f %%", $0) } ?? "—")
+            Text(memory ? (process.memory.map { humanSize($0) } ?? "—") : process.cpuPercent.map { String(format: "%.1f %%", $0) } ?? "—")
                 .font(.system(size: 11, weight: .medium)).monospacedDigit().frame(minWidth: 65, alignment: .trailing)
             Menu {
                 Button("Quitter") { select(process, force: false) }

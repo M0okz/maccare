@@ -156,7 +156,7 @@ actor TrayBatterySampler {
         var freshProcesses: [TrayProcess]?
         if !readingProcesses && processCadence.shouldSample(at: ProcessInfo.processInfo.systemUptime) {
             readingProcesses = true
-            let sample = await processes.sample(includeEnergy: true,
+            let sample = await processes.sample(includeEnergy: true, includeWindowServer: includeProcessList,
                                                maximumInterval: TrayBatteryProcessCadence.maximumMeasurementInterval)
             if includeProcessList { freshProcesses = sample }
             consumer = TrayBatteryTelemetry.leadingConsumer(sample)

@@ -16,7 +16,7 @@ struct HomeProcessGroup: Identifiable {
     let application: URL?
     let members: [TrayProcess]
     let primary: TrayProcess?
-    let memory: UInt64
+    let memory: UInt64?
     let cpu: Double?
     let power: Double?
     var cpuLevel: ProcessCPULevel { ProcessCPULevel(cpu) }
@@ -44,7 +44,7 @@ struct HomeProcessGroup: Identifiable {
         }
         return families.map { id, rows in
             let members = rows.sorted {
-                $0.memory == $1.memory ? $0.id.pid < $1.id.pid : $0.memory > $1.memory
+                $0.memory == $1.memory ? $0.id.pid < $1.id.pid : ($0.memory ?? 0) > ($1.memory ?? 0)
             }
             let owner: URL?
             let primary: TrayProcess?
@@ -65,7 +65,7 @@ struct HomeProcessGroup: Identifiable {
                 return values.isEmpty ? nil : values.reduce(0, +)
             }
             return Self(id: id, name: name, application: owner, members: members, primary: primary,
-                        memory: members.reduce(0) { $0 + $1.memory }, cpu: sum(\.cpuPercent), power: sum(\.energyWatts))
+                        memory: members.allSatisfy { $0.memory != nil } ? members.compactMap(\.memory).reduce(0, +) : nil, cpu: sum(\.cpuPercent), power: sum(\.energyWatts))
         }
     }
 
@@ -118,5 +118,5 @@ enum HomeProcessMetric {
         return watts.formatted(.number.precision(.fractionLength(0...2))) + " W"
     }
 
-    static func memory(_ bytes: UInt64) -> String { humanSize(bytes, fractionalAbove: 1_000_000_000) }
+    static func memory(_ bytes: UInt64?) -> String { bytes.map { humanSize($0, fractionalAbove: 1_000_000_000) } ?? "—" }
 }

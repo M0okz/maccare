@@ -2,15 +2,14 @@ import AppKit
 import SwiftUI
 
 struct HomeProcessDetails: View {
-    let opened: HomeProcessGroup
-    let matchedPID: TrayProcess.Identity?
-    let group: HomeProcessGroup?
+    @ObservedObject var session: HomeProcessDetailSession
     @ObservedObject var controller: TrayProcessController
-    @Environment(\.dismiss) private var dismiss
-    @State private var inspectedID: TrayProcess.Identity?
-    @State private var inspection: HomeProcessInspection?
+    let presentation: HomeProcessPresentation
     @State private var confirmation: StopRequest?
-    @State private var detailsHeight: CGFloat = 240
+    @AccessibilityFocusState private var titleFocused: Bool
+
+    private var opened: HomeProcessGroup { session.opened }
+    private var inspection: HomeProcessInspection? { session.selection?.inspection }
 
     private struct StopRequest: Identifiable {
         let process: TrayProcess
@@ -19,13 +18,13 @@ struct HomeProcessDetails: View {
     }
 
     private var live: HomeProcessGroup? {
-        guard let group else { return nil }
+        guard let group = session.group else { return nil }
         let initial = Set(opened.members.map(\.id))
         return group.members.contains { initial.contains($0.id) } ? group : nil
     }
     private var inspected: TrayProcess? {
         guard let live else { return nil }
-        let target = inspectedID ?? matchedPID ?? opened.primary?.id ?? opened.members[0].id
+        let target = session.selection?.id
         return live.members.first { $0.id == target }
     }
 
@@ -41,27 +40,12 @@ struct HomeProcessDetails: View {
             if live == nil {
                 Text("Le processus s’est terminé.").foregroundStyle(Theme.warn)
             } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 18) {
-                        if let process = inspected {
-                            if current.members.count > 1 {
-                                Text("\(process.name) · PID \(String(process.id.pid))")
-                                    .font(.headline).accessibilityAddTraits(.isHeader)
-                            }
-                            processFields(process)
-                        } else {
-                            Text("Le processus sélectionné s’est terminé.").foregroundStyle(Theme.muted)
-                        }
-                        if current.members.count > 1 || inspected == nil { processMembers(current) }
-                    }
-                    .padding(.trailing, 8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
-                        if height > 0 { detailsHeight = height.rounded(.up) }
-                    }
+                ViewThatFits(in: .vertical) {
+                    details(current)
+                    ScrollView { details(current) }
                 }
-                .frame(height: min(detailsHeight, 372))
+                .frame(maxHeight: 372)
+                .fixedSize(horizontal: false, vertical: true)
             }
             HStack(spacing: 8) {
                 Button("Copier le résumé") {
@@ -88,13 +72,7 @@ struct HomeProcessDetails: View {
         .foregroundStyle(Theme.fg)
         .background(LinearGradient(colors: [Theme.windowTop, Theme.surface, Theme.window],
                                    startPoint: .topLeading, endPoint: .bottomTrailing))
-        .background(ProcessSheetBackdrop(isEnabled: confirmation == nil) { dismiss() })
-        .task(id: inspected?.id) {
-            inspection = nil
-            guard let process = inspected else { return }
-            let snapshot = await Task.detached(priority: .utility) { HomeProcessInspection.read(process) }.value
-            if !Task.isCancelled { inspection = snapshot }
-        }
+        .onAppear { titleFocused = true }
         .alert(confirmation?.force == true ? "Forcer l’arrêt de ce processus ?" : "Quitter ce processus ?",
                isPresented: Binding(get: { confirmation != nil }, set: { if !$0 { confirmation = nil } }), presenting: confirmation) { request in
             Button("Annuler", role: .cancel) {}
@@ -102,6 +80,24 @@ struct HomeProcessDetails: View {
         } message: { request in
             Text("\(request.process.name) · PID \(request.process.id.pid)" + (request.force ? "\nLes modifications non enregistrées peuvent être perdues." : ""))
         }
+    }
+
+    private func details(_ current: HomeProcessGroup) -> some View {
+        VStack(alignment: .leading, spacing: 18) {
+            if let process = inspected {
+                if current.members.count > 1 {
+                    Text("\(process.name) · PID \(String(process.id.pid))")
+                        .font(.headline).accessibilityAddTraits(.isHeader)
+                }
+                processFields(process)
+            } else {
+                Text("Le processus sélectionné s’est terminé.").foregroundStyle(Theme.muted)
+            }
+            if current.members.count > 1 || inspected == nil { processMembers(current) }
+        }
+        .padding(.trailing, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private func summary(_ group: HomeProcessGroup) -> String {
@@ -121,7 +117,7 @@ struct HomeProcessDetails: View {
             }
             .frame(width: 38, height: 38).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
-                Text(opened.name).font(AppFont.section).foregroundStyle(Theme.fg).lineLimit(2).accessibilityAddTraits(.isHeader)
+                Text(opened.name).accessibilityFocused($titleFocused).font(AppFont.section).foregroundStyle(Theme.fg).lineLimit(2).accessibilityAddTraits(.isHeader)
                 if group.members.count == 1, let member = group.members.first {
                     Text("PID \(String(member.id.pid))").contextMenu { copyPID(member) }
                 } else {
@@ -130,7 +126,7 @@ struct HomeProcessDetails: View {
             }
             .font(.callout).foregroundStyle(Theme.muted)
             Spacer()
-            Button { dismiss() } label: {
+            Button { presentation.close() } label: {
                 Image(systemName: "xmark").font(.system(size: 11, weight: .semibold))
                     .frame(width: 28, height: 28).background(Theme.faint.opacity(0.12), in: Circle())
             }
@@ -150,19 +146,26 @@ struct HomeProcessDetails: View {
 
     @ViewBuilder private func processFields(_ process: TrayProcess) -> some View {
         Grid(alignment: .topLeading, horizontalSpacing: 16, verticalSpacing: 12) {
-            GridRow {
-                field("Threads", inspection.map { String($0.threads) } ?? "—")
-                field("Fichiers ouverts", inspection?.files.map(String.init) ?? "—")
-                field("Actif depuis", MacSystemSpecs.duration(Date().timeIntervalSince1970 - Double(process.id.startedSeconds)))
-            }
-            GridRow {
-                field("Utilisateur", inspection?.user ?? "—")
-                field("Processus parent", inspection?.parent ?? "—").gridCellColumns(2)
-            }
-            if let service = inspection?.service {
+            if inspection == nil && process.name == "WindowServer" {
                 GridRow {
-                    field("Service launchd", service).gridCellColumns(inspection?.reason == nil ? 3 : 2)
-                    if let reason = inspection?.reason { field("Motif launchd", reason) }
+                    field("Type", "Processus système macOS").gridCellColumns(2)
+                    field("Actif depuis", MacSystemSpecs.duration(Date().timeIntervalSince1970 - Double(process.id.startedSeconds)))
+                }
+            } else {
+                GridRow {
+                    field("Threads", inspection.map { String($0.threads) } ?? "—")
+                    field("Fichiers ouverts", inspection?.files.map(String.init) ?? "—")
+                    field("Actif depuis", MacSystemSpecs.duration(Date().timeIntervalSince1970 - Double(process.id.startedSeconds)))
+                }
+                GridRow {
+                    field("Utilisateur", inspection?.user ?? "—")
+                    field("Processus parent", inspection?.parent ?? "—").gridCellColumns(2)
+                }
+                if let service = inspection?.service {
+                    GridRow {
+                        field("Service launchd", service).gridCellColumns(inspection?.reason == nil ? 3 : 2)
+                        if let reason = inspection?.reason { field("Motif launchd", reason) }
+                    }
                 }
             }
         }
@@ -199,7 +202,7 @@ struct HomeProcessDetails: View {
                 Text("Mémoire").frame(width: 78, alignment: .trailing)
             }.font(.caption.weight(.semibold)).foregroundStyle(Theme.muted).padding(.horizontal, 6)
             ForEach(group.members) { member in
-                Button { inspectedID = member.id } label: {
+                Button { presentation.select(member, in: session) } label: {
                     HStack {
                         Text(member.name).lineLimit(1).truncationMode(.middle).frame(maxWidth: .infinity, alignment: .leading)
                         Text(String(member.id.pid)).frame(width: 60, alignment: .trailing)
@@ -213,56 +216,6 @@ struct HomeProcessDetails: View {
                     .accessibilityAddTraits(selected == member.id ? .isSelected : [])
                     .contextMenu { copyPID(member) }
             }
-        }
-    }
-}
-
-/// Une feuille AppKit bloque les gestes SwiftUI de la fenêtre assombrie.
-private struct ProcessSheetBackdrop: NSViewRepresentable {
-    let isEnabled: Bool
-    let dismiss: () -> Void
-
-    func makeNSView(context: Context) -> BackdropObserver {
-        let observer = BackdropObserver()
-        observer.monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp]) { [weak observer] event in
-            let consumed = MainActor.assumeIsolated { observer?.consume(event) == true }
-            return consumed ? nil : event
-        }
-        return observer
-    }
-
-    func updateNSView(_ observer: BackdropObserver, context: Context) {
-        observer.dismiss = isEnabled ? dismiss : nil
-    }
-
-    static func dismantleNSView(_ observer: BackdropObserver, coordinator: ()) {
-        if let monitor = observer.monitor { NSEvent.removeMonitor(monitor) }
-    }
-
-    final class BackdropObserver: NSView {
-        var monitor: Any?
-        var dismiss: (() -> Void)?
-        private var pressedOutside = false
-
-        override func hitTest(_ point: NSPoint) -> NSView? { nil }
-
-        func consume(_ event: NSEvent) -> Bool {
-            guard let dismiss, let sheet = window, let parent = sheet.sheetParent,
-                  parent.attachedSheet === sheet, sheet.attachedSheet == nil,
-                  let target = event.window, target === parent || target === sheet else {
-                pressedOutside = false
-                return false
-            }
-            let point = target.convertPoint(toScreen: event.locationInWindow)
-            let outside = parent.frame.contains(point) && !sheet.frame.contains(point)
-            if event.type == .leftMouseDown {
-                pressedOutside = outside
-                return outside
-            }
-            guard pressedOutside else { return false }
-            pressedOutside = false
-            if outside { dismiss() }
-            return true
         }
     }
 }

@@ -82,6 +82,16 @@ copier son identifiant via le menu contextuel. Le PID consulté figure dans
 le titre du détail. La sélection ne colore pas la ligne. L’espacement sépare
 les informations, et les actions restent accessibles sous la zone défilante.
 
+Dans la build DEV 0.2.39 (35), la fiche apparaît au centre de la fenêtre par
+un fondu de 160 ms. Le nom, les mesures et les détails disponibles du PID
+apparaissent ensemble. Un changement de PID présente ses champs en une fois.
+Échap, la croix et un clic sur le fond permettent de revenir au tableau.
+
+La recherche par nom ou PID et le tri CPU incluent WindowServer. macOS
+permet de mesurer sa charge CPU sur deux relevés successifs. Si la mémoire
+ou la puissance sont inaccessibles, leurs cellules affichent un tiret.
+La fiche identifie ce processus système et désactive les actions d’arrêt.
+
 ## Jauge Espace libre et survol des métriques
 
 Disponible dans [MacCare 0.2.39](release-integration-0.2.39.md).

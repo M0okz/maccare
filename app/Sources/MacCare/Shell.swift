@@ -211,6 +211,7 @@ struct RootView: View {
             }
         }
         .frame(minWidth: displayLayout.minimumContentSize.width, minHeight: displayLayout.minimumContentSize.height)
+        .modifier(HomeProcessModal())
         .onAppear {
             app.permissions.recheck()
             app.systemClean.refreshStatus()

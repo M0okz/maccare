@@ -163,6 +163,20 @@ relever l’énergie attribuée par macOS sans changer les actions de fermeture.
 La puissance vient des nanojoules ; le repli CPU est explicitement séparé et
 conserve la base de temps Mach. [Barème et limites](menu-bar-panel.md).
 
+Dans la DEV 0.2.39 (35), si le relevé natif omet WindowServer, les listes
+visibles utilisent `WindowServerSample`. La lecture cible le compte effectif
+`_windowserver` et vérifie le nom, le PID et la date de démarrage via
+`sysctl` avant et après la lecture de `/bin/ps -p PID -o time=`. Le delta de
+temps CPU est rapporté à l’intervalle monotone entre relevés. La mémoire et
+la puissance demeurent optionnelles. Les alertes mémoire exigent une empreinte
+mesurée.
+
+`HomeProcessPresentation` prépare l’inspection du PID hors du fil principal.
+La sélection et les champs associés sont publiés ensemble. La fenêtre affiche
+la fiche au centre par transition d’opacité et borne son contenu défilant
+à 372 points. Une fermeture ou une nouvelle sélection invalide la lecture
+en cours.
+
 ## Action d’analyse sur l’accueil — aperçu DEV du 22 novembre 2026
 
 `HomeHealthCard` présente deux boutons. Le score ouvre `MacHealthDetails`

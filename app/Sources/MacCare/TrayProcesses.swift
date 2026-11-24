@@ -10,7 +10,7 @@ struct TrayProcess: Identifiable, Sendable, Equatable {
     let id: Identity
     let name: String
     let userID: uid_t
-    let memory: UInt64
+    let memory: UInt64?
     let cpuPercent: Double?
     let executable: String
     var energyWatts: Double? = nil
@@ -25,7 +25,9 @@ struct TrayProcess: Identifiable, Sendable, Equatable {
 actor TrayProcessSampler {
     private var previous: [TrayProcess.Identity: (cpu: UInt64, energy: UInt64?, time: TimeInterval)] = [:]
 
-    func sample(includeEnergy: Bool = false, maximumInterval: TimeInterval = 10) -> [TrayProcess] {
+    private var previousWindowServer: WindowServerSample?
+
+    func sample(includeEnergy: Bool = false, includeWindowServer: Bool = false, maximumInterval: TimeInterval = 10) -> [TrayProcess] {
         let count = proc_listallpids(nil, 0)
         guard count > 0 else { return [] }
         var pids = [pid_t](repeating: 0, count: Int(count) + 128)
@@ -78,6 +80,12 @@ actor TrayProcessSampler {
             result.append(.init(id: identity, name: name, userID: info.pbsd.pbi_uid,
                                 memory: footprint, cpuPercent: percent, executable: path, energyWatts: watts))
         }
+        if includeWindowServer && !result.contains(where: { $0.name == "WindowServer" }), let sample = WindowServerSample.read() {
+            result.append(sample.process(after: previousWindowServer, maximumInterval: maximumInterval))
+            previousWindowServer = sample
+        } else {
+            previousWindowServer = nil
+        }
         previous = next
         return result
     }
@@ -122,7 +130,7 @@ final class TrayProcessController: ObservableObject {
 
     func monitor() async {
         while !Task.isCancelled {
-            let snapshot = await sampler.sample()
+            let snapshot = await sampler.sample(includeWindowServer: true)
             guard !Task.isCancelled else { return }
             record(snapshot)
             do { try await Task.sleep(for: .seconds(2)) } catch { return }

@@ -9,12 +9,7 @@ struct HomeProcessTable: View {
     @State private var groups: [HomeProcessGroup] = []
     @State private var cpuSummary = ""
     @State private var sort = HomeProcessSort()
-    private struct Selection: Identifiable {
-        let group: HomeProcessGroup
-        let member: TrayProcess.Identity?
-        var id: HomeProcessGroup.ID { group.id }
-    }
-    @State private var detail: Selection?
+    @EnvironmentObject private var presentation: HomeProcessPresentation
 
     var body: some View {
         VStack(spacing: 0) {
@@ -22,7 +17,7 @@ struct HomeProcessTable: View {
             let rows = term.isEmpty ? groups : groups.filter { $0.matches(term) }
             HomeProcessList(rows: rows, processCount: controller.processes.count, cpuSummary: cpuSummary,
                             controller: controller, isCardHovered: isCardHovered, sort: $sort, query: $query) { group in
-                detail = Selection(group: group, member: group.members.first { String($0.id.pid) == term }?.id)
+                presentation.open(group, member: group.members.first { String($0.id.pid) == term }, controller: controller)
             }
                 .frame(minHeight: 82, maxHeight: .infinity)
                 .overlay {
@@ -41,14 +36,13 @@ struct HomeProcessTable: View {
         .onHover { isCardHovered = $0 }
         .onReceive(controller.$processes) { processes in
             let snapshot = HomeProcessGroup.collect(processes, registered: HomeProcessGroup.registeredApplications())
+            presentation.refresh(snapshot)
             groups = sort.ordered(snapshot)
             cpuSummary = HomeProcessSort.highCPUApplications(in: snapshot)
                 .map { "\($0.name) · \($0.cpuLabel)" }.joined(separator: "\n")
         }
         .onChange(of: sort) { groups = $0.ordered(groups) }
-        .sheet(item: $detail) { opened in
-            HomeProcessDetails(opened: opened.group, matchedPID: opened.member, group: groups.first { $0.id == opened.id }, controller: controller)
-        }
+        .onDisappear { presentation.close() }
     }
 }
 
@@ -72,7 +66,9 @@ struct HomeProcessSort: Equatable {
             case .name:
                 let order = a.name.localizedStandardCompare(b.name)
                 if order != .orderedSame { return order == .orderedAscending }
-            case .memory: if a.memory != b.memory { return a.memory < b.memory }
+            case .memory:
+                if (left.memory == nil) != (right.memory == nil) { return left.memory != nil }
+                if let am = a.memory, let bm = b.memory, am != bm { return am < bm }
             case .cpu: if a.cpu != b.cpu { return (a.cpu ?? -1) < (b.cpu ?? -1) }
             case .power: if a.power != b.power { return (a.power ?? -1) < (b.power ?? -1) }
             case .pid:

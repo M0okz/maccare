@@ -2,6 +2,56 @@ import XCTest
 @testable import MacCare
 
 final class TrayProcessesTests: XCTestCase {
+    func testWindowServerUsesCPUTimeAcrossSamplesOfTheSameProcess() throws {
+        XCTAssertEqual(WindowServerSample.seconds(" 2496:50.77\n"), 149810.77)
+        XCTAssertEqual(WindowServerSample.seconds("1:02:03.50"), 3723.5)
+        XCTAssertNil(WindowServerSample.seconds("—"))
+        func sample(_ start: UInt64, _ time: Double, _ cpu: Double?) -> WindowServerSample {
+            .init(id: .init(pid: 416, startedSeconds: start, startedMicroseconds: 9),
+                  userID: 88, cpuSeconds: cpu, timestamp: time)
+        }
+        let first = sample(10, 2, 174), second = sample(10, 4, 175)
+        let row = second.process(after: first, maximumInterval: 10)
+        XCTAssertEqual(row.cpuPercent, 50)
+        XCTAssertNil(row.memory)
+        XCTAssertNil(row.energyWatts)
+        XCTAssertFalse(row.canQuit)
+        XCTAssertNil(first.process(after: nil, maximumInterval: 10).cpuPercent)
+        XCTAssertNil(second.process(after: sample(9, 2, 174), maximumInterval: 10).cpuPercent)
+        XCTAssertNil(second.process(after: first, maximumInterval: 1).cpuPercent)
+        XCTAssertNil(second.process(after: sample(10, 2, nil), maximumInterval: 10).cpuPercent)
+        let measured = TrayProcess(id: .init(pid: 100, startedSeconds: 1, startedMicroseconds: 0),
+                                   name: "Autre", userID: 501, memory: 0, cpuPercent: 2, executable: "")
+        let groups = HomeProcessGroup.collect([row, measured])
+        XCTAssertEqual(HomeProcessMetric.memory(groups.first { $0.name == "WindowServer" }?.memory), "—")
+        for ascending in [true, false] {
+            XCTAssertEqual(HomeProcessSort(column: .memory, ascending: ascending).ordered(groups).last?.name, "WindowServer")
+        }
+        XCTAssertEqual(HomeProcessSort(column: .cpu).ordered(groups).first?.name, "WindowServer")
+    }
+
+    @MainActor func testProcessDetailOpensWithInspectionAndCancelsPendingOpen() async throws {
+        let rows = await TrayProcessSampler().sample()
+        let process = try XCTUnwrap(rows.first { $0.id.pid == getpid() })
+        let group = try XCTUnwrap(HomeProcessGroup.collect([process]).first)
+        let presentation = HomeProcessPresentation(), controller = TrayProcessController()
+        presentation.open(group, member: process, controller: controller)
+        XCTAssertNil(presentation.presented)
+        presentation.close()
+        presentation.open(group, member: process, controller: controller)
+        for _ in 0..<100 where presentation.presented == nil {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let selection = try XCTUnwrap(presentation.presented?.selection)
+        XCTAssertEqual(selection.id, process.id)
+        XCTAssertNotNil(selection.inspection?.threads)
+        presentation.close()
+        presentation.open(group, member: process, controller: controller)
+        presentation.close()
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertNil(presentation.presented)
+    }
+
     func testCPUWarningAndCriticalThresholdsAreStrict() {
         XCTAssertEqual(ProcessCPULevel(nil), .normal)
         XCTAssertEqual(ProcessCPULevel(40), .normal)
@@ -102,7 +152,7 @@ final class TrayProcessesTests: XCTestCase {
         let rows = await sampler.sample()
         let own = try XCTUnwrap(rows.first { $0.id.pid == getpid() })
         XCTAssertFalse(own.canQuit)
-        XCTAssertGreaterThan(own.memory, 0)
+        XCTAssertGreaterThan(try XCTUnwrap(own.memory), 0)
         XCTAssertNotNil(own.cpuPercent)
         XCTAssertGreaterThanOrEqual(own.cpuPercent ?? -1, 0)
     }
@@ -111,7 +161,7 @@ final class TrayProcessesTests: XCTestCase {
         let sampler = TrayBatterySampler()
         let first = await sampler.read(includeAccessories: false, includeProcessList: true)
         let initial = try XCTUnwrap(first.processes?.first { $0.id.pid == getpid() })
-        XCTAssertGreaterThan(initial.memory, 0)
+        XCTAssertGreaterThan(try XCTUnwrap(initial.memory), 0)
         XCTAssertNil(initial.cpuPercent)
         XCTAssertNil(initial.energyWatts)
 
