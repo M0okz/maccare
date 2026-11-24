@@ -502,3 +502,7 @@ Les rendus ont été contrôlés dans les Dev précédentes à 1436 × 784. Les 
 ## Publication 0.2.31 — 23 novembre 2026
 
 Les cartes, les processus, la navigation et la ventilation décrits dans les aperçus du 22 novembre sont disponibles dans MacCare 0.2.31 (build 33). Voir les [preuves de livraison](release-integration-0.2.31.md).
+
+## Version 0.2.40
+
+Le tableau des processus et la carte Mémoire décrits dans les aperçus DEV du 24 novembre sont disponibles dans la version publique 0.2.40. [Contrôles de livraison](release-integration-0.2.40.md).

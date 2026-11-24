@@ -437,3 +437,7 @@ les événements de sortie des anciennes sources sont ignorés.
 Les boutons sont sensibles au cercle, sélectionnent au clic simple et ouvrent
 les dossiers au double-clic ; leur action d’accessibilité garde l’ouverture directe.
 Voir [les comportements et preuves Dev](space-bubbles-interaction.md).
+
+## Version 0.2.40
+
+La collecte de WindowServer, les PID représentatifs, le score énergétique et la mesure de la RAM et du swap sur l’accueil sont disponibles dans la version 0.2.40. [Contrôles de livraison](release-integration-0.2.40.md).
