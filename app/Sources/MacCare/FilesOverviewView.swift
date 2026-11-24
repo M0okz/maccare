@@ -56,6 +56,7 @@ struct FilesOverviewView: View {
                             Button { app.module = .imageOptimization } label: { Label("Alléger des images PNG", systemImage: "photo.on.rectangle.angled") }
                                 .buttonStyle(.actionPill).controlSize(.large)
                             locationMenu
+                            diskSpaceButton
                             if let error = analysis.locationError {
                                 Label(error, systemImage: "exclamationmark.triangle").font(AppFont.secondary)
                             }
@@ -74,6 +75,16 @@ struct FilesOverviewView: View {
                     .buttonStyle(.actionPill).font(AppFont.secondary)
             }
         }
+    }
+
+    private var diskSpaceButton: some View {
+        Button {
+            if app.space.currentPath != analysis.searchRoot.path { app.space.selectFolder(analysis.searchRoot) }
+            app.module = .space
+        } label: {
+            Label("Explorer dans Espace disque", systemImage: "chart.pie")
+        }
+        .buttonStyle(.actionPill)
     }
 
     private var locationMenu: some View {
@@ -98,7 +109,7 @@ struct FilesOverviewView: View {
             ScreenToolbar(title: "Mes fichiers") {
                 Button { analysis.choosingLocation = true } label: { Label("Recommencer", systemImage: "arrow.counterclockwise") }
                     .buttonStyle(.actionPill)
-            } trailing: { EmptyView() }.padding(.horizontal, 30).padding(.top, 20)
+            } trailing: { diskSpaceButton }.padding(.horizontal, 30).padding(.top, 20)
             GeometryReader { geometry in
                 ScrollView {
                     VStack(spacing: 24) {

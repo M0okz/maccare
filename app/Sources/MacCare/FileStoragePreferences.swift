@@ -24,9 +24,15 @@ struct FileStoragePreferences {
 }
 
 enum SpaceDisplayMode: String, CaseIterable, Identifiable {
-    case map, list
+    case map, list, changes
     var id: String { rawValue }
-    var title: String { self == .map ? "Carte" : "Liste" }
+    var title: String {
+        switch self {
+        case .map: return "Carte"
+        case .list: return "Liste"
+        case .changes: return "Évolution"
+        }
+    }
 }
 
 enum SpaceStartFolder: String, CaseIterable, Identifiable {

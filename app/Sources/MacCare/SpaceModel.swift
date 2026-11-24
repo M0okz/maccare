@@ -18,6 +18,7 @@ final class SpaceModel: ObservableObject {
     @Published private(set) var stack: [String] = []        // chemins absolus, racine → courant
     @Published private(set) var children: [SpaceChild] = []
     @Published private(set) var isLoading = false
+    @Published private(set) var isSavingHistory = false
     @Published private(set) var hasMeasured = false
     @Published private(set) var lastMeasuredAt: Date?
     @Published private(set) var highlightedPath: String?
@@ -34,7 +35,12 @@ final class SpaceModel: ObservableObject {
     /// Mesure en cours : annulée dès qu'on navigue ailleurs, pour libérer le disque tout de suite.
     private var measureTask: EngineTask?
 
+    @Published private(set) var comparison = SpaceComparison.baseline
+    private let history: SpaceHistory?
+    private let historyQueue = DispatchQueue(label: "org.maccare.space-history", qos: .utility)
+
     private struct Snapshot {
+        let comparison: SpaceComparison
         let children: [SpaceChild]
         let date: Date
     }
@@ -48,9 +54,11 @@ final class SpaceModel: ObservableObject {
     private var volumeNotifications: AnyCancellable?
 
     init(preferences: FileStoragePreferences = FileStoragePreferences(),
+         history: SpaceHistory? = nil,
          measure: @escaping @Sendable (String, EngineTask) throws -> [SpaceChild] = { try Engine.measureDir($0, task: $1) },
          volumeProvider: (() -> [Root])? = nil,
          volumeEvents: NotificationCenter = NSWorkspace.shared.notificationCenter) {
+        self.history = history
         measureDirectory = measure
         let home = NSHomeDirectory()
         func sub(_ c: String) -> String { (home as NSString).appendingPathComponent(c) }
@@ -240,11 +248,12 @@ final class SpaceModel: ObservableObject {
     private func stopMeasurement() {
         measureTask?.cancel()
         measureTask = nil
+        isSavingHistory = false
         isLoading = false
     }
 
     func cancelMeasurement() {
-        guard isLoading else { return }
+        guard isLoading, !isSavingHistory else { return }
         stopMeasurement()
         children = []
         hasMeasured = false
@@ -260,6 +269,7 @@ final class SpaceModel: ObservableObject {
         statusMessage = nil
         lastReport = nil
         if let snapshot = snapshots[currentPath] {
+            comparison = snapshot.comparison
             children = snapshot.children
             lastMeasuredAt = snapshot.date
             hasMeasured = true
@@ -269,7 +279,7 @@ final class SpaceModel: ObservableObject {
     }
 
     private func remember(_ children: [SpaceChild], path: String, date: Date) {
-        snapshots[path] = Snapshot(children: children, date: date)
+        snapshots[path] = Snapshot(comparison: comparison, children: children, date: date)
         snapshotOrder.removeAll { $0 == path }
         snapshotOrder.append(path)
         if snapshotOrder.count > 12 {
@@ -291,6 +301,7 @@ final class SpaceModel: ObservableObject {
     }
 
     private func measureCurrent(keepReport: Bool = false) {
+        isSavingHistory = false
         isLoading = true
         hasMeasured = false
         lastMeasuredAt = nil
@@ -318,32 +329,55 @@ final class SpaceModel: ObservableObject {
             }
         }
         let measure = measureDirectory
+        let history = self.history
         Task.detached(priority: .userInitiated) {
             let token = PowerAssertion.beginUserActivity("MacCare · espace disque")
             defer { PowerAssertion.end(token) }
+            let scope = history == nil ? nil : SpaceHistory.Scope.read(path)
             let result: Result<[SpaceChild], Error>
             do {
                 result = .success(try measure(path, task))
             } catch {
                 result = .failure(error)
             }
+            let sameScope = scope != nil && scope == SpaceHistory.Scope.read(path)
             await MainActor.run {
                 // Ignore un résultat périmé (mesure annulée ou remplacée par une navigation).
                 guard path == self.currentPath, task === self.measureTask else { return }
                 switch result {
                 case .success(let found):
-                    self.children = found
                     let date = Date()
-                    self.lastMeasuredAt = date
-                    self.hasMeasured = true
-                    self.remember(found, path: path, date: date)
+                    if let history, let scope, sameScope {
+                        self.isSavingHistory = true
+                        self.historyQueue.async {
+                            let comparison: SpaceComparison
+                            do { comparison = try history.record(found, date: date, scope: scope) }
+                            catch { comparison = .unavailable("Impossible d’enregistrer la mesure sur ce Mac.") }
+                            Task { @MainActor in
+                                guard path == self.currentPath, task === self.measureTask else { return }
+                                self.finish(found, path: path, date: date, comparison: comparison)
+                            }
+                        }
+                    } else {
+                        self.finish(found, path: path, date: date, comparison: .unavailable("Le dossier ou son volume ne peut pas être identifié."))
+                    }
                 case .failure(let err):
                     self.children = []
                     self.statusMessage = err.localizedDescription
+                    self.isLoading = false
                 }
-                self.isLoading = false
             }
         }
+    }
+
+    private func finish(_ found: [SpaceChild], path: String, date: Date, comparison: SpaceComparison) {
+        self.comparison = comparison
+        children = found
+        lastMeasuredAt = date
+        hasMeasured = true
+        remember(found, path: path, date: date)
+        isSavingHistory = false
+        isLoading = false
     }
 
     /// Déplace un élément vers la corbeille (ou le supprime), confiné à la racine d'exploration

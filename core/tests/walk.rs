@@ -125,3 +125,30 @@ fn zero_budget_returns_immediately() {
     // suite, avec une taille jamais surestimée.
     assert!(m.bytes <= reference(&base, &mut Default::default()));
 }
+
+#[test]
+fn disk_explorer_reports_lost_access_and_keeps_hardlink_attribution_stable() {
+    use maccare_core::scan::measure_children;
+    use std::os::unix::fs::PermissionsExt;
+
+    let (_tmp, base) = base();
+    let blocked = base.join("Locked/Inner");
+    fs::create_dir_all(&blocked).unwrap();
+    fs::write(blocked.join("private"), vec![1; 8192]).unwrap();
+    fs::create_dir(base.join("First")).unwrap();
+    fs::create_dir(base.join("Last")).unwrap();
+    fs::write(base.join("Last/data"), vec![2; 8192]).unwrap();
+    fs::hard_link(base.join("Last/data"), base.join("First/alias")).unwrap();
+    fs::set_permissions(&blocked, fs::Permissions::from_mode(0)).unwrap();
+    let inaccessible = fs::read_dir(&blocked).is_err();
+    for _ in 0..4 {
+        let result = measure_children(&base, Duration::from_secs(2));
+        assert!(!result.listing_incomplete);
+        let get = |name: &str| result.children.iter().find(|c| c.path == base.join(name)).unwrap();
+        assert!(get("First").size_bytes > 0);
+        assert_eq!(get("Last").size_bytes, 0);
+        if inaccessible { assert!(!get("Locked").measured); }
+    }
+    if inaccessible { assert!(measure_children(&blocked, Duration::from_secs(2)).listing_incomplete); }
+    fs::set_permissions(blocked, fs::Permissions::from_mode(0o700)).unwrap();
+}

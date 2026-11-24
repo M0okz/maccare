@@ -205,6 +205,8 @@ pub struct DirChild {
 /// Résultat d'une mesure d'un niveau de dossier.
 #[derive(Debug, Default)]
 pub struct MeasureOutcome {
+    /// Une erreur de lecture au premier niveau rend les disparitions impossibles à déterminer.
+    pub listing_incomplete: bool,
     pub children: Vec<DirChild>,
     pub warnings: Vec<String>,
     /// Vrai si la mesure a été annulée : `children` est alors vide.
@@ -244,6 +246,7 @@ pub fn measure_children_with(dir: &Path, budget: Duration, control: &Arc<Control
     let entries = match std::fs::read_dir(dir) {
         Ok(e) => e,
         Err(e) => {
+            outcome.listing_incomplete = true;
             outcome
                 .warnings
                 .push(format!("dossier inaccessible {} : {e}", dir.display()));
@@ -258,11 +261,18 @@ pub fn measure_children_with(dir: &Path, budget: Duration, control: &Arc<Control
     let firmlinks = std::fs::read_to_string("/usr/share/firmlinks")
         .map(|text| parse_startup_firmlinks(&text)).unwrap_or_default();
 
-    for entry in entries.flatten() {
+    for entry in entries {
+        let Ok(entry) = entry else {
+            outcome.listing_incomplete = true;
+            continue;
+        };
         let path = entry.path();
         let file_type = match entry.file_type() {
             Ok(ft) => ft,
-            Err(_) => continue,
+            Err(_) => {
+                outcome.listing_incomplete = true;
+                continue;
+            }
         };
 
         if file_type.is_symlink() {
@@ -283,12 +293,18 @@ pub fn measure_children_with(dir: &Path, budget: Duration, control: &Arc<Control
                 dirs.push(path);
             }
         } else {
-            let size = entry.metadata().map(|m| walk::allocated_size(&m)).unwrap_or(0);
-            children.push(DirChild { path, size_bytes: size, is_dir: false, measured: true });
+            let size = entry.metadata().map(|m| walk::allocated_size(&m));
+            children.push(DirChild {
+                path,
+                measured: size.is_ok(),
+                size_bytes: size.unwrap_or(0),
+                is_dir: false,
+            });
         }
     }
 
-    let sizes = walk::measure_paths_with(&dirs, Budget::new(budget), control);
+    dirs.sort_unstable();
+    let sizes = walk::measure_space_paths(&dirs, Budget::new(budget), control);
     if control.is_cancelled() {
         outcome.cancelled = true;
         return outcome;
@@ -297,7 +313,7 @@ pub fn measure_children_with(dir: &Path, budget: Duration, control: &Arc<Control
         if !m.complete {
             outcome
                 .warnings
-                .push(format!("mesure interrompue (budget) {}", path.display()));
+                .push(format!("mesure partielle {}", path.display()));
         }
         // Le parcours d’un enfant ne traverse pas les changements de volume internes.
         // Si cet enfant contient un firmlink imbriqué (System, usr), son total est un minimum.

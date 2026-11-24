@@ -348,6 +348,7 @@ struct MeasureInput: Encodable {
 }
 
 struct MeasureResponse: Codable {
+    let listing_incomplete: Bool?
     let path: String?
     let children: [SpaceChild]?
     let warnings: [String]?
