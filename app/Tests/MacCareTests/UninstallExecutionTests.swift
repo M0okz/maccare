@@ -47,6 +47,42 @@ extension UninstallExecutionTests {
         return AppInfo(url: url, name: url.deletingPathExtension().lastPathComponent, bundleId: nil)
     }
 
+    func testCopyInstalledAfterInspectionKeepsItsPreferencesInBothRemovalModes() throws {
+        let fm = FileManager.default
+        for direct in [false, true] {
+            let id = "org.example.removalfixture." + UUID().uuidString
+            let first = try makeFixture()
+            let preferences = fm.homeDirectoryForCurrentUser.appendingPathComponent("Library/Preferences/\(id).plist")
+            let original = try PropertyListSerialization.data(fromPropertyList: ["marker": id], format: .xml, options: 0)
+            try original.write(to: preferences, options: .withoutOverwriting)
+            defer { try? fm.removeItem(at: preferences); try? fm.removeItem(at: first.url) }
+
+            func identify(_ fixture: AppInfo) throws -> AppInfo {
+                let contents = fixture.url.appendingPathComponent("Contents")
+                try fm.createDirectory(at: contents, withIntermediateDirectories: false)
+                let info = ["CFBundleIdentifier": id, "CFBundlePackageType": "APPL"]
+                try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)
+                    .write(to: contents.appendingPathComponent("Info.plist"))
+                return AppInfo(url: fixture.url, name: fixture.name, bundleId: id)
+            }
+            let app = try identify(first)
+            let items = try Engine.inspectPaths([preferences.path])
+            let item = try XCTUnwrap(items.first)
+            XCTAssertEqual(UninstallReview.current(for: app).use(of: item), .exclusive)
+            let second = try makeFixture()
+            defer { try? fm.removeItem(at: second.url) }
+            let copy = try identify(second)
+            let use = try XCTUnwrap(UninstallReview.current(for: app).use(of: item))
+            XCTAssertFalse(use.preselected)
+            XCTAssertFalse(use.canRemove)
+            XCTAssertTrue(use.reason.contains(copy.url.path))
+            let report = try Remover.uninstall(items, app: app, direct: direct)
+            XCTAssertEqual(report.refused.map(\.path), [preferences.path])
+            XCTAssertEqual(report.removed, 0)
+            XCTAssertEqual(try Data(contentsOf: preferences), original)
+        }
+    }
+
     func testDirectUninstallHandlesQuotedNamesAndDoesNotAuthorizeASibling() throws {
         let fm = FileManager.default
         let app = try makeFixture(" \"\\ 🐈")

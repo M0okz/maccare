@@ -77,3 +77,37 @@ installée conserve le chemin `/Applications/MacCare Dev.app`. La release publiq
 ## Publication 0.2.11 — 6 novembre 2026
 
 Ces évolutions sont publiées dans [MacCare 0.2.11 (build 13)](https://github.com/M0okz/maccare/releases/tag/v0.2.11), tag `v0.2.11` sur `b7e76f2`, après fusion de la PR #18 et suppression de la branche `codex/tray-storage-battery-details`. Ce statut remplace celui de développement non livré des notes précédentes. Le DMG téléchargé et le flux Sparkle ont été vérifiés : signatures, notarisation et Gatekeeper valides. Les limites de QA datées restent applicables, dont le survol seul à confirmer à la souris réelle. La copie quotidienne en 0.2.8 (10) est préservée ; la Dev installée reste identifiée 0.2.10 (12).
+
+## Smart Scan et caches d’apps ouvertes — développement du 24 novembre 2026
+
+Au moment de retirer un cache sélectionné, le Smart Scan vérifie si une app
+associée tourne encore. Il garde le cache en attente et poursuit le nettoyage
+des autres éléments. Le bilan général et le détail affichent le nom des apps,
+la taille des caches en attente et le résultat du dernier essai. Les tailles
+proviennent de l’analyse. Un déplacement vers la Corbeille laisse les données
+sur le disque jusqu’à ce qu’elle soit vidée.
+
+Après avoir quitté les apps indiquées, cliquer sur « Réessayer ces éléments ».
+La reprise porte sur les chemins mis en attente dans ce bilan. Elle vérifie à
+nouveau les apps ouvertes, les exclusions, le profil et l’identité des éléments.
+Un dossier remplacé depuis l’analyse est refusé. Un choix initial de mise à la
+Corbeille reste valable même si la préférence passe à la suppression définitive.
+La liste d’attente dure jusqu’à une nouvelle analyse manuelle ou à la fermeture
+de MacCare. Les analyses planifiées attendent tant qu’il reste des caches en attente.
+
+`RunningCacheApplications` rapproche les caches des apps visibles par macOS à
+partir des identifiants, des noms de dossier connus et des groupes déclarés par
+les apps signées. Les processus en ligne de commande et les dossiers dont le
+propriétaire est inconnu peuvent échapper à ce rapprochement. `SmartScanModel`
+et `SmartScanCleanup` conservent les choix et transmettent les retraits au moteur
+existant. `SmartScanCleanupView` affiche le même bilan aux deux points d’entrée.
+
+État local sur `codex/app-action-pills`, après `ef16a59` (lot 1, désinstalleur).
+Le lot 2 a été vérifié dans le paquet signé `build/smart-scan-retry/MacCare.app`.
+Sur cinq dossiers de test sélectionnés, une app lancée après l’analyse en a
+gardé quatre (utilisateur, sandbox, Electron et groupe). Le premier essai a
+traité le cinquième. Après la fermeture de l’app, la reprise a traité les quatre
+dossiers en attente et a préservé un dossier voisin créé depuis l’analyse.
+Le parcours a été vérifié en modes Corbeille et suppression définitive, depuis
+le détail puis le bilan général. Les preuves locales figurent dans
+`build/smart-scan-retry/qa-trash.json` et `qa-direct.json`.

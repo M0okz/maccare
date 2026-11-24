@@ -8,7 +8,9 @@ final class UninstallModel: ObservableObject {
         didSet { if oldValue != selectedApp { scanResiduals() } }
     }
     @Published private(set) var residuals: [ScanItem] = []
+    @Published private(set) var review: UninstallReview?
     @Published var selection: Set<String> = []
+    private var scanGeneration = 0
     @Published private(set) var isScanning = false
     @Published private(set) var isCleaning = false
     @Published var statusMessage: String?
@@ -21,7 +23,7 @@ final class UninstallModel: ObservableObject {
     private var directDelete: Bool { UserDefaults.standard.bool(forKey: "directDelete") }
 
     var directDeleteEnabled: Bool { directDelete }
-    var selectedItems: [ScanItem] { residuals.filter { selection.contains($0.id) } }
+    var selectedItems: [ScanItem] { residuals.filter { selection.contains($0.id) && review?.use(of: $0)?.canRemove == true } }
     var selectedSize: UInt64 { selectedItems.reduce(0) { $0 + $1.size_bytes } }
     var totalSize: UInt64 { residuals.reduce(0) { $0 + $1.size_bytes } }
 
@@ -35,32 +37,35 @@ final class UninstallModel: ObservableObject {
     }
 
     func scanResiduals(keepReport: Bool = false) {
+        scanGeneration += 1
+        let generation = scanGeneration
+        review = nil
+        residuals = []
+        selection = []
         guard let app = selectedApp else {
-            residuals = []
-            selection = []
             isScanning = false
             return
         }
         isScanning = true
         statusMessage = nil
         if !keepReport { lastReport = nil }
-        let candidates = app.residualCandidates
         Task.detached(priority: .userInitiated) {
             let token = PowerAssertion.beginUserActivity("MacCare · désinstalleur")
             defer { PowerAssertion.end(token) }
+            let review = UninstallReview.current(for: app)
             let result: Result<[ScanItem], Error>
             do {
-                result = .success(try Engine.inspectPaths(candidates))
+                result = .success(try Engine.inspectPaths(Array(review.candidates.keys)))
             } catch {
                 result = .failure(error)
             }
             await MainActor.run {
-                guard self.selectedApp == app else { return }
+                guard self.scanGeneration == generation else { return }
                 switch result {
                 case .success(let found):
                     self.residuals = found.sorted { $0.size_bytes > $1.size_bytes }
-                    // Le paquet et ses données sont cochés ; chacun reste décochable.
-                    self.selection = UninstallDetailPresentation.initialSelection(app: app, items: found)
+                    self.review = review
+                    self.selection = Set(found.filter { review.use(of: $0)?.preselected == true }.map(\.id))
                 case .failure(let err):
                     self.residuals = []
                     self.statusMessage = err.localizedDescription
@@ -133,7 +138,7 @@ final class UninstallModel: ObservableObject {
 
     func cleanSelected() {
         let chosen = selectedItems
-        guard !chosen.isEmpty, !isCleaning, let app = selectedApp else { return }
+        guard !chosen.isEmpty, !isCleaning, !isScanning, let app = selectedApp else { return }
         isCleaning = true
         statusMessage = nil
 

@@ -86,6 +86,9 @@ struct SmartScanView: View {
             else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
+                        if let result = model.cleanup {
+                            SmartScanCleanupView(result: result, busy: model.stage == .cleaning, retry: model.retryPendingCaches)
+                        }
                         if let group = selectedGroup {
                             Text(group.category.title).font(AppFont.pageTitle).accessibilityAddTraits(.isHeader)
                             Text(group.category.summary).font(AppFont.body).foregroundStyle(Theme.muted)
@@ -101,9 +104,6 @@ struct SmartScanView: View {
                                         }
                                 }
                             }.card()
-                        }
-                        if let report = model.lastReport {
-                            Text(reportSummary(report)).font(AppFont.secondary).foregroundStyle(report.needsAttention ? Theme.warn : Theme.ok)
                         }
                         if let message = model.statusMessage {
                             Label(message, systemImage: "exclamationmark.triangle").font(AppFont.secondary).foregroundStyle(Theme.warn)
@@ -126,15 +126,17 @@ struct SmartScanView: View {
     private var allClean: some View {
         VStack(spacing: Space.s) {
             Spacer()
-            // Un scan arrêté n'a pas tout examiné : ne pas affirmer que le Mac est propre.
             ModuleIcon(symbol: model.wasCancelled ? "pause.fill" : "checkmark",
                        color: model.wasCancelled ? Theme.warn : Theme.ok, size: 56)
-            Text(model.wasCancelled ? "Analyse interrompue." : "Votre Mac est propre.")
+            Text(model.wasCancelled ? "Analyse interrompue." : "Aucun élément à examiner dans ce bilan.")
                 .font(AppFont.emphasis.weight(.semibold))
             Text(model.wasCancelled
-                 ? "Rien n'a été trouvé avant l'arrêt ; le reste n'a pas été examiné."
-                 : "Aucun cache ni log régénérable à récupérer.")
+                 ? "Aucun élément détecté avant l’arrêt de l’analyse."
+                 : "Relancez l’analyse pour rechercher de nouveaux éléments.")
                 .font(AppFont.body).foregroundStyle(Theme.muted)
+            if let result = model.cleanup {
+                SmartScanCleanupView(result: result, busy: model.stage == .cleaning, retry: model.retryPendingCaches)
+            }
             PrimaryButton(title: "Relancer un scan", systemImage: "arrow.clockwise", tint: ModuleColor.privacy) {
                 model.scan()
             }
@@ -152,7 +154,7 @@ struct SmartScanView: View {
                 HStack(spacing: Space.m) {
                     Button("Tout cocher") { model.selectAll() }.buttonStyle(.actionPill).controlSize(.small)
                     Button("Tout décocher") { model.selectNone() }.buttonStyle(.actionPill).controlSize(.small)
-                }
+                }.disabled(model.stage == .cleaning)
             }
         } actions: {
             HStack(spacing: Space.m) {
@@ -180,5 +182,4 @@ struct SmartScanView: View {
         return group.category.summary.isEmpty ? count : "\(count) · \(group.category.summary)"
     }
 
-    private func reportSummary(_ r: RemovalReport) -> String { r.summary }
 }

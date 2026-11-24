@@ -120,7 +120,7 @@ final class AppState: ObservableObject {
     let trayMetrics = TrayMetricsStore()
     let smartScan = SmartScanModel()
     let review = ReviewModel()
-    let space = SpaceModel()
+    let space = SpaceModel(history: .applicationStore)
     let largeFiles = LargeFilesModel()
     let pngOptimization = PNGOptimizationModel()
     let filesAnalysis = FilesAnalysisModel()

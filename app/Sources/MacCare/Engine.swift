@@ -93,6 +93,9 @@ enum Engine {
         let response: MeasureResponse = try callJSON({ maccare_measure_dir_task($0, task?.raw) }, json)
         if let err = response.error { throw EngineError.engine(err) }
         if response.cancelled == true { throw EngineError.cancelled }
+        if response.listing_incomplete == true {
+            throw EngineError.engine("Lecture incomplète de ce dossier. Vérifiez son accès puis réessayez.")
+        }
         return response.children ?? []
     }
 

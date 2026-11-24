@@ -282,6 +282,7 @@ unsafe fn measure_to_json(input_json: *const c_char, control: Arc<Control>) -> S
 
     serde_json::json!({
         "path": input.path,
+        "listing_incomplete": outcome.listing_incomplete,
         "children": children,
         "warnings": outcome.warnings,
         "cancelled": outcome.cancelled,

@@ -95,7 +95,7 @@ struct SpaceView: View {
             StorageScanArtwork()
             Text(model.isDiskRoot && !model.canGoUp ? "Visualisation de votre stockage…" : "Exploration de votre dossier…")
                 .font(.system(size: 32, weight: .regular)).multilineTextAlignment(.center).accessibilityAddTraits(.isHeader)
-            Text(model.canGoUp ? model.currentPath : model.root.name)
+            Text(model.isSavingHistory ? "Enregistrement de la mesure…" : (model.canGoUp ? model.currentPath : model.root.name))
                 .font(.system(size: 17)).foregroundStyle(Theme.muted).lineLimit(2).truncationMode(.middle)
             HStack(spacing: 32) {
                 scanMetric(model.liveEntries.formatted(), label: "entrées lues")
@@ -103,6 +103,7 @@ struct SpaceView: View {
             }.padding(.top, 6)
             Spacer(minLength: 12)
             Button("Arrêter") { model.cancelMeasurement() }
+                .disabled(model.isSavingHistory)
                 .buttonStyle(.prominentPill).controlSize(.large).tint(Theme.accent)
                 .accessibilityLabel("Arrêter la mesure")
             Text("Analyse seule. Vous pourrez examiner les résultats avant toute action.")
@@ -124,7 +125,14 @@ struct SpaceView: View {
         VStack(alignment: .leading, spacing: 14) {
             header
             breadcrumb
-            if model.children.isEmpty {
+            if mode == .changes {
+                SpaceChangesView(comparison: model.comparison) { name in
+                    guard let folder = model.children.first(where: { $0.is_dir && $0.name == name }) else { return }
+                    mode = .map
+                    model.open(folder)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            } else if model.children.isEmpty {
                 VStack(spacing: 16) {
                     Spacer()
                     Text("Aucun élément à afficher").font(AppFont.section)
@@ -145,7 +153,7 @@ struct SpaceView: View {
                     }
                 }
             }
-            selectionInfo.frame(height: 76, alignment: .leading)
+            if mode != .changes { selectionInfo.frame(height: 76, alignment: .leading) }
             messages
             storageFooter(columnWidth: storageWidth)
         }
@@ -167,9 +175,8 @@ struct SpaceView: View {
             Button { model.load() } label: { Image(systemName: "arrow.clockwise") }
                 .buttonStyle(.actionPill).accessibilityLabel("Actualiser la mesure").help("Actualiser la mesure")
             Picker("Présentation", selection: $mode) {
-                Text("Carte").tag(SpaceDisplayMode.map)
-                Text("Liste").tag(SpaceDisplayMode.list)
-            }.actionCursor().pickerStyle(.segmented).frame(width: 150).labelsHidden()
+                ForEach(SpaceDisplayMode.allCases) { Text($0.title).tag($0) }
+            }.actionCursor().pickerStyle(.segmented).fixedSize().labelsHidden()
                 .accessibilityLabel("Présentation de l’espace disque")
         }
     }

@@ -55,3 +55,35 @@ Preuves locales dans `build/space-bubbles-qa/` : `red.json`, `tests.log`,
 consignée dans ce dernier fichier.
 Seule `/Applications/MacCare Dev.app` est actualisée ; la copie quotidienne est
 préservée et aucune release n’est publiée pour cette correction.
+
+## Évolution depuis la dernière analyse — développement du 24 novembre 2026
+
+Dans Mes fichiers, « Explorer dans Espace disque » reprend le dossier choisi.
+Espace disque reste aussi accessible dans la barre latérale. Après « Explorer »,
+la présentation **Évolution** compare les sous-dossiers directs de l’emplacement
+courant. La première mesure sert de référence. Une actualisation affiche les
+variations par amplitude, avec les nouveaux dossiers et ceux qui ont disparu.
+Cliquer sur un dossier encore présent ouvre sa carte. Revenir au parent réutilise
+la mesure affichée. Dans Réglages → Fichiers et disque, Évolution peut aussi
+être choisie comme présentation initiale.
+
+Les écarts expriment les octets alloués aux sous-dossiers. Un fichier placé
+directement dans l’emplacement exploré reste visible dans Carte et Liste.
+Un renommage apparaît comme une disparition et une apparition. Si l’une des
+deux lectures d’un sous-dossier est partielle, la ligne indique « Mesure
+partielle ». Lorsque la liste du dossier parent elle-même est illisible ou
+incomplète, MacCare invite à vérifier l’accès et conserve la référence précédente.
+
+MacCare garde localement les deux dernières mesures de chacun des douze
+emplacements récemment mesurés, dans son dossier Application Support, sous
+`SpaceHistory-v1`. Chaque emplacement est identifié par le chemin, l’UUID du
+volume et l’inode du dossier. Les fichiers d’historique contiennent les dates,
+noms des sous-dossiers, tailles et indicateurs de lecture complète. Si le volume
+ne fournit pas d’identifiant stable, Carte et Liste restent utilisables.
+Les paquets Dev et de distribution disposent chacun de leur dossier d’historique.
+
+Vérification en DEV sur la branche `codex/app-action-pills`, base `f2d2bc9`
+(commit du lot 2). Après avoir quitté et relancé le paquet signé, la comparaison
+a affiché +500 Mo, −8 Mo et un dossier partiellement lisible. Le clic sur la
+première ligne a ouvert le bon dossier dans la carte. Les journaux, le paquet
+et le relevé natif sont disponibles localement dans `build/space-history/`.

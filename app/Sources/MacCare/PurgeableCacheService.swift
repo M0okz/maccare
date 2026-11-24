@@ -18,7 +18,7 @@ enum PurgeableCacheService {
         let running = NSWorkspace.shared.runningApplications.compactMap(\.bundleIdentifier)
         return Set(names.filter { name in
             !name.hasPrefix("com.apple.") &&
-            !running.contains(where: { $0 == name || $0.hasPrefix(name + ".") }) &&
+            !running.contains(where: { RunningCacheApplications.matchesBundle(name.lowercased(), runningID: $0.lowercased()) }) &&
             NSWorkspace.shared.urlForApplication(withBundleIdentifier: name) != nil
         })
     }
