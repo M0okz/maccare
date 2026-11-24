@@ -26,7 +26,7 @@ struct DashboardView: View {
                     Spacer()
                     QuickToolsButton(app: app)
                 }
-                .dashboardBlockScale(scale)
+                .displayScaledBlock(scale)
                 HomeStatusCards(scale: scale, app: app, availableWidth: width,
                                 storage: disk.flatMap { TrayStorageUsage(free: $0.free, total: $0.total) })
             }
@@ -36,7 +36,7 @@ struct DashboardView: View {
             .overlay(alignment: .bottomTrailing) {
                 if showsPermissionReminder {
                     permissionReminder
-                        .dashboardBlockScale(scale)
+                        .displayScaledBlock(scale)
                         .padding(.trailing, (max(inset, (availableWidth - width) / 2) + 46) * scale)
                         .padding(.bottom, 14 * scale)
                 }

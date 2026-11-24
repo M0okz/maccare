@@ -13,7 +13,10 @@ struct ApplicationsOverviewView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var detail: ApplicationsDetail? { app.applicationsDetail }
 
-    init(app: AppState) {
+    let layout: MainWindowLayout
+
+    init(app: AppState, layout: MainWindowLayout) {
+        self.layout = layout
         self.app = app
         self.analysis = app.applicationsAnalysis
         self.uninstall = app.uninstall
@@ -27,13 +30,14 @@ struct ApplicationsOverviewView: View {
     var body: some View {
         ZStack {
             overview
+                .modifier(DisplayAdjustedContent(layout: layout))
                 .opacity(detail == nil ? 1 : 0)
                 .allowsHitTesting(detail == nil)
                 .disabled(detail != nil)
                 .accessibilityElement(children: .contain)
                 .accessibilityHidden(detail != nil)
             if let destination = detail {
-                ApplicationsDetailPanel(app: app, detail: destination)
+                ApplicationsDetailPanel(app: app, layout: layout, detail: destination)
                     .transition(ManagerPanelMotion.transition(reduceMotion: reduceMotion)).zIndex(1)
             }
         }.clipped()

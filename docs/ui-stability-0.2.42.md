@@ -327,3 +327,13 @@ Archive locale `MacCare-Dev-0.2.42-arm64.zip`, signée pour le développement Ap
 SHA-256 du ZIP : `4c39dbf0aa59222b6ff86852e4b62b0b996117583be1a0074b90e77b8293c41c`.
 
 Le fichier `Mesures-interface-0.2.42.csv` accompagne l’archive. Chaque ligne indique la version, le parcours, les conditions, le moyen d’activation et les mesures disponibles.
+
+## 24 novembre 2026 · Clic sur les cases du désinstalleur en DEV, build 45
+
+La campagne de la build 44 contrôlait l’ouverture du gestionnaire Applications. Elle laissait de côté le clic au centre des cases de l’application et de ses données associées. À 85 %, les quatre clics au centre échouaient sur le jeu d’essai. Il fallait descendre de 32 points pour atteindre la première case. À 100 %, les quatre cases répondaient au centre.
+
+Le gestionnaire appliquait la densité compacte à toute la vue scindée. Le séparateur AppKit travaillait en points de fenêtre, tandis que les cases étaient dessinées dans le repère réduit. Dans la build 45, le séparateur garde son repère natif et chaque colonne adapte son propre contenu. Le gestionnaire des applications inutilisées, incompatibles et des installateurs utilise la même disposition.
+
+Le test de régression `UninstallPointerTests` affiche le désinstalleur dans une fenêtre macOS avec une application temporaire et trois fichiers associés. Il repère le centre de chaque coche dans l’image rendue et y envoie un appui et un relâchement de souris. Il vérifie l’identité du seul fichier coché, puis le décoche au même endroit. Il répète les contrôles après déplacement de la barre de défilement et vérifie que la position des coches a changé. Les essais couvrent les densités de 85 %, 90 % et 100 %. Rejoué sur le code précédent, le même test échoue à 85 % et 90 % et réussit à 100 %. Sur la candidate, la suite Swift compte 413 succès XCTest, sept cas ignorés et 295 succès Swift Testing. La session étant verrouillée, ces événements ont été envoyés à la fenêtre de test. Le jeu d’essai ne déclenche aucune désinstallation.
+
+Candidate locale pour Mac Apple Silicon, `MacCare-Dev-0.2.42-45-arm64.zip`, signée pour le développement Apple. Les 254 entrées du paquet réextrait, dont neuf liens symboliques, correspondent au paquet d’origine. La signature stricte du paquet réextrait est valide. SHA-256 du ZIP `b638d4c58beb42eb83a95463c83c2d6aa82dae4d25da4067e17b1d820fc1c66d`.

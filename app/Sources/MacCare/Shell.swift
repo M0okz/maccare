@@ -202,7 +202,7 @@ struct RootView: View {
                 DetailView(app: app, updater: updater, layout: displayLayout)
                     .padding(.leading, SidebarLabel.railWidth * displayLayout.scale)
                     .overlay(alignment: .leading) {
-                        Sidebar(app: app, updater: updater).dashboardBlockScale(displayLayout.scale)
+                        Sidebar(app: app, updater: updater).displayScaledBlock(displayLayout.scale)
                     }
                     .ignoresSafeArea(.container, edges: .top)
             }
@@ -390,19 +390,13 @@ struct DetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             SectionNavigationView(module: $app.module)
-                .dashboardBlockScale(layout.scale)
+                .displayScaledBlock(layout.scale)
             ZStack {
-                Group {
-                    if (app.module ?? .dashboard) == .dashboard {
-                        // Le tableau AppKit garde les coordonnées natives, y compris pendant la navigation.
-                        modulePage
-                    } else {
-                        modulePage.modifier(DisplayAdjustedContent(layout: layout))
-                    }
-                }
-                .id(pageIdentity)
-                .transition(filesManagerVisible ? filesPanelTransition : ManagerPanelMotion.page(reduceMotion: reduceMotion))
-                .zIndex(filesManagerVisible ? 1 : 0)
+                modulePage
+                    .modifier(ModulePageLayout(module: app.module ?? .dashboard, layout: layout))
+                    .id(pageIdentity)
+                    .transition(filesManagerVisible ? filesPanelTransition : ManagerPanelMotion.page(reduceMotion: reduceMotion))
+                    .zIndex(filesManagerVisible ? 1 : 0)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipped()
@@ -416,7 +410,7 @@ struct DetailView: View {
         case .about: AboutView(updater: updater)
         case .battery: BatteryView(model: app.battery)
         case .dashboard: DashboardView(app: app, layout: layout)
-        case .applicationsOverview: ApplicationsOverviewView(app: app)
+        case .applicationsOverview: ApplicationsOverviewView(app: app, layout: layout)
         case .cleaningOverview: CleaningOverviewView(app: app)
         case .filesOverview: FilesOverviewView(app: app)
         case .toolsOverview: ToolsOverviewView(app: app)
@@ -428,11 +422,11 @@ struct DetailView: View {
         case .largeFiles: FilesManagerView(app: app, category: .large)
         case .duplicates: FilesManagerView(app: app, category: .duplicates)
         case .uninstall:
-            ApplicationsDetailPanel(app: app, detail: app.uninstall.showingLeftovers ? .leftovers : .installed) {
+            ApplicationsDetailPanel(app: app, layout: layout, detail: app.uninstall.showingLeftovers ? .leftovers : .installed) {
                 app.module = .applicationsOverview
             }
         case .updates:
-            ApplicationsDetailPanel(app: app, detail: .updates, includeAllUpdateSources: true) {
+            ApplicationsDetailPanel(app: app, layout: layout, detail: .updates, includeAllUpdateSources: true) {
                 app.module = .applicationsOverview
             }
         case .startup, .privacy, .maintenance, .screenCleaning, .aiClutter, .applicationPermissions, .diskHealth:

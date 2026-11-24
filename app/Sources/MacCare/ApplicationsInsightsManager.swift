@@ -4,12 +4,14 @@ import AppKit
 struct ApplicationsInsightsManager: View {
     @ObservedObject var app: AppState
     @ObservedObject private var model: ApplicationsInsightsModel
+    let layout: MainWindowLayout
     let category: ApplicationsDetail
     let onBack: () -> Void
     @State private var selectedID: String?
     @State private var confirmTrash = false
 
-    init(app: AppState, category: ApplicationsDetail, onBack: @escaping () -> Void) {
+    init(app: AppState, layout: MainWindowLayout, category: ApplicationsDetail, onBack: @escaping () -> Void) {
+        self.layout = layout
         self.app = app; self.model = app.applicationsInsights; self.category = category; self.onBack = onBack
     }
     private var apps: [ApplicationInsightItem] { category == .unused ? model.snapshot.unused : model.snapshot.incompatible }
@@ -21,11 +23,13 @@ struct ApplicationsInsightsManager: View {
             ScreenToolbar(title: category.title) {
                 Button(action: onBack) { Label("Retour", systemImage: "chevron.left") }
                     .buttonStyle(.toolbarPill).keyboardShortcut(.cancelAction).disabled(model.isRemoving)
-            } trailing: { EmptyView() }.padding(.horizontal, 24).frame(height: 56)
+            } trailing: { EmptyView() }.padding(.horizontal, 24).frame(height: 56).displayScaledBlock(layout.scale)
             Divider()
             HSplitView {
-                browser.frame(minWidth: 250, idealWidth: 300, maxWidth: 350)
-                inspection.frame(minWidth: 310, maxWidth: .infinity, maxHeight: .infinity)
+                browser.modifier(DisplayAdjustedContent(layout: layout))
+                    .frame(minWidth: 250 * layout.scale, idealWidth: 300 * layout.scale, maxWidth: 350 * layout.scale)
+                inspection.modifier(DisplayAdjustedContent(layout: layout))
+                    .frame(minWidth: 310 * layout.scale, maxWidth: .infinity, maxHeight: .infinity)
             }
             Divider()
             AdaptiveActionRow {
@@ -38,7 +42,7 @@ struct ApplicationsInsightsManager: View {
                 } else if let item = selectedApp {
                     Button("Examiner la désinstallation") { examine(item.app) }.buttonStyle(.prominentPill)
                 }
-            }.padding(18).background(Theme.sidebar)
+            }.padding(18).background(Theme.sidebar).displayScaledBlock(layout.scale)
         }
         .alert("Mettre ces installateurs à la Corbeille ?", isPresented: $confirmTrash) {
             Button("Annuler", role: .cancel) {}
