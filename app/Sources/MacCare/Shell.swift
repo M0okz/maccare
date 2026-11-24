@@ -375,6 +375,13 @@ struct DetailView: View {
     let layout: MainWindowLayout
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    private var pageIdentity: Module {
+        let module = app.module ?? .dashboard
+        // Le sélecteur reste dans la même vue native quand seul son outil change.
+        if module.section == .cleaning && module != .cleaningOverview { return .cleaning }
+        return module
+    }
+
     private var filesManagerVisible: Bool { app.module == .largeFiles || app.module == .duplicates || app.module == .imageOptimization }
     private var filesPanelTransition: AnyTransition {
         ManagerPanelMotion.transition(reduceMotion: reduceMotion)
@@ -393,13 +400,13 @@ struct DetailView: View {
                         modulePage.modifier(DisplayAdjustedContent(layout: layout))
                     }
                 }
-                .id(app.module)
+                .id(pageIdentity)
                 .transition(filesManagerVisible ? filesPanelTransition : ManagerPanelMotion.page(reduceMotion: reduceMotion))
                 .zIndex(filesManagerVisible ? 1 : 0)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipped()
-            .animation(reduceMotion ? nil : Motion.easeOut(0.2), value: app.module)
+            .animation(reduceMotion ? nil : Motion.easeOut(0.2), value: pageIdentity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
