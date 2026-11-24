@@ -1,5 +1,4 @@
 import AppKit
-import Security
 
 /// La même décision alimente la case affichée et le contrôle précédant le retrait.
 enum UninstallDataUse: Equatable {
@@ -99,20 +98,10 @@ struct UninstallReview {
             let url = $0.url.resolvingSymlinksInPath().standardizedFileURL
             return url.path != target.path && !url.pathComponents.contains(".Trash") && !url.pathComponents.contains(".Trashes")
         }
-        return Self(app: app, others: others, groupIDs: declaredGroups(at: app.url))
+        return Self(app: app, others: others, groupIDs: ApplicationGroups.declared(at: app.url))
     }
 
     private static func validComponent(_ value: String) -> Bool {
         !value.isEmpty && value != "." && value != ".." && !value.contains("/") && !value.contains("\0")
-    }
-
-    private static func declaredGroups(at url: URL) -> [String] {
-        var code: SecStaticCode?
-        var info: CFDictionary?
-        guard SecStaticCodeCreateWithPath(url as CFURL, [], &code) == errSecSuccess, let code,
-              SecCodeCopySigningInformation(code, SecCSFlags(rawValue: kSecCSSigningInformation), &info) == errSecSuccess,
-              let values = info as? [String: Any],
-              let entitlements = values[kSecCodeInfoEntitlementsDict as String] as? [String: Any] else { return [] }
-        return entitlements["com.apple.security.application-groups"] as? [String] ?? []
     }
 }

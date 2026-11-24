@@ -6,7 +6,8 @@ import Foundation
 /// device+inode inchangée depuis le scan, liens symboliques) avant que l'app y touche : seuls les
 /// chemins qu'il autorise sont déplacés. À appeler hors du thread principal.
 enum Remover {
-    static func remove(_ items: [ScanItem], scopeRoot: String, direct: Bool, rule: String? = nil) throws -> RemovalReport {
+    static func remove(_ items: [ScanItem], scopeRoot: String, direct: Bool, rule: String? = nil,
+                       didRemove: (String) -> Void = { _ in }) throws -> RemovalReport {
         var report = RemovalReport(direct: direct)
         let input = PlanInput(
             scope_root: scopeRoot,
@@ -14,8 +15,10 @@ enum Remover {
         )
         if direct {
             for r in try Engine.executeRemoval(input) {
-                if r.removed { report.removed += 1 }
-                else if !r.allowed { report.refused.append((r.path, r.refusal ?? "refusé")) }
+                if r.removed {
+                    report.removed += 1
+                    didRemove(r.path)
+                } else if !r.allowed { report.refused.append((r.path, r.refusal ?? "refusé")) }
                 else if let e = r.error { report.failed.append((r.path, e)) }
             }
         } else {
@@ -28,6 +31,7 @@ enum Remover {
                 do {
                     try FileManager.default.trashItem(at: item.url, resultingItemURL: nil)
                     report.removed += 1
+                    didRemove(item.path)
                 } catch {
                     report.failed.append((item.path, error.localizedDescription))
                 }

@@ -110,6 +110,10 @@ struct CleaningOverviewView: View {
                             .font(.system(size: 16, weight: .semibold)).buttonStyle(.prominentPill).controlSize(.large)
                     }
                 }
+                if let cleanup = smart.cleanup {
+                    SmartScanCleanupView(result: cleanup, busy: smart.stage == .cleaning, retry: smart.retryPendingCaches)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .top, spacing: 18) {
                         categoryCard.frame(width: 310)
