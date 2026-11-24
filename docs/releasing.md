@@ -304,3 +304,7 @@ La version 0.2.39 (build 41) livre la jauge disque et le survol des tuiles. [Vé
 ## Version 0.2.40
 
 La build 42 livre le tableau des processus et la carte Mémoire via GitHub et Sparkle. [Contrôles de livraison](release-integration-0.2.40.md).
+
+## Version 0.2.41
+
+La build 43 livre les correctifs des cartes de l’accueil et du volet latéral sur GitHub et Sparkle. [Contrôles de livraison](release-integration-0.2.41.md).

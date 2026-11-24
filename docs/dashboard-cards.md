@@ -506,3 +506,7 @@ Les cartes, les processus, la navigation et la ventilation décrits dans les ape
 ## Version 0.2.40
 
 Le tableau des processus et la carte Mémoire décrits dans les aperçus DEV du 24 novembre sont disponibles dans la version publique 0.2.40. [Contrôles de livraison](release-integration-0.2.40.md).
+
+## Version 0.2.41
+
+MacCare 0.2.41 livre les valeurs alignées sur la batterie, l’espacement de Santé du Mac et le nom de l’application propriétaire dans la carte Batterie. [Contrôles de livraison](release-integration-0.2.41.md).

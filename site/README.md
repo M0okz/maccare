@@ -121,3 +121,7 @@ Les guides Premiers pas et Performances décrivent la couleur de la jauge disque
 ## Version 0.2.40
 
 Les guides Premiers pas et Performances décrivent le PID des groupes de processus, le score énergétique, la courbe de RAM et le swap. [Contrôles de livraison](../docs/release-integration-0.2.40.md).
+
+## Version 0.2.41
+
+Les guides Premiers pas et Batterie décrivent le survol du volet, les valeurs alignées sur l’accueil et le nom de l’application énergivore. [Contrôles de livraison](../docs/release-integration-0.2.41.md).

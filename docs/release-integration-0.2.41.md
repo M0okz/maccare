@@ -1,0 +1,11 @@
+# MacCare 0.2.41 — Volet de navigation et cartes de l’accueil
+
+MacCare **0.2.41 (build 43)** est disponible sur GitHub et via Sparkle pour les Mac Apple Silicon sous macOS 13 ou ultérieur. Le tag `v0.2.41` pointe sur `84eafadaa6178cfb3ecfacc0c266c2e366c220c0` après fusion de la PR 50. Les trois commits d’origine sont inclus, `5d5842c`, `51c54c5` et `ea0fde5`. [Notes de version](https://github.com/M0okz/maccare/releases/tag/v0.2.41) · [PR 50](https://github.com/M0okz/maccare/pull/50).
+
+Le volet latéral attend 250 ms de survol pour s’ouvrir et 320 ms après la sortie du pointeur pour se refermer. Le bouton inférieur répond immédiatement. Les libellés se déploient à droite des icônes fixes. Sur l’accueil, les valeurs de la seconde rangée s’alignent sur le pourcentage de batterie et la carte Santé du Mac répartit mieux ses éléments. La carte Batterie nomme l’application propriétaire du processus le plus énergivore.
+
+Le contrôle en DEV a porté sur l’alignement à 1 211 et 1 436 points de large, le nom de l’application dans la carte Batterie et la position des neuf icônes pendant deux cycles du volet. Les CI de branche, de PR et de fusion ont réussi, ainsi que la chaîne de distribution. [CI de fusion](https://github.com/M0okz/maccare/actions/runs/45395019346) · [Distribution](https://github.com/M0okz/maccare/actions/runs/45395039045).
+
+Le [DMG public](https://github.com/M0okz/maccare/releases/download/v0.2.41/MacCare-0.2.41-arm64.dmg) contient 16820798 octets. Son empreinte SHA-256, `da8fb4bcbf0e0fd2d16a3690ffbe1d69adf9ece1a7828eaba9683b7a1e8023f7`, correspond au fichier de contrôle, au manifeste et à l’empreinte GitHub. Le DMG et l’application embarquée ont passé les contrôles de signature, de ticket de notarisation et de Gatekeeper. Les signatures Ed25519 du [flux stable](https://github.com/M0okz/maccare/releases/latest/download/appcast.xml) et du DMG ont été vérifiées avec la clé publique qui valide le flux de la 0.2.40. Le numéro de build succède à la build 42.
+
+Les dix pages du site et son plan correspondent aux sources après déploiement. Les guides [Premiers pas](https://maccare.homeblack.fr/documentation/demarrer.html) et [Batterie](https://maccare.homeblack.fr/documentation/batterie.html) décrivent ces changements.
