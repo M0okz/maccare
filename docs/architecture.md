@@ -185,6 +185,20 @@ En son absence, il prend le premier membre du classement mémoire. Les mesures
 agrégées portent sur tout le groupe. Le nom localisé du bundle identifie
 également les applications représentées par leurs seuls composants.
 
+Dans la DEV 0.2.39 (39), le tableau utilise `ProcessEnergyScore` pour
+l’affichage, le tri et la fiche. Sur chaque intervalle, `TrayProcessSampler`
+calcule le taux de réveils du processeur à partir de `ri_pkg_idle_wkups`.
+Pour WindowServer, `top -l 1 -F -R -c e -pid PID -n 1 -stats pid,mem,idlew`
+fournit l’empreinte et le compteur cumulé IDLEW sur le même relevé de l’accueil.
+Le volet peut encore réutiliser la mémoire pendant 30 secondes. Un changement
+d’identité, un recul du compteur ou un intervalle périmé invalide le delta.
+
+Chaque réveil ajoute un coût équivalent à 500 µs de CPU, selon le barème de
+[top chez Apple](https://github.com/apple-oss-distributions/top/blob/main/power.c).
+Pour le groupe, MacCare calcule `min(20, (CPU en % + 0,05 × réveils/s) / 5)`.
+La carte Batterie continue d’utiliser l’énergie physique disponible pour sa
+propre télémétrie.
+
 `HomeProcessPresentation` prépare l’inspection du PID hors du fil principal.
 La sélection et les champs associés sont publiés ensemble. La fenêtre affiche
 la fiche au centre par transition d’opacité et borne son contenu défilant

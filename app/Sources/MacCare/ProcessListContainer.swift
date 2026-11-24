@@ -13,6 +13,9 @@ final class ProcessListContainer: NSView, NSTextFieldDelegate {
         }
     }
 
+    private let energyHelp = ProcessEnergyScore.help as NSString
+    private var energyTipRect = NSRect.zero
+    private var energyTipTag: NSView.ToolTipTag?
     private let field = NSTextField()
     private let searchIcon = NSImageView()
     private let button = SearchButton()
@@ -56,6 +59,13 @@ final class ProcessListContainer: NSView, NSTextFieldDelegate {
     override func layout() {
         super.layout()
         guard let header, let table = header.tableView, !table.tableColumns.isEmpty else { return }
+        let energy = table.column(withIdentifier: .init(HomeProcessColumn.energy.rawValue))
+        let tipRect = energy >= 0 ? convert(header.headerRect(ofColumn: energy), from: header).intersection(bounds) : .zero
+        if tipRect != energyTipRect {
+            if let energyTipTag { removeToolTip(energyTipTag) }
+            energyTipTag = tipRect.isEmpty ? nil : addToolTip(tipRect, owner: energyHelp, userData: nil)
+            energyTipRect = tipRect
+        }
         let first = convert(header.headerRect(ofColumn: 0), from: header)
         let right = min(bounds.maxX, convert(header.bounds, from: header).maxX)
         let iconX = first.minX + Self.nameIconInset

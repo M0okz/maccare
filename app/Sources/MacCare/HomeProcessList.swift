@@ -34,11 +34,14 @@ struct HomeProcessList: NSViewRepresentable {
         for field in HomeProcessColumn.allCases {
             let column = NSTableColumn(identifier: .init(field.rawValue))
             column.title = field.rawValue
-            column.width = [.name: 280, .memory: 105, .cpu: 156, .power: 112, .pid: 108][field]!
-            column.minWidth = [.name: 115, .memory: 76, .cpu: 120, .power: 84, .pid: 88][field]!
+            column.width = [.name: 280, .memory: 105, .cpu: 156, .energy: 112, .pid: 108][field]!
+            column.minWidth = [.name: 115, .memory: 76, .cpu: 120, .energy: 84, .pid: 88][field]!
             column.resizingMask = field == .name ? [.userResizingMask, .autoresizingMask] : [.userResizingMask]
             column.sortDescriptorPrototype = NSSortDescriptor(key: field.rawValue, ascending: field == .name || field == .pid)
-            if field == .power { column.headerToolTip = "Puissance moyenne estimée par macOS sur le dernier intervalle." }
+            if field == .energy {
+                column.headerToolTip = ProcessEnergyScore.help
+                column.headerCell.setAccessibilityHelp(ProcessEnergyScore.help)
+            }
             if field == .cpu { column.headerToolTip = "100 % correspond à un cœur utilisé." }
             table.addTableColumn(column)
         }
@@ -125,17 +128,19 @@ struct HomeProcessList: NSViewRepresentable {
                 cell.label.stringValue = group.cpuLabel
                 cell.meter?.value = min(1, (group.cpu ?? 0) / 100)
                 cell.meter?.cpuLevel = group.cpuLevel
-            case .power:
-                cell.label.stringValue = group.powerLabel
-                cell.toolTip = group.power == nil ? "Mesure d’énergie indisponible pour ce relevé."
-                    : "Somme des puissances mesurées sur le dernier intervalle."
+            case .energy:
+                cell.label.stringValue = group.energyScore?.number ?? "—"
+                let partial = group.energyScore?.isLowerBound == true ? " Certaines mesures manquent. La note indique un minimum." : ""
+                cell.toolTip = ProcessEnergyScore.help + partial
+                cell.label.setAccessibilityHelp(cell.toolTip)
             case .pid:
                 cell.label.stringValue = String(group.representative.id.pid)
                 cell.toolTip = group.primary == nil
                     ? "PID de \(group.representative.name), membre affiché du groupe selon son empreinte mémoire."
                     : "PID de \(group.representative.name)."
             }
-            let accent = field == .cpu || field == .power ? group.cpuLevel.accent : nil
+            let accent = field == .energy ? ProcessCPULevel(group.energyScore.map { $0.value * 5 }).accent
+                : (field == .cpu ? group.cpuLevel.accent : nil)
             cell.label.textColor = accent ?? (field == .pid ? .secondaryLabelColor : .labelColor)
             return cell
         }
@@ -244,7 +249,7 @@ private final class ProcessCell: NSTableCellView {
         super.init(frame: .zero)
         identifier = .init(field.rawValue)
         label.lineBreakMode = .byTruncatingTail
-        label.font = field == .name ? .systemFont(ofSize: 13, weight: .medium) : .monospacedDigitSystemFont(ofSize: 12, weight: field == .power ? .semibold : .regular)
+        label.font = field == .name ? .systemFont(ofSize: 13, weight: .medium) : .monospacedDigitSystemFont(ofSize: 12, weight: field == .energy ? .semibold : .regular)
         label.alignment = field == .name ? .left : .right
         textField = label
         addSubview(label)

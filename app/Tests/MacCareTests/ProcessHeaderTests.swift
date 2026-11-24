@@ -4,6 +4,21 @@ import XCTest
 
 final class ProcessHeaderTests: XCTestCase {
     @MainActor
+    func testEnergyCellShowsOnlyTheNumberAndExplainsTheScaleOnHover() throws {
+        let process = TrayProcess(id: .init(pid: 100_001, startedSeconds: 1, startedMicroseconds: 0),
+                                  name: "Test", userID: getuid(), memory: 0, cpuPercent: 45,
+                                  executable: "", idleWakeupsPerSecond: 100)
+        let groups = HomeProcessGroup.collect([process])
+        let list = HomeProcessList(rows: groups, processCount: 1, cpuSummary: "", controller: TrayProcessController(),
+                                   isCardHovered: false, sort: .constant(HomeProcessSort()), query: .constant("")) { _ in }
+        let column = NSTableColumn(identifier: .init(HomeProcessColumn.energy.rawValue))
+        let cell = try XCTUnwrap(list.makeCoordinator().tableView(NSTableView(), viewFor: column, row: 0) as? NSTableCellView)
+        XCTAssertEqual(cell.textField?.stringValue, "10")
+        XCTAssertTrue(try XCTUnwrap(cell.toolTip).contains("sur 20"))
+        XCTAssertEqual(groups.first?.energyLabel, "10/20")
+    }
+
+    @MainActor
     func testLoadMarkerAndApplicationIconKeepTheirPlaceAtEveryCPULevel() throws {
         let loads: [Double?] = [nil, 7, 65, 90]
         let processes = loads.enumerated().map { index, load in

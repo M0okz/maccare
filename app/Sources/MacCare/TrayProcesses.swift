@@ -14,6 +14,7 @@ struct TrayProcess: Identifiable, Sendable, Equatable {
     let cpuPercent: Double?
     let executable: String
     var energyWatts: Double? = nil
+    var idleWakeupsPerSecond: Double? = nil
 
     var canQuit: Bool {
         id.pid > 1 && id.pid != getpid() && userID == getuid()
@@ -23,7 +24,13 @@ struct TrayProcess: Identifiable, Sendable, Equatable {
 }
 
 actor TrayProcessSampler {
-    private var previous: [TrayProcess.Identity: (cpu: UInt64, energy: UInt64?, time: TimeInterval)] = [:]
+    private struct Counters {
+        let cpu: UInt64
+        let energy: UInt64?
+        let idleWakeups: UInt64
+        let time: TimeInterval
+    }
+    private var previous: [TrayProcess.Identity: Counters] = [:]
 
     private var previousWindowServer: WindowServerSample?
 
@@ -34,7 +41,7 @@ actor TrayProcessSampler {
         let bytes = Int32(pids.count * MemoryLayout<pid_t>.stride)
         let copied = pids.withUnsafeMutableBytes { proc_listallpids($0.baseAddress, bytes) }
         guard copied > 0 else { return [] }
-        var next: [TrayProcess.Identity: (cpu: UInt64, energy: UInt64?, time: TimeInterval)] = [:]
+        var next: [TrayProcess.Identity: Counters] = [:]
         let now = ProcessInfo.processInfo.systemUptime
         var timebase = mach_timebase_info_data_t()
         mach_timebase_info(&timebase)
@@ -55,6 +62,7 @@ actor TrayProcessSampler {
             // Empreinte physique, qui prend en compte la mémoire compressée du processus.
             var footprint: UInt64?
             var energy: UInt64?
+            var wakeups: UInt64?
             if includeEnergy {
                 var usage = rusage_info_v6()
                 let status = withUnsafeMutablePointer(to: &usage) { pointer in
@@ -62,7 +70,11 @@ actor TrayProcessSampler {
                         proc_pid_rusage(pid, RUSAGE_INFO_V6, $0)
                     }
                 }
-                if status == 0 { footprint = usage.ri_phys_footprint; energy = usage.ri_energy_nj }
+                if status == 0 {
+                    footprint = usage.ri_phys_footprint
+                    energy = usage.ri_energy_nj
+                    wakeups = usage.ri_pkg_idle_wkups
+                }
             }
             if footprint == nil {
                 var usage = rusage_info_v2()
@@ -71,16 +83,21 @@ actor TrayProcessSampler {
                         proc_pid_rusage(pid, RUSAGE_INFO_V2, $0)
                     }
                 }
-                if status == 0 { footprint = usage.ri_phys_footprint }
+                if status == 0 {
+                    footprint = usage.ri_phys_footprint
+                    wakeups = usage.ri_pkg_idle_wkups
+                }
             }
-            guard let footprint else { continue }
-            let old = previous[identity]
-            let watts = Self.power(current: energy, previous: old?.energy, seconds: old.map { now - $0.time }, maximumInterval: maximumInterval)
-            next[identity] = (cpu, energy, now)
+            guard let footprint, let wakeups else { continue }
+            let interval = prior.map { now - $0.time }
+            let watts = Self.power(current: energy, previous: prior?.energy, seconds: interval, maximumInterval: maximumInterval)
+            let wakeRate = Self.rate(current: wakeups, previous: prior?.idleWakeups, seconds: interval, maximumInterval: maximumInterval)
+            next[identity] = Counters(cpu: cpu, energy: energy, idleWakeups: wakeups, time: now)
             result.append(.init(id: identity, name: name, userID: info.pbsd.pbi_uid,
-                                memory: footprint, cpuPercent: percent, executable: path, energyWatts: watts))
+                                memory: footprint, cpuPercent: percent, executable: path, energyWatts: watts,
+                                idleWakeupsPerSecond: wakeRate))
         }
-        if includeWindowServer && !result.contains(where: { $0.name == "WindowServer" }), let sample = WindowServerSample.read(previous: previousWindowServer) {
+        if includeWindowServer && !result.contains(where: { $0.name == "WindowServer" }), let sample = WindowServerSample.read(previous: previousWindowServer, sampleWakeups: includeEnergy) {
             result.append(sample.process(after: previousWindowServer, maximumInterval: maximumInterval))
             previousWindowServer = sample
         } else {
@@ -98,9 +115,14 @@ actor TrayProcessSampler {
     }
 
     static func power(current: UInt64?, previous: UInt64?, seconds: TimeInterval?, maximumInterval: TimeInterval = 10) -> Double? {
-        guard let current, let previous, let seconds, seconds.isFinite, seconds > 0, seconds <= maximumInterval, current >= previous else { return nil }
-        let watts = Double(current - previous) / 1_000_000_000 / seconds
-        return watts.isFinite ? watts : nil
+        rate(current: current, previous: previous, seconds: seconds, maximumInterval: maximumInterval).map { $0 / 1_000_000_000 }
+    }
+
+    static func rate(current: UInt64?, previous: UInt64?, seconds: TimeInterval?, maximumInterval: TimeInterval) -> Double? {
+        guard let current, let previous, let seconds, seconds.isFinite, seconds > 0,
+              seconds <= maximumInterval, current >= previous else { return nil }
+        let rate = Double(current - previous) / seconds
+        return rate.isFinite ? rate : nil
     }
 
     static func info(_ pid: pid_t) -> proc_taskallinfo? {

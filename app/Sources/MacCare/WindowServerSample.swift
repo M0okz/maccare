@@ -8,13 +8,14 @@ struct WindowServerSample {
     let cpuSeconds: TimeInterval?
     let timestamp: TimeInterval
 
-    struct Footprint {
+    struct Counters {
         let bytes: UInt64?
+        let idleWakeups: UInt64?
         let timestamp: TimeInterval
     }
-    var footprint: Footprint? = nil
+    var counters: Counters? = nil
 
-    static func read(previous: Self?) -> Self? {
+    static func read(previous: Self?, sampleWakeups: Bool) -> Self? {
         var entry = passwd(), user: UnsafeMutablePointer<passwd>?
         var buffer = [CChar](repeating: 0, count: 16384)
         guard getpwnam_r("_windowserver", &entry, &buffer, buffer.count, &user) == 0, user != nil else { return nil }
@@ -27,22 +28,23 @@ struct WindowServerSample {
         guard bytes > 0 else { return nil }
         for pid in pids.prefix(Int(bytes) / MemoryLayout<pid_t>.stride) where pid > 0 {
             guard let id = identity(pid, uid: uid) else { continue }
-            // top effectue un relevé système même avec -pid. Espacer cette mesure,
-            // y compris en cas d’échec, indépendamment des relevés CPU plus fréquents.
+            // L’accueil relève IDLEW en même temps que la mémoire. Le volet, plus
+            // fréquent, peut réutiliser la mémoire sans calculer de score énergétique.
             let now = ProcessInfo.processInfo.systemUptime
-            let memory: Footprint
-            if previous?.id == id, let cached = previous?.footprint, now - cached.timestamp < 30 {
-                memory = cached
+            let counters: Counters
+            if !sampleWakeups, previous?.id == id, let cached = previous?.counters, now - cached.timestamp < 30 {
+                counters = cached
             } else {
-                let output = SystemTools.run("/usr/bin/top", ["-l", "1", "-F", "-R", "-pid", String(pid),
-                                                              "-n", "1", "-stats", "pid,mem"], environment: ["LC_ALL": "C"])
-                memory = Footprint(bytes: output.ok ? footprint(in: output.stdout, pid: pid) : nil, timestamp: now)
+                let output = SystemTools.run("/usr/bin/top", ["-l", "1", "-F", "-R", "-c", "e", "-pid", String(pid),
+                                                              "-n", "1", "-stats", "pid,mem,idlew"], environment: ["LC_ALL": "C"])
+                counters = Self.counters(in: output.ok ? output.stdout : "", pid: pid,
+                                         timestamp: ProcessInfo.processInfo.systemUptime)
             }
             let cpu = SystemTools.run("/bin/ps", ["-p", String(pid), "-o", "time="], environment: ["LC_ALL": "C"])
             let timestamp = ProcessInfo.processInfo.systemUptime
             guard identity(pid, uid: uid) == id else { continue }
             return Self(id: id, userID: uid, cpuSeconds: cpu.ok ? seconds(cpu.stdout) : nil,
-                        timestamp: timestamp, footprint: memory)
+                        timestamp: timestamp, counters: counters)
         }
         return nil
     }
@@ -58,18 +60,21 @@ struct WindowServerSample {
         return .init(pid: pid, startedSeconds: UInt64(start.tv_sec), startedMicroseconds: UInt64(start.tv_usec))
     }
 
-    static func footprint(in output: String, pid: pid_t) -> UInt64? {
+    static func counters(in output: String, pid: pid_t, timestamp: TimeInterval) -> Counters {
         for line in output.split(separator: "\n") {
             let fields = line.split(whereSeparator: \.isWhitespace)
-            guard fields.count == 2, Int32(fields[0]) == pid else { continue }
-            let value = fields[1]
-            // top utilise les multiples binaires de humanize_number pour la colonne MEM.
-            let units: [Character] = ["B", "K", "M", "G", "T"]
-            guard let unit = value.last, let exponent = units.firstIndex(of: unit) else { return nil }
-            guard let amount = Double(value.dropLast()), amount.isFinite, amount >= 0 else { return nil }
-            return UInt64(exactly: (amount * Double(UInt64(1) << (10 * exponent))).rounded())
+            guard fields.count == 3, Int32(fields[0]) == pid else { continue }
+            return Counters(bytes: bytes(fields[1]), idleWakeups: UInt64(fields[2]), timestamp: timestamp)
         }
-        return nil
+        return Counters(bytes: nil, idleWakeups: nil, timestamp: timestamp)
+    }
+
+    private static func bytes(_ value: Substring) -> UInt64? {
+        // top utilise les multiples binaires de humanize_number pour la colonne MEM.
+        let units: [Character] = ["B", "K", "M", "G", "T"]
+        guard let unit = value.last, let exponent = units.firstIndex(of: unit),
+              let amount = Double(value.dropLast()), amount.isFinite, amount >= 0 else { return nil }
+        return UInt64(exactly: (amount * Double(UInt64(1) << (10 * exponent))).rounded())
     }
 
     static func seconds(_ text: String) -> TimeInterval? {
@@ -92,6 +97,12 @@ struct WindowServerSample {
                 percent = (cpuSeconds - prior) / interval * 100
             }
         }
-        return .init(id: id, name: "WindowServer", userID: userID, memory: footprint?.bytes, cpuPercent: percent, executable: "")
+        var wakeRate: Double?
+        if let previous, previous.id == id, let counters, let prior = previous.counters {
+            wakeRate = TrayProcessSampler.rate(current: counters.idleWakeups, previous: prior.idleWakeups,
+                                               seconds: counters.timestamp - prior.timestamp, maximumInterval: maximumInterval)
+        }
+        return .init(id: id, name: "WindowServer", userID: userID, memory: counters?.bytes, cpuPercent: percent,
+                     executable: "", idleWakeupsPerSecond: wakeRate)
     }
 }

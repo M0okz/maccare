@@ -124,6 +124,21 @@ Le compteur « Nom » correspond aux lignes du tableau après regroupement.
 Son infobulle indique aussi le nombre de processus individuels relevés.
 Les tailles restent exprimées en Mo et Go décimaux.
 
+## Score énergétique des processus — DEV 0.2.39 (39)
+
+La colonne **Énergie** affiche uniquement la note numérique, arrondie au dixième.
+L’en-tête et les cellules indiquent au survol que le score est sur 20 et expliquent le barème. La fiche et le résumé copié
+reprennent la même valeur. Un clic sur le titre trie les groupes par score.
+
+La note combine la charge CPU et les réveils du processeur sur le dernier
+intervalle. À réveils nuls, 50 % d’un cœur donnent 10/20 et 100 % donnent
+20/20. Les contributions de tous les membres sont additionnées avant le
+plafonnement à 20. Un tiret indique qu’il manque le relevé initial de CPU.
+Une infobulle signale les données partielles. La fiche indique alors le minimum mesuré.
+
+Le score est un indicateur d’activité propre à MacCare. [Calcul de référence
+de la charge et des réveils dans top sur macOS](https://github.com/apple-oss-distributions/top/blob/main/power.c).
+
 ## Jauge Espace libre et survol des métriques
 
 Disponible dans [MacCare 0.2.39](release-integration-0.2.39.md).

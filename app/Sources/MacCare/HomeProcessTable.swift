@@ -47,7 +47,7 @@ struct HomeProcessTable: View {
 }
 
 enum HomeProcessColumn: String, CaseIterable {
-    case name = "Nom", memory = "Mémoire", cpu = "CPU", power = "Puissance", pid = "PID"
+    case name = "Nom", memory = "Mémoire", cpu = "CPU", energy = "Énergie", pid = "PID"
 }
 
 struct HomeProcessSort: Equatable {
@@ -70,7 +70,9 @@ struct HomeProcessSort: Equatable {
                 if (left.memory == nil) != (right.memory == nil) { return left.memory != nil }
                 if let am = a.memory, let bm = b.memory, am != bm { return am < bm }
             case .cpu: if a.cpu != b.cpu { return (a.cpu ?? -1) < (b.cpu ?? -1) }
-            case .power: if a.power != b.power { return (a.power ?? -1) < (b.power ?? -1) }
+            case .energy:
+                if (left.energyScore == nil) != (right.energyScore == nil) { return left.energyScore != nil }
+                if let x = a.energyScore?.value, let y = b.energyScore?.value, x != y { return x < y }
             case .pid:
                 let ap = a.representative.id.pid, bp = b.representative.id.pid
                 if ap != bp { return ap < bp }

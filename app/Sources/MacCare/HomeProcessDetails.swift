@@ -35,7 +35,7 @@ struct HomeProcessDetails: View {
             HStack(spacing: 16) {
                 metric("CPU", current.cpuLabel)
                 metric("Mémoire", HomeProcessMetric.memory(current.memory))
-                metric("Puissance", current.powerLabel)
+                metric("Énergie", current.energyLabel).help(ProcessEnergyScore.help)
             }
             if live == nil {
                 Text("Le processus s’est terminé.").foregroundStyle(Theme.warn)
@@ -101,7 +101,7 @@ struct HomeProcessDetails: View {
     }
 
     private func summary(_ group: HomeProcessGroup) -> String {
-        "\(group.members.count) processus · CPU \(group.cpuLabel) · \(HomeProcessMetric.memory(group.memory)) · \(group.powerLabel)"
+        "\(group.members.count) processus · CPU \(group.cpuLabel) · \(HomeProcessMetric.memory(group.memory)) · Énergie \(group.energyLabel)"
     }
 
     private func header(_ group: HomeProcessGroup) -> some View {
