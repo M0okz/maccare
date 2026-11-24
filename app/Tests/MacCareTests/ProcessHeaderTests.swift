@@ -8,7 +8,7 @@ final class ProcessHeaderTests: XCTestCase {
         let container = ProcessListContainer(frame: NSRect(x: 0, y: 0, width: 500, height: 180))
         let scroll = container.scroll
         let table = NSTableView(frame: NSRect(x: 0, y: 0, width: 500, height: 1200))
-        let header = ProcessHeader(frame: NSRect(x: 0, y: 0, width: 500, height: 24))
+        let header = ProcessHeader(frame: NSRect(x: 0, y: 0, width: 500, height: ProcessHeader.height))
         let column = NSTableColumn(identifier: .init("Nom"))
         column.title = "Nom"
         table.style = .plain
@@ -22,12 +22,12 @@ final class ProcessHeaderTests: XCTestCase {
         for offset in [0, 250, 50] {
             scroll.contentView.scroll(to: NSPoint(x: 0, y: offset))
             let titles = scroll.convert(header.bounds, from: header)
-            XCTAssertEqual(titles.height, 24)
+            XCTAssertEqual(titles.height, 25)
             XCTAssertEqual(scroll.contentView.frame.minY, titles.maxY)
             XCTAssertGreaterThan(scroll.contentView.frame.height, 0)
         }
 
-        let ctx = try XCTUnwrap(CGContext(data: nil, width: 500, height: 24, bitsPerComponent: 8,
+        let ctx = try XCTUnwrap(CGContext(data: nil, width: 500, height: Int(header.bounds.height), bitsPerComponent: 8,
             bytesPerRow: 2000, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
         NSGraphicsContext.saveGraphicsState()
         defer { NSGraphicsContext.restoreGraphicsState() }

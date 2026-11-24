@@ -22,7 +22,7 @@ struct HomeProcessList: NSViewRepresentable {
         let table = ProcessTableView()
         table.style = .plain
         table.backgroundColor = .clear
-        table.headerView = ProcessHeader(frame: NSRect(x: 0, y: 0, width: 0, height: 24))
+        table.headerView = ProcessHeader(frame: NSRect(x: 0, y: 0, width: 0, height: ProcessHeader.height))
         table.rowHeight = 27
         table.intercellSpacing = .zero
         table.usesAlternatingRowBackgroundColors = false
@@ -199,6 +199,7 @@ private final class ProcessRowView: NSTableRowView {
 }
 
 final class ProcessHeader: NSTableHeaderView {
+    static let height: CGFloat = 25
     var searching = false { didSet { needsDisplay = true } }
     override var isOpaque: Bool { false }
 
