@@ -19,7 +19,7 @@ final class UninstallPointerTests: XCTestCase {
     }
 
     private func exercise(module: Module, screen: CGSize) async throws {
-        try XCTSkipIf(NSScreen.main == nil, "A macOS window server is required.")
+        guard let display = NSScreen.main else { throw XCTSkip("A macOS window server is required.") }
         let files = FileManager.default
         let name = "MacCarePointer-" + UUID().uuidString
         let identifier = "org.example." + name.lowercased()
@@ -44,7 +44,7 @@ final class UninstallPointerTests: XCTestCase {
         let layout = MainWindowLayout(visibleScreenSize: screen)
         let host = NSHostingView(rootView: UninstallView(model: model, layout: layout)
             .modifier(ModulePageLayout(module: module, layout: layout)))
-        let size = NSSize(width: 1211, height: 536)
+        let size = NSSize(width: min(1211, display.visibleFrame.width), height: 536)
         let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.titled, .resizable],
                               backing: .buffered, defer: false)
         host.sizingOptions = []
@@ -61,19 +61,20 @@ final class UninstallPointerTests: XCTestCase {
         let ids = model.residuals.map(\.id)
         var tested = Set<String>()
         var initialGlyphY = [String: CGFloat]()
-        var scrolled = false
         for atBottom in [false, true] {
             if atBottom {
                 let scroller = try XCTUnwrap(descendants(pane).compactMap { $0 as? NSScroller }.first)
+                let initialScrollValue = scroller.doubleValue
                 scroller.setAccessibilityValue(NSNumber(value: 1.0))
                 try await Task.sleep(nanoseconds: 200_000_000)
+                XCTAssertGreaterThan(scroller.doubleValue, initialScrollValue)
             }
             // This strip contains the glyphs and excludes the changing summary at the far right.
             let strip = NSRect(x: visible.minX, y: visible.minY + 8, width: 84, height: visible.height - 16)
             model.selection = []
             try await Task.sleep(nanoseconds: 75_000_000)
             let empty = try bitmap(of: host, in: strip)
-            var visibleCount = 0
+            var glyphY = [String: CGFloat]()
             for id in ids {
                 model.selection = [id]
                 try await Task.sleep(nanoseconds: 75_000_000)
@@ -81,8 +82,7 @@ final class UninstallPointerTests: XCTestCase {
                 model.selection = []
                 try await Task.sleep(nanoseconds: 75_000_000)
                 guard let point = changedGlyph(empty: empty, checked: checked, in: strip) else { continue }
-                if atBottom, let firstY = initialGlyphY[id], abs(point.y - firstY) > 15 { scrolled = true }
-                if !atBottom { initialGlyphY[id] = point.y }
+                glyphY[id] = point.y
                 let location = host.convert(point, to: nil)
                 try click(location, in: window)
                 try await Task.sleep(nanoseconds: 60_000_000)
@@ -91,11 +91,17 @@ final class UninstallPointerTests: XCTestCase {
                 try await Task.sleep(nanoseconds: 60_000_000)
                 XCTAssertTrue(model.selection.isEmpty, "Clicking the same glyph again should clear the same row.")
                 tested.insert(id)
-                visibleCount += 1
             }
-            XCTAssertGreaterThan(visibleCount, 0)
+            XCTAssertFalse(glyphY.isEmpty)
+            if atBottom {
+                // A narrow viewport can show entirely different rows at the bottom.
+                let differentRows = Set(glyphY.keys) != Set(initialGlyphY.keys)
+                let shifted = glyphY.contains { id, y in initialGlyphY[id].map { abs(y - $0) >= 1 } ?? false }
+                XCTAssertTrue(differentRows || shifted, "Scrolling should change the visible checkmarks.")
+            } else {
+                initialGlyphY = glyphY
+            }
         }
-        XCTAssertTrue(scrolled, "The checkmarks should have moved when the detail scrolled.")
         XCTAssertEqual(tested, Set(ids))
     }
 
