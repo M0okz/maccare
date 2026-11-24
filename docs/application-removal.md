@@ -1,5 +1,17 @@
 # Retrait des applications et données associées
 
+## Présélection du désinstalleur — 24 novembre 2026, en développement
+
+Dans Applications → Gérer mes applications, la revue indique le chemin de la copie choisie et la raison du choix sur chaque ligne. Le paquet et les préférences, caches, journaux, états de fenêtres ou agents rattachés à son identifiant sont présélectionnés. Les profils connus de navigateurs, conteneurs personnels, données web, dossiers de support et correspondances par nom demandent une sélection individuelle. Les données seules peuvent toujours être retirées.
+
+Quand une deuxième copie du même identifiant est détectée, ses données associées sont protégées dans les deux modes de retrait. Une application homonyme protège aussi les chemins attribués par nom. Les éditions reconnues de Firefox qui utilisent le même dossier de profils le protègent mutuellement. Les conteneurs de groupe identifiés par le catalogue ou par les groupes déclarés dans la signature restent visibles et protégés. Le chemin de l’autre application est indiqué lorsqu’il est connu.
+
+La revue interroge les dossiers Applications habituels ainsi que les copies enregistrées auprès de macOS ou en cours d’exécution pour les identifiants recherchés. Une copie hors ligne, ou hors catalogue et inconnue de macOS, échappe à cette détection. Le retrait contrôle de nouveau les propriétaires avant d’agir sur les données. Un échec de retrait du paquet conserve les données de la sélection.
+
+**Référence locale** — branche `codex/app-action-pills`, état de travail sur `b4c7083`. Les décisions sont dans `UninstallReview.swift`, leur application dans `UninstallModel.swift`, `UninstallerView.swift` et `Remover.swift`. Cette évolution est en DEV. La section du 9 novembre ci-dessous décrit la version livrée à cette date.
+
+**Vérifications** — 11 tests ciblés du désinstalleur. La suite Swift complète compte 399 XCTest dont 7 ignorés et 295 tests Swift Testing, sans échec. Deux apps de test signées avec le même identifiant ont été installées dans Applications. Dans MacCare Dev, le paquet A était coché et la préférence partagée désactivée avec le chemin de B. Après le passage de A à la Corbeille, puis après un second essai en retrait définitif sur le paquet DEV final, B a été relancée et a lu la même valeur qu’avant le retrait. Un test couvre également une copie apparue entre analyse et exécution, dans les deux modes. La case et sa raison ont été relues dans l’arbre d’accessibilité macOS. VoiceOver et le second MacBook physique restent à vérifier. La preuve locale est dans `build/uninstall-shared/validation.json`.
+
 ## État — 9 novembre 2026
 
 **Livré dans [MacCare 0.2.16 (build 18)](https://github.com/M0okz/maccare/releases/tag/v0.2.16).** Branche de préparation `codex/stable-metrics-history`, désormais fusionnée et fermée. MacCare Dev

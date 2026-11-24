@@ -11,14 +11,34 @@ final class UninstallDetailTests: XCTestCase {
                  identity: FileIdentity(device: 1, inode: 1), owner: nil)
     }
 
-    func testInitialSelectionIncludesApplicationAndAssociatedData() {
-        let items = [item("app", path: "/QA/./Example.app"),
-                     item("data", path: "/QA/Library/Example.app"),
-                     item("helper", path: "/QA/Example.app/Contents/Helpers/Helper.app")]
-        XCTAssertEqual(UninstallDetailPresentation.initialSelection(app: app, items: items), ["app", "data", "helper"])
-        let detail = UninstallDetailPresentation(app: app, items: items, selection: ["app"], directDelete: false)
-        XCTAssertTrue(detail.consequence.contains("Les données associées seront conservées."))
-        XCTAssertEqual(UninstallDetailPresentation.initialSelection(app: app, items: Array(items.dropFirst())), ["data", "helper"])
+    func testOnlyTheBundleAndIdentifiedLowRiskDataStartSelected() {
+        let library = URL(fileURLWithPath: "/QA/Library")
+        let review = UninstallReview(app: app, others: [], groupIDs: ["group.example"], library: library)
+        XCTAssertEqual(review.use(of: item("app", path: "/QA/./Example.app")), .application)
+        XCTAssertEqual(review.candidates["/QA/Library/Preferences/org.example.qa.plist"], .exclusive)
+        XCTAssertEqual(review.candidates["/QA/Library/Application Support/org.example.qa"], .personal)
+        XCTAssertEqual(review.candidates["/QA/Library/Application Support/Example"], .nameOnly)
+        XCTAssertEqual(review.candidates["/QA/Library/Group Containers/group.example"], .group)
+        XCTAssertTrue(UninstallDataUse.exclusive.preselected)
+        XCTAssertTrue(UninstallDataUse.personal.canRemove)
+        XCTAssertFalse(UninstallDataUse.personal.preselected)
+        XCTAssertFalse(UninstallDataUse.nameOnly.preselected)
+        XCTAssertFalse(UninstallDataUse.group.canRemove)
+        XCTAssertNil(review.use(of: item("other", path: "/QA/other.app")))
+    }
+
+    func testDuplicateNamesAndBrowserEditionsProtectSharedPaths() {
+        let library = URL(fileURLWithPath: "/QA/Library")
+        let other = AppInfo(url: URL(fileURLWithPath: "/Elsewhere/Example.app"), name: app.name, bundleId: "org.other")
+        let review = UninstallReview(app: app, others: [other], library: library)
+        XCTAssertEqual(review.candidates["/QA/Library/Caches/Example"], .shared(other.url.path))
+        XCTAssertEqual(review.candidates["/QA/Library/Preferences/org.example.qa.plist"], .exclusive)
+
+        let firefox = AppInfo(url: URL(fileURLWithPath: "/QA/Firefox.app"), name: "Firefox", bundleId: "org.mozilla.firefox")
+        let nightly = AppInfo(url: URL(fileURLWithPath: "/QA/Firefox Nightly.app"), name: "Firefox Nightly", bundleId: "org.mozilla.nightly")
+        let key = "/QA/Library/Application Support/Firefox"
+        XCTAssertEqual(UninstallReview(app: firefox, others: [], library: library).candidates[key], .personal)
+        XCTAssertEqual(UninstallReview(app: firefox, others: [nightly], library: library).candidates[key], .shared(nightly.url.path))
     }
 
     func testOnlyExactBundlePathIsClassifiedAsApplication() {

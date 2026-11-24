@@ -62,9 +62,22 @@ enum Remover {
             ends_with = \(try quoted(bundleURL.lastPathComponent))
             """
             report = try remove(bundle, scopeRoot: root, direct: direct, rule: rule)
+            guard report.removed == bundle.count else {
+                report.refused += data.map { ($0.path, "Donnée conservée car le retrait de l’application a échoué.") }
+                return report
+            }
         }
         if !data.isEmpty {
-            let result = try remove(data, scopeRoot: NSHomeDirectory(), direct: direct)
+            // Une autre copie a pu apparaître depuis la sélection.
+            let review = UninstallReview.current(for: app)
+            let eligible = data.filter { item in
+                let use = review.use(of: item)
+                if use?.canRemove == true { return true }
+                report.refused.append((item.path, use?.reason ?? "Ce chemin ne figure plus parmi les données de l’application."))
+                return false
+            }
+            guard !eligible.isEmpty else { return report }
+            let result = try remove(eligible, scopeRoot: NSHomeDirectory(), direct: direct)
             report.removed += result.removed
             report.refused += result.refused
             report.failed += result.failed

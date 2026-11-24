@@ -40,7 +40,8 @@ struct UninstallView: View {
     }
 
     private var browser: some View {
-        VStack(alignment: .leading, spacing: Space.m) {
+        let duplicateNames = Set(Dictionary(grouping: model.apps, by: { $0.name.lowercased() }).filter { $0.value.count > 1 }.keys)
+        return VStack(alignment: .leading, spacing: Space.m) {
             Text("Gestionnaire d’applications").font(.headline).accessibilityAddTraits(.isHeader)
             Picker("Afficher", selection: $model.showingLeftovers) {
                 Text("Applications").tag(false)
@@ -63,7 +64,13 @@ struct UninstallView: View {
                             Button { model.selectedApp = app } label: {
                                 HStack(spacing: 10) {
                                     AppIcon(app: app, size: 30).accessibilityHidden(true)
-                                    Text(app.name).font(AppFont.body).lineLimit(2)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(app.name).font(AppFont.body).lineLimit(2)
+                                        if duplicateNames.contains(app.name.lowercased()) {
+                                            Text(app.url.deletingLastPathComponent().path)
+                                                .font(AppFont.caption).foregroundStyle(Theme.muted).lineLimit(1).truncationMode(.middle)
+                                        }
+                                    }
                                     Spacer(minLength: 0)
                                 }
                                 .padding(10).frame(maxWidth: .infinity, alignment: .leading)
@@ -146,13 +153,16 @@ struct UninstallView: View {
                 title: model.selectedApp?.name ?? "Désinstalleur",
                 subtitle: model.selectedApp == nil
                     ? "Choisissez une application pour examiner son paquet et ses données associées."
-                    : "L’application et ses données sont cochées. Décochez les éléments que vous souhaitez conserver."
+                    : "Vérifiez les éléments cochés avant de les retirer."
             )
             if let app = model.selectedApp {
                 HStack(spacing: Space.m) {
                     AppIcon(app: app, size: 40)
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Application sélectionnée").font(AppFont.body.weight(.semibold))
+                        Text(app.url.path)
+                            .font(AppFont.secondary).foregroundStyle(Theme.muted)
+                            .lineLimit(1).truncationMode(.middle).help(app.url.path)
                         Text(app.bundleId ?? "sans identifiant")
                             .font(AppFont.secondary).foregroundStyle(Theme.muted)
                             .lineLimit(1).truncationMode(.middle)
@@ -259,7 +269,7 @@ struct UninstallView: View {
                                 .font(AppFont.secondary).foregroundStyle(Theme.muted)
                         }
                         if detail.applicationItems.isEmpty {
-                            Text("Le paquet n’a pas été détecté. Seules les données associées peuvent être retirées.")
+                            Text("Le paquet ne figure plus à cet emplacement.")
                                 .font(AppFont.secondary).foregroundStyle(Theme.muted)
                         } else {
                             itemList(detail.applicationItems)
@@ -272,8 +282,6 @@ struct UninstallView: View {
                             Text("\(detail.associatedItems.count) \(pl(detail.associatedItems.count, "élément"))")
                                 .font(AppFont.secondary).foregroundStyle(Theme.muted)
                         }
-                        Text("Préférences, caches et autres fichiers détectés. Décochez les données à conserver.")
-                            .font(AppFont.secondary).foregroundStyle(Theme.muted)
                         if detail.associatedItems.isEmpty {
                             Text("Aucune donnée associée détectée.")
                                 .font(AppFont.body).foregroundStyle(Theme.muted)
@@ -291,10 +299,15 @@ struct UninstallView: View {
         VStack(spacing: 0) {
             ForEach(Array(items.enumerated()), id: \.element.id) { idx, item in
                 if idx > 0 { Rectangle().fill(Theme.hairline).frame(height: 1) }
+                let use = model.review?.use(of: item)
                 Toggle(isOn: Binding(get: { model.selection.contains(item.id) }, set: { _ in toggle(item) })) {
                     HStack(spacing: 10) {
                         VStack(alignment: .leading, spacing: 1) {
                             Text(item.displayName).font(AppFont.body)
+                            if let use {
+                                Text(use.reason).font(AppFont.secondary).foregroundStyle(Theme.muted)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
                             Text(item.path).font(AppFont.caption).foregroundStyle(Theme.faint)
                                 .lineLimit(1).truncationMode(.middle)
                         }
@@ -303,7 +316,7 @@ struct UninstallView: View {
                     }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
                 }.actionCursor()
                 .toggleStyle(.checkbox).padding(.horizontal, 14).padding(.vertical, 9)
-                .disabled(model.isCleaning || model.isScanning)
+                .disabled(model.isCleaning || model.isScanning || use?.canRemove != true)
                     .contextMenu {
                         Button("Afficher dans le Finder") {
                             NSWorkspace.shared.activateFileViewerSelecting([item.url])
