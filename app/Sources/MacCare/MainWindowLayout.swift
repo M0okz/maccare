@@ -4,7 +4,7 @@ struct MainWindowLayout: Equatable {
     let scale: CGFloat
     let minimumContentSize: CGSize
 
-    static let minimumFrameSize = CGSize(width: 1311, height: 773)
+    static let minimumFrameSize = CGSize(width: 1211, height: 773)
     private static let standardWorkspace = CGSize(width: 2400, height: 1400)
     static let standard = MainWindowLayout(visibleScreenSize: standardWorkspace)
     private static let minimumScale: CGFloat = 0.85

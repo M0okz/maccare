@@ -19,7 +19,7 @@ struct HomeProcessGroup: Identifiable {
     let memory: UInt64
     let cpu: Double?
     let power: Double?
-    var highCPU: Bool { (cpu ?? 0) > 40 }
+    var cpuLevel: ProcessCPULevel { ProcessCPULevel(cpu) }
 
     var cpuLabel: String { lowerBound(cpu, key: \.cpuPercent) + HomeProcessMetric.cpu(cpu) }
     var powerLabel: String {
@@ -83,6 +83,24 @@ struct HomeProcessGroup: Identifiable {
             }
         }
         return apps
+    }
+}
+
+enum ProcessCPULevel {
+    case normal, elevated, critical
+
+    init(_ percent: Double?) {
+        if let percent, percent > 80 { self = .critical }
+        else if let percent, percent > 40 { self = .elevated }
+        else { self = .normal }
+    }
+
+    var accent: NSColor? {
+        switch self {
+        case .normal: return nil
+        case .elevated: return .systemOrange
+        case .critical: return .systemRed
+        }
     }
 }
 

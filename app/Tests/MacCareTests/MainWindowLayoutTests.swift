@@ -13,16 +13,18 @@ struct MainWindowLayoutTests {
     }
 
     @Test(arguments: [CGSize(width: 2560, height: 1488), CGSize(width: 1800, height: 1053),
-                      CGSize(width: 1512, height: 894)])
+                      // Espaces utilisables simulés de MacBook 13, 14 et 16 pouces.
+                      CGSize(width: 1440, height: 820), CGSize(width: 1512, height: 894),
+                      CGSize(width: 1728, height: 1030)])
     func windowFrameKeepsTheChosenMinimumAtEveryDisplayScale(screen: CGSize) {
         let layout = MainWindowLayout(visibleScreenSize: screen, titleBarHeight: 28)
-        #expect(layout.minimumContentSize == CGSize(width: 1311, height: 745))
+        #expect(layout.minimumContentSize == CGSize(width: 1211, height: 745))
         #expect(layout.scale == (screen.width >= 2400 ? 1 : 0.85))
     }
 
     @Test func actualTitleBarHeightIsIncludedInTheMinimumFrame() {
         let layout = MainWindowLayout(visibleScreenSize: CGSize(width: 2560, height: 1488), titleBarHeight: 40)
-        #expect(layout.minimumContentSize == CGSize(width: 1311, height: 733))
+        #expect(layout.minimumContentSize == CGSize(width: 1211, height: 733))
     }
 
     @Test(arguments: [CGSize.zero, CGSize(width: CGFloat.infinity, height: 900)])
@@ -41,8 +43,8 @@ struct MainWindowLayoutTests {
     @Test func onlyDimensionsThatExceedTheScreenAreCapped() {
         let small = MainWindowLayout(visibleScreenSize: CGSize(width: 900, height: 580))
         #expect(small.minimumContentSize == CGSize(width: 900, height: 552))
-        let shallow = MainWindowLayout(visibleScreenSize: CGSize(width: 1500, height: 600))
-        #expect(shallow.minimumContentSize == CGSize(width: 1311, height: 572))
+        let shallow = MainWindowLayout(visibleScreenSize: CGSize(width: 1280, height: 744))
+        #expect(shallow.minimumContentSize == CGSize(width: 1211, height: 716))
         let narrow = MainWindowLayout(visibleScreenSize: CGSize(width: 1000, height: 900))
         #expect(narrow.minimumContentSize == CGSize(width: 1000, height: 745))
     }

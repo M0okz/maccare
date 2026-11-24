@@ -172,9 +172,11 @@ Son diamètre s’adapte à la largeur de la carte. [Disposition et comportement
 
 `HomeCardGrid` mesure chaque carte à sa largeur de colonne et utilise la hauteur
 maximale pour les deux rangées. `HomeProcessTable` remplit la hauteur disponible sous la grille et
-utilise le même relevé que la carte Batterie. `HomeCPUApplication` additionne la
-charge CPU des processus par application, puis retient les trois premières qui
-dépassent 40 % d’un cœur. L’alerte CPU rejoint ce tableau dans la fenêtre principale.
+utilise le même relevé que la carte Batterie. `HomeProcessGroup` additionne la
+charge CPU des processus par application. L’infobulle de la colonne Nom
+présente les trois applications les plus actives au-dessus de 40 % d’un cœur.
+Dans l’aperçu DEV, `ProcessScrollView` place les lignes sous l’en-tête transparent
+et `ProcessListContainer` aligne la recherche sur les titres du tableau. L’alerte CPU rejoint ce tableau dans la fenêtre principale.
 
 ### Ventilation depuis l’accueil — aperçu DEV du 22 novembre 2026
 

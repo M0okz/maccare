@@ -140,7 +140,7 @@ struct HomeProcessDetails: View {
                     HStack {
                         Text(member.name).lineLimit(1).truncationMode(.middle).frame(maxWidth: .infinity, alignment: .leading)
                         Text(String(member.id.pid)).frame(width: 60, alignment: .trailing)
-                        Text(HomeProcessMetric.cpu(member.cpuPercent)).foregroundStyle((member.cpuPercent ?? 0) > 40 ? Theme.warn : .primary)
+                        Text(HomeProcessMetric.cpu(member.cpuPercent)).foregroundStyle(Color(nsColor: ProcessCPULevel(member.cpuPercent).accent ?? .labelColor))
                             .frame(width: 65, alignment: .trailing)
                         Text(HomeProcessMetric.memory(member.memory)).frame(width: 78, alignment: .trailing)
                     }

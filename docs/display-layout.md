@@ -1,6 +1,19 @@
 # Échelle automatique de la fenêtre principale
 
-## Taille minimale de la fenêtre principale
+## Taille minimale en DEV — 24 novembre 2026
+
+Une nouvelle fenêtre principale a une taille par défaut de **1 211 × 773 points**, barre de titre comprise.
+Ce format est aussi son minimum de redimensionnement. Sur les MacBook 13, 14 et
+16 pouces, MacCare utilise l’espace disponible communiqué par macOS, en tenant
+compte du réglage d’affichage, du Dock et de la barre des menus. Si cet espace
+est plus petit sur un axe, la fenêtre peut se réduire sur cet axe.
+
+Sur la DEV 0.2.36 (32), les demandes de 1 000 × 850, 1 300 × 600 et
+900 × 600 points ont donné respectivement 1 211 × 850, 1 300 × 773 et
+1 211 × 773. Les six tests de géométrie passent, avec des espaces disponibles
+simulés pour les trois formats de MacBook.
+
+## Taille minimale livrée en 0.2.34
 
 Disponible dans [MacCare 0.2.34, build 36](release-integration-0.2.34.md).
 
