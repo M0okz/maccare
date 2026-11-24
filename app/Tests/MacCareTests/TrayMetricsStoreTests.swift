@@ -22,6 +22,38 @@ final class TrayMetricsStoreTests: XCTestCase {
         XCTAssertEqual(TrayMetricHistory.window(history.points, duration: 600).count, 122)
     }
 
+    func testMemoryChartMagnifiesSmallChangesAndExcludesExpiredPeaks() {
+        let points = [TrayHistoryPoint(time: 0, value: 0.95),
+                      TrayHistoryPoint(time: 5, value: 0.70),
+                      TrayHistoryPoint(time: 65, value: 0.71)]
+        let clipped = TrayHistoryChart.clipLeadingSegment(points, at: 5)
+        let range = TrayHistoryChart.fractionRange(clipped)
+        XCTAssertTrue(range.contains(0.70) && range.contains(0.71))
+        let span = range.upperBound - range.lowerBound
+        XCTAssertGreaterThanOrEqual(span, 0.05 - 1e-10)
+        XCTAssertLessThanOrEqual(span, 0.07)
+        XCTAssertEqual(TrayHistoryChart.clipLeadingSegment(points, at: 4)[0].value, 0.75, accuracy: 1e-10)
+        XCTAssertTrue(TrayHistoryChart.clipLeadingSegment([points[2]], at: 66).isEmpty)
+        for value in [0.0, 0.70, 1.0] {
+            let flat = TrayHistoryChart.fractionRange([.init(time: 10, value: value)])
+            XCTAssertTrue(flat.contains(value))
+            XCTAssertGreaterThanOrEqual(flat.lowerBound, 0)
+            XCTAssertLessThanOrEqual(flat.upperBound, 1)
+            XCTAssertGreaterThanOrEqual(flat.upperBound - flat.lowerBound, 0.05 - 1e-10)
+        }
+    }
+
+    func testCompactMemoryReadoutKeepsSwapSeparateFromRAM() {
+        let store = TrayMetricsStore()
+        for (time, swap): (Double, UInt64?) in [(10, 0), (13, 2_000), (16, nil)] {
+            var measurement = sample(time)
+            measurement.memory?.swapUsed = swap
+            store.record(measurement)
+            XCTAssertEqual(store.snapshot.compact.metrics.memory?.swapUsed, swap)
+            XCTAssertEqual(store.snapshot.compact.metrics.memory?.used, 600)
+        }
+    }
+
     func testClosingTheLastConsumerKeepsBackgroundMonitoring() {
         let store = TrayMetricsStore()
         let dashboard = TrayMetricsStore.Consumer.dashboard(UUID())

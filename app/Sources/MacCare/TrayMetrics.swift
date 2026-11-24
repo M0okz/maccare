@@ -16,6 +16,7 @@ struct TrayMetrics: Sendable {
         let wired: UInt64
         let compressed: UInt64
         var pressure: MemoryPressureLevel? = nil
+        var swapUsed: UInt64?
         var used: UInt64 { min(total, active + wired + compressed) }
         var available: UInt64 { total - used }
         var fraction: Double { Double(used) / Double(max(total, 1)) }
@@ -167,7 +168,16 @@ actor TrayMetricsSampler: TrayMetricsSampling {
         let active = UInt64(info.active_count) - min(UInt64(info.active_count), UInt64(info.purgeable_count))
         return .init(total: ProcessInfo.processInfo.physicalMemory,
                      active: active * UInt64(pageSize), wired: UInt64(info.wire_count) * UInt64(pageSize),
-                     compressed: UInt64(info.compressor_page_count) * UInt64(pageSize), pressure: MemoryPressureLevel.current())
+                     compressed: UInt64(info.compressor_page_count) * UInt64(pageSize),
+                     pressure: MemoryPressureLevel.current(), swapUsed: swapUsedBytes())
+    }
+
+    private func swapUsedBytes() -> UInt64? {
+        var usage = xsw_usage()
+        var size = MemoryLayout.size(ofValue: usage)
+        guard sysctlbyname("vm.swapusage", &usage, &size, nil, 0) == 0,
+              size == MemoryLayout<xsw_usage>.size else { return nil }
+        return usage.xsu_used
     }
 
     private func network(includeLink: Bool) -> TrayMetrics.Network? {
