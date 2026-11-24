@@ -89,12 +89,23 @@ struct HomeActivityCard<Health: View, Battery: View>: View {
             reading(metrics.memory.map { "\(Int(($0.fraction * 100).rounded()))" }, unit: "%")
                 .accessibilityLabel("Utilisation mémoire estimée : \(metrics.memory.map { "\(Int(($0.fraction * 100).rounded())) %" } ?? "indisponible")")
         } footer: {
-            usageBar(metrics.memory?.fraction, color: ModuleColor.space)
+            TrayHistoryChart(points: store.snapshot.memory.points, duration: 60, color: ModuleColor.space,
+                             filled: true, marksLatestPoint: true, endTime: store.snapshot.raw.sampledAt,
+                             fitsVisibleFractions: true)
+                .frame(height: 24)
                 .modifier(HomeActivityGlow(active: memoryHovered, color: ModuleColor.space))
-            detail(metrics.memory.map { "\(humanSize($0.used, fractionalAbove: 1_000_000_000)) sur \(humanSize($0.total, fractionalAbove: 1_000_000_000))" } ?? "Mémoire indisponible")
+                .accessibilityHidden(true)
+            if let memory = metrics.memory {
+                let used = humanSize(memory.used)
+                let swap = memory.swapUsed.map { humanSize($0) }
+                detail("\(used) · \(swap.map { "\($0) swap" } ?? "swap indisponible")")
+                    .accessibilityLabel("Mémoire utilisée : \(used). Swap utilisé : \(swap ?? "indisponible").")
+            } else {
+                detail("Mémoire indisponible")
+            }
         }
         .onHover { memoryHovered = $0 }
-        .help("Utilisation estimée et pression mesurée par macOS : deux indicateurs distincts.")
+        .help("La courbe adapte son échelle à la RAM utilisée sur la dernière minute. Le swap indique l’espace disque utilisé comme mémoire virtuelle.")
         .accessibilityElement(children: .combine)
     }
 
