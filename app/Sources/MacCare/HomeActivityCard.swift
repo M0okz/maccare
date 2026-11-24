@@ -9,6 +9,8 @@ struct HomeActivityCard<Health: View, Battery: View>: View {
     @ViewBuilder let battery: () -> Battery
     @State private var memoryHovered = false
     @State private var cpuHovered = false
+    @State private var gpuHovered = false
+    @State private var diskHovered = false
     @State private var networkHovered = false
     private var metrics: TrayMetrics { store.snapshot.compact.metrics }
     private var wifi: TrayMetrics.WiFi? { store.snapshot.compactNetwork.wifi ?? metrics.wifi }
@@ -67,9 +69,11 @@ struct HomeActivityCard<Health: View, Battery: View>: View {
             reading(metrics.gpu?.fraction.map { "\(Int(($0 * 100).rounded()))" }, unit: "%")
         } footer: {
             TrayHistoryChart(points: store.snapshot.gpu.points, color: ModuleColor.startup, filled: true)
-                .frame(height: 24).accessibilityHidden(true)
+                .frame(height: 24).modifier(HomeActivityGlow(active: gpuHovered, color: ModuleColor.startup))
+                .accessibilityHidden(true)
             detail(gpuState)
         }
+        .onHover { gpuHovered = $0 }
         .accessibilityElement(children: .combine)
         .help(metrics.gpu?.model ?? "Mesures du GPU indisponibles")
     }
@@ -105,11 +109,14 @@ struct HomeActivityCard<Health: View, Battery: View>: View {
                 reading(size?.value, unit: size?.unit ?? "")
                     .accessibilityLabel(storage.map { "Stockage libre : \(humanSize($0.available, fractionalAbove: 1_000_000_000))" } ?? "Stockage indisponible")
             } footer: {
-                usageBar(storage?.fraction, color: ModuleColor.space)
+                let barColor = storage?.homeBarColor ?? .clear
+                usageBar(storage?.fraction, color: barColor, height: 7)
+                    .modifier(HomeActivityGlow(active: diskHovered && storage != nil, color: barColor))
                 detail(storage.map { "\(humanSize($0.used, fractionalAbove: 1_000_000_000)) utilisés · \($0.percent) %" } ?? "Mesure indisponible")
             }
         }
         .buttonStyle(HomeActivityMetricButtonStyle())
+        .onHover { diskHovered = $0 }
         .help("Stockage interne : espace disponible pour un usage important selon macOS, espace purgeable compris.")
         .accessibilityElement(children: .combine).accessibilityHint("Ouvrir Espace disque")
     }
@@ -196,12 +203,12 @@ struct HomeActivityCard<Health: View, Battery: View>: View {
     private func detail(_ text: String) -> some View {
         Text(text).font(AppFont.caption).foregroundStyle(Theme.muted).lineLimit(1)
     }
-    private func usageBar(_ fraction: Double?, color: Color) -> some View {
+    private func usageBar(_ fraction: Double?, color: Color, height: CGFloat = 5) -> some View {
         GeometryReader { geometry in
             Capsule().fill(.white.opacity(0.08)).overlay(alignment: .leading) {
                 Capsule().fill(color).frame(width: geometry.size.width * min(1, max(0, fraction ?? 0)))
             }
-        }.frame(height: 5).frame(height: 20).accessibilityHidden(true)
+        }.frame(height: height).frame(height: 20).accessibilityHidden(true)
     }
     private func temperature(_ value: Double?) -> String { value.map { "\(Int($0.rounded())) °C" } ?? "— °C" }
     private var gpuState: String {
@@ -215,6 +222,16 @@ struct HomeActivityCard<Health: View, Battery: View>: View {
         case .warning: return Theme.warn
         case .critical: return Theme.danger
         case nil: return Theme.muted
+        }
+    }
+}
+
+extension TrayStorageUsage {
+    var homeBarColor: Color {
+        switch percent {
+        case 90...: return .red
+        case 70...: return .orange
+        default: return ModuleColor.space
         }
     }
 }

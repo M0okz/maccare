@@ -1,7 +1,20 @@
+import SwiftUI
 import XCTest
 @testable import MacCare
 
 final class TrayStorageUsageTests: XCTestCase {
+    func testHomeBarColorFollowsDisplayedUsedPercentage() throws {
+        let cases: [(free: UInt64, color: Color)] = [
+            (1000, ModuleColor.space), (400, ModuleColor.space), (306, ModuleColor.space),
+            (304, .orange), (300, .orange), (106, .orange),
+            (104, .red), (100, .red), (30, .red), (0, .red)
+        ]
+        for (free, expected) in cases {
+            let usage = try XCTUnwrap(TrayStorageUsage(free: free, total: 1000))
+            XCTAssertEqual(usage.homeBarColor, expected, "Occupation affichée : \(usage.percent) %")
+        }
+    }
+
     func testMissingCapacityDoesNotBecomeAnEmptyDisk() {
         XCTAssertNil(TrayStorageUsage(free: 0, total: 0))
         XCTAssertNil(TrayStorageUsage(free: 100, total: 0))

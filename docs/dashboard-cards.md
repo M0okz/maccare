@@ -68,6 +68,18 @@ Max à Frais recalcule la cible. Max demande le maximum de chaque ventilateur. L
 les ventilateurs pris en charge par MacCare. La mesure reste accessible sans
 assistant. Le changement de profil exige l’assistant système au protocole 11.
 
+## Jauge Espace libre et survol des métriques — DEV du 24 novembre 2026
+
+La barre de 7 points indique la part **utilisée** du disque. Sa couleur suit
+le pourcentage arrondi affiché sous la barre. Elle est bleue jusqu’à 69 %,
+orange de 70 à 89 % et rouge dès 90 %. La valeur principale indique l’espace
+restant. En l’absence de mesure, la carte affiche « Mesure indisponible ».
+
+Au survol d’une tuile CPU, GPU, Mémoire, Espace libre ou Réseau, le graphique
+ou la jauge s’éclaire avec le même effet. Le halo de la jauge disque reprend
+la couleur de son niveau d’occupation. Le réglage Réduire les animations est
+respecté sur les cinq tuiles.
+
 ## Appareils jumelés — développement du 9 novembre 2026
 
 **Non livré.** Lecture bornée des iPhone/iPad déjà approuvés et essai du registre
