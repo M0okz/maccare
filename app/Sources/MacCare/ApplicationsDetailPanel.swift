@@ -22,11 +22,13 @@ struct ApplicationsDetailPanel: View {
     @ObservedObject private var uninstall: UninstallModel
     @ObservedObject private var startup: StartupModel
     @State private var startupCategory: PerformanceCategory = .login
+    let layout: MainWindowLayout
     let detail: ApplicationsDetail
     var includeAllUpdateSources = false
     var onBack: (() -> Void)?
 
-    init(app: AppState, detail: ApplicationsDetail, includeAllUpdateSources: Bool = false, onBack: (() -> Void)? = nil) {
+    init(app: AppState, layout: MainWindowLayout, detail: ApplicationsDetail, includeAllUpdateSources: Bool = false, onBack: (() -> Void)? = nil) {
+        self.layout = layout
         self.app = app; uninstall = app.uninstall; startup = app.startup; self.detail = detail
         self.includeAllUpdateSources = includeAllUpdateSources; self.onBack = onBack
     }
@@ -42,8 +44,9 @@ struct ApplicationsDetailPanel: View {
         Group {
             if detail == .updates && !includeAllUpdateSources {
                 ApplicationsUpdatesManager(model: app.updates, installer: app.applicationUpdateInstaller, apps: uninstall.apps) { close() }
+                    .modifier(DisplayAdjustedContent(layout: layout))
             } else if [.unused, .incompatible, .installers].contains(detail) {
-                ApplicationsInsightsManager(app: app, category: detail, onBack: close)
+                ApplicationsInsightsManager(app: app, layout: layout, category: detail, onBack: close)
             } else {
                 VStack(spacing: 0) {
                     ScreenToolbar(title: "Gestionnaire Applications") {
@@ -58,14 +61,16 @@ struct ApplicationsDetailPanel: View {
                         }
                     }
                         .padding(.horizontal, 24).frame(height: 56)
+                        .displayScaledBlock(layout.scale)
                     Divider()
                     Group {
                         switch detail {
-                        case .installed, .leftovers: UninstallView(model: uninstall)
+                        case .installed, .leftovers: UninstallView(model: uninstall, layout: layout)
                         case .startup:
                             PerformanceStartupManager(model: startup, permissions: app.permissions, category: startupCategory)
                                 .id(startupCategory)
-                        case .updates: UpdatesView(model: app.updates)
+                                .modifier(DisplayAdjustedContent(layout: layout))
+                        case .updates: UpdatesView(model: app.updates).modifier(DisplayAdjustedContent(layout: layout))
                         case .unused, .incompatible, .installers: EmptyView()
                         }
                     }.frame(maxWidth: .infinity, maxHeight: .infinity)

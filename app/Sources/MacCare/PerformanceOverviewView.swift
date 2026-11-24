@@ -22,7 +22,12 @@ struct PerformanceOverviewView: View {
     }
     var body: some View {
         ZStack {
-            overview.allowsHitTesting(app.performanceDetail == nil).accessibilityHidden(app.performanceDetail != nil)
+            overview
+                .opacity(app.performanceDetail == nil ? 1 : 0)
+                .allowsHitTesting(app.performanceDetail == nil)
+                .disabled(app.performanceDetail != nil)
+                .accessibilityElement(children: .contain)
+                .accessibilityHidden(app.performanceDetail != nil)
             if let category = app.performanceDetail {
                 PerformanceDetailPanel(app: app, category: category)
                     .transition(ManagerPanelMotion.transition(reduceMotion: reduceMotion)).zIndex(1)

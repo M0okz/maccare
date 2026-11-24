@@ -12,9 +12,9 @@ struct HomeStatusCards: View {
     var body: some View {
         VStack(spacing: 16 * scale) {
             if availableWidth < 810 {
-                ScrollView { metrics.dashboardBlockScale(scale) }
+                ScrollView { metrics.displayScaledBlock(scale) }
             } else {
-                metrics.dashboardBlockScale(scale)
+                metrics.displayScaledBlock(scale)
             }
             HomeProcessTable(controller: processes)
                 .font(scale < 1 ? .body : AppFont.body)

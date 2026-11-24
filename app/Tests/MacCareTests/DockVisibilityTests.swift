@@ -26,6 +26,17 @@ final class DockVisibilityTests: XCTestCase {
         XCTAssertEqual(DockVisibilityController.policy(menuBarEnabled: true, windows: [minimized]), .regular)
     }
 
+    @MainActor func testTrayRestoresRegisteredMainWindowWhenMinimized() {
+        let settings = window(visible: false, minimized: true)
+        let main = window(visible: false, minimized: true)
+        main.contentView = WindowConfigurator.ObserverView()
+
+        XCTAssertTrue(WindowConfigurator.raiseExistingWindow())
+        XCTAssertTrue(main.wasRaised)
+        XCTAssertFalse(main.isMiniaturized)
+        XCTAssertFalse(settings.wasRaised)
+    }
+
     @MainActor func testMenuBarDisabledKeepsRegularApplicationPolicy() {
         XCTAssertEqual(DockVisibilityController.policy(menuBarEnabled: false, windows: []), .regular)
     }
@@ -43,6 +54,9 @@ final class DockVisibilityTests: XCTestCase {
 private final class DockTestWindow: NSWindow {
     var testVisible = true
     var testMiniaturized = false
+    private(set) var wasRaised = false
+    override func deminiaturize(_ sender: Any?) { testMiniaturized = false }
+    override func makeKeyAndOrderFront(_ sender: Any?) { wasRaised = true }
     override var isVisible: Bool { testVisible }
     override var isMiniaturized: Bool { testMiniaturized }
     override var canBecomeMain: Bool { true }

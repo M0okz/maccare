@@ -16,13 +16,15 @@ struct AppIcon: View {
 
 struct UninstallView: View {
     @ObservedObject var model: UninstallModel
+    let layout: MainWindowLayout
     @State private var query = ""
     @State private var focusedLeftoverID: String?
 
     var body: some View {
         VStack(spacing: 0) {
             HSplitView {
-                browser.frame(minWidth: 240, idealWidth: 280, maxWidth: 340)
+                browser.modifier(DisplayAdjustedContent(layout: layout))
+                    .frame(minWidth: 240 * layout.scale, idealWidth: 280 * layout.scale, maxWidth: 340 * layout.scale)
                 VStack(spacing: 0) {
                     if model.showingLeftovers {
                         leftoverDetail
@@ -31,10 +33,11 @@ struct UninstallView: View {
                         content
                     }
                 }
-                .frame(minWidth: 330, maxWidth: .infinity, maxHeight: .infinity)
+                .modifier(DisplayAdjustedContent(layout: layout))
+                .frame(minWidth: 330 * layout.scale, maxWidth: .infinity, maxHeight: .infinity)
             }
-            if model.showingLeftovers { leftoversFooter }
-            else if model.selectedApp != nil { footer }
+            if model.showingLeftovers { leftoversFooter.displayScaledBlock(layout.scale) }
+            else if model.selectedApp != nil { footer.displayScaledBlock(layout.scale) }
         }
         .onAppear { model.loadApps() }
     }

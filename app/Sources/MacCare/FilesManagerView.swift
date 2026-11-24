@@ -18,7 +18,8 @@ struct FilesManagerView: View {
     init(app: AppState, category: FileManagerCategory) {
         self.app = app; self.large = app.largeFiles; self.duplicates = app.duplicates; self.category = category
     }
-    private var busy: Bool { large.isTrashing || duplicates.isTrashing || large.stage == .scanning || duplicates.stage == .scanning }
+    private var writing: Bool { large.isTrashing || duplicates.isTrashing }
+    private var busy: Bool { writing || large.stage == .scanning || duplicates.stage == .scanning }
     private var running: Bool { category == .large ? large.stage == .scanning : duplicates.stage == .scanning }
     private var groups: [DupGroup] { FileManagerPresentation.groups(duplicates.groups, query: query, sort: sort) }
     private var activeGroup: DupGroup? { groups.first { $0.id == groupID } ?? groups.first }
@@ -70,7 +71,7 @@ struct FilesManagerView: View {
             HStack(spacing: 16) {
                 Picker("Catégorie", selection: Binding(get: { category }, set: { app.module = $0 == .large ? .largeFiles : .duplicates })) {
                     ForEach(FileManagerCategory.allCases) { Text($0.title).tag($0) }
-                }.actionCursor().pickerStyle(.segmented).frame(width: 280).disabled(busy)
+                }.actionCursor().pickerStyle(.segmented).frame(width: 280).disabled(writing)
                 Spacer(minLength: 8)
                 HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass").accessibilityHidden(true)

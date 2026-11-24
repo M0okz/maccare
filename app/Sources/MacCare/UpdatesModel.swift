@@ -38,29 +38,8 @@ final class UpdatesModel: ObservableObject {
     @Published private(set) var hasChecked = false
     @Published var copiedCommand: String?
 
-    /// Nombre de mises à jour Homebrew connues localement (aperçu du tableau de bord), nil si inconnu.
-    @Published private(set) var quickCount: Int?
-
     /// Total de la dernière vérification complète.
     var totalCount: Int { sources.reduce(0) { $0 + $1.items.count } }
-
-    /// Aperçu **local** pour le tableau de bord : Homebrew seulement, sans réseau et sans mettre
-    /// `brew` à jour (aucun effet de bord au lancement). La vérification complète reste à la demande.
-    func quickCheck() {
-        guard quickCount == nil else { return }
-        Task.detached(priority: .utility) {
-            guard let brew = SystemTools.locate("brew") else { return }
-            let env = ["HOMEBREW_NO_AUTO_UPDATE": "1", "HOMEBREW_NO_ANALYTICS": "1"]
-            var count = 0
-            for cask in [false, true] {
-                let args = ["outdated"] + (cask ? ["--cask"] : [])
-                let out = SystemTools.run(brew, args, environment: env)
-                if out.ok { count += out.stdout.split(separator: "\n").count }
-            }
-            let total = count
-            await MainActor.run { self.quickCount = total }
-        }
-    }
 
     func check() { check(applicationsOnly: false) }
 

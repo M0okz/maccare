@@ -76,7 +76,7 @@ struct ToolsOverviewView: View {
             .contentShape(RoundedRectangle(cornerRadius: 20))
         }
         .buttonStyle(.plainAction).foregroundStyle(Theme.fg)
-        .accessibilityElement(children: .ignore).accessibilityAddTraits(.isButton).accessibilityLabel("\(title). \(subtitle)")
+        .accessibilityLabel("\(title). \(subtitle)")
         .accessibilityHint(action)
     }
 

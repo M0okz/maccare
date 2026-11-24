@@ -29,9 +29,12 @@ struct SimulatorsView: View {
         } detail: {
             content.padding(.top, 24)
         } footer: {
-            if model.hasLoaded && model.xcodeInstalled && !(model.simulators.isEmpty && model.runtimes.isEmpty) { footer }
+            footer
+                .disabled(!model.hasLoaded)
+                .opacity(model.hasLoaded && !model.xcodeInstalled ? 0 : 1)
+                .accessibilityHidden(model.hasLoaded && !model.xcodeInstalled)
         }
-        .onAppear { if !model.hasLoaded { model.load() } }
+        .onAppear { if !model.hasLoaded && !model.isLoading { model.load() } }
         .sheet(isPresented: $confirming) { confirmation }
     }
 
@@ -39,7 +42,7 @@ struct SimulatorsView: View {
     private var content: some View {
         if model.isDeleting {
             Spacer(); ProgressView("Suppression via Xcode…"); Spacer()
-        } else if model.isLoading && !model.hasLoaded {
+        } else if !model.hasLoaded {
             Spacer(); ProgressView("Lecture des simulateurs…"); Spacer()
         } else if !model.xcodeInstalled {
             placeholder("hammer", model.statusMessage ?? "Xcode n'est pas installé sur ce Mac.")
@@ -148,6 +151,7 @@ struct SimulatorsView: View {
     private var footer: some View {
         HStack(spacing: Space.m) {
             Button("Tout décocher") { model.selectNone() }.buttonStyle(.actionPill).controlSize(.small)
+                .disabled(!model.hasSelection || model.isDeleting)
             if let s = model.lastSummary {
                 Text(s).font(AppFont.secondary).foregroundStyle(model.lastNeedsAttention ? Theme.warn : Theme.muted)
             } else if let msg = model.statusMessage {

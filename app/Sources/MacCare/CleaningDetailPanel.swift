@@ -17,23 +17,22 @@ struct CleaningDetailPanel: View {
         system = app.systemClean; development = app.devJunk; simulators = app.simulators
     }
 
-    private var busy: Bool {
-        smart.stage == .scanning || smart.stage == .cleaning || review.isScanning || review.isCleaning
-            || trash.isLoading || trash.isEmptying || system.isLoading || system.isRemoving
-            || development.isScanning || development.isCleaning || simulators.isLoading || simulators.isDeleting
+    private var writing: Bool {
+        smart.stage == .cleaning || review.isCleaning || trash.isEmptying
+            || system.isRemoving || development.isCleaning || simulators.isDeleting
     }
 
     var body: some View {
         VStack(spacing: 0) {
             ScreenToolbar(title: "Gestionnaire Nettoyage") {
                 Button { app.module = .cleaningOverview } label: { Label("Retour", systemImage: "chevron.left") }
-                    .buttonStyle(.toolbarPill).keyboardShortcut(.cancelAction).disabled(busy)
+                    .buttonStyle(.toolbarPill).keyboardShortcut(.cancelAction).disabled(writing)
             } trailing: {
                 Picker("Outil de nettoyage", selection: Binding(get: { module }, set: { app.module = $0 })) {
                     ForEach(NavigationSection.cleaning.destinations(developerTools: developerTools).filter { $0 != .cleaningOverview }) {
                         Text($0.tabTitle).tag($0)
                     }
-                }.actionCursor().labelsHidden().frame(width: 225).accessibilityLabel("Outil de nettoyage").disabled(busy)
+                }.actionCursor().labelsHidden().frame(width: 225).accessibilityLabel("Outil de nettoyage").disabled(writing)
             }.padding(.horizontal, 24).frame(height: 56)
             Divider()
             Group {
@@ -50,7 +49,7 @@ struct CleaningDetailPanel: View {
         }
         .modifier(ManagerPanelStyle(accent: ModuleColor.clean, background: NavigationSection.cleaning.palette.base))
         .onChange(of: developerTools) { enabled in
-            if !enabled && module.isDeveloper && !busy { app.module = .cleaning }
+            if !enabled && module.isDeveloper && !writing { app.module = .cleaning }
         }
     }
 }

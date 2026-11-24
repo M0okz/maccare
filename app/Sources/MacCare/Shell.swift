@@ -176,8 +176,7 @@ final class AppState: ObservableObject {
     /// Ramène MacCare au premier plan sur un module (fenêtre rouverte si elle était fermée).
     func show(_ m: Module) {
         module = m
-        DockVisibilityController.activateForWindow()
-        if !NSApp.windows.contains(where: { $0.isVisible && $0.canBecomeMain }) { openMainWindow?() }
+        openMainWindow?()
     }
 }
 
@@ -193,8 +192,6 @@ struct RootView: View {
         self.permissions = app.permissions
     }
 
-    @Environment(\.openWindow) private var openWindow
-
     var body: some View {
         ZStack {
             CategoryTransitionBackground(section: (app.module ?? .dashboard).section)
@@ -205,7 +202,7 @@ struct RootView: View {
                 DetailView(app: app, updater: updater, layout: displayLayout)
                     .padding(.leading, SidebarLabel.railWidth * displayLayout.scale)
                     .overlay(alignment: .leading) {
-                        Sidebar(app: app, updater: updater).dashboardBlockScale(displayLayout.scale)
+                        Sidebar(app: app, updater: updater).displayScaledBlock(displayLayout.scale)
                     }
                     .ignoresSafeArea(.container, edges: .top)
             }
@@ -215,8 +212,6 @@ struct RootView: View {
         .onAppear {
             app.permissions.recheck()
             app.systemClean.refreshStatus()
-            app.openMainWindow = { openWindow(id: MacCareApp.mainWindowID) }
-            AppDelegate.openMainWindow = app.openMainWindow
         }
         // Après avoir activé l'autorisation dans Réglages, on revérifie dès le retour dans l'app.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
@@ -380,6 +375,13 @@ struct DetailView: View {
     let layout: MainWindowLayout
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    private var pageIdentity: Module {
+        let module = app.module ?? .dashboard
+        // Le sélecteur reste dans la même vue native quand seul son outil change.
+        if module.section == .cleaning && module != .cleaningOverview { return .cleaning }
+        return module
+    }
+
     private var filesManagerVisible: Bool { app.module == .largeFiles || app.module == .duplicates || app.module == .imageOptimization }
     private var filesPanelTransition: AnyTransition {
         ManagerPanelMotion.transition(reduceMotion: reduceMotion)
@@ -388,23 +390,17 @@ struct DetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             SectionNavigationView(module: $app.module)
-                .dashboardBlockScale(layout.scale)
+                .displayScaledBlock(layout.scale)
             ZStack {
-                Group {
-                    if (app.module ?? .dashboard) == .dashboard {
-                        // Le tableau AppKit garde les coordonnées natives, y compris pendant la navigation.
-                        modulePage
-                    } else {
-                        modulePage.modifier(DisplayAdjustedContent(layout: layout))
-                    }
-                }
-                .id(app.module)
-                .transition(filesManagerVisible ? filesPanelTransition : ManagerPanelMotion.page(reduceMotion: reduceMotion))
-                .zIndex(filesManagerVisible ? 1 : 0)
+                modulePage
+                    .modifier(ModulePageLayout(module: app.module ?? .dashboard, layout: layout))
+                    .id(pageIdentity)
+                    .transition(filesManagerVisible ? filesPanelTransition : ManagerPanelMotion.page(reduceMotion: reduceMotion))
+                    .zIndex(filesManagerVisible ? 1 : 0)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipped()
-            .animation(reduceMotion ? nil : Motion.easeOut(0.2), value: app.module)
+            .animation(reduceMotion ? nil : Motion.easeOut(0.2), value: pageIdentity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -414,7 +410,7 @@ struct DetailView: View {
         case .about: AboutView(updater: updater)
         case .battery: BatteryView(model: app.battery)
         case .dashboard: DashboardView(app: app, layout: layout)
-        case .applicationsOverview: ApplicationsOverviewView(app: app)
+        case .applicationsOverview: ApplicationsOverviewView(app: app, layout: layout)
         case .cleaningOverview: CleaningOverviewView(app: app)
         case .filesOverview: FilesOverviewView(app: app)
         case .toolsOverview: ToolsOverviewView(app: app)
@@ -426,11 +422,11 @@ struct DetailView: View {
         case .largeFiles: FilesManagerView(app: app, category: .large)
         case .duplicates: FilesManagerView(app: app, category: .duplicates)
         case .uninstall:
-            ApplicationsDetailPanel(app: app, detail: app.uninstall.showingLeftovers ? .leftovers : .installed) {
+            ApplicationsDetailPanel(app: app, layout: layout, detail: app.uninstall.showingLeftovers ? .leftovers : .installed) {
                 app.module = .applicationsOverview
             }
         case .updates:
-            ApplicationsDetailPanel(app: app, detail: .updates, includeAllUpdateSources: true) {
+            ApplicationsDetailPanel(app: app, layout: layout, detail: .updates, includeAllUpdateSources: true) {
                 app.module = .applicationsOverview
             }
         case .startup, .privacy, .maintenance, .screenCleaning, .aiClutter, .applicationPermissions, .diskHealth:

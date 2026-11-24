@@ -12,7 +12,12 @@ struct BatteryView: View {
 
     var body: some View {
         ZStack {
-            overview.allowsHitTesting(category == nil).accessibilityHidden(category != nil)
+            overview
+                .opacity(category == nil ? 1 : 0)
+                .allowsHitTesting(category == nil)
+                .disabled(category != nil)
+                .accessibilityElement(children: .contain)
+                .accessibilityHidden(category != nil)
             if let selected = category {
                 BatteryDetailPanel(model: model, category: $category, selected: selected)
                     .transition(ManagerPanelMotion.transition(reduceMotion: reduceMotion)).zIndex(1)
@@ -31,12 +36,8 @@ struct BatteryView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 26) {
                     header
-                    if let snapshot = model.snapshot {
-                        if snapshot.present { telemetry(snapshot) }
-                        else { unavailable }
-                    } else {
-                        ProgressView("Lecture de la batterie…").frame(maxWidth: .infinity).padding(24)
-                    }
+                    if model.snapshot?.present == false { unavailable }
+                    else { telemetry(model.snapshot) }
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 250), spacing: 18)], spacing: 18) {
                         ForEach(BatteryCategory.allCases) { item in
                             categoryCard(item)
@@ -96,12 +97,11 @@ struct BatteryView: View {
             .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(Color.white.opacity(0.12)))
             .contentShape(RoundedRectangle(cornerRadius: 20))
         }.buttonStyle(.plainAction).foregroundStyle(Theme.fg)
-            .accessibilityElement(children: .ignore).accessibilityAddTraits(.isButton)
             .accessibilityLabel(item.title)
             .accessibilityHint("\(item.subtitle) \(item.action).")
             .accessibilityFocused($focusedCategory, equals: item)
     }
-    private func telemetry(_ snapshot: BatterySnapshot) -> some View {
+    private func telemetry(_ snapshot: BatterySnapshot?) -> some View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 24) {
                 charge(snapshot)
@@ -118,22 +118,22 @@ struct BatteryView: View {
         .padding(22).background(.white.opacity(0.065), in: RoundedRectangle(cornerRadius: 20))
         .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(.white.opacity(0.12)))
     }
-    private func charge(_ snapshot: BatterySnapshot) -> some View {
+    private func charge(_ snapshot: BatterySnapshot?) -> some View {
         HStack(spacing: 14) {
-            Image(systemName: snapshot.charging ? "battery.100.bolt" : "battery.75percent")
+            Image(systemName: snapshot?.charging == true ? "battery.100.bolt" : "battery.75percent")
                 .font(.title).foregroundStyle(Theme.ok).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
-                Text(snapshot.percent.map { "\($0) %" } ?? "Niveau indisponible")
+                Text(snapshot?.percent.map { "\($0) %" } ?? (snapshot == nil ? "—" : "Niveau indisponible"))
                     .font(AppFont.metric.weight(.semibold)).monospacedDigit()
-                Text(snapshot.onAC ? (snapshot.charging ? "Branché · en charge" : "Branché · charge en pause") : "Sur batterie")
+                Text(snapshot.map { $0.onAC ? ($0.charging ? "Branché · en charge" : "Branché · charge en pause") : "Sur batterie" } ?? "Lecture de la batterie…")
                     .font(AppFont.secondary).foregroundStyle(Theme.muted)
             }
         }.fixedSize(horizontal: true, vertical: false).accessibilityElement(children: .combine)
     }
-    @ViewBuilder private func metrics(_ snapshot: BatterySnapshot) -> some View {
-        metric("Capacité estimée", value: snapshot.healthPercent.map { "\($0) %" } ?? "Indisponible")
-        metric("Cycles de charge", value: snapshot.cycles.map(String.init) ?? "Indisponibles")
-        metric("Température", value: snapshot.temperature.map { "\($0.formatted(.number.precision(.fractionLength(1)))) °C" } ?? "Indisponible")
+    @ViewBuilder private func metrics(_ snapshot: BatterySnapshot?) -> some View {
+        metric("Capacité estimée", value: snapshot?.healthPercent.map { "\($0) %" } ?? "Indisponible")
+        metric("Cycles de charge", value: snapshot?.cycles.map(String.init) ?? "Indisponibles")
+        metric("Température", value: snapshot?.temperature.map { "\($0.formatted(.number.precision(.fractionLength(1)))) °C" } ?? "Indisponible")
     }
     private func metric(_ title: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {

@@ -1,5 +1,22 @@
 import SwiftUI
 
+struct ModulePageLayout: ViewModifier {
+    let module: Module
+    let layout: MainWindowLayout
+
+    func body(content: Content) -> some View {
+        switch module.section {
+        case .home:
+            content
+        case .applications:
+            // AppKit hit-tests the split in window points. Each pane scales its own content.
+            GeometryReader { _ in content }
+        default:
+            content.modifier(DisplayAdjustedContent(layout: layout))
+        }
+    }
+}
+
 struct DisplayAdjustedContent: ViewModifier {
     let layout: MainWindowLayout
 
@@ -33,7 +50,7 @@ private struct ScaledBlockLayout: Layout {
 }
 
 extension View {
-    func dashboardBlockScale(_ scale: CGFloat) -> some View {
+    func displayScaledBlock(_ scale: CGFloat) -> some View {
         ScaledBlockLayout(scale: scale) { self.scaleEffect(scale, anchor: .topLeading) }
     }
 }

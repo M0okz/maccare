@@ -45,8 +45,6 @@ struct HomeStorageCard: View {
         .buttonStyle(HomeStorageCardStyle())
         .onHover { hovered = $0 }
         .foregroundStyle(Theme.fg)
-        .accessibilityElement(children: .ignore)
-        .accessibilityAddTraits(.isButton)
         .accessibilityLabel("Disque de démarrage")
         .accessibilityValue("\(percentage) % utilisés, \(humanSize(free)) libres sur \(humanSize(total))")
         .accessibilityHint("Ouvrir Espace disque")
