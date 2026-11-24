@@ -68,6 +68,19 @@ Max à Frais recalcule la cible. Max demande le maximum de chaque ventilateur. L
 les ventilateurs pris en charge par MacCare. La mesure reste accessible sans
 assistant. Le changement de profil exige l’assistant système au protocole 11.
 
+## Espacement du tableau des processus en DEV
+
+Dans MacCare DEV 0.2.39 (36), chaque ligne mesure 30 points. Un repère de
+3 × 15 points précède l’icône de 9 points. Il reste discret à faible charge,
+passe à l’orange au-dessus de 40 % de CPU, puis au rouge au-dessus de 80 %.
+L’icône et le nom conservent leur position lorsque la charge varie.
+
+La colonne CPU occupe 156 points par défaut. Sa jauge utilise un tiers de la
+largeur, soit 52 points, et suit le redimensionnement de la colonne. À largeur
+de fenêtre égale, cette répartition réduit la colonne Nom de 32 points et
+déplace la colonne Mémoire d’autant vers la gauche. L’en-tête Nom et la loupe
+du champ de recherche s’alignent sur les icônes des applications.
+
 ## Fiche processus — développement du 24 novembre 2026
 
 Dans la DEV, la fiche ouverte depuis l’accueil reprend les teintes améthyste
