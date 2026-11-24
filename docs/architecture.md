@@ -163,6 +163,48 @@ relever l’énergie attribuée par macOS sans changer les actions de fermeture.
 La puissance vient des nanojoules ; le repli CPU est explicitement séparé et
 conserve la base de temps Mach. [Barème et limites](menu-bar-panel.md).
 
+Dans la DEV 0.2.39 (35), si le relevé natif omet WindowServer, les listes
+visibles utilisent `WindowServerSample`. La lecture cible le compte effectif
+`_windowserver` et vérifie le nom, le PID et la date de démarrage via
+`sysctl` avant et après la lecture de `/bin/ps -p PID -o time=`. Le delta de
+temps CPU est rapporté à l’intervalle monotone entre relevés. La mémoire et
+la puissance demeurent optionnelles. Les alertes mémoire exigent une empreinte
+mesurée.
+
+Dans la DEV 0.2.39 (37), `WindowServerSample` lit aussi l’empreinte physique
+arrondie que fournit `/usr/bin/top -l 1 -F -R -pid PID -n 1 -stats pid,mem`.
+Les deux contrôles d’identité encadrent les mesures de mémoire et de CPU.
+Le cache de 30 secondes est lié au PID et à sa date de démarrage. Un échec
+de lecture mémoire préserve le relevé CPU. La puissance moyenne exige un
+delta du compteur d’énergie en nanojoules. [Champ MEM de top chez Apple](https://github.com/apple-oss-distributions/top/blob/main/top.1).
+
+`HomeProcessGroup.representative` désigne le membre présenté dans la colonne
+PID, le tri PID et la fiche. Le groupe cherche le processus principal dans
+les applications enregistrées puis à partir de l’exécutable du bundle.
+En son absence, il prend le premier membre du classement mémoire. Les mesures
+agrégées portent sur tout le groupe. Le nom localisé du bundle identifie
+également les applications représentées par leurs seuls composants.
+
+Dans la DEV 0.2.39 (39), le tableau utilise `ProcessEnergyScore` pour
+l’affichage, le tri et la fiche. Sur chaque intervalle, `TrayProcessSampler`
+calcule le taux de réveils du processeur à partir de `ri_pkg_idle_wkups`.
+Pour WindowServer, `top -l 1 -F -R -c e -pid PID -n 1 -stats pid,mem,idlew`
+fournit l’empreinte et le compteur cumulé IDLEW sur le même relevé de l’accueil.
+Le volet peut encore réutiliser la mémoire pendant 30 secondes. Un changement
+d’identité, un recul du compteur ou un intervalle périmé invalide le delta.
+
+Chaque réveil ajoute un coût équivalent à 500 µs de CPU, selon le barème de
+[top chez Apple](https://github.com/apple-oss-distributions/top/blob/main/power.c).
+Pour le groupe, MacCare calcule `min(20, (CPU en % + 0,05 × réveils/s) / 5)`.
+La carte Batterie continue d’utiliser l’énergie physique disponible pour sa
+propre télémétrie.
+
+`HomeProcessPresentation` prépare l’inspection du PID hors du fil principal.
+La sélection et les champs associés sont publiés ensemble. La fenêtre affiche
+la fiche au centre par transition d’opacité et borne son contenu défilant
+à 372 points. Une fermeture ou une nouvelle sélection invalide la lecture
+en cours.
+
 ## Action d’analyse sur l’accueil — aperçu DEV du 22 novembre 2026
 
 `HomeHealthCard` présente deux boutons. Le score ouvre `MacHealthDetails`

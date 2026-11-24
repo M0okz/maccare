@@ -16,17 +16,16 @@ struct HomeProcessGroup: Identifiable {
     let application: URL?
     let members: [TrayProcess]
     let primary: TrayProcess?
-    let memory: UInt64
+    /// Le PID de la ligne et la fiche désignent toujours le même membre au moment du clic.
+    var representative: TrayProcess { primary ?? members[0] }
+
+    let memory: UInt64?
     let cpu: Double?
-    let power: Double?
+    let energyScore: ProcessEnergyScore?
     var cpuLevel: ProcessCPULevel { ProcessCPULevel(cpu) }
 
     var cpuLabel: String { lowerBound(cpu, key: \.cpuPercent) + HomeProcessMetric.cpu(cpu) }
-    var powerLabel: String {
-        let bound = lowerBound(power, key: \.energyWatts)
-        if !bound.isEmpty, let power, power > 0 && power < 0.001 { return "> 0 mW" }
-        return bound + HomeProcessMetric.power(power)
-    }
+    var energyLabel: String { energyScore?.label ?? "—" }
 
     private func lowerBound(_ value: Double?, key: KeyPath<TrayProcess, Double?>) -> String {
         value != nil && members.contains { $0[keyPath: key] == nil } ? "≥ " : ""
@@ -44,7 +43,7 @@ struct HomeProcessGroup: Identifiable {
         }
         return families.map { id, rows in
             let members = rows.sorted {
-                $0.memory == $1.memory ? $0.id.pid < $1.id.pid : $0.memory > $1.memory
+                $0.memory == $1.memory ? $0.id.pid < $1.id.pid : ($0.memory ?? 0) > ($1.memory ?? 0)
             }
             let owner: URL?
             let primary: TrayProcess?
@@ -53,8 +52,18 @@ struct HomeProcessGroup: Identifiable {
             case .application(let url, _):
                 owner = url
                 let mains = members.filter { registered[$0.id.pid]?.url.standardizedFileURL.path == url.path }
-                primary = mains.count == 1 ? mains.first : nil
-                name = mains.first.flatMap { registered[$0.id.pid]?.name } ?? url.deletingPathExtension().lastPathComponent
+                if mains.count == 1, let main = mains.first {
+                    primary = main
+                    name = registered[main.id.pid]?.name ?? url.deletingPathExtension().lastPathComponent
+                } else {
+                    let bundle = Bundle(url: url)
+                    let executable = bundle?.executableURL?.standardizedFileURL.path
+                    let candidates = members.filter { $0.executable == executable }
+                    primary = candidates.count == 1 ? candidates.first : nil
+                    name = bundle?.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
+                        ?? bundle?.object(forInfoDictionaryKey: "CFBundleName") as? String
+                        ?? url.deletingPathExtension().lastPathComponent
+                }
             case .process:
                 primary = members[0]
                 name = members[0].name
@@ -65,7 +74,7 @@ struct HomeProcessGroup: Identifiable {
                 return values.isEmpty ? nil : values.reduce(0, +)
             }
             return Self(id: id, name: name, application: owner, members: members, primary: primary,
-                        memory: members.reduce(0) { $0 + $1.memory }, cpu: sum(\.cpuPercent), power: sum(\.energyWatts))
+                        memory: members.allSatisfy { $0.memory != nil } ? members.compactMap(\.memory).reduce(0, +) : nil, cpu: sum(\.cpuPercent), energyScore: ProcessEnergyScore(members))
         }
     }
 
@@ -83,6 +92,38 @@ struct HomeProcessGroup: Identifiable {
             }
         }
         return apps
+    }
+}
+
+struct ProcessEnergyScore {
+    static let help = "Score énergétique sur 20. La note combine la charge CPU et les réveils du processeur. Plus elle est élevée, plus le processus est actif. 20 correspond à un cœur occupé en continu, réveils compris."
+    let value: Double
+    let isLowerBound: Bool
+
+    init?(_ members: [TrayProcess]) {
+        var load = 0.0
+        var hasCPU = false
+        var partial = false
+        for member in members {
+            if let cpu = member.cpuPercent, cpu.isFinite, cpu >= 0 {
+                load += cpu
+                hasCPU = true
+            } else { partial = true }
+            if let wakeups = member.idleWakeupsPerSecond, wakeups.isFinite, wakeups >= 0 {
+                // Pondération de top sur macOS : 500 µs de temps actif par réveil de veille.
+                load += wakeups * 0.05
+            } else { partial = true }
+        }
+        guard hasCPU else { return nil }
+        value = min(20, load / 5)
+        isLowerBound = partial && value < 20
+    }
+
+    var number: String { value.formatted(.number.precision(.fractionLength(0...1))) }
+
+    var label: String {
+        if value > 0 && value < 0.1 { return isLowerBound ? "> 0/20" : "< " + 0.1.formatted(.number) + "/20" }
+        return (isLowerBound ? "≥ " : "") + number + "/20"
     }
 }
 
@@ -110,13 +151,5 @@ enum HomeProcessMetric {
         return value.formatted(.number.precision(.fractionLength(0...1))) + " %"
     }
 
-    static func power(_ watts: Double?) -> String {
-        guard let watts else { return "—" }
-        if watts == 0 { return "0 W" }
-        if watts < 0.001 { return "< 1 mW" }
-        if watts < 1 { return (watts * 1000).formatted(.number.precision(.fractionLength(0))) + " mW" }
-        return watts.formatted(.number.precision(.fractionLength(0...2))) + " W"
-    }
-
-    static func memory(_ bytes: UInt64) -> String { humanSize(bytes, fractionalAbove: 1_000_000_000) }
+    static func memory(_ bytes: UInt64?) -> String { bytes.map { humanSize($0, fractionalAbove: 1_000_000_000) } ?? "—" }
 }

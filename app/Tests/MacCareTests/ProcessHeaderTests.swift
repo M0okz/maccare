@@ -4,6 +4,55 @@ import XCTest
 
 final class ProcessHeaderTests: XCTestCase {
     @MainActor
+    func testEnergyCellShowsOnlyTheNumberAndExplainsTheScaleOnHover() throws {
+        let process = TrayProcess(id: .init(pid: 100_001, startedSeconds: 1, startedMicroseconds: 0),
+                                  name: "Test", userID: getuid(), memory: 0, cpuPercent: 45,
+                                  executable: "", idleWakeupsPerSecond: 100)
+        let groups = HomeProcessGroup.collect([process])
+        let list = HomeProcessList(rows: groups, processCount: 1, cpuSummary: "", controller: TrayProcessController(),
+                                   isCardHovered: false, sort: .constant(HomeProcessSort()), query: .constant("")) { _ in }
+        let column = NSTableColumn(identifier: .init(HomeProcessColumn.energy.rawValue))
+        let cell = try XCTUnwrap(list.makeCoordinator().tableView(NSTableView(), viewFor: column, row: 0) as? NSTableCellView)
+        XCTAssertEqual(cell.textField?.stringValue, "10")
+        XCTAssertTrue(try XCTUnwrap(cell.toolTip).contains("sur 20"))
+        XCTAssertEqual(groups.first?.energyLabel, "10/20")
+    }
+
+    @MainActor
+    func testLoadMarkerAndApplicationIconKeepTheirPlaceAtEveryCPULevel() throws {
+        let loads: [Double?] = [nil, 7, 65, 90]
+        let processes = loads.enumerated().map { index, load in
+            TrayProcess(id: .init(pid: pid_t(100_000 + index), startedSeconds: 1, startedMicroseconds: 0),
+                        name: "Test", userID: getuid(), memory: 0, cpuPercent: load, executable: "")
+        }
+        let rows = HomeProcessGroup.collect(processes)
+        let list = HomeProcessList(rows: rows, processCount: rows.count, cpuSummary: "",
+                                   controller: TrayProcessController(), isCardHovered: false,
+                                   sort: .constant(HomeProcessSort()), query: .constant("")) { _ in }
+        let coordinator = list.makeCoordinator()
+        let table = NSTableView()
+        let column = NSTableColumn(identifier: .init(HomeProcessColumn.name.rawValue))
+        for (index, row) in rows.enumerated() {
+            let cell = try XCTUnwrap(coordinator.tableView(table, viewFor: column, row: index) as? NSTableCellView)
+            cell.frame = NSRect(x: 0, y: 0, width: 360, height: 30)
+            cell.layoutSubtreeIfNeeded()
+            let marker = try XCTUnwrap(cell.subviews.compactMap { $0 as? NSBox }.first)
+            let icon = try XCTUnwrap(cell.imageView)
+            let label = try XCTUnwrap(cell.textField)
+            XCTAssertEqual(marker.frame.minX, 12)
+            XCTAssertEqual(marker.frame.size, NSSize(width: 3, height: 15))
+            XCTAssertEqual(icon.frame.minX - marker.frame.maxX, 9)
+            let textLeading = label.alignmentRect(forFrame: label.frame).minX
+            XCTAssertEqual(textLeading - icon.alignmentRect(forFrame: icon.frame).maxX, 8)
+            if let accent = row.cpuLevel.accent {
+                XCTAssertEqual(marker.fillColor, accent)
+            } else {
+                XCTAssertEqual(marker.fillColor.alphaComponent, 0.13, accuracy: 0.002)
+            }
+        }
+    }
+
+    @MainActor
     func testTransparentHeaderShowsCardAndStaysOutsideScrollingRows() throws {
         let container = ProcessListContainer(frame: NSRect(x: 0, y: 0, width: 500, height: 180))
         let scroll = container.scroll

@@ -57,7 +57,7 @@ final class MemoryAlertController {
             defer { self.sampling = nil }
             guard !Task.isCancelled, self.eligible, self.policy.shouldPresent(),
                   let pressure = MemoryPressureLevel.current(), pressure != .normal else { return }
-            let apps = processes.filter { $0.canQuit && $0.memory >= 512_000_000 }
+            let apps = processes.filter { $0.canQuit && ($0.memory ?? 0) >= 512_000_000 }
                 .compactMap { MemoryAlertApplication.running($0.id.pid) }
             let candidates = MemoryAlertCandidate.ranked(processes: processes, applications: apps)
             guard !candidates.isEmpty else { return }

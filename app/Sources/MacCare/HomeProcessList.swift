@@ -24,7 +24,7 @@ struct HomeProcessList: NSViewRepresentable {
         table.style = .plain
         table.backgroundColor = .clear
         table.headerView = ProcessHeader(frame: NSRect(x: 0, y: 0, width: 0, height: ProcessHeader.height))
-        table.rowHeight = 27
+        table.rowHeight = 30
         table.intercellSpacing = .zero
         table.usesAlternatingRowBackgroundColors = false
         table.allowsColumnReordering = false
@@ -34,11 +34,14 @@ struct HomeProcessList: NSViewRepresentable {
         for field in HomeProcessColumn.allCases {
             let column = NSTableColumn(identifier: .init(field.rawValue))
             column.title = field.rawValue
-            column.width = [.name: 280, .memory: 105, .cpu: 124, .power: 112, .pid: 108][field]!
-            column.minWidth = [.name: 115, .memory: 76, .cpu: 88, .power: 84, .pid: 88][field]!
+            column.width = [.name: 280, .memory: 105, .cpu: 156, .energy: 112, .pid: 108][field]!
+            column.minWidth = [.name: 115, .memory: 76, .cpu: 120, .energy: 84, .pid: 88][field]!
             column.resizingMask = field == .name ? [.userResizingMask, .autoresizingMask] : [.userResizingMask]
             column.sortDescriptorPrototype = NSSortDescriptor(key: field.rawValue, ascending: field == .name || field == .pid)
-            if field == .power { column.headerToolTip = "Puissance moyenne estimée par macOS sur le dernier intervalle." }
+            if field == .energy {
+                column.headerToolTip = ProcessEnergyScore.help
+                column.headerCell.setAccessibilityHelp(ProcessEnergyScore.help)
+            }
             if field == .cpu { column.headerToolTip = "100 % correspond à un cœur utilisé." }
             table.addTableColumn(column)
         }
@@ -57,9 +60,10 @@ struct HomeProcessList: NSViewRepresentable {
         container.isCardHovered = isCardHovered
         guard let table = container.scroll.documentView as? ProcessTableView,
               let name = table.tableColumns.first else { return }
-        let title = "Nom (\(processCount.formatted()))"
+        let title = "Nom (\(rows.count.formatted()))"
         if name.title != title { name.title = title; table.headerView?.needsDisplay = true }
-        name.headerToolTip = cpuSummary.isEmpty ? "Trier par nom" : "Applications au-dessus de 40 % de CPU\n" + cpuSummary
+        let summary = cpuSummary.isEmpty ? "Trier par nom" : "Applications au-dessus de 40 % de CPU\n" + cpuSummary
+        name.headerToolTip = "\(processCount.formatted()) processus relevés avant regroupement.\n" + summary
         let coordinator = context.coordinator
         let selection = coordinator.owner.rows.indices.contains(table.selectedRow) ? coordinator.owner.rows[table.selectedRow].id : nil
         let countChanged = coordinator.owner.rows.count != rows.count
@@ -98,7 +102,6 @@ struct HomeProcessList: NSViewRepresentable {
         }
         func tableView(_ table: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
             let view = ProcessRowView()
-            view.cpuLevel = owner.rows[row].cpuLevel
             view.hovered = (table as? ProcessTableView)?.hoverIndex == row
             view.open = { [weak self, weak table, weak view] in
                 guard let table, let view else { return false }
@@ -115,8 +118,9 @@ struct HomeProcessList: NSViewRepresentable {
             let group = owner.rows[row]
             switch field {
             case .name:
+                cell.indicator?.fillColor = group.cpuLevel.accent ?? .labelColor.withAlphaComponent(0.13)
                 cell.label.stringValue = group.name
-                cell.imageView?.image = owner.controller.presentation(for: group.primary ?? group.members[0]).icon
+                cell.imageView?.image = owner.controller.presentation(for: group.representative).icon
                     ?? NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil)
                 cell.toolTip = group.application?.path ?? group.members[0].executable
             case .memory: cell.label.stringValue = HomeProcessMetric.memory(group.memory)
@@ -124,12 +128,19 @@ struct HomeProcessList: NSViewRepresentable {
                 cell.label.stringValue = group.cpuLabel
                 cell.meter?.value = min(1, (group.cpu ?? 0) / 100)
                 cell.meter?.cpuLevel = group.cpuLevel
-            case .power:
-                cell.label.stringValue = group.powerLabel
-                cell.toolTip = "Somme des puissances mesurées sur le dernier intervalle."
-            case .pid: cell.label.stringValue = group.primary.map { String($0.id.pid) } ?? "—"
+            case .energy:
+                cell.label.stringValue = group.energyScore?.number ?? "—"
+                let partial = group.energyScore?.isLowerBound == true ? " Certaines mesures manquent. La note indique un minimum." : ""
+                cell.toolTip = ProcessEnergyScore.help + partial
+                cell.label.setAccessibilityHelp(cell.toolTip)
+            case .pid:
+                cell.label.stringValue = String(group.representative.id.pid)
+                cell.toolTip = group.primary == nil
+                    ? "PID de \(group.representative.name), membre affiché du groupe selon son empreinte mémoire."
+                    : "PID de \(group.representative.name)."
             }
-            let accent = field == .cpu || field == .power ? group.cpuLevel.accent : nil
+            let accent = field == .energy ? ProcessCPULevel(group.energyScore.map { $0.value * 5 }).accent
+                : (field == .cpu ? group.cpuLevel.accent : nil)
             cell.label.textColor = accent ?? (field == .pid ? .secondaryLabelColor : .labelColor)
             return cell
         }
@@ -185,17 +196,12 @@ private final class ProcessTableView: NSTableView {
 
 private final class ProcessRowView: NSTableRowView {
     var hovered = false { didSet { needsDisplay = true } }
-    var cpuLevel = ProcessCPULevel.normal
     var open: (() -> Bool)?
     override func accessibilityPerformPress() -> Bool { open?() ?? false }
     override func drawBackground(in dirtyRect: NSRect) {
         if hovered {
             NSColor.white.withAlphaComponent(0.12).setFill()
             NSBezierPath(roundedRect: bounds.insetBy(dx: 4, dy: 1), xRadius: 5, yRadius: 5).fill()
-        }
-        if let accent = cpuLevel.accent {
-            accent.setFill()
-            NSBezierPath(roundedRect: NSRect(x: 5, y: 6, width: 3, height: bounds.height - 12), xRadius: 1.5, yRadius: 1.5).fill()
         }
     }
 }
@@ -229,7 +235,7 @@ final class ProcessHeader: NSTableHeaderView {
             let label = title + (selected ? (sort?.ascending == true ? "  ▴" : "  ▾") : "")
             let size = (label as NSString).size(withAttributes: attributes)
             let trailing: CGFloat = column.identifier.rawValue == HomeProcessColumn.pid.rawValue ? ProcessListContainer.pidInset : 14
-            let x = index == 0 ? rect.minX + 14 : rect.maxX - trailing - size.width
+            let x = index == 0 ? rect.minX + ProcessListContainer.nameIconInset : rect.maxX - trailing - size.width
             (label as NSString).draw(at: CGPoint(x: x, y: rect.midY - size.height / 2), withAttributes: attributes)
         }
     }
@@ -237,41 +243,61 @@ final class ProcessHeader: NSTableHeaderView {
 
 private final class ProcessCell: NSTableCellView {
     let label = NSTextField(labelWithString: "")
-    var meter: ProcessMeter?
+    private(set) var meter: ProcessMeter?
+    private(set) var indicator: NSBox?
     init(_ field: HomeProcessColumn) {
         super.init(frame: .zero)
         identifier = .init(field.rawValue)
         label.lineBreakMode = .byTruncatingTail
-        label.font = field == .name ? .systemFont(ofSize: 13, weight: .medium) : .monospacedDigitSystemFont(ofSize: 12, weight: field == .power ? .semibold : .regular)
+        label.font = field == .name ? .systemFont(ofSize: 13, weight: .medium) : .monospacedDigitSystemFont(ofSize: 12, weight: field == .energy ? .semibold : .regular)
         label.alignment = field == .name ? .left : .right
         textField = label
         addSubview(label)
         label.translatesAutoresizingMaskIntoConstraints = false
         var leading = leadingAnchor
-        if field == .name || field == .cpu {
-            let visual: NSView
-            let width: CGFloat
-            if field == .name {
-                let icon = NSImageView()
-                imageView = icon
-                icon.imageScaling = .scaleProportionallyUpOrDown
-                visual = icon
-                width = 17
-            } else {
-                let gauge = ProcessMeter()
-                meter = gauge
-                visual = gauge
-                width = 32
-            }
-            visual.setAccessibilityElement(false)
-            addSubview(visual)
-            visual.translatesAutoresizingMaskIntoConstraints = false
-            NSLayoutConstraint.activate([visual.leadingAnchor.constraint(equalTo: leading, constant: 13),
-                visual.widthAnchor.constraint(equalToConstant: width), visual.heightAnchor.constraint(equalToConstant: field == .name ? 17 : 5),
-                visual.centerYAnchor.constraint(equalTo: centerYAnchor)])
-            leading = visual.trailingAnchor
+        if field == .name {
+            let icon = NSImageView()
+            imageView = icon
+            icon.imageScaling = .scaleProportionallyUpOrDown
+            icon.setAccessibilityElement(false)
+            icon.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(icon)
+
+            let marker = NSBox()
+            marker.boxType = .custom
+            marker.borderType = .noBorder
+            marker.titlePosition = .noTitle
+            marker.cornerRadius = 1
+            marker.setAccessibilityElement(false)
+            marker.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(marker)
+            indicator = marker
+            NSLayoutConstraint.activate([
+                icon.leadingAnchor.constraint(equalTo: leadingAnchor, constant: ProcessListContainer.nameIconInset),
+                icon.widthAnchor.constraint(equalToConstant: 17),
+                icon.heightAnchor.constraint(equalToConstant: 17),
+                icon.centerYAnchor.constraint(equalTo: centerYAnchor),
+                marker.trailingAnchor.constraint(equalTo: icon.leadingAnchor, constant: -9),
+                marker.widthAnchor.constraint(equalToConstant: 3),
+                marker.heightAnchor.constraint(equalToConstant: 15),
+                marker.centerYAnchor.constraint(equalTo: centerYAnchor)
+            ])
+            leading = icon.trailingAnchor
+        } else if field == .cpu {
+            let gauge = ProcessMeter()
+            meter = gauge
+            gauge.setAccessibilityElement(false)
+            gauge.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(gauge)
+            NSLayoutConstraint.activate([
+                gauge.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 13),
+                gauge.widthAnchor.constraint(equalTo: widthAnchor, multiplier: 1.0 / 3),
+                gauge.heightAnchor.constraint(equalToConstant: 5),
+                gauge.centerYAnchor.constraint(equalTo: centerYAnchor)
+            ])
+            leading = gauge.trailingAnchor
         }
-        NSLayoutConstraint.activate([label.leadingAnchor.constraint(equalTo: leading, constant: 6),
+        NSLayoutConstraint.activate([label.leadingAnchor.constraint(equalTo: leading, constant: field == .name ? 8 : 6),
             label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: field == .pid ? -ProcessListContainer.pidInset : -12),
             label.centerYAnchor.constraint(equalTo: centerYAnchor)])
     }

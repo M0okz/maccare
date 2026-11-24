@@ -29,7 +29,7 @@ Le tableau juste en dessous affiche les processus accessibles, leur empreinte
 mémoire, leur charge CPU, leur puissance moyenne estimée et leur PID. Le tri
 initial privilégie la mémoire. Le tableau s’étire jusqu’au bas de la fenêtre et
 défile indépendamment. Dans l’aperçu DEV, la même ligne contient les titres
-triables, le nombre de processus accessibles et la loupe. La loupe devient
+triables, le compteur de la liste et la loupe. La loupe devient
 bleue au survol de la carte Processus. Un clic sur la loupe ouvre la
 recherche par nom ou PID à la place de « Nom ». Échap ou la croix referme la
 recherche et rétablit la liste complète. L’infobulle de « Nom » conserve le
@@ -67,6 +67,77 @@ première activation, il respecte une vitesse macOS déjà supérieure. Passer d
 Max à Frais recalcule la cible. Max demande le maximum de chaque ventilateur. Les deux profils durent cinq minutes. Auto rend immédiatement à macOS
 les ventilateurs pris en charge par MacCare. La mesure reste accessible sans
 assistant. Le changement de profil exige l’assistant système au protocole 11.
+
+## Espacement du tableau des processus en DEV
+
+Dans MacCare DEV 0.2.39 (36), chaque ligne mesure 30 points. Un repère de
+3 × 15 points précède l’icône de 9 points. Il reste discret à faible charge,
+passe à l’orange au-dessus de 40 % de CPU, puis au rouge au-dessus de 80 %.
+L’icône et le nom conservent leur position lorsque la charge varie.
+
+La colonne CPU occupe 156 points par défaut. Sa jauge utilise un tiers de la
+largeur, soit 52 points, et suit le redimensionnement de la colonne. À largeur
+de fenêtre égale, cette répartition réduit la colonne Nom de 32 points et
+déplace la colonne Mémoire d’autant vers la gauche. L’en-tête Nom et la loupe
+du champ de recherche s’alignent sur les icônes des applications.
+
+## Fiche processus — développement du 24 novembre 2026
+
+Dans la DEV, la fiche ouverte depuis l’accueil reprend les teintes améthyste
+de la fenêtre. L’en-tête présente le nom, l’icône et le PID ou le nombre de
+processus. La charge CPU, la mémoire et la puissance du groupe précèdent le
+détail du PID consulté. Les chemins restent sélectionnables et se replient
+sur plusieurs lignes si nécessaire.
+
+Un processus seul propose « Copier le PID » sur son identifiant. Pour une
+application à plusieurs processus, la liste permet de choisir le PID et de
+copier son identifiant via le menu contextuel. Le PID consulté figure dans
+le titre du détail. La sélection ne colore pas la ligne. L’espacement sépare
+les informations, et les actions restent accessibles sous la zone défilante.
+
+Dans la build DEV 0.2.39 (35), la fiche apparaît au centre de la fenêtre par
+un fondu de 160 ms. Le nom, les mesures et les détails disponibles du PID
+apparaissent ensemble. Un changement de PID présente ses champs en une fois.
+Échap, la croix et un clic sur le fond permettent de revenir au tableau.
+
+La recherche par nom ou PID et le tri CPU incluent WindowServer. macOS
+permet de mesurer sa charge CPU sur deux relevés successifs. Si la mémoire
+ou la puissance sont inaccessibles, leurs cellules affichent un tiret.
+La fiche identifie ce processus système et désactive les actions d’arrêt.
+
+## Classement mémoire et PID des groupes — DEV 0.2.39 (37)
+
+L’accueil classe WindowServer selon son empreinte physique, y compris lorsque
+le relevé direct de macOS réserve cette donnée. La DEV lit alors la colonne
+MEM de `top` pour ce PID, avec un intervalle minimal de 30 secondes entre
+deux lectures. La charge CPU conserve sa cadence habituelle. La colonne
+Puissance affiche un tiret si le compteur d’énergie est inaccessible.
+
+La ligne d’une application regroupe la mémoire de ses processus. Le PID
+affiché est celui du processus principal lorsqu’il est identifié. Pour
+une application qui tourne via ses composants, MacCare affiche le PID du
+membre ayant la plus grande empreinte mémoire. Son infobulle explique ce
+choix. Le tri PID et l’ouverture de la fiche utilisent le même membre.
+Une recherche par PID permet toujours d’ouvrir directement un autre membre.
+
+Le compteur « Nom » correspond aux lignes du tableau après regroupement.
+Son infobulle indique aussi le nombre de processus individuels relevés.
+Les tailles restent exprimées en Mo et Go décimaux.
+
+## Score énergétique des processus — DEV 0.2.39 (39)
+
+La colonne **Énergie** affiche uniquement la note numérique, arrondie au dixième.
+L’en-tête et les cellules indiquent au survol que le score est sur 20 et expliquent le barème. La fiche et le résumé copié
+reprennent la même valeur. Un clic sur le titre trie les groupes par score.
+
+La note combine la charge CPU et les réveils du processeur sur le dernier
+intervalle. À réveils nuls, 50 % d’un cœur donnent 10/20 et 100 % donnent
+20/20. Les contributions de tous les membres sont additionnées avant le
+plafonnement à 20. Un tiret indique qu’il manque le relevé initial de CPU.
+Une infobulle signale les données partielles. La fiche indique alors le minimum mesuré.
+
+Le score est un indicateur d’activité propre à MacCare. [Calcul de référence
+de la charge et des réveils dans top sur macOS](https://github.com/apple-oss-distributions/top/blob/main/power.c).
 
 ## Jauge Espace libre et survol des métriques
 

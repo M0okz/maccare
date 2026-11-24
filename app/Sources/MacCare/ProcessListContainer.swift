@@ -3,6 +3,7 @@ import AppKit
 /// Les commandes de recherche partagent la ligne des titres. Le tableau garde
 /// ses en-têtes AppKit pour le tri, le redimensionnement et l’accessibilité.
 final class ProcessListContainer: NSView, NSTextFieldDelegate {
+    static let nameIconInset: CGFloat = 24
     static let pidInset: CGFloat = 38
     let scroll = ProcessScrollView()
     var queryChanged: ((String) -> Void)?
@@ -12,6 +13,9 @@ final class ProcessListContainer: NSView, NSTextFieldDelegate {
         }
     }
 
+    private let energyHelp = ProcessEnergyScore.help as NSString
+    private var energyTipRect = NSRect.zero
+    private var energyTipTag: NSView.ToolTipTag?
     private let field = NSTextField()
     private let searchIcon = NSImageView()
     private let button = SearchButton()
@@ -55,12 +59,21 @@ final class ProcessListContainer: NSView, NSTextFieldDelegate {
     override func layout() {
         super.layout()
         guard let header, let table = header.tableView, !table.tableColumns.isEmpty else { return }
+        let energy = table.column(withIdentifier: .init(HomeProcessColumn.energy.rawValue))
+        let tipRect = energy >= 0 ? convert(header.headerRect(ofColumn: energy), from: header).intersection(bounds) : .zero
+        if tipRect != energyTipRect {
+            if let energyTipTag { removeToolTip(energyTipTag) }
+            energyTipTag = tipRect.isEmpty ? nil : addToolTip(tipRect, owner: energyHelp, userData: nil)
+            energyTipRect = tipRect
+        }
         let first = convert(header.headerRect(ofColumn: 0), from: header)
         let right = min(bounds.maxX, convert(header.bounds, from: header).maxX)
-        searchIcon.frame = NSRect(x: first.minX + 14, y: first.midY - 7, width: 14, height: 14)
+        let iconX = first.minX + Self.nameIconInset
+        searchIcon.frame = NSRect(x: iconX, y: first.midY - 7, width: 14, height: 14)
         let height = min(first.height, field.intrinsicContentSize.height)
-        field.frame = NSRect(x: first.minX + 34, y: (first.midY - height / 2).rounded(),
-                             width: max(0, first.width - 40), height: height)
+        let fieldX = iconX + 25
+        field.frame = NSRect(x: fieldX, y: (first.midY - height / 2).rounded(),
+                             width: max(0, first.maxX - fieldX - 6), height: height)
         button.frame = NSRect(x: right - 32, y: first.minY, width: 28, height: first.height)
     }
 

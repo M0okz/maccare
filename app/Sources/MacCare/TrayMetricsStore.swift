@@ -24,7 +24,8 @@ struct TrayMetricsSmoothing {
             result.memory = .init(total: new.total,
                                   active: UInt64(blend(Double(old.active), Double(new.active))),
                                   wired: UInt64(blend(Double(old.wired), Double(new.wired))),
-                                  compressed: UInt64(blend(Double(old.compressed), Double(new.compressed))), pressure: new.pressure)
+                                  compressed: UInt64(blend(Double(old.compressed), Double(new.compressed))),
+                                  pressure: new.pressure, swapUsed: new.swapUsed)
         }
         if let old = previous.wifi, let new = raw.wifi, old.interface == new.interface, old.address == new.address, old.kind == new.kind, old.connected, new.connected {
             result.wifi = .init(interface: new.interface, powered: new.powered, connected: new.connected,
