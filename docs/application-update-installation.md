@@ -221,3 +221,11 @@ Les CI de branche, de PR, après fusion et le workflow officiel réussissent.
 Ce statut remplace la mention de préparation ci-dessus.
 [Vérifications publiques et limites](release-integration-0.2.26.md).
 La publication ne remplace pas les copies installées.
+
+## 25 novembre 2026 · Suivi des mises à jour App Store en DEV
+
+La 0.2.44 DEV locale (build 49) corrige l’attente qui pouvait bloquer le gestionnaire sur « Installation en cours… ». Dans le parcours d’installation directe, MacCare contrôle chaque seconde l’identifiant et la version du paquet sélectionné. Si la version attendue est présente, le gestionnaire confirme la mise à jour. Si la commande se termine normalement avant que la version change, la vérification continue jusqu’à dix secondes supplémentaires, dans la limite totale de deux minutes.
+
+« Arrêter le suivi » libère le gestionnaire plus tôt. Une installation déjà transmise à l’App Store peut continuer. En l’absence de confirmation, « Ouvrir l’App Store » affiche la fiche correspondant à l’identifiant de l’app et « Vérifier l’installation » relit la version sur disque. Ces actions ne soumettent pas de nouvelle demande d’installation. Dans la copie DEV signée Apple Development, le lien vers la fiche permet la mise à jour via l’App Store.
+
+Les six tests de `AppStoreUpdateInstallationTests` utilisent un paquet témoin passant de 11.4.4 à 11.4.5. Ils couvrent une commande silencieuse, une version installée avant ou après la sortie de la commande, une sortie réussie sans installation, un refus et l’arrêt du suivi. Windows App était absente du Mac de développement. Le parcours d’achat ou d’installation de cette app avec un compte Apple reste à vérifier sur le Mac concerné.

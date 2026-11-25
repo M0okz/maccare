@@ -4,6 +4,10 @@ struct ApplicationUpdateEntry: Identifiable {
     let source: UpdateSource
     let item: OutdatedItem
     var id: String { source.key + ":" + item.id }
+    var appStoreURL: URL? {
+        guard source.key == "mas", let id = item.storeID, id > 0 else { return nil }
+        return URL(string: "macappstore://apps.apple.com/app/id\(id)")
+    }
     var versions: (current: String, available: String)? {
         for separator in ["→", "->", "!="] {
             let parts = item.detail.components(separatedBy: separator)

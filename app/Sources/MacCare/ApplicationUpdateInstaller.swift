@@ -6,13 +6,15 @@ import Sparkle
 @MainActor
 final class ApplicationUpdateInstaller: NSObject, ObservableObject, @MainActor SPUUpdaterDelegate, @MainActor SPUStandardUserDriverDelegate {
     enum Phase: Equatable {
-        case preparing, downloading(Double?), verifying, installing, sparkle, waitingForInstaller, completed, cancelled, deferred, failed(String)
+        case preparing, downloading(Double?), verifying, installing, appStore, waitingForAppStore, sparkle, waitingForInstaller, completed, cancelled, deferred, failed(String)
         var message: String {
             switch self {
             case .preparing: return "Préparation de la mise à jour…"
             case .downloading: return "Téléchargement de la nouvelle version…"
             case .verifying: return "Vérification de l’application et de son éditeur…"
             case .installing: return "Installation en cours…"
+            case .appStore: return "Mise à jour demandée à l’App Store. Si macOS demande une autorisation, validez-la pour continuer."
+            case .waitingForAppStore: return "Installation non confirmée. Consultez la fiche App Store, puis vérifiez la version installée."
             case .sparkle: return "Poursuivez la mise à jour dans le panneau de l’application."
             case .waitingForInstaller: return "Terminez l’installateur macOS, puis vérifiez l’installation."
             case .completed: return "Mise à jour installée."
@@ -30,18 +32,19 @@ final class ApplicationUpdateInstaller: NSObject, ObservableObject, @MainActor S
     private var task: Task<Void, Never>?
     private var externalUpdater: SPUUpdater?
     private var pending: [String: PreparedApplicationUpdate] = [:]
+    private var pendingStoreTargets: [String: ApplicationUpdateTarget] = [:]
     private var activeTarget: ApplicationUpdateTarget?
     private var activeName: String?
     var isBusy: Bool { activeID != nil }
     var canCancel: Bool {
         guard let activeID else { return false }
-        switch states[activeID] { case .preparing, .downloading, .verifying: return true; default: return false }
+        switch states[activeID] { case .preparing, .downloading, .verifying, .appStore: return true; default: return false }
     }
 
     func unavailableReason(for entry: ApplicationUpdateEntry, apps: [AppInfo]) -> String? {
         if entry.source.key == "mas" {
             if entry.item.storeID == nil { return "L’identifiant App Store de cette mise à jour est indisponible." }
-            if AppBuildIdentity.isDevelopment { return "La mise à jour App Store nécessite la version distribuée de MacCare, signée Developer ID." }
+            if AppBuildIdentity.isDevelopment { return "Dans MacCare Dev, ouvrez la fiche App Store pour effectuer cette mise à jour." }
         }
         guard let url = entry.applicationURL(in: apps), let expected = entry.versions?.available else {
             return "L’application installée ne peut pas être identifiée."
@@ -59,7 +62,7 @@ final class ApplicationUpdateInstaller: NSObject, ObservableObject, @MainActor S
     }
 
     func install(_ entry: ApplicationUpdateEntry, apps: [AppInfo], quitIfRunning: Bool = false) {
-        guard !isBusy else { return }
+        guard !isBusy, !hasPendingInstaller(entry.id) else { return }
         if let reason = unavailableReason(for: entry, apps: apps) { states[entry.id] = .failed(reason); return }
         let id = entry.id;activeID = id; activeName = entry.item.name;states[id] = .preparing;lastResult = nil
         let url = entry.applicationURL(in: apps)
@@ -70,11 +73,16 @@ final class ApplicationUpdateInstaller: NSObject, ObservableObject, @MainActor S
                     guard let tool = AppStoreUpdates.executableURL(in: Bundle.main.bundleURL) else { throw ApplicationUpdateFailure.refused("Le composant App Store est absent du paquet MacCare.") }
                     guard let url, let expected = entry.versions?.available else { throw ApplicationUpdateFailure.refused("L’application installée est introuvable.") }
                     let target = try ApplicationUpdatePolicy().target(url: url, expectedVersion: expected)
-                    states[id] = .installing
+                    states[id] = .appStore
                     let script = try ApplicationUpdateCommand.appStoreAuthorizationScript(executable: tool, id: storeID)
-                    _ = try await ApplicationUpdateCommand.run("/usr/bin/osascript", ["-e", script])
-                    try ApplicationUpdatePolicy().validateCandidate(at: target.url, target: target)
-                    finish(id, name: entry.item.name)
+                    if try await AppStoreUpdateInstallation.run("/usr/bin/osascript", ["-e", script], target: target) {
+                        finish(id, name: entry.item.name)
+                    } else {
+                        pendingStoreTargets[id] = target
+                        states[id] = .waitingForAppStore
+                        activeID = nil
+                        task = nil
+                    }
                     return
                 }
                 var target: ApplicationUpdateTarget?
@@ -139,10 +147,21 @@ final class ApplicationUpdateInstaller: NSObject, ObservableObject, @MainActor S
     }
 
     func cancel() { if canCancel { task?.cancel() } }
-    func hasPendingInstaller(_ id: String) -> Bool { pending[id] != nil }
+    func hasPendingInstaller(_ id: String) -> Bool { pending[id] != nil || pendingStoreTargets[id] != nil }
 
     func verifyInstaller(_ entry: ApplicationUpdateEntry) {
-        guard !isBusy, let prepared = pending[entry.id] else { return }
+        guard !isBusy else { return }
+        if let target = pendingStoreTargets[entry.id] {
+            do {
+                try ApplicationUpdatePolicy().validateCandidate(at: target.url, target: target)
+                pendingStoreTargets[entry.id] = nil
+                finish(entry.id, name: entry.item.name)
+            } catch {
+                states[entry.id] = .failed("La version attendue n’est pas encore installée. Consultez la fiche de l’application dans l’App Store.")
+            }
+            return
+        }
+        guard let prepared = pending[entry.id] else { return }
         do {
             try ApplicationUpdatePolicy().validateCandidate(at: prepared.target.url, target: prepared.target)
             guard try ApplicationUpdateArchive.teamID(at: prepared.target.url) == prepared.teamID else { throw ApplicationUpdateFailure.refused("La signature de l’application installée ne correspond pas.") }

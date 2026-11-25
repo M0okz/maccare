@@ -17,6 +17,7 @@ struct AppStoreUpdatesTests {
         #expect(entries.first?.sourceName == "App Store")
         #expect(entries.first?.versions?.current == "15.3")
         #expect(entries.first?.versions?.available == "15.4")
+        #expect(entries.first?.appStoreURL?.absoluteString == "macappstore://apps.apple.com/app/id361309726")
         #expect(entries.last?.versions?.available == "27.2")
     }
 
