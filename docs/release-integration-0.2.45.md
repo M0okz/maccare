@@ -1,0 +1,11 @@
+# MacCare 0.2.45 — Suivi des mises à jour App Store
+
+La [version 0.2.45](https://github.com/M0okz/maccare/releases/tag/v0.2.45) (build 47) est disponible pour les Mac Apple Silicon sous macOS 13 ou ultérieur. La [PR 54](https://github.com/M0okz/maccare/pull/54) intègre le correctif `332cd9e` dans la fusion `909037ebc0c6a087620742cb196c3292c485cc50`, désignée par le tag `v0.2.45`.
+
+Le suivi d’une mise à jour App Store vérifie la version du paquet sélectionné. L’utilisateur peut arrêter le suivi ou reprendre la main après deux minutes sans confirmation, ouvrir la fiche de l’application et vérifier à nouveau la version installée. Une transaction déjà transmise à Apple peut continuer. Les six tests de régression sur un paquet témoin couvrent notamment la commande silencieuse, l’arrêt du suivi et l’arrivée de la version attendue avant ou après la fin de la commande. Windows App était absente du Mac de développement. Son passage réel de 11.4.4 à 11.4.5 reste à confirmer sur le Mac concerné.
+
+La [CI de branche](https://github.com/M0okz/maccare/actions/runs/45713296531), la [CI de PR](https://github.com/M0okz/maccare/actions/runs/45713306422), la [CI après fusion](https://github.com/M0okz/maccare/actions/runs/45715141821) et la [distribution officielle](https://github.com/M0okz/maccare/actions/runs/45715150291) ont réussi.
+
+Le [DMG public](https://github.com/M0okz/maccare/releases/download/v0.2.45/MacCare-0.2.45-arm64.dmg) fait 16832790 octets. Son empreinte SHA-256 `9ebfc375651456093a47e5a5af8c38ae85d4b83211d9a8dcaeb506b490f929b2` correspond à la somme publiée, au manifeste et aux métadonnées GitHub. Les contrôles Developer ID, Gatekeeper et de notarisation ont réussi pour le DMG téléchargé et l’application montée en lecture seule. Le [flux Sparkle stable](https://github.com/M0okz/maccare/releases/latest/download/appcast.xml) correspond au flux du tag. La clé publique embarquée valide les flux 0.2.44 et 0.2.45 ainsi que la signature du nouveau DMG.
+
+L’accueil, les neuf pages de documentation et le plan du site servis en HTTPS correspondent aux sources. Le [guide des mises à jour](https://maccare.homeblack.fr/documentation/mises-a-jour.html#installer) décrit le délai et les actions disponibles.

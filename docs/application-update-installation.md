@@ -229,3 +229,7 @@ La 0.2.44 DEV locale (build 49) corrige l’attente qui pouvait bloquer le gesti
 « Arrêter le suivi » libère le gestionnaire plus tôt. Une installation déjà transmise à l’App Store peut continuer. En l’absence de confirmation, « Ouvrir l’App Store » affiche la fiche correspondant à l’identifiant de l’app et « Vérifier l’installation » relit la version sur disque. Ces actions ne soumettent pas de nouvelle demande d’installation. Dans la copie DEV signée Apple Development, le lien vers la fiche permet la mise à jour via l’App Store.
 
 Les six tests de `AppStoreUpdateInstallationTests` utilisent un paquet témoin passant de 11.4.4 à 11.4.5. Ils couvrent une commande silencieuse, une version installée avant ou après la sortie de la commande, une sortie réussie sans installation, un refus et l’arrêt du suivi. Windows App était absente du Mac de développement. Le parcours d’achat ou d’installation de cette app avec un compte Apple reste à vérifier sur le Mac concerné.
+
+## Version 0.2.45
+
+Le suivi des mises à jour App Store testé en DEV est livré dans la [version 0.2.45 (build 47)](release-integration-0.2.45.md).

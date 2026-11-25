@@ -137,3 +137,7 @@ Les téléchargements et le guide Premiers pas sont à jour pour le correctif de
 ## Version 0.2.44
 
 Le guide Premiers pas décrit les cartes et le tableau des processus au retour d’Applications. [Contrôles des téléchargements et du site](../docs/release-integration-0.2.44.md).
+
+## Version 0.2.45
+
+Le guide Mises à jour décrit le suivi de la version installée et les actions disponibles après une attente de deux minutes. [Contrôles du site et des téléchargements](../docs/release-integration-0.2.45.md).
