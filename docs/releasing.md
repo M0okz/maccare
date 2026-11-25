@@ -316,3 +316,7 @@ La [0.2.42 (build 44)](https://github.com/M0okz/maccare/releases/tag/v0.2.42) li
 ## Version 0.2.43
 
 La 0.2.43 (build 45) livre le correctif des commandes de fenêtre. [Vérifications GitHub, Sparkle et Apple](release-integration-0.2.43.md).
+
+## Version 0.2.44
+
+La 0.2.44 (build 46) livre le correctif du retour d’Applications vers l’accueil. [Contrôles de publication](release-integration-0.2.44.md).

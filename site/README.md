@@ -133,3 +133,7 @@ Les guides Premiers pas, Nettoyage et Applications décrivent le retour à la fe
 ## Version 0.2.43
 
 Les téléchargements et le guide Premiers pas sont à jour pour le correctif des commandes de fenêtre. [Contrôles de publication](../docs/release-integration-0.2.43.md).
+
+## Version 0.2.44
+
+Le guide Premiers pas décrit les cartes et le tableau des processus au retour d’Applications. [Contrôles des téléchargements et du site](../docs/release-integration-0.2.44.md).
