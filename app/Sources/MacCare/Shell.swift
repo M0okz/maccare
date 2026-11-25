@@ -116,7 +116,7 @@ final class AppState: ObservableObject {
     @Published var cleaningToolsVisible = false
     @Published var performanceAnalyzed = false
     @Published var performanceDetail: PerformanceCategory?
-    let battery = BatteryModel()
+    let battery: BatteryModel
     let trayMetrics = TrayMetricsStore()
     let smartScan = SmartScanModel()
     let review = ReviewModel()
@@ -143,13 +143,15 @@ final class AppState: ObservableObject {
     let maintenance = MaintenanceModel()
     let performanceTasks = PerformanceTasksModel()
     /// Analyse planifiée (créée avec l'état : elle tourne tant que l'app est ouverte).
-    private(set) var scheduler: ScanScheduler!
+    private var scheduler: ScanScheduler?
     /// Ouvre la fenêtre principale ; renseigné par la première vue qui dispose de `openWindow`.
     var openMainWindow: (() -> Void)?
 
-    init() {
-        AppDelegate.stopBatteryBeforeTermination = { [weak battery] in await battery?.prepareForTermination() }
+    init(startBackgroundServices: Bool = true) {
+        battery = BatteryModel(monitor: startBackgroundServices)
         battery.openSection = { [weak self] in self?.show(.battery) }
+        guard startBackgroundServices else { return }
+        AppDelegate.stopBatteryBeforeTermination = { [weak battery] in await battery?.prepareForTermination() }
         scheduler = ScanScheduler(smart: smartScan) { [weak self] in self?.show(.smartScan) }
     }
 
@@ -373,6 +375,9 @@ struct DetailView: View {
     @ObservedObject var app: AppState
     @ObservedObject var updater: AppUpdater
     let layout: MainWindowLayout
+    // Chaque fenêtre conserve son dernier relevé pendant la visite d’une autre rubrique.
+    @StateObject private var homeProcesses = TrayProcessController()
+    @StateObject private var homeBattery = TrayBatteryController(accessoryHistory: .dashboard)
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var pageIdentity: Module {
@@ -400,7 +405,8 @@ struct DetailView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipped()
-            .animation(reduceMotion ? nil : Motion.easeOut(0.2), value: pageIdentity)
+            // L’accueil remplace la page sortante dès la première image. Le fond anime sa couleur séparément.
+            .animation(reduceMotion || pageIdentity == .dashboard ? nil : Motion.easeOut(0.2), value: pageIdentity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -409,7 +415,10 @@ struct DetailView: View {
         switch app.module ?? .dashboard {
         case .about: AboutView(updater: updater)
         case .battery: BatteryView(model: app.battery)
-        case .dashboard: DashboardView(app: app, layout: layout)
+        case .dashboard:
+            DashboardView(app: app, layout: layout)
+                .environmentObject(homeProcesses)
+                .environmentObject(homeBattery)
         case .applicationsOverview: ApplicationsOverviewView(app: app, layout: layout)
         case .cleaningOverview: CleaningOverviewView(app: app)
         case .filesOverview: FilesOverviewView(app: app)

@@ -5,8 +5,8 @@ struct HomeStatusCards: View {
     let app: AppState
     let availableWidth: CGFloat
     let storage: TrayStorageUsage?
-    @StateObject private var batteryContext = TrayBatteryController(accessoryHistory: .dashboard)
-    @StateObject private var processes = TrayProcessController()
+    @EnvironmentObject private var batteryContext: TrayBatteryController
+    @EnvironmentObject private var processes: TrayProcessController
     @State private var windowVisible = false
     @State private var consumerID = UUID()
     var body: some View {
