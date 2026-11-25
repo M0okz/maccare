@@ -200,8 +200,13 @@ struct ApplicationsUpdatesManager: View {
                 if case .downloading(let fraction) = installer.states[entry.id] {
                     ProgressView(value: fraction).frame(width: 110).accessibilityLabel("Téléchargement de la mise à jour")
                 } else if installer.activeID == entry.id { ProgressView().controlSize(.small) }
-                if installer.canCancel {
-                    Button("Annuler") { installer.cancel() }.buttonStyle(.actionPill)
+                if installer.activeID == entry.id, installer.canCancel {
+                    Button(installer.states[entry.id] == .appStore ? "Arrêter le suivi" : "Annuler") {
+                        installer.cancel()
+                    }.buttonStyle(.actionPill)
+                }
+                if let url = entry.appStoreURL {
+                    Link("Ouvrir l’App Store", destination: url).buttonStyle(.actionPill)
                 }
                 if installer.hasPendingInstaller(entry.id) {
                     Button("Vérifier l’installation") { installer.verifyInstaller(entry) }
