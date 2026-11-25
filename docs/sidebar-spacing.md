@@ -96,3 +96,7 @@ Les rendus ont été contrôlés dans les Dev précédentes à 1436 × 784. Les 
 Sur la base de la 0.2.42, le contenu du tableau de bord pouvait recouvrir les trois boutons natifs macOS. Les boutons existaient encore, mais le clic au centre de chacun atteignait la vue SwiftUI placée devant eux. La build DEV 46 enregistre la fenêtre dès son rattachement et applique sa présentation au tour suivant de la file principale, après l’installation du contenu.
 
 La sonde dans la DEV a retrouvé les trois cibles natives à onze étapes, dont le lancement, la navigation entre rubriques et la restauration depuis le volet. Avant correction, les trois centres renvoyaient le contenu à chacune de ces étapes. Une sonde indépendante a également vérifié les boutons sur quatre lancements, 640 transitions de disponibilité des mises à jour et quatre réductions suivies de restauration. Les contrôles de la zone cliquable ont été effectués dans les fenêtres de test sous macOS 27.0.1, session verrouillée.
+
+## Version 0.2.43
+
+Le correctif de superposition des trois boutons est livré dans la [version 0.2.43](release-integration-0.2.43.md).

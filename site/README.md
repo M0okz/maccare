@@ -129,3 +129,7 @@ Les guides Premiers pas et Batterie décrivent le survol du volet, les valeurs a
 ## Version 0.2.42
 
 Les guides Premiers pas, Nettoyage et Applications décrivent le retour à la fenêtre principale, la navigation pendant les inventaires et la sélection dans le désinstalleur. [Vérification des téléchargements et du site](../docs/release-integration-0.2.42.md).
+
+## Version 0.2.43
+
+Les téléchargements et le guide Premiers pas sont à jour pour le correctif des commandes de fenêtre. [Contrôles de publication](../docs/release-integration-0.2.43.md).
