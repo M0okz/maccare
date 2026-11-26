@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SmartScanView: View {
     @ObservedObject var model: SmartScanModel
+    @Binding var applicationID: String?
+    @State private var byApplication = false
     @State private var focusedGroup: String?
 
     var body: some View {
@@ -12,10 +14,24 @@ struct SmartScanView: View {
             case .scanning:
                 scanning
             case .results, .cleaning:
-                results
+                Picker("Présentation des résultats", selection: $byApplication) {
+                    Text("Par catégorie").tag(false)
+                    Text("Par application").tag(true)
+                }.pickerStyle(.segmented).frame(maxWidth: 340).padding(.vertical, 10)
+                    .disabled(model.stage == .cleaning)
+                Divider()
+                if byApplication {
+                    SmartScanApplicationsView(model: model, detailID: $applicationID)
+                    Divider()
+                    footer
+                } else { results }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onChange(of: byApplication) { _ in applicationID = nil }
+        .onChange(of: model.stage) { stage in
+            if stage == .scanning || stage == .idle { applicationID = nil }
+        }
     }
 
     // MARK: État initial
@@ -148,27 +164,36 @@ struct SmartScanView: View {
     }
 
     private var footer: some View {
-        AdaptiveActionRow {
+        let detail = byApplication ? applicationID.flatMap { id in model.applications.first { $0.id == id } } : nil
+        let selected = detail.map { $0.items.filter { model.selection.contains($0.id) } } ?? model.selectedItems
+        let scope = detail.map { " · " + $0.profile.name } ?? (byApplication ? " · toute l’analyse" : "")
+        return AdaptiveActionRow {
             VStack(alignment: .leading, spacing: 8) {
-                Text("\(model.selectedItems.count) \(pl(model.selectedItems.count, "élément")) \(pl(model.selectedItems.count, "sélectionné"))").font(AppFont.body.weight(.semibold))
+                Text("\(selected.count) \(pl(selected.count, "élément")) \(pl(selected.count, "sélectionné"))\(scope)").font(AppFont.body.weight(.semibold))
                 HStack(spacing: Space.m) {
-                    Button("Tout cocher") { model.selectAll() }.buttonStyle(.actionPill).controlSize(.small)
-                    Button("Tout décocher") { model.selectNone() }.buttonStyle(.actionPill).controlSize(.small)
+                    Button("Tout cocher") {
+                        if let detail { model.selection.formUnion(detail.items.map(\.id)) } else { model.selectAll() }
+                    }.buttonStyle(.actionPill).controlSize(.small)
+                    Button("Tout décocher") {
+                        if let detail { model.selection.subtract(detail.items.map(\.id)) } else { model.selectNone() }
+                    }.buttonStyle(.actionPill).controlSize(.small)
                 }.disabled(model.stage == .cleaning)
             }
         } actions: {
             HStack(spacing: Space.m) {
-                if !model.selectedItems.isEmpty {
-                    Text("Sélection : \(humanSize(model.selectedSize))")
+                if !selected.isEmpty {
+                    Text("Sélection : \(humanSize(selected.reduce(0) { $0 + $1.size_bytes }))")
                         .font(AppFont.secondary).foregroundStyle(Theme.muted)
                 }
                 PrimaryButton(
                     title: model.directDeleteEnabled ? "Supprimer définitivement" : "Déplacer vers la corbeille",
                     systemImage: "trash",
                     tint: model.directDeleteEnabled ? Theme.danger : ModuleColor.privacy
-                ) { model.cleanSelected() }
-                .disabled(model.selectedItems.isEmpty || model.stage == .cleaning)
-                .opacity(model.selectedItems.isEmpty || model.stage == .cleaning ? 0.5 : 1)
+                ) {
+                    if let detail { model.cleanSelected(in: detail.id) } else { model.cleanSelected() }
+                }
+                .disabled(selected.isEmpty || model.stage == .cleaning)
+                .opacity(selected.isEmpty || model.stage == .cleaning ? 0.5 : 1)
             }
         }
         .padding(Space.l)

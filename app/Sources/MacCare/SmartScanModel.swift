@@ -25,9 +25,11 @@ struct ScanGroup: Identifiable {
     let category: CleaningCategory
     let items: [ScanItem]
     let size: UInt64
+    let containerOwners: [String: String]
     var id: String { category.id }
 
-    init(category: CleaningCategory, items: [ScanItem]) {
+    init(category: CleaningCategory, items: [ScanItem], containerOwners: [String: String] = [:]) {
+        self.containerOwners = containerOwners
         self.category = category
         self.items = items
         size = items.reduce(0) { $0 + $1.size_bytes }
@@ -43,7 +45,16 @@ final class SmartScanModel: ObservableObject {
     @Published private(set) var stage: Stage = .idle
     @Published private(set) var progress: Double = 0      // 0…1
     @Published var currentLabel: String?
-    @Published private(set) var groups: [ScanGroup] = []
+    @Published private(set) var groups: [ScanGroup] = [] {
+        didSet { cachedApplications = nil }
+    }
+    private var cachedApplications: [SmartScanAppResult]?
+    var applications: [SmartScanAppResult] {
+        if let cachedApplications { return cachedApplications }
+        let result = SmartScanAppResult.group(groups)
+        cachedApplications = result
+        return result
+    }
     @Published var selection: Set<String> = []
     @Published var statusMessage: String?
     @Published private(set) var cleanup: SmartScanCleanup?
@@ -226,7 +237,14 @@ final class SmartScanModel: ObservableObject {
                 let rule = cat.ruleTOML(thresholdBytes: t, userExclusions: exclusions)
                 do {
                     let items = try Engine.scan(ruleTOML: rule, task: task)
-                    let group = ScanGroup(category: cat, items: items.sorted { $0.size_bytes > $1.size_bytes })
+                    var owners: [String: String] = [:]
+                    if cat.category == "container-cache" {
+                        for owner in Set(items.compactMap(\.owner)) {
+                            owners[owner] = RunningCacheApplications.containerIdentifier(owner, root: cat.root)
+                        }
+                    }
+                    let eligible = items.filter { SmartScanAppProfile.includes($0, containerOwners: owners) }
+                    let group = ScanGroup(category: cat, items: eligible.sorted { $0.size_bytes > $1.size_bytes }, containerOwners: owners)
                     await MainActor.run {
                         guard self.generation == gen else { return }
                         self.groups.append(group)
@@ -330,6 +348,11 @@ final class SmartScanModel: ObservableObject {
         clean(selectedItems, direct: directDelete, retry: false)
     }
 
+    func cleanSelected(in applicationID: String) {
+        guard let application = applications.first(where: { $0.id == applicationID }) else { return }
+        clean(application.items.filter { selection.contains($0.id) }, direct: directDelete, retry: false, refreshAll: false)
+    }
+
     func retryPendingCaches() {
         guard let waiting = cleanup?.waiting, !waiting.isEmpty else { return }
         // Une préférence modifiée entre les essais ne transforme pas un accord Corbeille
@@ -337,7 +360,7 @@ final class SmartScanModel: ObservableObject {
         clean(waiting.map(\.item), direct: directDelete && waiting.allSatisfy(\.direct), retry: true)
     }
 
-    private func clean(_ items: [ScanItem], direct: Bool, retry: Bool) {
+    private func clean(_ items: [ScanItem], direct: Bool, retry: Bool, refreshAll: Bool = true) {
         guard stage == .results, !items.isEmpty else { return }
         stage = .cleaning
         statusMessage = nil
@@ -390,13 +413,13 @@ final class SmartScanModel: ObservableObject {
             }.value
 
             cleanup = result
-            if !retry && result.waiting.isEmpty {
+            if refreshAll && !retry && result.waiting.isEmpty {
                 startScan()
             } else {
                 // Conserve les identités d’origine et les choix manuels. Le nouvel essai
                 // ne doit ni examiner à nouveau le disque ni sélectionner de nouveaux fichiers.
                 groups = groups.map { group in
-                    ScanGroup(category: group.category, items: group.items.filter { !result.removedPaths.contains($0.path) })
+                    ScanGroup(category: group.category, items: group.items.filter { !result.removedPaths.contains($0.path) }, containerOwners: group.containerOwners)
                 }
                 selection.subtract(chosen)
                 stage = .results

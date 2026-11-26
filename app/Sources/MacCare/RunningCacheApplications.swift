@@ -50,22 +50,28 @@ struct RunningCacheApplications {
         ["user-cache", "container-cache", "group-container-cache", "electron-cache", "xcode-documentation-cache"].contains(category)
     }
 
+    static func containerIdentifier(_ folder: String, root: String) -> String? {
+        guard UUID(uuidString: folder) != nil else { return nil }
+        let metadata = URL(fileURLWithPath: root).appendingPathComponent(folder)
+            .appendingPathComponent(".com.apple.containermanagerd.metadata.plist")
+        guard let data = try? Data(contentsOf: metadata),
+              let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any] else { return nil }
+        return plist["MCMMetadataIdentifier"] as? String
+    }
+
     mutating func blockingNames(for item: ScanItem, root: String) -> [String] {
         let folder = item.owner ?? item.url.lastPathComponent
         var key = folder.lowercased()
         if item.category == "xcode-documentation-cache" { key = "com.apple.dt.xcode" }
-        if UUID(uuidString: folder) != nil && ["container-cache", "group-container-cache"].contains(item.category) {
-            let metadata = URL(fileURLWithPath: root).appendingPathComponent(folder)
-                .appendingPathComponent(".com.apple.containermanagerd.metadata.plist")
-            if let data = try? Data(contentsOf: metadata),
-               let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
-               let identifier = plist["MCMMetadataIdentifier"] as? String { key = identifier.lowercased() }
-        }
+        if ["container-cache", "group-container-cache"].contains(item.category),
+           let identifier = Self.containerIdentifier(folder, root: root) { key = identifier.lowercased() }
+        let profile = SmartScanAppProfile.knownOwner(key)
         var names = Set<String>()
         for app in NSWorkspace.shared.runningApplications where !app.isTerminated {
             let owner = owners[app] ?? Owner(app)
             owners[app] = owner
-            if owner.folderNames.contains(key) || owner.identifiers.contains(where: { Self.matchesBundle(key, runningID: $0) }) {
+            if owner.folderNames.contains(key) || owner.identifiers.contains(where: { Self.matchesBundle(key, runningID: $0) })
+                || (profile != nil && owner.identifiers.contains { SmartScanAppProfile.knownOwner($0) == profile }) {
                 names.insert(owner.name)
             } else if item.category == "group-container-cache" {
                 for url in owner.bundles {

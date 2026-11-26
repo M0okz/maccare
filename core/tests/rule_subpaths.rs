@@ -182,3 +182,24 @@ fn shipped_generic_rules_behave_as_before() {
     write(&logs.join("DiagnosticReports/crash.ips"));
     assert_eq!(names(&shipped_at("logs/user.toml", &logs)), vec!["App", "DiagnosticReports"]);
 }
+
+#[test]
+fn app_profiles_preserve_shared_google_and_offline_spotify_storage() {
+    let (_tmp, base) = base();
+    let root = base.join("Caches");
+    let rule = shipped_at("caches/generic.toml", &root);
+    let ctx = SafetyContext::new([base.join("Docs")]);
+    for entry in ["Google/Chrome/Default", "Google/DriveFS/account", "com.spotify.Client/storage/song",
+                  "com.spotify.Client/Browser/GPUCache/blob", "Slack/resource"] {
+        write(&root.join(entry));
+    }
+    assert_eq!(names(&rule), vec!["Google/Chrome", "Slack", "com.spotify.Client/Browser/GPUCache"]);
+    for path in ["Google", "Google/DriveFS", "com.spotify.Client", "com.spotify.Client/storage"] {
+        let path = root.join(path);
+        assert!(matches!(evaluate_for_rule(&ctx, &path, &rule, id(&path)), Decision::Refused(_)));
+    }
+    for path in ["Google/Chrome", "com.spotify.Client/Browser/GPUCache"] {
+        let path = root.join(path);
+        assert_eq!(evaluate_for_rule(&ctx, &path, &rule, id(&path)), Decision::Allowed);
+    }
+}
