@@ -16,6 +16,7 @@ struct AppIcon: View {
 
 struct UninstallView: View {
     @ObservedObject var model: UninstallModel
+    @ObservedObject var permissions: PermissionsModel
     let layout: MainWindowLayout
     @State private var query = ""
     @State private var displayedReceipt: UninstallReceipt?
@@ -41,7 +42,8 @@ struct UninstallView: View {
             else if model.selectedApp != nil { footer.displayScaledBlock(layout.scale) }
         }
         .sheet(item: $displayedReceipt) { UninstallReceiptView(receipt: $0) }
-        .onAppear { model.loadApps() }
+        .sheet(item: $model.completedUninstall) { UninstallReceiptView(receipt: $0) }
+        .onAppear { model.loadApps(); permissions.recheck() }
     }
 
     private var browser: some View {
@@ -345,6 +347,19 @@ struct UninstallView: View {
 
     private var footer: some View {
         VStack(alignment: .leading, spacing: Space.s) {
+            if let detail, !model.isScanning, !detail.selectedContainers.isEmpty, permissions.fullDisk != .granted {
+                HStack(spacing: Space.s) {
+                    Image(systemName: "lock.shield").foregroundStyle(Theme.warn).accessibilityHidden(true)
+                    Text("macOS protège les conteneurs des applications. Sans l’Accès complet au disque, MacCare ne peut pas retirer \(detail.selectedContainers.count == 1 ? "le conteneur coché" : "les \(detail.selectedContainers.count) conteneurs cochés"), même avec un mot de passe administrateur.")
+                        .font(AppFont.secondary).foregroundStyle(Theme.warn)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: Space.s)
+                    Button("Autoriser l’accès") { permissions.openFullDiskSettings() }
+                        .buttonStyle(.actionPill).controlSize(.small)
+                    Button("Revérifier") { permissions.recheck() }
+                        .buttonStyle(.actionPill).controlSize(.small)
+                }
+            }
             if let detail, !model.isScanning {
                 Text(detail.consequence)
                     .font(AppFont.secondary)

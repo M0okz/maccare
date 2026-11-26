@@ -54,6 +54,8 @@ struct UninstallReview {
             }
         }
         if let bid = app.bundleId, UninstallArtifacts.validID(bid) {
+            let hostPreferences = (try? FileManager.default.contentsOfDirectory(
+                atPath: library.appendingPathComponent("Preferences/ByHost").path)) ?? []
             let ids = embeddedIDs.union([bid]).union(UninstallArtifacts.legacyLoginIDs(for: bid))
             for identifier in ids where UninstallArtifacts.validID(identifier) {
                 let owner = copy ?? otherClaims[identifier.lowercased()]
@@ -69,6 +71,13 @@ struct UninstallReview {
                 }
                 for root in darwinDirectories {
                     candidates[root.appendingPathComponent(identifier).path] = sharing(owner, otherwise: .exclusive)
+                    // Processus WebKit lancés pour le compte de l’app : leur cache porte son identifiant.
+                    for process in Self.webKitProcesses {
+                        candidates[root.appendingPathComponent("\(process)+\(identifier)").path] = sharing(owner, otherwise: .exclusive)
+                    }
+                }
+                for name in hostPreferences where Self.isHostPreference(name, of: identifier) {
+                    candidates[relative("Preferences/ByHost/\(name)")] = sharing(owner, otherwise: .exclusive)
                 }
                 for ext in ["sfl", "sfl2", "sfl3", "sfl4"] {
                     let recents = "Application Support/com.apple.sharedfilelist/com.apple.LSSharedFileList.ApplicationRecentDocuments"
@@ -134,6 +143,17 @@ struct UninstallReview {
         return Self(app: app, others: others, groupIDs: Array(artifacts.groups), embeddedIDs: artifacts.embeddedIDs,
                     otherClaims: claims, darwinDirectories: UninstallArtifacts.darwinDirectories,
                     machineLibrary: URL(fileURLWithPath: "/Library"))
+    }
+
+    static let webKitProcesses = ["com.apple.WebKit.GPU", "com.apple.WebKit.Networking", "com.apple.WebKit.WebContent",
+                                  "com.apple.WebKit.WebContent.EnhancedSecurity"]
+
+    /// `<identifiant>.<UUID matériel>.plist` : le segment hôte ne contient ni point ni autre signe.
+    static func isHostPreference(_ name: String, of identifier: String) -> Bool {
+        let prefix = identifier.lowercased() + ".", lower = name.lowercased()
+        guard lower.hasPrefix(prefix), lower.hasSuffix(".plist") else { return false }
+        let host = lower.dropFirst(prefix.count).dropLast(".plist".count)
+        return host.count >= 12 && host.allSatisfy { $0 == "-" || $0.isHexDigit }
     }
 
     static func validComponent(_ value: String) -> Bool {

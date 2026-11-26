@@ -122,6 +122,17 @@ enum HelperClient {
         if proto != HelperIdentity.protocolVersion { throw HelperError.incompatible(proto) }
     }
 
+    /// Vrai si l’assistant système peut recevoir une désinstallation sans dialogue administrateur.
+    static func supportsUninstall() async -> Bool {
+        guard status == .enabled else { return false }
+        return (try? await checkVersion()) != nil
+    }
+
+    /// Sélection du désinstalleur ; la confirmation de l’utilisateur a lieu avant l’appel.
+    static func uninstall(selectionJSON: String) async throws -> String {
+        try await call(timeout: 300) { h, done in h.uninstall(selectionJSON: selectionJSON, withReply: done) }
+    }
+
     /// JSON du moteur : `{"items":[...],"skipped":[...],"truncated"}`.
     static func list(rule: String) async throws -> String {
         try await checkVersion()

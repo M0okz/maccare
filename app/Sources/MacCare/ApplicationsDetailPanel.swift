@@ -65,7 +65,7 @@ struct ApplicationsDetailPanel: View {
                     Divider()
                     Group {
                         switch detail {
-                        case .installed, .leftovers: UninstallView(model: uninstall, layout: layout)
+                        case .installed, .leftovers: UninstallView(model: uninstall, permissions: app.permissions, layout: layout)
                         case .startup:
                             PerformanceStartupManager(model: startup, permissions: app.permissions, category: startupCategory)
                                 .id(startupCategory)

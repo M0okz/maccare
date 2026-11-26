@@ -3,8 +3,10 @@ import Foundation
 /// Protocole XPC entre MacCare et son assistant privilégié (`MacCareHelper`).
 ///
 /// Opérations fermées, rien d'autre (voir `docs/architecture.md`). Les règles sont des
-/// identifiants **compilés dans le moteur** (`sys.logs.rotated`…) : il n'existe aucune opération
-/// « supprimer ce chemin » ni « exécuter ceci ». Les réponses sont le JSON du moteur.
+/// identifiants **compilés dans le moteur** (`sys.logs.rotated`…). Seule exception aux chemins :
+/// `uninstall`, limitée à une application de `/Applications` ou `~/Applications` et aux emplacements
+/// fermés d’`AuthorizedUninstall`, avec contrôle d’identité de chaque élément. Aucune opération
+/// « exécuter ceci ». Les réponses sont du JSON.
 @objc public protocol MacCareHelperXPC {
     /// Version du protocole et de l'assistant (comparées à la connexion).
     func version(withReply reply: @escaping (Int, String) -> Void)
@@ -20,6 +22,10 @@ import Foundation
     func battery(command: String, sessionID: String, configurationJSON: String, withReply reply: @escaping (String) -> Void)
     func fan(preset: String, withReply reply: @escaping (String) -> Void)
     func journal(since: Date, withReply reply: @escaping (String) -> Void)
+    /// Retire la sélection d’un désinstalleur (`AuthorizedUninstall` encodé) pour l’UID de la
+    /// connexion, après confirmation par Touch ID ou mot de passe dans l’app.
+    /// Réponse : `[AuthorizedUninstall.Result]` ou `{"error"}`.
+    func uninstall(selectionJSON: String, withReply reply: @escaping (String) -> Void)
 }
 
 /// Identités et exigences partagées entre l'app et l'assistant.
@@ -27,7 +33,8 @@ public enum HelperIdentity {
     public static let machService = "org.maccare.helper"
     public static let daemonPlist = "org.maccare.helper.plist"
     // Version 11 adds bounded fan presets and restoration before service removal.
-    public static let protocolVersion = 11
+    // Version 12 adds the uninstaller's selection, confirmed in the app with Touch ID.
+    public static let protocolVersion = 12
 
     /// Équipe de signature (Developer ID et certificats de développement de la même équipe).
     public static let teamID = "5FAF9ZA2X9"

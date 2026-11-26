@@ -27,6 +27,25 @@ public struct AuthorizedUninstall: Codable {
         self.uid = uid; self.bundle = bundle; self.bundleID = bundleID; self.direct = direct; self.items = items
     }
 
+    /// Point d’entrée du service : l’UID vient de la connexion authentifiée, jamais du message.
+    public static func serviceReply(selectionJSON: String, authenticatedUID: uid_t) -> (reply: String, results: [Result]?) {
+        func failure(_ message: String) -> (String, [Result]?) {
+            let data = (try? JSONSerialization.data(withJSONObject: ["error": message])) ?? Data()
+            return (String(decoding: data, as: UTF8.self), nil)
+        }
+        guard selectionJSON.utf8.count <= 2_000_000,
+              let request = try? JSONDecoder().decode(AuthorizedUninstall.self, from: Data(selectionJSON.utf8)),
+              request.items.count <= 1_000 else { return failure("Sélection invalide.") }
+        guard request.uid == authenticatedUID else { return failure("La sélection ne correspond pas à la session.") }
+        do {
+            let results = try request.execute()
+            let data = try JSONEncoder().encode(results)
+            return (String(decoding: data, as: UTF8.self), results)
+        } catch {
+            return failure(error.localizedDescription)
+        }
+    }
+
     public func execute() throws -> [Result] {
         var console = stat()
         guard uid > 0, stat("/dev/console", &console) == 0, console.st_uid == uid,
@@ -84,7 +103,7 @@ public struct AuthorizedUninstall: Codable {
         let name = url.lastPathComponent.lowercased()
         if parent.hasPrefix(home + "/Library/") {
             let relative = String(parent.dropFirst((home + "/Library/").count))
-            let locations = ["Caches", "Logs", "Preferences", "Saved Application State", "LaunchAgents",
+            let locations = ["Caches", "Logs", "Preferences", "Preferences/ByHost", "Saved Application State", "LaunchAgents",
                              "Containers", "Group Containers", "Application Scripts", "Application Support",
                              "HTTPStorages", "WebKit", "Cookies",
                              "Application Support/com.apple.sharedfilelist/com.apple.LSSharedFileList.ApplicationRecentDocuments"]
