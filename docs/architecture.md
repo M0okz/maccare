@@ -136,7 +136,7 @@ AppKit `regular` avant activation. Voir [le comportement et ses validations](men
 
 ## Indicateurs système du volet
 
-En développement sur `codex/persistent-metrics`, `TrayMetricsStore` alimente les détails en direct, les cartes de l’accueil via `HomeMetricsStore` et les écritures locales via l’acteur `ActivityHistoryArchive`. La lecture de la dernière heure précède la première mesure. Les vues longues interrogent SQLite lors du choix de la période et à la validation du lot suivant. Le calcul de durée et la séparation des segments sont partagés entre le direct et l’archive pour chaque série. La migration transactionnelle conserve les anciens relevés et ajoute la durée, l’intégrale et la date du pic. [Stockage, rétention et cycle de vie](activity-metrics-cache.md).
+Depuis MacCare 0.2.46, `TrayMetricsStore` alimente les détails en direct, les cartes de l’accueil via `HomeMetricsStore` et les écritures locales via l’acteur `ActivityHistoryArchive`. La lecture de la dernière heure précède la première mesure. Les vues longues interrogent SQLite lors du choix de la période et à la validation du lot suivant. Le calcul de durée et la séparation des segments sont partagés entre le direct et l’archive pour chaque série. La migration transactionnelle conserve les anciens relevés et ajoute la durée, l’intégrale et la date du pic. [Stockage, rétention et cycle de vie](activity-metrics-cache.md).
 
 `TrayMetricsSampler` lit la pression mémoire XNU et relève la température CPU
 hors du fil principal (cache de 5 secondes). Le pont C `maccare_cpu_temperature`

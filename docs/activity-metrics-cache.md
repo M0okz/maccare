@@ -1,8 +1,8 @@
 # Historique partagé de l’activité du Mac
 
-## Historique persistant en développement — 26 novembre 2026
+## Historique persistant livré en 0.2.46 — 26 novembre 2026
 
-Branche locale `codex/persistent-metrics`, basée sur `3367999` (0.2.45). Cette évolution concerne la DEV.
+La [version 0.2.46](https://github.com/M0okz/maccare/releases/tag/v0.2.46) (build 48) distribue l’historique préparé sur `codex/persistent-metrics`. [Contrôles de publication](release-integration-0.2.46.md).
 
 Les détails Processeur, GPU, Mémoire et Réseau proposent 10 min, 30 min, 1 h, 24 h, 7 j et 30 j. Les cinq séries sont la charge CPU, la charge GPU, la part de RAM utilisée et les deux débits de l’interface principale. Les écrans courts retrouvent la dernière heure au démarrage. Une période longue charge les minutes déjà enregistrées de la seule série demandée. Les graphiques gardent les ruptures de session et de source. Le direct reprend avec de nouveaux compteurs. Les volumes transférés affichés sous les débits repartent à zéro pour la connexion de la nouvelle session.
 

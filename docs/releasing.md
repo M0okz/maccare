@@ -324,3 +324,7 @@ La 0.2.44 (build 46) livre le correctif du retour d’Applications vers l’accu
 ## Version 0.2.45
 
 La [0.2.45 (build 47)](release-integration-0.2.45.md) corrige le suivi des installations App Store.
+
+## Version 0.2.46
+
+La 0.2.46 (build 48) ajoute l’historique local des métriques sur trente jours. [Contrôles de publication](release-integration-0.2.46.md).
