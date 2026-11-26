@@ -73,40 +73,38 @@ struct UninstallReceiptView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Space.m) {
+        VStack(alignment: .leading, spacing: Space.l) {
             if receipt.applicationRemoved {
                 HStack(alignment: .top, spacing: Space.m) {
-                    Image(systemName: "checkmark.circle.fill").font(.system(size: 34)).foregroundStyle(.green)
+                    Image(systemName: "checkmark.circle.fill").font(.system(size: 34)).foregroundStyle(Theme.ok)
                         .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("\(receipt.name) a été désinstallée").font(.title2.bold())
-                        Text(receipt.completionDetail).font(.callout).foregroundStyle(.secondary)
+                        Text("\(receipt.name) a été désinstallée").font(AppFont.section).foregroundStyle(Theme.fg)
+                            .accessibilityAddTraits(.isHeader)
+                        Text(receipt.completionDetail).font(AppFont.secondary).foregroundStyle(Theme.muted)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             } else {
-                Text("Bilan de désinstallation · \(receipt.name)").font(.title2.bold())
+                Text("Bilan de désinstallation · \(receipt.name)").font(AppFont.section).foregroundStyle(Theme.fg)
+                    .accessibilityAddTraits(.isHeader)
             }
             ScrollView {
-                VStack(alignment: .leading, spacing: Space.m) {
+                VStack(alignment: .leading, spacing: Space.l) {
                     ForEach(UninstallReceipt.Status.allCases, id: \.self) { status in
                         let rows = receipt.entries.filter { $0.status == status }
                         if !rows.isEmpty {
                             let size = rows.reduce(UInt64(0)) { $0 + $1.item.size_bytes }
-                            Text("\(status.rawValue) · \(rows.count) · \(humanSize(size))").font(.headline)
-                                .accessibilityAddTraits(.isHeader)
-                            ForEach(rows) { entry in
-                                VStack(alignment: .leading, spacing: 2) {
-                                    HStack {
-                                        Text(entry.item.url.lastPathComponent).font(.body.weight(.medium))
-                                        Spacer()
-                                        Text(humanSize(entry.item.size_bytes)).font(.callout).monospacedDigit()
+                            VStack(alignment: .leading, spacing: Space.s) {
+                                Text("\(status.rawValue) · \(rows.count) · \(humanSize(size))")
+                                    .font(AppFont.emphasis).foregroundStyle(status == .failed ? Theme.warn : Theme.fg)
+                                    .accessibilityAddTraits(.isHeader)
+                                VStack(spacing: 0) {
+                                    ForEach(Array(rows.enumerated()), id: \.element.id) { index, entry in
+                                        if index > 0 { Rectangle().fill(Theme.hairline).frame(height: 1) }
+                                        row(entry)
                                     }
-                                    Text(entry.item.path).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
-                                    if let reason = entry.reason {
-                                        Text(reason).font(.callout).textSelection(.enabled)
-                                    }
-                                }
+                                }.card()
                             }
                         }
                     }
@@ -114,8 +112,32 @@ struct UninstallReceiptView: View {
             }
             HStack {
                 Spacer()
-                Button(receipt.applicationRemoved ? "Terminé" : "Fermer") { dismiss() }.keyboardShortcut(.defaultAction)
+                PrimaryButton(title: receipt.applicationRemoved ? "Terminé" : "Fermer") { dismiss() }
+                    .keyboardShortcut(.defaultAction)
             }
-        }.padding(Space.xl).frame(minWidth: 500, idealWidth: 600, minHeight: 320, idealHeight: 440)
+        }
+        .padding(Space.xl)
+        .frame(minWidth: 520, idealWidth: 620, minHeight: 340, idealHeight: 480)
+        .modifier(ManagerSheetStyle())
+        .onExitCommand { dismiss() }
+    }
+
+    private func row(_ entry: UninstallReceipt.Entry) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(entry.item.url.lastPathComponent).font(AppFont.body).foregroundStyle(Theme.fg)
+                Spacer(minLength: Space.s)
+                Text(humanSize(entry.item.size_bytes)).font(AppFont.body).monospacedDigit().foregroundStyle(Theme.muted)
+            }
+            Text(entry.item.path).font(AppFont.caption).foregroundStyle(Theme.faint)
+                .lineLimit(1).truncationMode(.middle).help(entry.item.path).textSelection(.enabled)
+            if let reason = entry.reason {
+                Text(reason).font(AppFont.secondary)
+                    .foregroundStyle(entry.status == .failed ? Theme.warn : Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
+            }
+        }
+        .padding(.horizontal, 14).padding(.vertical, 9)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
