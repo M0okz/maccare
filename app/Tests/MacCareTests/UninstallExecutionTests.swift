@@ -24,16 +24,17 @@ final class UninstallExecutionTests: XCTestCase {
         await fulfillment(of: [scanned], timeout: 5)
         withExtendedLifetime(scan) {}
         XCTAssertEqual(model.residuals.count, 1)
-        let finished = expectation(description: "Désinstallation terminée")
-        let removed = model.$lastReport.compactMap { $0 }.first().sink { _ in finished.fulfill() }
-        let rescanned = expectation(description: "État final inspecté")
-        let rescan = model.$isScanning.dropFirst().filter { !$0 }.first().sink { _ in rescanned.fulfill() }
+        let finished = expectation(description: "Désinstallation confirmée")
+        let removed = model.$completedUninstall.compactMap { $0 }.first().sink { _ in finished.fulfill() }
         model.cleanSelected()
-        await fulfillment(of: [finished, rescanned], timeout: 5)
-        withExtendedLifetime((removed, rescan)) {}
-        let report = try XCTUnwrap(model.lastReport)
-        XCTAssertEqual(report.removed, 1, "L’application choisie dans /Applications doit pouvoir être désinstallée")
-        XCTAssertTrue(report.refused.isEmpty, "Refus actuel : \(report.refused)")
+        await fulfillment(of: [finished], timeout: 5)
+        withExtendedLifetime(removed) {}
+        let receipt = try XCTUnwrap(model.completedUninstall)
+        XCTAssertTrue(receipt.applicationRemoved, "L’application choisie dans /Applications doit pouvoir être désinstallée")
+        XCTAssertEqual(receipt.entries.map(\.status), [.removed])
+        XCTAssertTrue(receipt.completionDetail.hasPrefix("L’application a été placée dans la Corbeille"))
+        XCTAssertNil(model.selectedApp, "La fiche d’une app retirée se ferme")
+        XCTAssertFalse(model.apps.contains { $0.url == appURL })
         XCTAssertFalse(fm.fileExists(atPath: appURL.path))
     }
 }

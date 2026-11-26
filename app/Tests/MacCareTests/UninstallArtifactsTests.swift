@@ -65,9 +65,10 @@ final class UninstallArtifactsTests: XCTestCase {
         defer { try? files.removeItem(at: cache) }
         let items = try Engine.inspectPaths([app.url.path, cache.path])
         var operations = UninstallFileOperations()
-        operations.remove = { _, _ in throw CocoaError(.fileWriteNoPermission) }
+        operations.ownedByUser = { $0.path != app.url.path }
+        operations.remove = { _, _ in XCTFail("Aucun retrait avant le paquet"); throw CocoaError(.fileWriteNoPermission) }
         operations.authorize = { selection, _, _ in
-            XCTAssertEqual(Set(selection.map(\.path)), [app.url.path, cache.path])
+            XCTAssertEqual(selection.map(\.path), [app.url.path], "Seul le paquet d’un autre compte passe par l’administrateur")
             throw NSError(domain: NSCocoaErrorDomain, code: NSUserCancelledError,
                           userInfo: [NSLocalizedDescriptionKey: "Autorisation annulée."])
         }
@@ -97,6 +98,7 @@ final class UninstallArtifactsTests: XCTestCase {
             }
             var calls = 0
             var operations = UninstallFileOperations()
+            operations.ownedByUser = { _ in false }
             operations.remove = { _, _ in throw CocoaError(.fileWriteNoPermission) }
             operations.authorize = { selected, app, direct in
                 calls += 1

@@ -1,6 +1,7 @@
 import CryptoKit
 import Darwin
 import Foundation
+import LocalAuthentication
 import MacCareHelperProtocol
 import MacCareMaintenance
 
@@ -21,6 +22,11 @@ enum UninstallAuthorization {
             .init(path: $0.path, device: $0.identity.device, inode: $0.identity.inode)
         })
         let payload = try JSONEncoder().encode(request)
+        // Assistant système déjà approuvé : Touch ID (ou mot de passe de session) suffit.
+        if await HelperClient.supportsUninstall(), LAContext().canEvaluatePolicy(.deviceOwnerAuthentication, error: nil) {
+            try await confirm(app: app)
+            return try decode(await HelperClient.uninstall(selectionJSON: String(decoding: payload, as: UTF8.self)))
+        }
         let helper = Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/MacCareHelper")
         let work = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: work, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
@@ -36,6 +42,30 @@ enum UninstallAuthorization {
                           userInfo: [NSLocalizedDescriptionKey: "Autorisation administrateur annulée."])
         }
         return try JSONDecoder().decode([AuthorizedUninstall.Result].self, from: Data(json.utf8))
+    }
+
+    static let cancelled = NSError(domain: NSCocoaErrorDomain, code: NSUserCancelledError,
+                                   userInfo: [NSLocalizedDescriptionKey: "Autorisation annulée."])
+
+    /// Feuille système Touch ID, avec repli sur le mot de passe de la session.
+    private static func confirm(app: AppInfo) async throws {
+        let context = LAContext()
+        context.localizedCancelTitle = "Annuler"
+        do {
+            _ = try await context.evaluatePolicy(.deviceOwnerAuthentication,
+                                                 localizedReason: "retirer les éléments cochés de \(app.name)")
+        } catch let error as LAError where [.userCancel, .appCancel, .systemCancel].contains(error.code) {
+            throw cancelled
+        }
+    }
+
+    /// Réponse de l’assistant : résultats par chemin, ou `{"error"}` explicite.
+    static func decode(_ reply: String) throws -> [AuthorizedUninstall.Result] {
+        let data = Data(reply.utf8)
+        if let results = try? JSONDecoder().decode([AuthorizedUninstall.Result].self, from: data) { return results }
+        let message = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+        throw NSError(domain: NSCocoaErrorDomain, code: NSFileWriteUnknownError,
+                      userInfo: [NSLocalizedDescriptionKey: message ?? "Réponse de l’assistant illisible."])
     }
 
     /// The helper verifies the digest of its actual stdin before decoding the selection. Verify

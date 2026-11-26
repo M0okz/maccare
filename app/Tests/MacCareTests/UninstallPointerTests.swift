@@ -42,7 +42,7 @@ final class UninstallPointerTests: XCTestCase {
         XCTAssertEqual(Set(model.residuals.map(\.path)), Set(paths.map { $0.standardizedFileURL.path }))
 
         let layout = MainWindowLayout(visibleScreenSize: screen)
-        let host = NSHostingView(rootView: UninstallView(model: model, layout: layout)
+        let host = NSHostingView(rootView: UninstallView(model: model, permissions: PermissionsModel(), layout: layout)
             .modifier(ModulePageLayout(module: module, layout: layout)))
         let size = NSSize(width: min(1211, display.visibleFrame.width), height: 536)
         let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.titled, .resizable],

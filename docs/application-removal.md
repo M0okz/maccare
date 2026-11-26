@@ -1,5 +1,45 @@
 # Retrait des applications et données associées
 
+## Conteneurs protégés et rôle de l’administrateur — 26 novembre 2026, en développement
+
+**Préparé pour MacCare 0.2.48**, branche `codex/release-0.2.48`, issue de `2f6c7b9` (0.2.47). Jusqu’à sa publication, la 0.2.47 garde le comportement décrit dans la section suivante.
+
+**Symptôme.** Sur le second MacBook, la désinstallation de Reeder (App Store) a mis le paquet à la Corbeille. En revanche, `~/Library/Containers/app.reeder` et `app.reeder.SaveLink` ont échoué avec « Operation not permitted », malgré le mot de passe administrateur. Le bandeau affichait aussi « L’application reste installée », ce qui était faux.
+
+**Cause.** Le paquet App Store appartient à root. La 0.2.47 envoyait alors **toute** la sélection à l’assistant lancé avec les droits administrateur. Or macOS protège la racine des conteneurs d’apps par sa politique de confidentialité, et root y est soumis comme les autres processus. L’autorisation administrateur ne pouvait donc pas réussir. Seul l’Accès complet au disque accordé à MacCare lève cette protection. Mole fonctionne de cette manière.
+
+Constats faits le 26 novembre sur ce Mac, sans Accès complet au disque, avec deux apps sandbox jetables :
+
+| App de test | Racine du conteneur | `Data` et son contenu | `Application Scripts/<id>` |
+| --- | --- | --- | --- |
+| Signature ad hoc | refusée (`EPERM`) | déplaçable | déplaçable |
+| Signée Apple Development (équipe) | refusée (Cocoa 513, `-5000`) | refusé | déplaçable |
+
+`FileManager.trashItem` et `NSWorkspace.recycle` donnent le même refus. Le cas d’une app d’équipe correspond à Reeder. Le comportement de root n’a pas été rejoué faute de mot de passe administrateur dans la session de test.
+
+**Correction.**
+
+- `UninstallRemoval.swift` répartit les éléments selon leur propriétaire. Les éléments d’un autre compte, comme un paquet App Store ou un composant de `/Library`, passent par l’autorisation administrateur. Le paquet est traité en premier. Les données de la session sont ensuite retirées avec les droits de MacCare, et non plus par root.
+- Un refus sur un élément de la session dont le dossier parent est inscriptible est attribué à la protection de macOS. MacCare ne demande pas de mot de passe inutile. Le motif indique qu’il faut accorder l’Accès complet au disque, ou « Gestion des apps » pour un paquet. Un dossier parent non inscriptible déclenche encore l’autorisation administrateur. Le retrait des résidus utilise la même explication.
+- Lorsque des conteneurs sont cochés et que l’Accès complet au disque n’est pas confirmé, la revue l’indique avant le clic. Elle propose **Autoriser l’accès** et **Revérifier**.
+- Le bilan vérifie le disque. Un élément coché qui existe encore après l’opération est noté « En échec ».
+- Le bandeau ne mentionne plus « L’application reste installée » lorsque le paquet est absent.
+- L’inventaire ajoute les caches des processus WebKit de l’app dans les dossiers Darwin, par exemple `com.apple.WebKit.GPU+app.reeder`, `Networking`, `WebContent` et `WebContent.EnhancedSecurity`. Il ajoute aussi les préférences `Preferences/ByHost/<id>.<UUID>.plist`. L’assistant accepte `Preferences/ByHost`.
+
+**Vérifications.** 6 nouveaux tests dans `UninstallProtectionTests` et 2 tests d’autorisation adaptés. Les 27 tests `Uninstall*` réussissent, dont un ignoré car il exige l’assistant signé. Suite complète : 455 XCTest dont 8 ignorés et 295 tests Swift Testing, sans échec. Journaux : `build/uninstall-protected-data/`.
+
+**Test réel du 26 novembre, 16 h 10.** Gregory a désinstallé Reeder (App Store, paquet appartenant à root) avec le paquet DEV 0.2.47 (8) installé dans `/Applications/MacCare Dev.app`. Le bilan affiche « 5 mis à la corbeille » après un seul dialogue administrateur. Le contrôle sur disque confirme l’absence de `/Applications/Reeder.app`, des deux conteneurs `app.reeder*` et des deux dossiers `Application Scripts`. Les conteneurs ont donc été retirés avec les droits de MacCare Dev, qui dispose de l’autorisation nécessaire sur ce Mac.
+
+**Confirmation de fin.** Après le test, la fiche Reeder restait ouverte avec « Aucun élément détecté » : l’application semblait toujours présente. Quand le paquet a quitté son emplacement, MacCare ferme désormais la fiche, retire l’app de la liste et présente le bilan « <App> a été désinstallée ». Ce bilan indique le nombre d’éléments associés, leur destination, la taille libérée et les éventuels échecs, avec un bouton **Terminé**.
+
+**Touch ID au lieu du dialogue de script.** Le dialogue « Autoriser l’accès administrateur pour un script… » vient d’`osascript … with administrator privileges`. Cette voie accepte uniquement le mot de passe. Le protocole de l’assistant système passe en **version 12** avec l’opération `uninstall(selectionJSON:)`. Lorsque l’assistant `org.maccare.helper` est activé et à jour, MacCare demande une confirmation par Touch ID, avec le mot de passe de session en secours (`LAContext`, `deviceOwnerAuthentication`). Il envoie ensuite la sélection à l’assistant. Celui-ci impose l’UID de la connexion authentifiée et refuse une sélection forgée pour un autre compte. Il applique les mêmes gardes que l’assistant ponctuel : emplacements fermés, contrôle d’identité, paquet traité en premier. Il inscrit l’opération dans son journal d’audit. Le dialogue `osascript` reste un repli lorsque l’assistant est absent, désactivé ou d’une autre version.
+
+Ce choix assume une exception au principe « aucune opération par chemin » de l’assistant. La confirmation Touch ID a lieu dans l’app : l’assistant vérifie la signature de l’appelant, pas cette confirmation. La sécurité repose donc sur les gardes de chemin et d’identité.
+
+Les paquets Apple Development n’utilisent jamais l’assistant système partagé : `HelperClient.status` y vaut `.notFound`. Le parcours Touch ID ne peut donc pas s’exercer dans MacCare Dev. Il exige un paquet signé Developer ID qui enregistre l’assistant v12. Sur ce Mac, l’assistant v11 de la production serait alors remplacé. Les tests couvrent le point d’entrée du service (UID forgé, JSON invalide, retrait réel d’un paquet factice) et le décodage de sa réponse.
+
+**Limites.** Le retrait réel d’un conteneur sans l’autorisation de MacCare n’a pas été rejoué avec un message à l’écran. DEV et production partagent le bundle ID `org.maccare.app`, et macOS associe cette autorisation à l’identifiant et à la signature. L’accorder au paquet DEV sur ce Mac pourrait donc retirer celle de la production. Ce test attend une décision de Gregory. Le cas Reeder du second MacBook n’a pas été rejoué.
+
 ## Désinstallation avec autorisation administrateur — 26 novembre 2026
 
 Publié dans [MacCare 0.2.47](https://github.com/M0okz/maccare/releases/tag/v0.2.47) (build 49). Le changement `7097097` a été testé dans la copie DEV `build/uninstall-app-components/MacCare.app`. [Contrôles de distribution](release-integration-0.2.47.md).

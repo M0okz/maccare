@@ -15,6 +15,10 @@ struct UninstallDetailPresentation {
     var associatedItems: [ScanItem] { items.filter { !isApplication($0) } }
     var includesApplication: Bool { applicationItems.contains { selection.contains($0.id) } }
     var hasSelection: Bool { items.contains { selection.contains($0.id) } }
+    /// Conteneurs cochés : macOS n’en autorise le retrait qu’avec l’Accès complet au disque.
+    var selectedContainers: [ScanItem] {
+        associatedItems.filter { selection.contains($0.id) && UninstallFileOperations.isAppContainer($0.url) }
+    }
 
     var actionTitle: String {
         if includesApplication {
@@ -35,8 +39,10 @@ struct UninstallDetailPresentation {
                 ? "L’application et les données cochées seront supprimées définitivement."
                 : "L’application et les données cochées seront déplacées vers la corbeille."
         }
+        // Sans paquet à cet emplacement, rien ne permet d’affirmer que l’application reste installée.
+        let installed = applicationItems.isEmpty ? "" : "L’application reste installée. "
         return directDelete
-            ? "L’application reste installée. Les données cochées seront supprimées définitivement."
-            : "L’application reste installée. Les données cochées seront déplacées vers la corbeille."
+            ? installed + "Les données cochées seront supprimées définitivement."
+            : installed + "Les données cochées seront déplacées vers la corbeille."
     }
 }

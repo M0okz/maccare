@@ -74,6 +74,13 @@ arbitraire. L’assistant contrôle la signature du client et applique les contr
 propres à chaque opération. Les opérations sensibles sont séparées de l’analyse
 et des préférences d’inclusion dans un scan.
 
+**Protocole 12, en développement (26 novembre 2026).** `uninstall(selectionJSON:)`
+retire la sélection du désinstalleur après une confirmation par Touch ID ou mot de
+passe dans l’app. C’est la seule opération qui reçoit des chemins. L’assistant
+impose l’UID de la connexion et la limite aux emplacements fermés
+d’`AuthorizedUninstall`, avec contrôle d’identité. Voir
+`application-removal.md`.
+
 ## Batterie et télémétrie
 
 La télémétrie distingue les données indisponibles des valeurs nulles. Le suivi

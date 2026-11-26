@@ -32,6 +32,11 @@ enum Remover {
                     try FileManager.default.trashItem(at: item.url, resultingItemURL: nil)
                     report.removed += 1
                     didRemove(item.path)
+                } catch where UninstallFileOperations.isAccessDenial(error)
+                    && access(item.url.deletingLastPathComponent().path, W_OK | X_OK) == 0 {
+                    // Dossier inscriptible : le refus vient de la confidentialité de macOS, pas des droits.
+                    report.failed.append((item.path, UninstallFileOperations.protectionMessage(
+                        for: item.url, fullDisk: FullDiskAccess.state())))
                 } catch {
                     report.failed.append((item.path, error.localizedDescription))
                 }

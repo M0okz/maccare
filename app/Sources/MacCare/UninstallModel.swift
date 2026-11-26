@@ -13,6 +13,8 @@ final class UninstallModel: ObservableObject {
     private var scanGeneration = 0
     private var artifacts: UninstallArtifacts?
     @Published private(set) var receipt: UninstallReceipt?
+    /// Bilan présenté d’office quand le paquet a quitté son emplacement.
+    @Published var completedUninstall: UninstallReceipt?
     @Published private(set) var isScanning = false
     @Published private(set) var isCleaning = false
     @Published var statusMessage: String?
@@ -162,11 +164,18 @@ final class UninstallModel: ObservableObject {
             await MainActor.run {
                 switch outcome {
                 case .success(let report):
-                    self.receipt = UninstallReceipt(app: app, inventory: inventory, chosen: chosen, review: reviewed, report: report)
-                    self.lastReport = report
-                    if !FileManager.default.fileExists(atPath: app.url.path) { self.apps.removeAll { $0.id == app.id } }
+                    let receipt = UninstallReceipt(app: app, inventory: inventory, chosen: chosen, review: reviewed, report: report)
                     self.isCleaning = false
-                    self.scanResiduals(keepReport: true)
+                    if receipt.applicationRemoved {
+                        // L’app n’existe plus : on quitte sa fiche et on confirme le résultat.
+                        self.apps.removeAll { $0.id == app.id }
+                        self.selectedApp = nil
+                        self.completedUninstall = receipt
+                    } else {
+                        self.receipt = receipt
+                        self.lastReport = report
+                        self.scanResiduals(keepReport: true)
+                    }
                 case .failure(let err):
                     self.statusMessage = err.localizedDescription
                     self.isCleaning = false

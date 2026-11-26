@@ -203,6 +203,24 @@ final class HelperService: NSObject, MacCareHelperXPC {
         }
     }
 
+    func uninstall(selectionJSON: String, withReply reply: @escaping (String) -> Void) {
+        Idle.begin()
+        Self.queue.async { [authenticatedUID] in
+            defer { Idle.end() }
+            let outcome = AuthorizedUninstall.serviceReply(selectionJSON: selectionJSON, authenticatedUID: authenticatedUID)
+            let results = outcome.results ?? []
+            Audit.append([
+                "date": ISO8601DateFormatter().string(from: Date()), "operation": "uninstall", "uid": authenticatedUID,
+                "requested": results.count, "removed": results.filter { $0.error == nil && !$0.kept }.count,
+                "refused": results.compactMap(\.error),
+                // Chemins conservés dans le journal root seul, comme pour `remove`.
+                "refused_paths": results.filter { $0.error != nil }.map(\.path),
+                "error": outcome.results == nil ? outcome.reply as Any : NSNull(),
+            ])
+            reply(outcome.reply)
+        }
+    }
+
     func journal(since: Date, withReply reply: @escaping (String) -> Void) {
         Idle.begin()
         Self.queue.async {
