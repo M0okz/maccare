@@ -143,3 +143,7 @@ Le guide Premiers pas décrit les cartes et le tableau des processus au retour d
 Le guide Mises à jour décrit le suivi de la version installée et les actions disponibles après une attente de deux minutes. [Contrôles du site et des téléchargements](../docs/release-integration-0.2.45.md).
 
 Les guides prennent **0.2.46** comme référence depuis le 26 novembre 2026. Le guide Performances décrit le choix de la période, les interruptions et l’heure du pic. Le guide Confidentialité précise quelles mesures restent sur le Mac.
+
+## Version 0.2.47
+
+Les guides Applications et Nettoyage décrivent la demande administrateur, le bilan de retrait et le Smart Scan par application. [Contrôles du site et du DMG](../docs/release-integration-0.2.47.md).

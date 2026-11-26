@@ -328,3 +328,7 @@ La [0.2.45 (build 47)](release-integration-0.2.45.md) corrige le suivi des insta
 ## Version 0.2.46
 
 La 0.2.46 (build 48) ajoute l’historique local des métriques sur trente jours. [Contrôles de publication](release-integration-0.2.46.md).
+
+## Publication 0.2.47 — 26 novembre 2026
+
+[MacCare 0.2.47](https://github.com/M0okz/maccare/releases/tag/v0.2.47) (build 49) inclut le désinstalleur avec autorisation administrateur et le Smart Scan par application. Le module CRemoveFile expose explicitement l’en-tête macOS utilisé lors du retrait définitif. [Contrôles de distribution](release-integration-0.2.47.md).

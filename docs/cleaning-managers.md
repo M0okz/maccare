@@ -112,7 +112,7 @@ Le parcours a été vérifié en modes Corbeille et suppression définitive, dep
 le détail puis le bilan général. Les preuves locales figurent dans
 `build/smart-scan-retry/qa-trash.json` et `qa-direct.json`.
 
-## Smart Scan par application en DEV — 26 novembre 2026
+## Smart Scan par application — 26 novembre 2026
 
 Dans **Nettoyage → Analyser → Examiner les résultats**, le sélecteur propose
 « Par catégorie » et « Par application ». Les deux vues partagent les résultats
@@ -141,7 +141,7 @@ permettent pas de distinguer les titres hors ligne. Une règle dédiée reconna�
 le cache de démarrage de VS Code dans `Application Support/Code/CachedData`.
 Les profils, sauvegardes et extensions de l’éditeur restent hors de sa racine.
 
-Branche locale `codex/smart-scan-applications`, version DEV 0.2.46 (52).
+Les commits `905a8cf` et `6d819b4` sont publiés dans [MacCare 0.2.47](https://github.com/M0okz/maccare/releases/tag/v0.2.47) (build 49). Les essais ci-dessous ont été réalisés sur la version DEV 0.2.46 (52).
 Sur des dossiers de test, le parcours natif couvre les dix fiches, les autres
 résultats, le retour par Échap et une case partagée entre les deux vues.
 Un test de nettoyage sur fichiers temporaires vérifie que les choix des autres

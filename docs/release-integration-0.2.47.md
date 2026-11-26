@@ -1,0 +1,11 @@
+# MacCare 0.2.47 — Désinstallation et Smart Scan par application
+
+[MacCare 0.2.47](https://github.com/M0okz/maccare/releases/tag/v0.2.47) (build 49) est disponible sur GitHub et via Sparkle pour Apple Silicon à partir de macOS 13. La [PR 57](https://github.com/M0okz/maccare/pull/57) réunit le moteur de désinstallation `7097097`, la présentation par application `905a8cf` et la règle du cache de démarrage de Visual Studio Code `6d819b4`. Le tag `v0.2.47` désigne la fusion `b3b6747c65ba1c1b1c75c1f05e6edc6e22f2a1c2`.
+
+Le SDK macOS 26.5 du runner nécessite un import explicite de l’en-tête système `removefile.h` dans le module de maintenance. Le correctif `98bf9b8` conserve la suppression relative au répertoire ouvert. Les [contrôles de branche](https://github.com/M0okz/maccare/actions/runs/45825849728), les [contrôles de PR](https://github.com/M0okz/maccare/actions/runs/45825860883), la [CI de fusion](https://github.com/M0okz/maccare/actions/runs/45827772314) et la [distribution officielle](https://github.com/M0okz/maccare/actions/runs/45827784018) ont réussi.
+
+Sur le Mac de développement, 737 tests Swift et 101 tests Rust ont réussi. Sept tests Swift et deux tests Rust ont été ignorés. Les 21 tests de packaging ont réussi. La fenêtre d’autorisation et son annulation ont été observées en DEV. L’approbation physique du retrait des deux conteneurs protégés et le scénario sur un second MacBook restent à vérifier.
+
+Le [DMG public](https://github.com/M0okz/maccare/releases/download/v0.2.47/MacCare-0.2.47-arm64.dmg) fait 17120914 octets. Son SHA-256 `764f90ac0391f3870bde1c0151e7bd0162744966f3f24f5fa096b4dde2bd7f63` concorde avec le manifeste, la somme publiée et GitHub. Le DMG et l’application montée ont des signatures Developer ID, des tickets de notarisation valides et sont acceptés par Gatekeeper. La règle VS Code embarquée est identique à celle de `6d819b4`. La clé publique embarquée valide le flux précédent, le flux stable 0.2.47 et la signature du DMG.
+
+Les dix pages HTML et le sitemap ont été vérifiés en HTTPS. Les guides [Applications](https://maccare.homeblack.fr/documentation/applications.html#desinstaller) et [Nettoyage](https://maccare.homeblack.fr/documentation/nettoyage.html#categories) décrivent les nouveaux parcours.

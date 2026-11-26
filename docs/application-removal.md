@@ -2,7 +2,7 @@
 
 ## Désinstallation avec autorisation administrateur — 26 novembre 2026
 
-**En développement.** Branche `codex/uninstall-app-components`, modifications locales sur `9b43787`. Le paquet signé de vérification est `build/uninstall-app-components/MacCare.app`. La version utilisateur publiée à cette date est 0.2.46.
+Publié dans [MacCare 0.2.47](https://github.com/M0okz/maccare/releases/tag/v0.2.47) (build 49). Le changement `7097097` a été testé dans la copie DEV `build/uninstall-app-components/MacCare.app`. [Contrôles de distribution](release-integration-0.2.47.md).
 
 Dans **Applications → Gérer mes applications**, le gestionnaire identifie le paquet choisi, les assistants et extensions de son espace de noms, leurs conteneurs, scripts, caches et temporaires Darwin, ainsi que leurs listes de documents récents. Il reconnaît aussi deux identifiants usuels d’anciens assistants de connexion. Les conteneurs propres à l’app sont cochés et leur ligne signale qu’ils peuvent contenir des documents. Le bouton **Tout cocher** de la section Données associées permet d’inclure les profils et composants facultatifs en un clic.
 
