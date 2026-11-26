@@ -6,6 +6,8 @@ category = "user-cache"
 version = 1
 root = "~/Library/Caches"
 depth = "per-app"        # une entrée par application
+# Le dossier éditeur Google est partagé. Spotify peut aussi conserver des titres hors ligne dans ses caches.
+subpaths_by_owner = { google = ["Chrome"], "com.spotify.client" = ["Browser/Cache", "Browser/Code Cache", "Browser/GPUCache", "GPUCache", "Code Cache"], spotify = ["Browser/Cache", "Browser/Code Cache", "Browser/GPUCache", "GPUCache", "Code Cache"] }
 autoselect = false       # jamais coché d'office
 title = "Caches utilisateur"
 description = "Caches d'applications régénérables, hors caches Apple."

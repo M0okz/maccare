@@ -108,6 +108,7 @@ enum RuleCatalog {
         version = 1
         root = "~/Library/Caches"
         depth = "per-app"
+        subpaths_by_owner = { google = ["Chrome"], "com.spotify.client" = ["Browser/Cache", "Browser/Code Cache", "Browser/GPUCache", "GPUCache", "Code Cache"], spotify = ["Browser/Cache", "Browser/Code Cache", "Browser/GPUCache", "GPUCache", "Code Cache"] }
         title = "Caches utilisateur"
         description = "Caches d'applications régénérables, hors caches Apple."
         icon = "sparkle.magnifyingglass"

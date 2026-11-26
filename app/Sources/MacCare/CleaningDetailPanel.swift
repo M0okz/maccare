@@ -9,6 +9,7 @@ struct CleaningDetailPanel: View {
     @ObservedObject private var development: DevJunkModel
     @ObservedObject private var simulators: SimulatorsModel
     @AppStorage(DeveloperTools.key) private var developerTools = DeveloperTools.defaultValue
+    @State private var smartApplicationID: String?
     let module: Module
 
     init(app: AppState, module: Module) {
@@ -25,7 +26,12 @@ struct CleaningDetailPanel: View {
     var body: some View {
         VStack(spacing: 0) {
             ScreenToolbar(title: "Gestionnaire Nettoyage") {
-                Button { app.module = .cleaningOverview } label: { Label("Retour", systemImage: "chevron.left") }
+                Button {
+                    if module == .smartScan, smartApplicationID != nil { smartApplicationID = nil }
+                    else { app.module = .cleaningOverview }
+                } label: {
+                    Label(module == .smartScan && smartApplicationID != nil ? "Retour aux applications" : "Retour", systemImage: "chevron.left")
+                }
                     .buttonStyle(.toolbarPill).keyboardShortcut(.cancelAction).disabled(writing)
             } trailing: {
                 Picker("Outil de nettoyage", selection: Binding(get: { module }, set: { app.module = $0 })) {
@@ -37,7 +43,7 @@ struct CleaningDetailPanel: View {
             Divider()
             Group {
                 switch module {
-                case .smartScan: SmartScanView(model: smart)
+                case .smartScan: SmartScanView(model: smart, applicationID: $smartApplicationID)
                 case .cleaning: CleaningView(model: review)
                 case .trash: TrashView(model: trash, permissions: app.permissions)
                 case .systemClean: SystemCleanView(model: system)
@@ -48,6 +54,7 @@ struct CleaningDetailPanel: View {
             }.id(module).frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .modifier(ManagerPanelStyle(accent: ModuleColor.clean, background: NavigationSection.cleaning.palette.base))
+        .onChange(of: module) { _ in smartApplicationID = nil }
         .onChange(of: developerTools) { enabled in
             if !enabled && module.isDeveloper && !writing { app.module = .cleaning }
         }

@@ -156,6 +156,9 @@ pub struct Rule {
     /// (ex. `"Data/Library/Caches"` dans chaque conteneur d'app). Relatifs, sans `..`.
     #[serde(default)]
     pub subpaths: Vec<String>,
+    /// Narrow specific owner folders to named children, e.g. the Chrome cache inside Google.
+    #[serde(default)]
+    pub subpaths_by_owner: std::collections::BTreeMap<String, Vec<String>>,
     /// Si non vide, une entrée n'est retenue que si elle contient au moins un de ces noms
     /// (repère d'un type d'app, ex. `"Local State"` pour les apps Electron).
     #[serde(default)]
@@ -221,13 +224,18 @@ impl Rule {
             !s.trim().is_empty()
                 && p.components().all(|c| matches!(c, std::path::Component::Normal(_)))
         };
-        if let Some(bad) = self.subpaths.iter().find(|s| !plain(s)) {
+        for (owner, paths) in &self.subpaths_by_owner {
+            if !plain(owner) || owner.contains('/') || *owner != owner.to_ascii_lowercase() || paths.is_empty() {
+                return Err(RuleError::Invalid(format!("propriétaire de cache invalide : {owner:?}")));
+            }
+        }
+        if let Some(bad) = self.subpaths.iter().chain(self.subpaths_by_owner.values().flatten()).find(|s| !plain(s)) {
             return Err(RuleError::Invalid(format!("sous-chemin invalide : {bad:?}")));
         }
         if let Some(bad) = self.require_any.iter().find(|s| !plain(s) || s.contains('/')) {
             return Err(RuleError::Invalid(format!("repère invalide : {bad:?}")));
         }
-        if !self.subpaths.is_empty() && matches!(self.depth, Depth::Flat) {
+        if (!self.subpaths.is_empty() || !self.subpaths_by_owner.is_empty()) && matches!(self.depth, Depth::Flat) {
             return Err(RuleError::Invalid("subpaths incompatible avec depth = flat".into()));
         }
         Ok(())
@@ -249,12 +257,23 @@ impl Rule {
             || self.require_any.iter().any(|m| std::fs::symlink_metadata(entry.join(m)).is_ok())
     }
 
+    pub fn subpaths_for(&self, entry: &Path) -> &[String] {
+        if !self.subpaths_by_owner.is_empty() {
+            if let Some(paths) = entry.file_name().and_then(|n| n.to_str())
+                .and_then(|name| self.subpaths_by_owner.get(&name.to_ascii_lowercase())) {
+                return paths;
+            }
+        }
+        &self.subpaths
+    }
+
     /// Candidats d'une entrée de la racine : l'entrée elle-même, ou ses sous-chemins déclarés.
     pub fn candidates_of(&self, entry: &Path) -> Vec<PathBuf> {
-        if self.subpaths.is_empty() {
+        let paths = self.subpaths_for(entry);
+        if paths.is_empty() {
             vec![entry.to_path_buf()]
         } else {
-            self.subpaths.iter().map(|s| entry.join(s)).collect()
+            paths.iter().map(|s| entry.join(s)).collect()
         }
     }
 
