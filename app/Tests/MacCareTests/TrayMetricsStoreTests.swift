@@ -22,6 +22,49 @@ final class TrayMetricsStoreTests: XCTestCase {
         XCTAssertEqual(TrayMetricHistory.window(history.points, duration: 600).count, 122)
     }
 
+    func testPreviewKeepsBothMeasuredRunsWithoutAChartWideHole() throws {
+        let store = TrayMetricsStore()
+        for second in [0, 5, 10, 490, 495, 500] {
+            store.record(sample(Double(second)))
+        }
+        let snapshot = store.home.snapshot
+        for points in [snapshot.cpu.points, snapshot.gpu.points, snapshot.traffic.received.points, snapshot.memory.points] {
+            let preview = TrayHistoryChart(points: points, endTime: 500).viewport
+            XCTAssertEqual(preview.points.map(\.time), [0, 5, 10, 490, 495, 500])
+            let x = try XCTUnwrap(preview.fractions)
+            XCTAssertEqual(x.first, 0)
+            XCTAssertEqual(try XCTUnwrap(x.last), 1, accuracy: 1e-10)
+            XCTAssertEqual(x[3] - x[2], 0.01, accuracy: 1e-10)
+            XCTAssertEqual(x[2] - x[0], x[5] - x[3], accuracy: 1e-10)
+            XCTAssertEqual(preview.end, 500)
+            let history = TrayHistoryChart(points: points, endTime: 500, timeAxis: .elapsedTime).viewport
+            XCTAssertNil(history.fractions)
+            XCTAssertEqual(history.points.map(\.time), [0, 5, 10, 490, 495, 500])
+            XCTAssertEqual(history.points.filter(\.startsSegment).count, 2)
+            XCTAssertEqual(history.duration, 600)
+            XCTAssertEqual(history.points.reduce(0) { $0 + $1.seconds }, 20)
+        }
+    }
+
+    func testPreviewHandlesMissingSingletonExpiredAndContinuousSamples() {
+        let points = [0, 5, 10, 15].map { TrayHistoryPoint(time: Double($0), value: 0.4) }
+        XCTAssertTrue(TrayHistoryChart(points: [], endTime: 20).viewport.points.isEmpty)
+        XCTAssertTrue(TrayHistoryChart(points: points, endTime: -1).viewport.points.isEmpty)
+        XCTAssertTrue(TrayHistoryChart(points: points, endTime: 100).viewport.points.isEmpty)
+        let first = TrayHistoryChart(points: points, endTime: 1).viewport
+        XCTAssertEqual(first.points.map(\.time), [0])
+        XCTAssertGreaterThan(first.duration, 0)
+        let interrupted = [0, 100, 150].map { TrayHistoryPoint(time: Double($0), value: 0.4, startsSegment: true) }
+        XCTAssertEqual(TrayHistoryChart(points: interrupted, endTime: 150).viewport.fractions, [0, 0.5, 1])
+        let afterCutoff = TrayHistoryChart(points: interrupted, duration: 20, endTime: 150).viewport
+        XCTAssertEqual(afterCutoff.points.map(\.time), [150])
+        XCTAssertNil(afterCutoff.fractions)
+        let continuous = TrayHistoryChart(points: points, duration: 8, endTime: 15).viewport
+        XCTAssertEqual(continuous.duration, 8)
+        XCTAssertEqual(continuous.points.map(\.time), [7, 10, 15])
+        XCTAssertEqual(TrayMetricHistory.window(points, duration: 2, end: 100).map(\.time), [15])
+    }
+
     func testMemoryChartMagnifiesSmallChangesAndExcludesExpiredPeaks() {
         let points = [TrayHistoryPoint(time: 0, value: 0.95),
                       TrayHistoryPoint(time: 5, value: 0.70),

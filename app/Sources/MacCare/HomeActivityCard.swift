@@ -56,7 +56,7 @@ struct HomeActivityCard<Health: View, Battery: View>: View {
             detail("\(ProcessInfo.processInfo.processorCount) cœurs")
         }
         .onHover { cpuHovered = $0 }
-        .help("Charge globale et température maximale des capteurs CPU disponibles. Historique sur 10 minutes, partagé avec le volet.")
+        .help("Charge globale et température maximale des capteurs CPU disponibles. Le pointillé signale une reprise de mesure sur les dix dernières minutes.")
         .accessibilityElement(children: .combine)
     }
 
@@ -76,7 +76,7 @@ struct HomeActivityCard<Health: View, Battery: View>: View {
         }
         .onHover { gpuHovered = $0 }
         .accessibilityElement(children: .combine)
-        .help(metrics.gpu?.model ?? "Mesures du GPU indisponibles")
+        .help((metrics.gpu?.model ?? "Mesures du GPU indisponibles") + "\nLe pointillé signale une reprise de mesure sur les dix dernières minutes.")
     }
 
     private var memory: some View {
@@ -106,7 +106,7 @@ struct HomeActivityCard<Health: View, Battery: View>: View {
             }
         }
         .onHover { memoryHovered = $0 }
-        .help("La courbe adapte son échelle à la RAM utilisée sur la dernière minute. Le swap indique l’espace disque utilisé comme mémoire virtuelle.")
+        .help("La courbe adapte son échelle à la RAM utilisée sur la dernière minute. Le pointillé signale une reprise de mesure. Le swap indique l’espace disque utilisé comme mémoire virtuelle.")
         .accessibilityElement(children: .combine)
     }
 
@@ -158,7 +158,7 @@ struct HomeActivityCard<Health: View, Battery: View>: View {
             }
         }
         .onHover { networkHovered = $0 }
-        .help("\(wifi?.address ?? "IP indisponible") · \(wifi?.interface ?? "")\nTrafic de l’interface principale, réseau local compris. Ce débit n’est pas un test de vitesse Internet.")
+        .help("\(wifi?.address ?? "IP indisponible") · \(wifi?.interface ?? "")\nTrafic de l’interface principale, réseau local compris. Le pointillé signale une reprise de mesure.")
         .accessibilityElement(children: .combine)
     }
 

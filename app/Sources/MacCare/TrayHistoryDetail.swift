@@ -34,9 +34,14 @@ struct TrayHistoryDetail: View {
             return date.formatted(date: withDay ? .abbreviated : .omitted, time: .standard)
         }
         let peakDescription = date ?? "heure inconnue"
+        let windowEnd = end ?? points.last?.time ?? 0
+        let hasGap = zip(points, points.dropFirst()).contains { before, after in
+            after.startsSegment && before.time < windowEnd && after.time > windowEnd - duration && after.time <= windowEnd
+        }
+        let gapNote = "Les coupures indiquent une période sans mesure."
         let accessibleMean = stats.estimated ? "Moyenne estimée" : "Moyenne"
         VStack(spacing: 8) {
-            TrayHistoryChart(points: points, duration: duration, color: color, maximum: maximum, filled: true, endTime: end)
+            TrayHistoryChart(points: points, duration: duration, color: color, maximum: maximum, filled: true, endTime: end, timeAxis: .elapsedTime)
                 .frame(height: network ? 65 : 90).accessibilityHidden(true)
             HStack {
                 Text("−\(rangeLabel)")
@@ -54,6 +59,10 @@ struct TrayHistoryDetail: View {
                     Text("Pic : \(format(stats.peak))")
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }.font(.caption2).monospacedDigit()
+            if hasGap {
+                Text(gapNote).font(.caption2).foregroundStyle(.white.opacity(0.73))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
             if stats.peak != nil {
                 Text(date ?? "Heure du pic inconnue")
                     .font(.caption2).foregroundStyle(.white.opacity(0.73)).monospacedDigit()
@@ -61,6 +70,7 @@ struct TrayHistoryDetail: View {
             }
         }
         .accessibilityElement(children: .combine)
+        .accessibilityHint(hasGap ? gapNote : "")
         .accessibilityLabel("Historique sur \(rangeLabel)")
         .accessibilityValue("\(accessibleMean) : \(format(stats.average)), pic : \(format(stats.peak))\(stats.peak == nil ? "" : ", " + peakDescription)")
     }

@@ -3,6 +3,22 @@
 Depuis MacCare 0.2.46, les courbes CPU, GPU, mémoire et réseau retrouvent leurs mesures récentes au lancement. L’accueil reçoit les points à une cadence de cinq secondes en régime stable. Les détails conservent le direct et ajoutent 24 heures, 7 jours et 30 jours aux périodes courtes. Ils affichent la moyenne sur le temps observé et l’heure locale du pic. Une métrique indisponible laisse une coupure dans sa courbe. [Fonctionnement de l’historique](activity-metrics-cache.md).
 
 
+## Courbes après une interruption · DEV du 26 novembre 2026
+
+Sur MacCare DEV 0.2.46 (53), les cartes CPU, GPU, mémoire et réseau rapprochent
+les périodes observées. Un repère vertical en pointillé indique la reprise. La
+largeur de chaque série continue dépend du temps mesuré. Un relevé isolé reste
+un point. Une série sans valeur récente affiche un état d’attente. La fenêtre
+couvre dix minutes pour le CPU, le GPU et le réseau, et une minute pour la mémoire.
+
+Les détails gardent l’axe horaire de la période choisie et expliquent les
+coupures. Sur un rendu natif de dix minutes avec sept minutes sans mesure, les
+deux séries sont visibles de part et d’autre du repère dans la miniature. Les
+tests de reprise couvrent les quatre types de carte, les mesures périmées et les
+séries composées de points isolés. Cette évolution concerne la branche locale
+`codex/smart-scan-applications`, qui inclut aussi le Smart Scan par application.
+
+
 ## Accueil et processus — aperçu DEV du 22 novembre 2026
 
 La proposition locale sur `codex/stability-footprint`, après `a30874e`, ouvre

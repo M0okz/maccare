@@ -120,8 +120,9 @@ struct TrayMetricHistory {
     static func window(_ points: [TrayHistoryPoint], duration: TimeInterval, end: TimeInterval? = nil) -> [TrayHistoryPoint] {
         guard let end = end ?? points.last?.time else { return [] }
         let start = end - duration
-        let first = points.firstIndex { $0.time >= start } ?? points.endIndex
-        return Array(points[max(0, first - 1)...])
+        guard let last = points.lastIndex(where: { $0.time <= end }) else { return [] }
+        let first = points[...last].lastIndex { $0.time < start } ?? points.startIndex
+        return Array(points[first...last])
     }
 
     struct Statistics {
