@@ -7,3 +7,5 @@ Créée le 26 novembre 2026. L’accès Outline a échoué : le coffre Bitwarden
 Ce changement est **publié dans MacCare 0.2.48** (build 50). Reporter aussi `docs/release-integration-0.2.48.md` dans le journal des publications. Le déploiement HTTPS du site est également en attente.
 
 Supprimer ce fichier après la synchronisation et la relecture des pages.
+
+Ajouter aussi la publication 0.2.49 (`docs/release-integration-0.2.49.md`) et la section « Fenêtre de bilan lisible » de `docs/application-removal.md`.

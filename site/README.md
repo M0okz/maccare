@@ -151,3 +151,7 @@ Les guides Applications et Nettoyage décrivent la demande administrateur, le bi
 ## Version 0.2.48
 
 La page de téléchargement et les guides prennent **0.2.48** comme référence. Le guide Applications décrit le rôle de Touch ID et de l’administrateur, la protection des conteneurs et la confirmation de fin. Déploiement HTTPS en attente d’accès Homelab au 26 novembre 2026. [Contrôles](../docs/release-integration-0.2.48.md).
+
+## Version 0.2.49
+
+La page de téléchargement et les guides prennent **0.2.49** comme référence, sans changement de contenu des guides. Déploiement HTTPS en attente d’accès Homelab au 26 novembre 2026. [Contrôles](../docs/release-integration-0.2.49.md).

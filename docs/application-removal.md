@@ -1,6 +1,8 @@
 # Retrait des applications et données associées
 
-## Fenêtre de bilan lisible — 26 novembre 2026, préparé pour 0.2.49
+## Fenêtre de bilan lisible — 26 novembre 2026, publié dans 0.2.49
+
+[MacCare 0.2.49](https://github.com/M0okz/maccare/releases/tag/v0.2.49) (build 51), [contrôles de distribution](release-integration-0.2.49.md).
 
 Dans la 0.2.48, la fenêtre « <App> a été désinstallée » héritait de l’apparence sombre de la fenêtre principale, alors que ses textes étaient prévus pour un fond clair : le contenu était presque illisible. Gregory l’a constaté sur le second MacBook après une désinstallation confirmée par Touch ID. `UninstallReceiptView` applique désormais `ManagerSheetStyle`, comme les autres feuilles des gestionnaires. Les textes utilisent les couleurs du thème, les éléments sont présentés en carte avec séparateurs, les échecs sont en orange et le bouton **Terminé** reprend la pastille de `PrimaryButton`. La touche Échap ferme la fenêtre.
 

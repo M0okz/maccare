@@ -336,3 +336,7 @@ La 0.2.46 (build 48) ajoute l’historique local des métriques sur trente jours
 ## Publication 0.2.48 — 26 novembre 2026
 
 [MacCare 0.2.48](https://github.com/M0okz/maccare/releases/tag/v0.2.48) (build 50) retire les conteneurs des apps App Store avec les droits de la session et confirme la désinstallation par Touch ID via l’assistant au protocole 12. [Contrôles de distribution](release-integration-0.2.48.md).
+
+## Publication 0.2.49 — 26 novembre 2026
+
+[MacCare 0.2.49](https://github.com/M0okz/maccare/releases/tag/v0.2.49) (build 51) rend lisible la fenêtre de bilan de désinstallation, avec des cartes et le bouton en pastille. [Contrôles de distribution](release-integration-0.2.49.md).
