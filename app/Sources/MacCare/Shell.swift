@@ -117,7 +117,7 @@ final class AppState: ObservableObject {
     @Published var performanceAnalyzed = false
     @Published var performanceDetail: PerformanceCategory?
     let battery: BatteryModel
-    let trayMetrics = TrayMetricsStore()
+    let trayMetrics: TrayMetricsStore
     let smartScan = SmartScanModel()
     let review = ReviewModel()
     let space = SpaceModel(history: .applicationStore)
@@ -148,10 +148,14 @@ final class AppState: ObservableObject {
     var openMainWindow: (() -> Void)?
 
     init(startBackgroundServices: Bool = true) {
+        trayMetrics = TrayMetricsStore(archive: startBackgroundServices ? .applicationStore : nil)
         battery = BatteryModel(monitor: startBackgroundServices)
         battery.openSection = { [weak self] in self?.show(.battery) }
         guard startBackgroundServices else { return }
-        AppDelegate.stopBatteryBeforeTermination = { [weak battery] in await battery?.prepareForTermination() }
+        AppDelegate.prepareForTermination = { [weak battery, weak trayMetrics] in
+            await battery?.prepareForTermination()
+            await trayMetrics?.prepareForTermination()
+        }
         scheduler = ScanScheduler(smart: smartScan) { [weak self] in self?.show(.smartScan) }
     }
 

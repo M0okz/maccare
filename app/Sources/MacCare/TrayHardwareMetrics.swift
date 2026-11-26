@@ -105,10 +105,16 @@ struct TrayGPUHistory {
     private var history = TrayMetricHistory()
     var points: [TrayHistoryPoint] { history.points }
     private var id: UInt64?
-    mutating func record(_ metrics: TrayMetrics) {
+    mutating func restore(_ points: [TrayHistoryPoint]) {
+        guard let source = points.last?.source else { return }
+        id = UInt64(bitPattern: source)
+        history = .init(restoring: points.suffix(whileSourceIs: source))
+    }
+
+    mutating func record(_ metrics: TrayMetrics, time: TimeInterval? = nil, session: Int64 = 0) {
         if let gpu = metrics.gpu {
             if id != gpu.id { history = .init(); id = gpu.id }
         }
-        history.record(time: metrics.sampledAt, value: metrics.gpu?.fraction.map { $0.isFinite ? min(1, max(0, $0)) : $0 })
+        history.record(time: time ?? metrics.sampledAt, value: metrics.gpu?.fraction.map { $0.isFinite ? min(1, max(0, $0)) : $0 }, session: session, uptime: metrics.sampledAt)
     }
 }

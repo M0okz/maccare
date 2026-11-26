@@ -1,5 +1,8 @@
 # Accueil : bilan, batterie et santé
 
+En développement sur `codex/persistent-metrics`, les courbes CPU, GPU, mémoire et réseau retrouvent leurs mesures récentes au lancement. L’accueil reçoit les points à une cadence de cinq secondes en régime stable. Les détails conservent le direct et ajoutent 24 heures, 7 jours et 30 jours aux périodes courtes. Ils affichent la moyenne sur le temps observé et l’heure locale du pic. Une métrique indisponible laisse une coupure dans sa courbe. [Fonctionnement de l’historique](activity-metrics-cache.md).
+
+
 ## Accueil et processus — aperçu DEV du 22 novembre 2026
 
 La proposition locale sur `codex/stability-footprint`, après `a30874e`, ouvre

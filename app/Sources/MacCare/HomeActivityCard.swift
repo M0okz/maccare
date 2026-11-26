@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct HomeActivityCard<Health: View, Battery: View>: View {
-    @ObservedObject var store: TrayMetricsStore
+    @ObservedObject var store: HomeMetricsStore
     let storage: TrayStorageUsage?
     let availableWidth: CGFloat
     let onStorage: () -> Void
@@ -50,7 +50,7 @@ struct HomeActivityCard<Health: View, Battery: View>: View {
         } value: {
             reading(metrics.cpu.map { "\(Int(($0.used * 100).rounded()))" }, unit: "%")
         } footer: {
-            TrayHistoryChart(points: store.snapshot.cpu.points, color: Theme.accentInk, filled: true)
+            TrayHistoryChart(points: store.snapshot.cpu.points, color: Theme.accentInk, filled: true, endTime: store.snapshot.historyTime)
                 .frame(height: 24).modifier(HomeActivityGlow(active: cpuHovered, color: Theme.accentInk))
                 .accessibilityHidden(true)
             detail("\(ProcessInfo.processInfo.processorCount) cœurs")
@@ -69,7 +69,7 @@ struct HomeActivityCard<Health: View, Battery: View>: View {
         } value: {
             reading(metrics.gpu?.fraction.map { "\(Int(($0 * 100).rounded()))" }, unit: "%")
         } footer: {
-            TrayHistoryChart(points: store.snapshot.gpu.points, color: ModuleColor.startup, filled: true)
+            TrayHistoryChart(points: store.snapshot.gpu.points, color: ModuleColor.startup, filled: true, endTime: store.snapshot.historyTime)
                 .frame(height: 24).modifier(HomeActivityGlow(active: gpuHovered, color: ModuleColor.startup))
                 .accessibilityHidden(true)
             detail(gpuState)
@@ -91,7 +91,7 @@ struct HomeActivityCard<Health: View, Battery: View>: View {
                 .accessibilityLabel("Utilisation mémoire estimée : \(metrics.memory.map { "\(Int(($0.fraction * 100).rounded())) %" } ?? "indisponible")")
         } footer: {
             TrayHistoryChart(points: store.snapshot.memory.points, duration: 60, color: ModuleColor.space,
-                             filled: true, marksLatestPoint: true, endTime: store.snapshot.raw.sampledAt,
+                             filled: true, marksLatestPoint: true, endTime: store.snapshot.historyTime,
                              fitsVisibleFractions: true)
                 .frame(height: 24)
                 .modifier(HomeActivityGlow(active: memoryHovered, color: ModuleColor.space))
@@ -145,7 +145,7 @@ struct HomeActivityCard<Health: View, Battery: View>: View {
                 .accessibilityLabel("Réception : \(NetworkRateFormat.megabits(wifi?.received))")
         } footer: {
             TrayHistoryChart(points: wifi?.connected == true ? networkPoints : [], color: ModuleColor.space,
-                             maximum: store.snapshot.networkScale.maximum, filled: true)
+                             maximum: store.snapshot.networkScale.maximum, filled: true, endTime: store.snapshot.historyTime)
                 .frame(height: 24).modifier(HomeActivityGlow(active: networkHovered, color: ModuleColor.space))
                 .accessibilityHidden(true)
             let upload = detail("↑ \(NetworkRateFormat.megabits(wifi?.sent))")
