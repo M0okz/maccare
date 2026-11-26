@@ -147,3 +147,7 @@ Les guides prennent **0.2.46** comme référence depuis le 26 novembre 2026. Le 
 ## Version 0.2.47
 
 Les guides Applications et Nettoyage décrivent la demande administrateur, le bilan de retrait et le Smart Scan par application. [Contrôles du site et du DMG](../docs/release-integration-0.2.47.md).
+
+## Version 0.2.48
+
+La page de téléchargement et les guides prennent **0.2.48** comme référence. Le guide Applications décrit le rôle de Touch ID et de l’administrateur, la protection des conteneurs et la confirmation de fin. Déploiement HTTPS en attente d’accès Homelab au 26 novembre 2026. [Contrôles](../docs/release-integration-0.2.48.md).

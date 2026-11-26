@@ -2,7 +2,7 @@
 
 ## Conteneurs protégés et rôle de l’administrateur — 26 novembre 2026, en développement
 
-**Préparé pour MacCare 0.2.48**, branche `codex/release-0.2.48`, issue de `2f6c7b9` (0.2.47). Jusqu’à sa publication, la 0.2.47 garde le comportement décrit dans la section suivante.
+**Publié dans [MacCare 0.2.48](https://github.com/M0okz/maccare/releases/tag/v0.2.48) (build 50)**, commits `d15c7af` et `c9922de`, fusionnés par la [PR 58](https://github.com/M0okz/maccare/pull/58). [Contrôles de distribution](release-integration-0.2.48.md). La section suivante décrit la 0.2.47.
 
 **Symptôme.** Sur le second MacBook, la désinstallation de Reeder (App Store) a mis le paquet à la Corbeille. En revanche, `~/Library/Containers/app.reeder` et `app.reeder.SaveLink` ont échoué avec « Operation not permitted », malgré le mot de passe administrateur. Le bandeau affichait aussi « L’application reste installée », ce qui était faux.
 
