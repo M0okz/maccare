@@ -111,11 +111,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Rouvre la fenêtre principale ; renseigné par l'app dès qu'une vue dispose de `openWindow`.
     static var openMainWindow: (() -> Void)?
-    static var stopBatteryBeforeTermination: (() async -> Void)?
+    static var prepareForTermination: (() async -> Void)?
     private var terminationInProgress = false
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        guard let stop = Self.stopBatteryBeforeTermination else { return .terminateNow }
+        guard let stop = Self.prepareForTermination else { return .terminateNow }
         guard !terminationInProgress else { return .terminateLater }
         terminationInProgress = true
         Task { @MainActor in

@@ -34,16 +34,19 @@ struct TrayMetricDetail: View {
     @ViewBuilder private var cpu: some View {
         if let cpu = metrics.cpu {
             Text("\(Int(cpu.used * 100)) % utilisés").monospacedDigit().font(.largeTitle)
-            historyChart(metricsStore.snapshot.cpu.points)
+            historyChart(.cpu, metricsStore.snapshot.cpu.points)
             row("Utilisateur", value: "\(Int(cpu.user * 100)) %")
             row("Système", value: "\(Int(cpu.system * 100)) %")
             row("Disponible", value: "\(Int(max(0, 1 - cpu.used) * 100)) %")
             row("Température CPU", value: metrics.cpu?.temperature.map { "\(Int($0.rounded())) °C" } ?? "Indisponible")
             row("État thermique", value: thermalTitle)
             row("Temps de fonctionnement", value: "\(Int(ProcessInfo.processInfo.systemUptime / 3600)) h")
-            Text("Charge globale de tous les cœurs · valeurs lissées. Historique partagé jusqu’à une heure, relevés regroupés par cinq secondes. Les pics restent conservés.")
+            Text("Charge globale de tous les cœurs · valeurs lissées.")
                 .font(.caption).foregroundStyle(.white.opacity(0.75))
-        } else { Text("Mesure en cours…") }
+        } else {
+            Text("Mesure en cours…")
+            historyChart(.cpu, metricsStore.snapshot.cpu.points)
+        }
     }
 
     private var thermalTitle: String {
@@ -56,10 +59,15 @@ struct TrayMetricDetail: View {
         }
     }
 
-    private func historyChart(_ points: [TrayHistoryPoint]) -> some View {
+    private func historyChart(_ series: ActivitySeries, _ points: [TrayHistoryPoint]) -> some View {
         VStack(spacing: 10) {
             TrayHistoryRangePicker(duration: $historyDuration)
-            TrayHistoryDetail(points: points, duration: historyDuration)
+            if historyDuration > 3600 {
+                ActivityTrendChart(archive: metricsStore.archive, series: series, duration: historyDuration,
+                                   revision: metricsStore.archiveRevision)
+            } else {
+                TrayHistoryDetail(points: points, duration: historyDuration, end: metricsStore.snapshot.historyTime)
+            }
         }.padding(10).background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
     }
 
@@ -67,22 +75,28 @@ struct TrayMetricDetail: View {
         if let gpu = metrics.gpu {
             Text(gpu.fraction.map { "\(Int(($0 * 100).rounded())) % utilisés" } ?? "Charge indisponible")
                 .monospacedDigit().font(.largeTitle)
-            historyChart(metricsStore.snapshot.gpu.points)
+            historyChart(.gpu, metricsStore.snapshot.gpu.points)
             row("Carte graphique", value: gpu.model)
             row("Cœurs", value: gpu.cores.map(String.init) ?? "Indisponible")
             row("Température GPU", value: gpu.temperature.map { "\(Int($0.rounded())) °C" } ?? "Indisponible")
-        } else { Text("Mesure indisponible") }
+        } else {
+            Text("Mesure indisponible")
+            historyChart(.gpu, metricsStore.snapshot.gpu.points)
+        }
     }
 
     @ViewBuilder private var memory: some View {
         if let memory = metrics.memory {
             TrayMemoryRing(memory: memory)
-            historyChart(metricsStore.snapshot.memory.points)
+            historyChart(.memory, metricsStore.snapshot.memory.points)
             row("Pression mémoire", value: memory.pressure?.title ?? "Indisponible")
             row("Mémoire utilisée estimée", value: "\(Int(memory.fraction * 100)) %")
             Text("Utilisation estimée : mémoire active non purgeable + résidente système + compressée. La mémoire inactive est considérée comme réutilisable. Ce pourcentage n’est pas la pression mémoire de macOS.")
                 .font(.caption).foregroundStyle(.white.opacity(0.75))
-        } else { Text("Mesure indisponible") }
+        } else {
+            Text("Mesure indisponible")
+            historyChart(.memory, metricsStore.snapshot.memory.points)
+        }
     }
 
     private func row(_ title: String, value: String) -> some View {

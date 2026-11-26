@@ -38,6 +38,7 @@ struct TrayMetricsSmoothing {
 }
 
 struct TrayMetricsSnapshot {
+    var historyTime: TimeInterval = 0
     var raw = TrayMetrics()
     var display = TrayMetrics()
     var cpu = TrayCPUHistory()
@@ -49,11 +50,31 @@ struct TrayMetricsSnapshot {
     var networkScale = TrayNetworkScale()
 }
 
+/// The dashboard observes this publisher independently of the live detail views.
+@MainActor
+final class HomeMetricsStore: ObservableObject {
+    @Published private(set) var snapshot = TrayMetricsSnapshot()
+    private var lastUpdate: TimeInterval?
+
+    func update(_ next: TrayMetricsSnapshot, force: Bool = false) {
+        let now = next.raw.sampledAt
+        if let lastUpdate, now >= lastUpdate, now - lastUpdate < 5, !force { return }
+        snapshot = next
+        lastUpdate = now
+    }
+}
+
 /// Un seul suivi pour l’application, indépendant de la durée de vie du panneau.
 @MainActor
 final class TrayMetricsStore: ObservableObject {
     enum Consumer: Hashable { case menuBar, dashboard(UUID) }
     @Published private(set) var snapshot = TrayMetricsSnapshot()
+    let home = HomeMetricsStore()
+    let archive: ActivityHistoryArchive?
+    private(set) var archiveRevision = 0
+    private var terminating = false
+    private var restored = false
+    private var session: Int64 = 0
     private var smoothing = TrayMetricsSmoothing()
     private let sampler: any TrayMetricsSampling
     private let sleep: @Sendable (Duration) async throws -> Void
@@ -66,8 +87,9 @@ final class TrayMetricsStore: ObservableObject {
     var isMonitoring: Bool { task != nil }
     var isForeground: Bool { !consumers.isEmpty }
 
-    init(sampler: any TrayMetricsSampling = TrayMetricsSampler(),
+    init(archive: ActivityHistoryArchive? = nil, sampler: any TrayMetricsSampling = TrayMetricsSampler(),
          sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }) {
+        self.archive = archive
         self.sampler = sampler
         self.sleep = sleep
     }
@@ -88,7 +110,7 @@ final class TrayMetricsStore: ObservableObject {
     func suspend() { suspended = true; reconcileMonitoring() }
     func resume() { suspended = false; reconcileMonitoring() }
     private func reconcileMonitoring() {
-        if requested && !suspended { startLoop() } else { halt() }
+        if requested && !suspended && !terminating { startLoop() } else { halt() }
     }
 
     func start() { requested = true; reconcileMonitoring() }
@@ -98,15 +120,32 @@ final class TrayMetricsStore: ObservableObject {
         primingReadings = 6
         let sampler = sampler
         let sleep = sleep
+        let archive = archive
+        session = Int64.random(in: 1...Int64.max)
         task = Task { [weak self] in
             guard !Task.isCancelled else { return }
+            if let archive, self?.restored == false {
+                do {
+                    let now = Date().timeIntervalSince1970
+                    let history = try await archive.recent(now: now)
+                    guard !Task.isCancelled else { return }
+                    self?.restore(history, at: now)
+                } catch {
+                    ActivityHistoryArchive.logger.error("Lecture de l’historique impossible : \(error.localizedDescription, privacy: .public)")
+                }
+            }
             await sampler.reset()
             var reading = 0
             while !Task.isCancelled {
                 guard let foreground = self?.isForeground else { return }
                 let sample = await sampler.sample(includeSensors: foreground)
                 guard !Task.isCancelled else { return }
-                self?.record(sample)
+                let time = archive == nil ? sample.sampledAt : Date().timeIntervalSince1970
+                self?.record(sample, historyTime: time)
+                if let archive, let session = self?.session, await archive.append(sample, time: time, session: session) {
+                    self?.archiveRevision += 1
+                }
+                guard !Task.isCancelled else { return }
                 reading += 1
                 let delay = Self.nextDelay(hasCPU: sample.cpu != nil, reading: reading, foreground: self?.isForeground == true)
                 // Annuler ce délai réveille la boucle lors d’un changement de visibilité.
@@ -117,6 +156,27 @@ final class TrayMetricsStore: ObservableObject {
                 self?.sleeper = nil
             }
         }
+    }
+
+    private func restore(_ history: [ActivitySeries: [TrayHistoryPoint]], at time: TimeInterval) {
+        var next = snapshot
+        next.cpu.restore(history[.cpu] ?? [])
+        next.gpu.restore(history[.gpu] ?? [])
+        next.memory = .init(restoring: history[.memory] ?? [])
+        next.traffic.restore(received: history[.received] ?? [], sent: history[.sent] ?? [])
+        next.historyTime = time
+        snapshot = next
+        home.update(next, force: true)
+        restored = true
+    }
+
+    func prepareForTermination() async {
+        terminating = true
+        let running = task
+        stop()
+        await running?.value
+        do { try await archive?.flush(now: Date().timeIntervalSince1970) }
+        catch { ActivityHistoryArchive.logger.error("Sauvegarde finale impossible : \(error.localizedDescription, privacy: .public)") }
     }
 
     func stop() { requested = false; halt() }
@@ -130,10 +190,15 @@ final class TrayMetricsStore: ObservableObject {
         snapshot.traffic.pause()
     }
 
-    func record(_ sample: TrayMetrics) {
+    func record(_ sample: TrayMetrics, historyTime: TimeInterval? = nil) {
+        let time = historyTime ?? sample.sampledAt
         var next = snapshot
         let elapsed = sample.sampledAt - next.raw.sampledAt
-        if elapsed < 0 { next = .init() }
+        if elapsed < 0 && !restored { next = .init() }
+        if archive != nil && (time < next.historyTime || time - next.historyTime > TrayHistoryPoint.maximumGap) {
+            session = Int64.random(in: 1...Int64.max)
+        }
+        next.historyTime = time
         if elapsed > TrayHistoryPoint.maximumGap || elapsed < 0 { smoothing = .init() }
         if let network = sample.wifi,
            network.interface != next.raw.wifi?.interface || network.address != next.raw.wifi?.address || network.kind != next.raw.wifi?.kind {
@@ -155,14 +220,21 @@ final class TrayMetricsStore: ObservableObject {
                                 kind: current.kind, address: current.address)
             }
         }
-        next.cpu.record(sample)
-        next.gpu.record(sample)
-        next.traffic.record(sample)
-        next.memory.record(time: sample.sampledAt, value: sample.memory?.fraction)
+        next.cpu.record(sample, time: time, session: session)
+        next.gpu.record(sample, time: time, session: session)
+        next.traffic.record(sample, time: time, session: session)
+        next.memory.record(time: time, value: sample.memory?.fraction, session: session)
         next.compact.record(next.display)
         let cardTraffic = TrayMetricHistory.window(next.traffic.received.points, duration: TrayMetricHistory.cardDuration)
         next.networkScale.record(peak: cardTraffic.map(\.peak).max() ?? 0, time: sample.sampledAt)
+        let previous = snapshot.raw
+        let changedStatus = (previous.cpu == nil && sample.cpu != nil)
+            || previous.memory?.pressure != sample.memory?.pressure
+            || previous.wifi?.connected != sample.wifi?.connected
+            || previous.wifi?.interface != sample.wifi?.interface
+            || previous.gpu?.id != sample.gpu?.id
         snapshot = next
+        home.update(next, force: changedStatus)
     }
 
     deinit { task?.cancel(); sleeper?.cancel() }

@@ -47,7 +47,7 @@ struct TrayHistoryChart: View {
         guard let first = window.first, first.time < start else { return window }
         guard window.count > 1 else { return [] }
         let next = window[1]
-        if next.time == start { return Array(window.dropFirst()) }
+        if next.startsSegment || next.time == start { return Array(window.dropFirst()) }
         let edge = first.value + (next.value - first.value) * (start - first.time) / (next.time - first.time)
         var clipped = window
         clipped[0] = TrayHistoryPoint(time: start, value: edge)
@@ -98,6 +98,11 @@ struct TrayHistoryPlot: Shape {
             }
             for sample in points {
                 let point = position(of: sample, in: rect)
+                if sample.startsSegment, last != nil {
+                    finishSegment()
+                    last = nil
+                    count = 0
+                }
                 if last == nil {
                     if filled { path.move(to: .init(x: point.x, y: rect.height)); path.addLine(to: point) }
                     else { path.move(to: point) }

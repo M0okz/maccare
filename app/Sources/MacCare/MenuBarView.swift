@@ -192,7 +192,7 @@ struct MenuBarView: View {
                         .foregroundStyle(highlight)
                         .accessibilityLabel("Température du processeur : \(cpuTemperature)")
                         .help("Température maximale des capteurs CPU disponibles. Lecture en cours d’actualisation toutes les 5 secondes.")
-                    TrayHistoryChart(points: metricsStore.snapshot.cpu.points, color: Color(hex: "#B481F5"))
+                    TrayHistoryChart(points: metricsStore.snapshot.cpu.points, color: Color(hex: "#B481F5"), endTime: metricsStore.snapshot.historyTime)
                         .frame(width: 36, height: 12).accessibilityHidden(true)
                 }
             }
@@ -208,7 +208,7 @@ struct MenuBarView: View {
                 VStack(alignment: .trailing, spacing: 3) {
                     Text(metrics.gpu?.temperature.map { "\(Int($0.rounded())) °C" } ?? "— °C")
                         .font(.caption2.weight(.medium)).foregroundStyle(highlight).monospacedDigit()
-                    TrayHistoryChart(points: metricsStore.snapshot.gpu.points, color: highlight)
+                    TrayHistoryChart(points: metricsStore.snapshot.gpu.points, color: highlight, endTime: metricsStore.snapshot.historyTime)
                         .frame(width: 36, height: 12).accessibilityHidden(true)
                 }
             }

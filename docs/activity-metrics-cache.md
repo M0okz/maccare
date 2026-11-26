@@ -1,12 +1,39 @@
 # Historique partagé de l’activité du Mac
 
-## État — 9 novembre 2026
+## Historique persistant en développement — 26 novembre 2026
+
+Branche locale `codex/persistent-metrics`, basée sur `3367999` (0.2.45). Cette évolution concerne la DEV.
+
+Les détails Processeur, GPU, Mémoire et Réseau proposent 10 min, 30 min, 1 h, 24 h, 7 j et 30 j. Les cinq séries sont la charge CPU, la charge GPU, la part de RAM utilisée et les deux débits de l’interface principale. Les écrans courts retrouvent la dernière heure au démarrage. Une période longue charge les minutes déjà enregistrées de la seule série demandée. Les graphiques gardent les ruptures de session et de source. Le direct reprend avec de nouveaux compteurs. Les volumes transférés affichés sous les débits repartent à zéro pour la connexion de la nouvelle session.
+
+`ActivityHistoryArchive` utilise le SQLite système depuis un acteur distinct de l’interface. Le fichier se trouve sous `~/Library/Application Support/MacCare Dev/Activity/history.sqlite` en DEV et sous `~/Library/Application Support/MacCare/Activity/history.sqlite` pour une construction de distribution. Chaque lot écrit en une transaction les groupes de 5 secondes de la dernière heure et les résumés par minute des 30 derniers jours. La somme, le nombre de lectures et le pic permettent de calculer les moyennes pondérées, y compris lors du regroupement des points à l’écran. Les dates sur disque sont des dates civiles. Le calcul d’un débit ou d’un volume en direct utilise le temps monotone. Le fichier enregistre une empreinte de la connexion et l’identifiant du GPU pour distinguer les sources.
+
+MacCare écrit environ une fois par minute et vide le dernier lot lors d’une fermeture normale. Une interruption brutale peut perdre le lot en cours. Une erreur d’écriture conserve jusqu’à une heure de données pour la prochaine tentative. Les lignes expirées sont purgées à la réouverture et lors des écritures. La collecte s’arrête pendant la veille ou lorsque le processus quitte. Avec la barre des menus activée, la fermeture de la dernière fenêtre laisse le suivi léger en activité.
+
+`HomeMetricsStore` publie les cartes de l’accueil toutes les cinq secondes. La première mesure CPU et les changements de pression mémoire, de GPU ou de connexion peuvent déclencher une mise à jour anticipée. Les relevés visibles et les détails conservent leur cadence d’une seconde. Une pointe entre deux dessins reste donc comptabilisée.
+
+### Vérifications du 26 novembre
+
+La suite de l’application passe avec 427 XCTest réussis, 7 intégrations optionnelles ignorées et 295 tests Swift Testing réussis. Les six nouveaux tests couvrent notamment la reprise après échec d’écriture, les regroupements et les pics, l’expiration sur dates simulées, la restauration du store, les changements de source et la cadence des cartes.
+
+Sur le paquet DEV signé, l’écriture périodique contenait 58 relevés CPU. La fermeture normale en a porté le total à 68, regroupés en 15 points. La relance a préservé ces points. Les sessions présentent un intervalle de 11,8 secondes entre leur dernière et leur première mesure. Le détail CPU ouvert sur 30 jours affichait une moyenne de 27 % et un pic de 79 % pour les données effectivement présentes. La période de trente jours complète a été vérifiée par dates simulées.
+
+Sur ce Mac, l’accueil de deux paquets DEV optimisés et signés a été comparé dans l’ordre référence, modification, référence, modification. Après dix secondes d’amorçage, chaque lancement a fourni deux mesures de trente secondes avec la fenêtre active. Consommation du processus entier en pourcentage d’un cœur :
+
+| Paquet | Quatre mesures | Médiane |
+| --- | --- | --- |
+| Référence `3367999` | 9,26 %, 4,86 %, 2,86 %, 2,83 % | 3,86 % |
+| Historique persistant et nouvelle cadence | 1,83 %, 1,80 %, 1,83 %, 2,03 % | 1,83 % |
+
+Ces observations couvrent deux minutes par paquet sur une seule machine. L’autonomie et la consommation avec trente jours de mesures réelles restent à évaluer.
+
+## Version livrée le 9 novembre 2026
 
 **Livré dans [MacCare 0.2.16 (build 18)](https://github.com/M0okz/maccare/releases/tag/v0.2.16).** Branche de préparation `codex/stable-metrics-history`, désormais fusionnée et fermée.
 Cette évolution remplace le cache lié à la visibilité livré en 0.2.15.
 La copie quotidienne n’est pas remplacée par la Dev.
 
-## Continuité et cadence
+### Continuité et cadence
 
 `AppState` possède un seul `TrayMetricsStore`, partagé par l’accueil, le volet
 et les fenêtres de détails. Il démarre avec l’application. Les vues visibles
@@ -28,7 +55,7 @@ les compteurs ni les historiques à zéro.
   ou de carte GPU démarre une nouvelle série pour ne pas mélanger les appareils.
 - Quitter complètement MacCare arrête le suivi et libère l’historique.
 
-## Affichage stable et historique
+### Affichage stable et historique
 
 Les chiffres CPU, GPU, RAM et réseau sont lissés avec une constante de cinq
 secondes. Les nombres des cartes sont actualisés toutes les trois secondes ;
@@ -48,7 +75,7 @@ redescend qu’après une minute de demande nettement plus faible. La carte tien
 compte de sa fenêtre de dix minutes ; le détail élargit l’échelle si son historique
 plus long le nécessite. Le changement de connexion réinitialise cette échelle.
 
-## Coût borné
+### Coût borné
 
 CPU, GPU, RAM, réception et envoi conservent au maximum 721 points chacun :
 3 605 points au total, soit environ 85 Kio de valeurs numériques, hors structures
@@ -61,7 +88,7 @@ Composants : `TrayMetricHistory`, `TrayMetricsStore`, `TrayMetricsSampler`,
 `TrayMetricsReadout`, `TrayHistoryChart`, `TrayHistoryDetail`, `HomeActivityCard`,
 `TrayMetricDetail`, `TrayWiFiDetail` et cycle de vie `TrayPanelController`.
 
-## Vérification de cette évolution
+### Vérification de cette évolution
 
 Les deux régressions initiales ont été reproduites : arrêt au dernier consommateur
 et découpe du tracé après trois secondes. Les contrôles couvrent la boucle unique,

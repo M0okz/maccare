@@ -10,14 +10,23 @@ struct WiFiTrafficHistory {
     private(set) var receivedBytes: Double = 0
     private(set) var sentBytes: Double = 0
     private var interface: String?
+    private var restoredSource: Int64?
     private var previousTime: TimeInterval?
+
+    mutating func restore(received rx: [TrayHistoryPoint], sent tx: [TrayHistoryPoint]) {
+        guard let source = rx.last?.source, tx.last?.source == source else { return }
+        received = .init(restoring: rx.suffix(whileSourceIs: source))
+        sent = .init(restoring: tx.suffix(whileSourceIs: source))
+        restoredSource = source
+    }
 
     mutating func pause() { previousTime = nil }
 
-    mutating func record(_ metrics: TrayMetrics) {
+    mutating func record(_ metrics: TrayMetrics, time: TimeInterval? = nil, session: Int64 = 0) {
+        let time = time ?? metrics.sampledAt
         guard let wifi = metrics.wifi else {
-            received.record(time: metrics.sampledAt, value: nil)
-            sent.record(time: metrics.sampledAt, value: nil)
+            received.record(time: time, value: nil, session: session)
+            sent.record(time: time, value: nil, session: session)
             pause()
             return
         }
@@ -25,17 +34,21 @@ struct WiFiTrafficHistory {
             self = .init()
             return
         }
-        let identity = "\(wifi.kind.rawValue):\(wifi.interface):\(wifi.address ?? "")"
-        if interface != identity { self = .init(); interface = identity }
+        let identity = wifi.historyIdentity
+        if interface != identity {
+            if restoredSource == nil || restoredSource != wifi.historySource { self = .init() }
+            restoredSource = nil
+            interface = identity
+        }
         guard let received = wifi.received, let sent = wifi.sent,
               received.isFinite, sent.isFinite, received >= 0, sent >= 0 else {
-            self.received.record(time: metrics.sampledAt, value: nil)
-            self.sent.record(time: metrics.sampledAt, value: nil)
+            self.received.record(time: time, value: nil, session: session)
+            self.sent.record(time: time, value: nil, session: session)
             pause()
             return
         }
-        self.received.record(time: metrics.sampledAt, value: received)
-        self.sent.record(time: metrics.sampledAt, value: sent)
+        self.received.record(time: time, value: received, session: session)
+        self.sent.record(time: time, value: sent, session: session)
         if let previousTime {
             let elapsed = metrics.sampledAt - previousTime
             // Un intervalle après veille ne décrit pas un débit instantané fiable.
@@ -61,12 +74,12 @@ struct TrayWiFiDetail: View {
             connection
             TrayHistoryRangePicker(duration: $historyDuration)
             HStack(alignment: .top, spacing: 10) {
-                trafficCard(title: "Téléchargement", symbol: "arrow.down", points: traffic.received.points,
+                trafficCard(series: .received, title: "Téléchargement", symbol: "arrow.down", points: traffic.received.points,
                             total: traffic.receivedBytes, current: metrics.wifi?.received, color: .cyan)
-                trafficCard(title: "Envoi", symbol: "arrow.up", points: traffic.sent.points,
+                trafficCard(series: .sent, title: "Envoi", symbol: "arrow.up", points: traffic.sent.points,
                             total: traffic.sentBytes, current: metrics.wifi?.sent, color: .pink)
             }
-            Text("Trafic de l’interface réseau principale, échanges locaux compris · historique jusqu’à une heure. Débits lissés, moyennes sur cinq secondes et pics conservés. Volumes depuis le début du suivi de cette connexion.")
+            Text("Trafic de l’interface réseau principale, échanges locaux compris · historique local sur 30 jours. Les volumes transférés couvrent cette connexion depuis le lancement.")
                 .font(.caption2).foregroundStyle(muted).fixedSize(horizontal: false, vertical: true)
             speedTest
         }
@@ -102,7 +115,7 @@ struct TrayWiFiDetail: View {
         return "\(network.kind.rawValue) connecté"
     }
 
-    private func trafficCard(title: String, symbol: String, points: [TrayHistoryPoint], total: Double, current: Double?, color: Color) -> some View {
+    private func trafficCard(series: ActivitySeries, title: String, symbol: String, points: [TrayHistoryPoint], total: Double, current: Double?, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Label(title, systemImage: symbol).font(.system(size: 12, weight: .semibold))
             Text(NetworkRateFormat.megabits(current)).monospacedDigit()
@@ -110,8 +123,13 @@ struct TrayWiFiDetail: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             Text("\(humanSize(UInt64(total))) transférés").monospacedDigit()
                 .font(.system(size: 10)).foregroundStyle(muted)
-            TrayHistoryDetail(points: points, duration: historyDuration, color: color,
-                              maximum: trafficCeiling(points), network: true)
+            if historyDuration > 3600 {
+                ActivityTrendChart(archive: metricsStore.archive, series: series, duration: historyDuration,
+                                   revision: metricsStore.archiveRevision, color: color, network: true)
+            } else {
+                TrayHistoryDetail(points: points, duration: historyDuration, color: color,
+                                  maximum: trafficCeiling(points), network: true, end: metricsStore.snapshot.historyTime)
+            }
         }
         .padding(12).frame(maxWidth: .infinity, alignment: .leading)
         .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))

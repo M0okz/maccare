@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct HomeHealthCard<ScanAction: View>: View {
-    @ObservedObject var store: TrayMetricsStore
+    @ObservedObject var store: HomeMetricsStore
     @ObservedObject var battery: BatteryModel
     let storage: TrayStorageUsage?
     @ViewBuilder let scanAction: () -> ScanAction
