@@ -111,3 +111,39 @@ dossiers en attente et a préservé un dossier voisin créé depuis l’analyse.
 Le parcours a été vérifié en modes Corbeille et suppression définitive, depuis
 le détail puis le bilan général. Les preuves locales figurent dans
 `build/smart-scan-retry/qa-trash.json` et `qa-direct.json`.
+
+## Smart Scan par application en DEV — 26 novembre 2026
+
+Dans **Nettoyage → Analyser → Examiner les résultats**, le sélecteur propose
+« Par catégorie » et « Par application ». Les deux vues partagent les résultats
+et les cases d’une seule analyse. La liste indique le volume et le nombre
+d’éléments attribués à chaque application. Les fiches expliquent l’effet attendu
+du nettoyage et conservent les niveaux « Sûr » et « À revoir » des catégories.
+Dans une fiche, les commandes de sélection et de nettoyage portent sur cette
+application. Depuis la liste, elles portent sur toute l’analyse. Échap ou
+« Retour aux applications » ramène à la liste. La transition tient compte de
+l’option macOS « Réduire les animations ».
+
+Les dix premiers profils couvrent Google Chrome, Firefox, Slack, Discord,
+Spotify, Visual Studio Code, Xcode, Notion, Zoom et Microsoft Teams. Les dossiers
+partagés et les propriétaires incertains figurent sous « Autres résultats ».
+Les profils sans correspondance sont repliés. Les catégories analysées dépendent
+du profil de nettoyage, des exclusions, des autorisations et des outils pour
+développeurs activés.
+
+Le catalogue de présentation se trouve dans `SmartScanApplications.swift`.
+`SmartScanModel` réutilise les identifiants des éléments pour la sélection et
+le nettoyage. Dans la règle générique, le moteur restreint le dossier partagé
+Google au sous-dossier Chrome, et le cache Spotify à des sous-dossiers
+graphiques identifiés. Le moteur vérifie ces limites à nouveau avant le retrait.
+Le Smart Scan écarte également les caches sandbox attribués à Spotify qui ne
+permettent pas de distinguer les titres hors ligne. Une règle dédiée reconnaît
+le cache de démarrage de VS Code dans `Application Support/Code/CachedData`.
+Les profils, sauvegardes et extensions de l’éditeur restent hors de sa racine.
+
+Branche locale `codex/smart-scan-applications`, version DEV 0.2.46 (52).
+Sur des dossiers de test, le parcours natif couvre les dix fiches, les autres
+résultats, le retour par Échap et une case partagée entre les deux vues.
+Un test de nettoyage sur fichiers temporaires vérifie que les choix des autres
+applications sont préservés. Les variantes de dossiers de toutes les versions
+des dix applications et une session VoiceOver complète restent à valider.
