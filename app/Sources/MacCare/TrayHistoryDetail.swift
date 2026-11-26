@@ -26,6 +26,15 @@ struct TrayHistoryDetail: View {
 
     var body: some View {
         let stats = TrayMetricHistory.statistics(points, duration: duration, end: end)
+        let averageLabel = stats.estimated ? "Moy. estimée" : "Moy."
+        let date = stats.peakTime.map { timestamp in
+            let date = Date(timeIntervalSince1970: timestamp)
+            let endDate = Date(timeIntervalSince1970: end ?? points.last?.time ?? timestamp)
+            let withDay = duration >= 86400 || !Calendar.current.isDate(date, inSameDayAs: endDate)
+            return date.formatted(date: withDay ? .abbreviated : .omitted, time: .standard)
+        }
+        let peakDescription = date ?? "heure inconnue"
+        let accessibleMean = stats.estimated ? "Moyenne estimée" : "Moyenne"
         VStack(spacing: 8) {
             TrayHistoryChart(points: points, duration: duration, color: color, maximum: maximum, filled: true, endTime: end)
                 .frame(height: network ? 65 : 90).accessibilityHidden(true)
@@ -36,19 +45,24 @@ struct TrayHistoryDetail: View {
             }.font(.caption2).foregroundStyle(.white.opacity(0.73))
             ViewThatFits(in: .horizontal) {
                 HStack {
-                    Text("Moy. : \(format(stats.average))").fixedSize()
+                    Text("\(averageLabel) : \(format(stats.average))").fixedSize()
                     Spacer()
                     Text("Pic : \(format(stats.peak))").fixedSize()
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Moy. : \(format(stats.average))")
+                    Text("\(averageLabel) : \(format(stats.average))")
                     Text("Pic : \(format(stats.peak))")
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }.font(.caption2).monospacedDigit()
+            if stats.peak != nil {
+                Text(date ?? "Heure du pic inconnue")
+                    .font(.caption2).foregroundStyle(.white.opacity(0.73)).monospacedDigit()
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Historique sur \(rangeLabel)")
-        .accessibilityValue("Moyenne : \(format(stats.average)), pic : \(format(stats.peak))")
+        .accessibilityValue("\(accessibleMean) : \(format(stats.average)), pic : \(format(stats.peak))\(stats.peak == nil ? "" : ", " + peakDescription)")
     }
 
     private func format(_ value: Double?) -> String {

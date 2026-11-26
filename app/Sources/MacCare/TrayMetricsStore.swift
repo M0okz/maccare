@@ -223,7 +223,7 @@ final class TrayMetricsStore: ObservableObject {
         next.cpu.record(sample, time: time, session: session)
         next.gpu.record(sample, time: time, session: session)
         next.traffic.record(sample, time: time, session: session)
-        next.memory.record(time: time, value: sample.memory?.fraction, session: session)
+        next.memory.record(time: time, value: sample.memory?.fraction, session: session, uptime: sample.sampledAt)
         next.compact.record(next.display)
         let cardTraffic = TrayMetricHistory.window(next.traffic.received.points, duration: TrayMetricHistory.cardDuration)
         next.networkScale.record(peak: cardTraffic.map(\.peak).max() ?? 0, time: sample.sampledAt)

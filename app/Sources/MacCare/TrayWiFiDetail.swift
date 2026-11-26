@@ -1,26 +1,22 @@
 import SwiftUI
 
 struct WiFiTrafficHistory {
-    struct Sample { let time: TimeInterval; let received: Double; let sent: Double }
     private(set) var received = TrayMetricHistory()
     private(set) var sent = TrayMetricHistory()
-    var samples: [Sample] {
-        zip(received.points, sent.points).map { .init(time: $0.time, received: $0.value, sent: $1.value) }
-    }
     private(set) var receivedBytes: Double = 0
     private(set) var sentBytes: Double = 0
     private var interface: String?
     private var restoredSource: Int64?
-    private var previousTime: TimeInterval?
 
     mutating func restore(received rx: [TrayHistoryPoint], sent tx: [TrayHistoryPoint]) {
-        guard let source = rx.last?.source, tx.last?.source == source else { return }
+        let latest = [rx.last, tx.last].compactMap { $0 }.max { $0.time < $1.time }
+        guard let source = latest?.source else { return }
         received = .init(restoring: rx.suffix(whileSourceIs: source))
         sent = .init(restoring: tx.suffix(whileSourceIs: source))
         restoredSource = source
     }
 
-    mutating func pause() { previousTime = nil }
+    mutating func pause() { received.pause(); sent.pause() }
 
     mutating func record(_ metrics: TrayMetrics, time: TimeInterval? = nil, session: Int64 = 0) {
         let time = time ?? metrics.sampledAt
@@ -40,24 +36,11 @@ struct WiFiTrafficHistory {
             restoredSource = nil
             interface = identity
         }
-        guard let received = wifi.received, let sent = wifi.sent,
-              received.isFinite, sent.isFinite, received >= 0, sent >= 0 else {
-            self.received.record(time: time, value: nil, session: session)
-            self.sent.record(time: time, value: nil, session: session)
-            pause()
-            return
-        }
-        self.received.record(time: time, value: received, session: session)
-        self.sent.record(time: time, value: sent, session: session)
-        if let previousTime {
-            let elapsed = metrics.sampledAt - previousTime
-            // Un intervalle après veille ne décrit pas un débit instantané fiable.
-            if elapsed > 0 && elapsed <= TrayHistoryPoint.maximumGap {
-                receivedBytes += received * elapsed
-                sentBytes += sent * elapsed
-            }
-        }
-        previousTime = metrics.sampledAt
+        let rxSeconds = received.record(time: time, value: wifi.received, session: session, uptime: metrics.sampledAt)
+        let txSeconds = sent.record(time: time, value: wifi.sent, session: session, uptime: metrics.sampledAt)
+        if let rate = wifi.received, rxSeconds > 0 { receivedBytes += rate * rxSeconds }
+        if let rate = wifi.sent, txSeconds > 0 { sentBytes += rate * txSeconds }
+
     }
 }
 

@@ -86,8 +86,8 @@ final class InternetSpeedTests: XCTestCase {
         XCTAssertEqual(history.sentBytes, 1000)
         history.record(metrics(14, "en1"))
         XCTAssertEqual(history.receivedBytes, 0)
-        XCTAssertEqual(history.samples.count, 1)
+        XCTAssertEqual(history.received.points.count, 1)
         history.record(metrics(16, "en1", connected: false))
-        XCTAssertTrue(history.samples.isEmpty)
+        XCTAssertTrue(history.received.points.isEmpty)
     }
 }

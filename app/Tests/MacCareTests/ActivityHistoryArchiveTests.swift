@@ -1,4 +1,5 @@
 import XCTest
+import CSQLite
 import SwiftUI
 @testable import MacCare
 
@@ -42,14 +43,157 @@ final class ActivityHistoryArchiveTests: XCTestCase {
         let points = try XCTUnwrap(history[.cpu])
         XCTAssertEqual(points.map(\.count), [2, 1, 2, 1])
         XCTAssertEqual(points.map(\.startsSegment), [true, false, true, true])
-        XCTAssertEqual(points[0].value, 0.55, accuracy: 1e-8)
+        XCTAssertEqual(points[0].value, 1, accuracy: 1e-8)
         XCTAssertEqual(points[0].peak, 1)
-        XCTAssertEqual(points[2].value, 0.4, accuracy: 1e-8)
+        XCTAssertEqual(points[2].value, 0.6, accuracy: 1e-8)
         let trend = try await next.trend(.cpu, duration: 86400, end: origin + 63)
-        XCTAssertEqual(trend.map(\.session), [1, 2])
-        XCTAssertEqual(trend[0].count, 5)
-        XCTAssertEqual(trend[0].value, 2.3 / 5, accuracy: 1e-8)
+        XCTAssertEqual(trend.map(\.count), [3, 2, 1])
+        XCTAssertEqual(trend[0].session, 1)
+        XCTAssertEqual(trend[2].session, 2)
+        XCTAssertEqual(trend[0].value, 2.6 / 5, accuracy: 1e-8)
         XCTAssertEqual(trend[0].peak, 1)
+    }
+
+    func testEqualMinutesAtDifferentCadencesKeepTheSameWeightAndFirstPeak() async throws {
+        let archive = ActivityHistoryArchive(url: url)
+        var live = TrayMetricHistory()
+        let seconds = Array(0...60) + Array(stride(from: 65, through: 120, by: 5))
+        for second in seconds {
+            let time = origin + Double(second)
+            let load = second <= 60 ? 0.8 : 0.2
+            live.record(time: time, value: load, session: 1, uptime: Double(second))
+            await archive.append(sample(Double(second), load), time: time, session: 1)
+            if second == 17 { try await archive.flush(now: time) }
+        }
+        try await archive.flush(now: origin + 120)
+        let reader = ActivityHistoryArchive(url: url)
+        let recent = try await reader.recent(now: origin + 120)
+        let month = try await reader.trend(.cpu, duration: 30 * 86400, end: origin + 120)
+        for points in [live.points, try XCTUnwrap(recent[.cpu]), month] {
+            let stats = TrayMetricHistory.statistics(points, duration: 3600, end: origin + 120)
+            XCTAssertEqual(try XCTUnwrap(stats.average), 0.5, accuracy: 1e-10)
+            XCTAssertEqual(points.reduce(0) { $0 + $1.seconds }, 120, accuracy: 1e-10)
+            XCTAssertEqual(stats.peakTime, origin)
+            XCTAssertEqual(stats.peak, 0.8)
+            XCTAssertFalse(stats.estimated)
+        }
+    }
+
+    func testMissingMetricSplitsOnlyItsOwnSeriesEvenWithinTheSameBucket() async throws {
+        let archive = ActivityHistoryArchive(url: url)
+        var gpu = TrayGPUHistory()
+        var traffic = WiFiTrafficHistory()
+        for second in 0...8 {
+            let t = Double(second)
+            var reading = sample(t, second == 1 || second == 4 ? 0.9 : 0.2)
+            if second == 2 {
+                reading.gpu = nil
+                reading.wifi = .init(interface: "en0", powered: true, connected: true, linkRate: 0,
+                                     received: nil, sent: 100, address: "192.0.2.1")
+            }
+            gpu.record(reading, time: origin + t, session: 5)
+            traffic.record(reading, time: origin + t, session: 5)
+            await archive.append(reading, time: origin + t, session: 5)
+            if second == 3 { try await archive.flush(now: origin + t) }
+        }
+        try await archive.flush(now: origin + 8)
+        XCTAssertEqual(traffic.receivedBytes, 1250 * 6)
+        XCTAssertEqual(traffic.sentBytes, 100 * 8)
+        for points in [gpu.points, traffic.received.points] {
+            XCTAssertEqual(points.filter(\.startsSegment).count, 2)
+            XCTAssertEqual(points.reduce(0) { $0 + $1.seconds }, 6)
+        }
+        let reader = ActivityHistoryArchive(url: url)
+        let short = try await reader.recent(now: origin + 8)
+        for series in ActivitySeries.allCases {
+            let interrupted = series == .gpu || series == .received
+            let long = try await reader.trend(series, duration: 30 * 86400, end: origin + 8)
+            for points in [try XCTUnwrap(short[series]), long] {
+                XCTAssertEqual(points.filter(\.startsSegment).count, interrupted ? 2 : 1)
+                XCTAssertEqual(points.reduce(0) { $0 + $1.seconds }, interrupted ? 6 : 8)
+            }
+            if series == .gpu {
+                XCTAssertEqual(TrayMetricHistory.statistics(long, duration: 3600).peakTime, origin + 1)
+            }
+        }
+    }
+
+    func testChronologyAcrossSameMinuteSessionsAndPeakInsideAnEarlierInterval() async throws {
+        let archive = ActivityHistoryArchive(url: url)
+        for (offset, load, session): (Int, Double, Int64) in [(0, 0.2, 99), (1, 0.95, 99), (4, 0.4, 99),
+                                                               (7, 0.3, 1), (8, 0.6, 1)] {
+            await archive.append(sample(Double(offset), load), time: origin + Double(offset), session: session)
+        }
+        try await archive.flush(now: origin + 8)
+        let reader = ActivityHistoryArchive(url: url)
+        let recent = try await reader.recent(now: origin + 8)
+        let trend = try await reader.trend(.cpu, duration: 30 * 86400, end: origin + 8)
+        for points in [try XCTUnwrap(recent[.cpu]), trend] {
+            XCTAssertEqual(points.map(\.session), [99, 1])
+            XCTAssertEqual(points.map(\.time), [origin + 4, origin + 8])
+            XCTAssertEqual(TrayMetricHistory.statistics(points, duration: 3600).peakTime, origin + 1)
+        }
+    }
+
+    func testTwoMinutesOfMissingGPUHaveNoDurationAndCPUContinues() {
+        var cpu = TrayCPUHistory()
+        var gpu = TrayGPUHistory()
+        for second in 0...120 {
+            var value = sample(Double(second), 0.4)
+            if second > 0 && second < 120 { value.gpu = nil }
+            cpu.record(value, time: origin + Double(second), session: 4)
+            gpu.record(value, time: origin + Double(second), session: 4)
+        }
+        XCTAssertEqual(gpu.points.map(\.seconds), [0, 0])
+        XCTAssertTrue(gpu.points.allSatisfy(\.startsSegment))
+        let stats = TrayMetricHistory.statistics(gpu.points, duration: 3600)
+        XCTAssertNil(stats.average)
+        XCTAssertEqual(stats.peakTime, origin)
+        XCTAssertEqual(cpu.points.filter(\.startsSegment).count, 1)
+        XCTAssertEqual(cpu.points.reduce(0) { $0 + $1.seconds }, 120)
+    }
+
+    func testPeakOutsideTheRollingWindowCannotHideALaterPeakInTheSameDisplayGroup() async throws {
+        let archive = ActivityHistoryArchive(url: url)
+        for second in 0...90 {
+            let load = second == 1 ? 1.0 : (second == 72 ? 0.9 : 0.2)
+            await archive.append(sample(Double(second), load), time: origin + Double(second), session: 5)
+        }
+        try await archive.flush(now: origin + 90)
+        let duration = 30 * 86400.0
+        let end = origin + duration + 3
+        let points = try await archive.trend(.cpu, duration: duration, end: end)
+        let stats = TrayMetricHistory.statistics(points, duration: duration, end: end)
+        XCTAssertEqual(stats.peak, 0.9)
+        XCTAssertEqual(stats.peakTime, origin + 72)
+    }
+
+    func testLegacyMigrationKeepsAveragesAndDistinguishesUnknownPeakTime() async throws {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        var db: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(url.path, &db), SQLITE_OK)
+        let old = """
+            CREATE TABLE history(step INTEGER,series INTEGER,bucket INTEGER,session INTEGER,source INTEGER,
+            time REAL NOT NULL,total REAL NOT NULL,peak REAL NOT NULL,n INTEGER NOT NULL,
+            PRIMARY KEY(step,series,bucket,session,source)) WITHOUT ROWID;
+            INSERT INTO history VALUES(60,0,1800000000,11,0,1800000059,12,0.99,60);
+            INSERT INTO history VALUES(5,1,1800000055,11,7,1800000058,0.6,0.6,1);
+            """
+        XCTAssertEqual(sqlite3_exec(db, old, nil, nil, nil), SQLITE_OK)
+        sqlite3_close(db)
+        let archive = ActivityHistoryArchive(url: url)
+        let end = origin + 65
+        await archive.append(sample(0, 0.2), time: end - 4, session: 12)
+        await archive.append(sample(4, 0.4), time: end, session: 12)
+        try await archive.flush(now: end)
+        let month = try await archive.trend(.cpu, duration: 30 * 86400, end: end)
+        let stats = TrayMetricHistory.statistics(month, duration: 30 * 86400, end: end)
+        XCTAssertEqual(try XCTUnwrap(stats.average), (12 + 1.6) / 64, accuracy: 1e-10)
+        XCTAssertTrue(stats.estimated)
+        XCTAssertEqual(stats.peak, 0.99)
+        XCTAssertNil(stats.peakTime)
+        let recent = try await archive.recent(now: end)
+        XCTAssertEqual(recent[.gpu]?.first?.peakTime, origin + 58)
     }
 
     func testRetentionUsesDatesEvenAcrossRebootAndLongInactivity() async throws {

@@ -115,6 +115,6 @@ struct TrayGPUHistory {
         if let gpu = metrics.gpu {
             if id != gpu.id { history = .init(); id = gpu.id }
         }
-        history.record(time: time ?? metrics.sampledAt, value: metrics.gpu?.fraction.map { $0.isFinite ? min(1, max(0, $0)) : $0 }, session: session)
+        history.record(time: time ?? metrics.sampledAt, value: metrics.gpu?.fraction.map { $0.isFinite ? min(1, max(0, $0)) : $0 }, session: session, uptime: metrics.sampledAt)
     }
 }

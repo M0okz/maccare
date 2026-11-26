@@ -6,13 +6,39 @@ Branche locale `codex/persistent-metrics`, basée sur `3367999` (0.2.45). Cette 
 
 Les détails Processeur, GPU, Mémoire et Réseau proposent 10 min, 30 min, 1 h, 24 h, 7 j et 30 j. Les cinq séries sont la charge CPU, la charge GPU, la part de RAM utilisée et les deux débits de l’interface principale. Les écrans courts retrouvent la dernière heure au démarrage. Une période longue charge les minutes déjà enregistrées de la seule série demandée. Les graphiques gardent les ruptures de session et de source. Le direct reprend avec de nouveaux compteurs. Les volumes transférés affichés sous les débits repartent à zéro pour la connexion de la nouvelle session.
 
-`ActivityHistoryArchive` utilise le SQLite système depuis un acteur distinct de l’interface. Le fichier se trouve sous `~/Library/Application Support/MacCare Dev/Activity/history.sqlite` en DEV et sous `~/Library/Application Support/MacCare/Activity/history.sqlite` pour une construction de distribution. Chaque lot écrit en une transaction les groupes de 5 secondes de la dernière heure et les résumés par minute des 30 derniers jours. La somme, le nombre de lectures et le pic permettent de calculer les moyennes pondérées, y compris lors du regroupement des points à l’écran. Les dates sur disque sont des dates civiles. Le calcul d’un débit ou d’un volume en direct utilise le temps monotone. Le fichier enregistre une empreinte de la connexion et l’identifiant du GPU pour distinguer les sources.
+`ActivityHistoryArchive` utilise le SQLite système depuis un acteur distinct de l’interface. Le fichier se trouve sous `~/Library/Application Support/MacCare Dev/Activity/history.sqlite` en DEV et sous `~/Library/Application Support/MacCare/Activity/history.sqlite` pour une construction de distribution. Chaque lot écrit en une transaction les groupes de 5 secondes de la dernière heure et les résumés par minute des 30 derniers jours. Les nouvelles lignes conservent la durée couverte, la somme des valeurs multipliées par leurs durées, le maximum et l’instant de ce maximum. Les dates sur disque sont des dates civiles. Le calcul d’un débit ou d’un volume en direct utilise le temps monotone. Le fichier enregistre une empreinte de la connexion et l’identifiant du GPU pour distinguer les sources.
 
 MacCare écrit environ une fois par minute et vide le dernier lot lors d’une fermeture normale. Une interruption brutale peut perdre le lot en cours. Une erreur d’écriture conserve jusqu’à une heure de données pour la prochaine tentative. Les lignes expirées sont purgées à la réouverture et lors des écritures. La collecte s’arrête pendant la veille ou lorsque le processus quitte. Avec la barre des menus activée, la fermeture de la dernière fenêtre laisse le suivi léger en activité.
 
 `HomeMetricsStore` publie les cartes de l’accueil toutes les cinq secondes. La première mesure CPU et les changements de pression mémoire, de GPU ou de connexion peuvent déclencher une mise à jour anticipée. Les relevés visibles et les détails conservent leur cadence d’une seconde. Une pointe entre deux dessins reste donc comptabilisée.
 
-### Vérifications du 26 novembre
+### Moyenne, interruptions et heure du pic
+
+Chaque mesure valide représente l’intervalle monotone écoulé depuis la précédente mesure valide et continue de la même série. La moyenne additionne les valeurs multipliées par leurs durées, puis divise par la durée couverte. Deux minutes de même durée à 80 % puis 20 % donnent ainsi 50 %, que la collecte ait lieu chaque seconde ou toutes les cinq secondes. Une première lecture isolée peut fixer un pic. Sa durée est nulle jusqu’à ce que deux lectures établissent un intervalle.
+
+Une lecture indisponible coupe la série concernée, même si les deux côtés de la coupure tombent dans la même tranche de cinq secondes ou dans la même minute archivée. Une interruption de collecte supérieure à quinze secondes, une reprise de session et un changement de source interrompent également la continuité. Le GPU, le CPU, la mémoire et les deux sens du trafic suivent chacun leurs propres interruptions.
+
+Les détails donnent l’heure locale du pic à la seconde, avec la date pour les périodes longues ou un pic de la veille. À maximum égal, l’affichage retient la première occurrence datée disponible. Les lectures restent regroupées selon la résolution de l’archive. La minute partielle du début de fenêtre reste distincte des minutes suivantes pour empêcher qu’un pic antérieur à la période masque leurs pics.
+
+Au premier accès, une transaction ajoute les colonnes `seconds`, `integral` et `peak_time` à `history`, puis fixe `PRAGMA user_version=1`. Le fichier et les anciennes lignes sont conservés. Pour les anciennes lignes, la durée estimée est plafonnée à la largeur de la tranche et à cinq secondes par lecture. Une moyenne incluant ces données porte le libellé « Moy. estimée ». Une ancienne tranche comptant une seule lecture permet de dater son pic. Pour un ancien maximum groupé sans occurrence connue, l’interface indique « Heure du pic inconnue ».
+
+### Coût du détail CPU sur trente jours
+
+La mesure locale utilise 43 200 lignes par série (216 000 lignes minute pour les cinq séries), plus les points récents de cinq secondes. Deux variantes du nouveau format ont affiché la même courbe via le code Swift optimisé de l’application, dans un `NSHostingView` de 330 × 154 points. Chaque mesure inclut la lecture de la période, le regroupement, les statistiques et le dessin de la carte. L’écriture du lot a lieu en dehors du chronométrage. Après le premier affichage, trois passages alternés de trente actualisations par variante donnent les médianes suivantes.
+
+| Variante | Lecture et regroupement | Lecture et rendu |
+| --- | ---: | ---: |
+| Version précédente `dbbbf6a` | 14,6 ms | 17,4 ms |
+| Moyenne temporelle et heure du pic, requête SQLite ordonnée par tranche puis par date | 18,2 ms | 21,1 ms |
+| Même format, parcours de l’index et tri des tranches à plusieurs segments | 9,6 ms | 12,4 ms |
+
+La version retenue lit les minutes via la clé primaire existante. Seules les lignes d’une même tranche comportant plusieurs segments sont triées en mémoire pour rétablir leur ordre chronologique. Le rafraîchissement des longues périodes suit les lots validés, environ une fois par minute. La comparaison porte sur une courbe d’une archive synthétique pleine, sur un Mac.
+
+Dans le même processus DEV signé, le détail CPU est resté ouvert 65 secondes sur 10 min puis 65 secondes sur 30 j. Le processus entier a utilisé respectivement 6,4 % et 6,0 % d’un cœur, collecte et tableau des processus compris. Un seul passage par période donne un ordre de grandeur. Le détail 30 j a affiché le pic CPU de 100 % injecté le 24 novembre à 12:05:07 et l’a conservé après l’écriture du lot suivant, puis après fermeture et relance du paquet DEV.
+
+La suite complète vérifie les moyennes après changement de cadence, les interruptions indépendantes, les pics aux limites de période, la migration de l’ancien fichier et la lecture après réouverture. Elle compte 433 XCTest réussis, 7 intégrations optionnelles ignorées et 295 tests Swift Testing réussis.
+
+### Vérifications initiales du 26 novembre
 
 La suite de l’application passe avec 427 XCTest réussis, 7 intégrations optionnelles ignorées et 295 tests Swift Testing réussis. Les six nouveaux tests couvrent notamment la reprise après échec d’écriture, les regroupements et les pics, l’expiration sur dates simulées, la restauration du store, les changements de source et la cadence des cartes.
 

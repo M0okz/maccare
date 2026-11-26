@@ -24,20 +24,6 @@ private struct ActivityBucket: Hashable {
     let start: Int64
 }
 
-private struct ActivityAggregate {
-    var time: Double
-    var sum: Double
-    var peak: Double
-    var count: Int
-
-    mutating func add(_ value: Double, at time: Double) {
-        self.time = max(self.time, time)
-        sum += value
-        peak = max(peak, value)
-        count += 1
-    }
-}
-
 /// All disk access and aggregation for the archive run on this actor.
 /// Five-second rows and minute summaries commit in the same transaction.
 actor ActivityHistoryArchive {
@@ -50,7 +36,8 @@ actor ActivityHistoryArchive {
     }
 
     let url: URL
-    private var pending: [ActivityBucket: ActivityAggregate] = [:]
+    private var pending: [ActivityBucket: TrayHistoryPoint] = [:]
+    private var continuity: [ActivitySeries: ActivitySeriesContinuity] = [:]
     private var lastAttempt: TimeInterval?
     private var network: (identity: String, source: Int64)?
 
@@ -60,24 +47,22 @@ actor ActivityHistoryArchive {
     func append(_ sample: TrayMetrics, time: TimeInterval, session: Int64) -> Bool {
         let start = Int64(floor(time / 5)) * 5
         func add(_ series: ActivitySeries, _ value: Double?, source: Int64 = 0) {
-            guard let value, value.isFinite, value >= 0 else { return }
-            let key = ActivityBucket(series: series, source: source, session: session, start: start)
-            if pending[key] == nil {
-                pending[key] = .init(time: time, sum: value, peak: value, count: 1)
-            } else {
-                pending[key]?.add(value, at: time)
-            }
+            guard let point = continuity[series, default: .init()].observe(value, time: time, uptime: sample.sampledAt,
+                                                                           session: session, source: source) else { return }
+            let key = ActivityBucket(series: series, source: source, session: point.session, start: start)
+            pending[key] = pending[key]?.merging(point) ?? point
         }
         add(.cpu, sample.cpu?.used.mapToFraction)
         add(.memory, sample.memory?.fraction)
-        if let gpu = sample.gpu { add(.gpu, gpu.fraction?.mapToFraction, source: Int64(bitPattern: gpu.id)) }
-        if let wifi = sample.wifi, wifi.connected, let rx = wifi.received, let tx = wifi.sent,
-           rx.isFinite, rx >= 0, tx.isFinite, tx >= 0 {
+        add(.gpu, sample.gpu?.fraction?.mapToFraction, source: Int64(bitPattern: sample.gpu?.id ?? 0))
+        if let wifi = sample.wifi, wifi.connected {
             if network?.identity != wifi.historyIdentity { network = (wifi.historyIdentity, wifi.historySource) }
-            if let source = network?.source {
-                add(.received, rx, source: source)
-                add(.sent, tx, source: source)
-            }
+            let source = network?.source ?? 0
+            add(.received, wifi.received, source: source)
+            add(.sent, wifi.sent, source: source)
+        } else {
+            add(.received, nil)
+            add(.sent, nil)
         }
         if let lastAttempt, time >= lastAttempt, time - lastAttempt < 60 { return false }
         let first = lastAttempt == nil
@@ -98,11 +83,15 @@ actor ActivityHistoryArchive {
         try db.exec("BEGIN IMMEDIATE")
         do {
             let insert = try db.statement("""
-                INSERT INTO history (step,series,bucket,session,source,time,total,peak,n)
-                VALUES (?,?,?,?,?,?,?,?,?)
+                INSERT INTO history (step,series,bucket,session,source,time,total,peak,n,seconds,integral,peak_time)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT(step,series,bucket,session,source) DO UPDATE SET
                     time=max(time,excluded.time), total=total+excluded.total,
-                    peak=max(peak,excluded.peak), n=n+excluded.n
+                    peak_time=CASE WHEN excluded.peak>peak THEN excluded.peak_time
+                                   WHEN excluded.peak<peak THEN peak_time
+                                   ELSE coalesce(min(peak_time,excluded.peak_time),peak_time,excluded.peak_time) END,
+                    peak=max(peak,excluded.peak), n=n+excluded.n,
+                    seconds=seconds+excluded.seconds, integral=integral+excluded.integral
                 """)
             defer { sqlite3_finalize(insert) }
             for (key, aggregate) in pending {
@@ -113,9 +102,13 @@ actor ActivityHistoryArchive {
                         sqlite3_bind_int64(insert, Int32(index + 1), value)
                     }
                     sqlite3_bind_double(insert, 6, aggregate.time)
-                    sqlite3_bind_double(insert, 7, aggregate.sum)
+                    sqlite3_bind_double(insert, 7, aggregate.value * Double(aggregate.count))
                     sqlite3_bind_double(insert, 8, aggregate.peak)
                     sqlite3_bind_int64(insert, 9, Int64(aggregate.count))
+                    sqlite3_bind_double(insert, 10, aggregate.seconds)
+                    sqlite3_bind_double(insert, 11, aggregate.value * aggregate.seconds)
+                    if let time = aggregate.peakTime { sqlite3_bind_double(insert, 12, time) }
+                    else { sqlite3_bind_null(insert, 12) }
                     try db.check(sqlite3_step(insert), expected: SQLITE_DONE)
                 }
             }
@@ -171,12 +164,37 @@ private final class ActivityDatabase {
         }
         handle = db
         sqlite3_busy_timeout(db, 1000)
-        try exec("""
-            CREATE TABLE IF NOT EXISTS history(
-                step INTEGER, series INTEGER, bucket INTEGER, session INTEGER, source INTEGER,
-                time REAL NOT NULL, total REAL NOT NULL, peak REAL NOT NULL, n INTEGER NOT NULL,
-                PRIMARY KEY(step,series,bucket,session,source)) WITHOUT ROWID
-            """)
+        try migrate()
+    }
+
+    private func schemaVersion() throws -> Int32 {
+        let version = try statement("PRAGMA user_version")
+        defer { sqlite3_finalize(version) }
+        try check(sqlite3_step(version), expected: SQLITE_ROW)
+        return sqlite3_column_int(version, 0)
+    }
+
+    private func migrate() throws {
+        guard try schemaVersion() == 0 else { return }
+        try exec("BEGIN IMMEDIATE")
+        do {
+            if try schemaVersion() == 0 {
+                try exec("""
+                    CREATE TABLE IF NOT EXISTS history(
+                        step INTEGER, series INTEGER, bucket INTEGER, session INTEGER, source INTEGER,
+                        time REAL NOT NULL, total REAL NOT NULL, peak REAL NOT NULL, n INTEGER NOT NULL,
+                        PRIMARY KEY(step,series,bucket,session,source)) WITHOUT ROWID;
+                    ALTER TABLE history ADD COLUMN seconds REAL;
+                    ALTER TABLE history ADD COLUMN integral REAL;
+                    ALTER TABLE history ADD COLUMN peak_time REAL;
+                    PRAGMA user_version=1;
+                    """)
+            }
+            try exec("COMMIT")
+        } catch {
+            try? exec("ROLLBACK")
+            throw error
+        }
     }
     deinit { sqlite3_close(handle) }
 
@@ -205,9 +223,9 @@ private final class ActivityDatabase {
 
     func points(series: ActivitySeries, step: Int, duration: TimeInterval, end: TimeInterval) throws -> [TrayHistoryPoint] {
         let query = try statement("""
-            SELECT time,total,peak,n,session,source FROM history
+            SELECT time,total,peak,n,session,source,seconds,integral,peak_time FROM history
             WHERE step=? AND series=? AND bucket BETWEEN ? AND ? AND time BETWEEN ? AND ?
-            ORDER BY bucket,time
+            ORDER BY bucket
             """)
         defer { sqlite3_finalize(query) }
         sqlite3_bind_int(query, 1, Int32(step))
@@ -218,7 +236,30 @@ private final class ActivityDatabase {
         sqlite3_bind_double(query, 6, end)
         var points: [TrayHistoryPoint] = []
         let width = max(60, ceil(duration / 480 / 60) * 60)
+        // Keep the leading partial minute separate. Its peak can predate the requested
+        // window and must not hide a smaller, in-range peak during downsampling.
+        let firstCompleteMinute = ceil((end - duration) / 60) * 60
         var previousGroup: Double?
+        // SQLite scans the existing (step, series, bucket, ...) primary key.
+        // Only a bucket containing several segments needs a secondary time sort.
+        var tiedRows: [TrayHistoryPoint] = []
+        var currentBucket: Double?
+        func emitBucket() {
+            if tiedRows.count > 1 { tiedRows.sort { $0.time < $1.time } }
+            for var point in tiedRows {
+                let group = floor(point.time / width)
+                let last = points.last
+                point.startsSegment = last.map { $0.session != point.session || $0.source != point.source
+                    || point.time - $0.time > Double(step) * 3 } ?? true
+                if step == 60, !point.startsSegment, previousGroup == group, let last, last.time >= firstCompleteMinute {
+                    points[points.count - 1] = last.merging(point)
+                } else {
+                    points.append(point)
+                }
+                previousGroup = group
+            }
+            tiedRows.removeAll(keepingCapacity: true)
+        }
         var status = sqlite3_step(query)
         while status == SQLITE_ROW {
             let time = sqlite3_column_double(query, 0)
@@ -227,20 +268,21 @@ private final class ActivityDatabase {
             let count = Int(sqlite3_column_int64(query, 3))
             let session = sqlite3_column_int64(query, 4)
             let source = sqlite3_column_int64(query, 5)
-            let group = floor(time / width)
-            let last = points.last
-            let starts = last.map { $0.session != session || $0.source != source || time - $0.time > Double(step) * 3 } ?? true
-            if step == 60, !starts, previousGroup == group, let last {
-                let n = last.count + count
-                points[points.count-1] = .init(time: time, value: (last.value * Double(last.count) + total) / Double(n),
-                    peak: max(last.peak, peak), count: n, session: session, source: source, startsSegment: last.startsSegment)
-            } else {
-                points.append(.init(time: time, value: total / Double(count), peak: peak, count: count,
-                                    session: session, source: source, startsSegment: starts))
-            }
-            previousGroup = group
+            let bucket = floor(time / Double(step))
+            if bucket != currentBucket { emitBucket(); currentBucket = bucket }
+            // Legacy rows have neither measured duration nor the instant of their peak.
+            // Cap their estimated weight at one bucket and one background interval per reading.
+            let legacy = sqlite3_column_type(query, 6) == SQLITE_NULL
+            let seconds = legacy ? min(Double(step), Double(count) * 5) : sqlite3_column_double(query, 6)
+            let mean = !legacy && seconds > 0 ? sqlite3_column_double(query, 7) / seconds : total / Double(count)
+            let peakTime = sqlite3_column_type(query, 8) == SQLITE_NULL ? (count == 1 ? time : nil) : sqlite3_column_double(query, 8)
+            let point = TrayHistoryPoint(time: time, value: mean, peak: peak, count: count, session: session,
+                                         source: source, seconds: seconds,
+                                         peakTime: peakTime, estimated: legacy)
+            tiedRows.append(point)
             status = sqlite3_step(query)
         }
+        emitBucket()
         try check(status, expected: SQLITE_DONE)
         return points
     }
