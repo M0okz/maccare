@@ -18,7 +18,7 @@ final class UninstallDetailTests: XCTestCase {
         XCTAssertEqual(review.candidates["/QA/Library/Preferences/org.example.qa.plist"], .exclusive)
         XCTAssertEqual(review.candidates["/QA/Library/Application Support/org.example.qa"], .personal)
         XCTAssertEqual(review.candidates["/QA/Library/Application Support/Example"], .nameOnly)
-        XCTAssertEqual(review.candidates["/QA/Library/Group Containers/group.example"], .group)
+        XCTAssertEqual(review.candidates["/QA/Library/Group Containers/group.example"], .declaredGroup)
         XCTAssertTrue(UninstallDataUse.exclusive.preselected)
         XCTAssertTrue(UninstallDataUse.personal.canRemove)
         XCTAssertFalse(UninstallDataUse.personal.preselected)
