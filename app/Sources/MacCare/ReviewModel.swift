@@ -7,6 +7,7 @@ struct RemovalReport {
     var removed: Int = 0
     var refused: [(path: String, reason: String)] = []
     var failed: [(path: String, error: String)] = []
+    var kept: [(path: String, reason: String)] = []
 }
 
 @MainActor

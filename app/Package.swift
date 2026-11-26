@@ -15,7 +15,8 @@ let package = Package(
         // Cible C qui expose la frontière du moteur Rust (en-tête + modulemap).
         .target(name: "CMacCareCore"),
         .systemLibrary(name: "CSQLite", pkgConfig: "sqlite3"),
-        .target(name: "MacCareMaintenance", dependencies: ["CSQLite"]),
+        .systemLibrary(name: "CRemoveFile"),
+        .target(name: "MacCareMaintenance", dependencies: ["CSQLite", "CRemoveFile"]),
         // Protocole XPC partagé entre l'app et l'assistant privilégié.
         .target(name: "MacCareHelperProtocol"),
         .target(name: "CMacCareSMC", linkerSettings: [.linkedFramework("IOKit")]),

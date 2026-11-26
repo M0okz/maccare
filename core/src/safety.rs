@@ -295,10 +295,11 @@ pub fn evaluate_for_rule(
         _ => return Decision::Refused(Refusal::OutsideScope { path: path.to_path_buf(), scope: root }),
     };
     let rest = parts.as_path();
-    let shape_ok = if rule.subpaths.is_empty() {
+    let subpaths = rule.subpaths_for(&entry);
+    let shape_ok = if subpaths.is_empty() {
         rest.as_os_str().is_empty()
     } else {
-        rule.subpaths.iter().any(|s| rest == Path::new(s))
+        subpaths.iter().any(|s| rest == Path::new(s))
     };
     if !shape_ok {
         return Decision::Refused(Refusal::OutsideScope { path: path.to_path_buf(), scope: root });
@@ -321,7 +322,7 @@ pub fn evaluate_for_rule(
     // 4. Protection, avec l'unique dérogation de la liste blanche (enfants directs seulement).
     if ctx.is_protected(&normalized) {
         let whitelisted = !rule.include.is_empty()
-            && rule.subpaths.is_empty()
+            && rest.as_os_str().is_empty()
             && !ctx.is_protected_entry(&normalized);
         if !whitelisted {
             return Decision::Refused(Refusal::Protected(path.to_path_buf()));

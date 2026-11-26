@@ -18,6 +18,7 @@ struct UninstallView: View {
     @ObservedObject var model: UninstallModel
     let layout: MainWindowLayout
     @State private var query = ""
+    @State private var displayedReceipt: UninstallReceipt?
     @State private var focusedLeftoverID: String?
 
     var body: some View {
@@ -39,6 +40,7 @@ struct UninstallView: View {
             if model.showingLeftovers { leftoversFooter.displayScaledBlock(layout.scale) }
             else if model.selectedApp != nil { footer.displayScaledBlock(layout.scale) }
         }
+        .sheet(item: $displayedReceipt) { UninstallReceiptView(receipt: $0) }
         .onAppear { model.loadApps() }
     }
 
@@ -282,6 +284,17 @@ struct UninstallView: View {
                         HStack {
                             Text("Données associées").font(AppFont.emphasis).accessibilityAddTraits(.isHeader)
                             Spacer()
+                            if !detail.associatedItems.isEmpty {
+                                let eligible = detail.associatedItems.filter { model.review?.use(of: $0)?.canRemove == true }
+                                let ids = Set(eligible.map(\.id))
+                                let selected = ids.isSubset(of: model.selection)
+                                Button(selected ? "Tout décocher" : "Tout cocher") {
+                                    if selected { model.selection.subtract(ids) } else { model.selection.formUnion(ids) }
+                                }
+                                .buttonStyle(.actionPill).controlSize(.small)
+                                .disabled(ids.isEmpty || model.isCleaning)
+                                .accessibilityHint("Données associées à cette application")
+                            }
                             Text("\(detail.associatedItems.count) \(pl(detail.associatedItems.count, "élément"))")
                                 .font(AppFont.secondary).foregroundStyle(Theme.muted)
                         }
@@ -339,12 +352,23 @@ struct UninstallView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             HStack(spacing: Space.m) {
-                if let r = model.lastReport {
-                    Text(reportSummary(r)).font(AppFont.secondary).foregroundStyle(r.needsAttention ? Theme.warn : Theme.muted)
+                if model.isCleaning {
+                    ProgressView().controlSize(.small)
+                    Text("Retrait en cours…").font(AppFont.secondary)
+                } else if let r = model.lastReport {
+                    if let receipt = model.receipt {
+                        Text(receipt.summary).font(AppFont.secondary).foregroundStyle(r.needsAttention ? Theme.warn : Theme.muted)
+                        Button("Détails") { displayedReceipt = receipt }.buttonStyle(.actionPill).controlSize(.small)
+                    }
+                    if let failure = r.failed.first {
+                        Text(failure.error).font(AppFont.caption).foregroundStyle(Theme.warn)
+                            .lineLimit(2).help(failure.error)
+                    }
                 } else {
                     Text("\(model.residuals.count) \(pl(model.residuals.count, "élément")) — \(humanSize(model.totalSize))")
                         .font(AppFont.secondary).foregroundStyle(Theme.muted)
                 }
+                if let error = model.statusMessage { Text(error).foregroundStyle(Theme.warn).font(AppFont.caption) }
                 Spacer(minLength: Space.s)
                 if !model.selection.isEmpty {
                     Text("Sélection : \(humanSize(model.selectedSize))").font(AppFont.secondary)

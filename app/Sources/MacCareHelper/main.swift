@@ -1,3 +1,4 @@
+import CryptoKit
 import CMacCareCore
 import Foundation
 import Darwin
@@ -230,6 +231,22 @@ final class ListenerDelegate: NSObject, NSXPCListenerDelegate {
 // Any CLI argument is handled before daemon/recovery initialization. Unknown or
 // combined options must never fall through into the privileged service.
 let diagnosticArguments = Array(CommandLine.arguments.dropFirst())
+#if !MACCARE_DIAGNOSTICS_ONLY
+if diagnosticArguments.count == 2, diagnosticArguments.first == "--uninstall-selection" {
+    do {
+        let bytes = FileHandle.standardInput.readData(ofLength: 2_000_001)
+        guard bytes.count <= 2_000_000 else { throw CocoaError(.fileReadTooLarge) }
+        let digest = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
+        guard digest == diagnosticArguments[1] else { throw CocoaError(.fileReadCorruptFile) }
+        let request = try JSONDecoder().decode(AuthorizedUninstall.self, from: bytes)
+        print(String(decoding: try JSONEncoder().encode(request.execute()), as: UTF8.self))
+        exit(0)
+    } catch {
+        FileHandle.standardError.write(Data(error.localizedDescription.utf8))
+        exit(1)
+    }
+}
+#endif
 if !diagnosticArguments.isEmpty {
     let usage = """
     Usage: MacCareHelper [--battery-full-diagnostics | --battery-diagnostics | --battery-compatibility-diagnostics | --battery-build-info | --help]

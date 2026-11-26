@@ -11,6 +11,8 @@ final class UninstallModel: ObservableObject {
     @Published private(set) var review: UninstallReview?
     @Published var selection: Set<String> = []
     private var scanGeneration = 0
+    private var artifacts: UninstallArtifacts?
+    @Published private(set) var receipt: UninstallReceipt?
     @Published private(set) var isScanning = false
     @Published private(set) var isCleaning = false
     @Published var statusMessage: String?
@@ -42,17 +44,19 @@ final class UninstallModel: ObservableObject {
         review = nil
         residuals = []
         selection = []
+        if !keepReport { artifacts = nil; receipt = nil; lastReport = nil }
+        let prior = artifacts
         guard let app = selectedApp else {
             isScanning = false
             return
         }
         isScanning = true
         statusMessage = nil
-        if !keepReport { lastReport = nil }
         Task.detached(priority: .userInitiated) {
             let token = PowerAssertion.beginUserActivity("MacCare · désinstalleur")
             defer { PowerAssertion.end(token) }
-            let review = UninstallReview.current(for: app)
+            let metadata = prior ?? UninstallArtifacts(app: app)
+            let review = UninstallReview.current(for: app, artifacts: metadata)
             let result: Result<[ScanItem], Error>
             do {
                 result = .success(try Engine.inspectPaths(Array(review.candidates.keys)))
@@ -65,6 +69,7 @@ final class UninstallModel: ObservableObject {
                 case .success(let found):
                     self.residuals = found.sorted { $0.size_bytes > $1.size_bytes }
                     self.review = review
+                    self.artifacts = metadata
                     self.selection = Set(found.filter { review.use(of: $0)?.preselected == true }.map(\.id))
                 case .failure(let err):
                     self.residuals = []
@@ -143,17 +148,21 @@ final class UninstallModel: ObservableObject {
         statusMessage = nil
 
         let direct = directDelete
+        let inventory = residuals
+        let reviewed = review
+        let metadata = artifacts
 
         Task.detached(priority: .userInitiated) {
             let token = PowerAssertion.beginUserActivity("MacCare · désinstalleur")
             defer { PowerAssertion.end(token) }
             let outcome: Result<RemovalReport, Error>
-            do { outcome = .success(try Remover.uninstall(chosen, app: app, direct: direct)) }
+            do { outcome = .success(try await Remover.uninstall(chosen, app: app, direct: direct, artifacts: metadata)) }
             catch { outcome = .failure(error) }
 
             await MainActor.run {
                 switch outcome {
                 case .success(let report):
+                    self.receipt = UninstallReceipt(app: app, inventory: inventory, chosen: chosen, review: reviewed, report: report)
                     self.lastReport = report
                     if !FileManager.default.fileExists(atPath: app.url.path) { self.apps.removeAll { $0.id == app.id } }
                     self.isCleaning = false

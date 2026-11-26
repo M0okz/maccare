@@ -47,7 +47,7 @@ extension UninstallExecutionTests {
         return AppInfo(url: url, name: url.deletingPathExtension().lastPathComponent, bundleId: nil)
     }
 
-    func testCopyInstalledAfterInspectionKeepsItsPreferencesInBothRemovalModes() throws {
+    func testCopyInstalledAfterInspectionKeepsItsPreferencesInBothRemovalModes() async throws {
         let fm = FileManager.default
         for direct in [false, true] {
             let id = "org.example.removalfixture." + UUID().uuidString
@@ -76,40 +76,40 @@ extension UninstallExecutionTests {
             XCTAssertFalse(use.preselected)
             XCTAssertFalse(use.canRemove)
             XCTAssertTrue(use.reason.contains(copy.url.path))
-            let report = try Remover.uninstall(items, app: app, direct: direct)
+            let report = try await Remover.uninstall(items, app: app, direct: direct)
             XCTAssertEqual(report.refused.map(\.path), [preferences.path])
             XCTAssertEqual(report.removed, 0)
             XCTAssertEqual(try Data(contentsOf: preferences), original)
         }
     }
 
-    func testDirectUninstallHandlesQuotedNamesAndDoesNotAuthorizeASibling() throws {
+    func testDirectUninstallHandlesQuotedNamesAndDoesNotAuthorizeASibling() async throws {
         let fm = FileManager.default
         let app = try makeFixture(" \"\\ 🐈")
         let sibling = app.url.deletingLastPathComponent().appendingPathComponent("Other" + app.url.lastPathComponent)
         try fm.createDirectory(at: sibling, withIntermediateDirectories: false)
         defer { try? fm.removeItem(at: app.url); try? fm.removeItem(at: sibling) }
         let items = try Engine.inspectPaths([app.url.path, sibling.path])
-        let report = try Remover.uninstall(items, app: app, direct: true)
+        let report = try await Remover.uninstall(items, app: app, direct: true)
         XCTAssertEqual(report.removed, 1)
         XCTAssertEqual(report.refused.map(\.path), [sibling.path])
         XCTAssertFalse(fm.fileExists(atPath: app.url.path))
         XCTAssertTrue(fm.fileExists(atPath: sibling.path))
     }
 
-    func testApplicationDataCanBeRemovedWithoutRemovingTheUncheckedBundle() throws {
+    func testApplicationDataCanBeRemovedWithoutRemovingTheUncheckedBundle() async throws {
         let fm = FileManager.default
         let app = try makeFixture()
         let data = fm.homeDirectoryForCurrentUser.appendingPathComponent("Library/Caches/" + app.name)
         try Data([1, 2, 3]).write(to: data)
         defer { try? fm.removeItem(at: app.url); try? fm.removeItem(at: data) }
-        let report = try Remover.uninstall(Engine.inspectPaths([data.path]), app: app, direct: true)
+        let report = try await Remover.uninstall(Engine.inspectPaths([data.path]), app: app, direct: true)
         XCTAssertEqual(report.removed, 1)
         XCTAssertFalse(fm.fileExists(atPath: data.path))
         XCTAssertTrue(fm.fileExists(atPath: app.url.path))
     }
 
-    func testTheCleaningEngineStillProtectsApplicationsAndReplacedBundlesAreRefused() throws {
+    func testTheCleaningEngineStillProtectsApplicationsAndReplacedBundlesAreRefused() async throws {
         let fm = FileManager.default
         let app = try makeFixture()
         let moved = app.url.deletingLastPathComponent().appendingPathComponent("Kept" + app.url.lastPathComponent)
@@ -119,7 +119,7 @@ extension UninstallExecutionTests {
         XCTAssertEqual(decisions.first?.refusal, "protected")
         try fm.moveItem(at: app.url, to: moved)
         try fm.createDirectory(at: app.url, withIntermediateDirectories: false)
-        let report = try Remover.uninstall(items, app: app, direct: true)
+        let report = try await Remover.uninstall(items, app: app, direct: true)
         XCTAssertEqual(report.removed, 0)
         XCTAssertEqual(report.refused.first?.reason, "identity-changed")
         XCTAssertTrue(fm.fileExists(atPath: app.url.path))

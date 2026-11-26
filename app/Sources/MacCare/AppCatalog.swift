@@ -14,6 +14,13 @@ enum AppCatalog {
     static var applicationDirectories: [String] {
         ["/Applications", (NSHomeDirectory() as NSString).appendingPathComponent("Applications")]
     }
+    static func isProtectedApplication(_ url: URL) -> Bool {
+        let id = Bundle(url: url)?.bundleIdentifier
+        if let id, id == Bundle.main.bundleIdentifier || id == "org.maccare.app" { return true }
+        var info = stat()
+        return lstat(url.path, &info) == 0 && info.st_flags & UInt32(SF_RESTRICTED) != 0
+    }
+
     static func installedApps() -> [AppInfo] {
         let fm = FileManager.default
         var apps: [AppInfo] = []
@@ -25,7 +32,7 @@ enum AppCatalog {
                 let name = (entry as NSString).deletingPathExtension
                 let bundleId = Bundle(url: url)?.bundleIdentifier
                 // MacCare cannot remove itself: its running helper must be deactivated first.
-                if bundleId == Bundle.main.bundleIdentifier { continue }
+                if isProtectedApplication(url) { continue }
                 apps.append(AppInfo(url: url, name: name, bundleId: bundleId))
             }
         }

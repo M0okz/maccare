@@ -182,3 +182,43 @@ fn shipped_generic_rules_behave_as_before() {
     write(&logs.join("DiagnosticReports/crash.ips"));
     assert_eq!(names(&shipped_at("logs/user.toml", &logs)), vec!["App", "DiagnosticReports"]);
 }
+
+#[test]
+fn app_profiles_preserve_shared_google_and_offline_spotify_storage() {
+    let (_tmp, base) = base();
+    let root = base.join("Caches");
+    let rule = shipped_at("caches/generic.toml", &root);
+    let ctx = SafetyContext::new([base.join("Docs")]);
+    for entry in ["Google/Chrome/Default", "Google/DriveFS/account", "com.spotify.Client/storage/song",
+                  "com.spotify.Client/Browser/GPUCache/blob", "Slack/resource"] {
+        write(&root.join(entry));
+    }
+    assert_eq!(names(&rule), vec!["Google/Chrome", "Slack", "com.spotify.Client/Browser/GPUCache"]);
+    for path in ["Google", "Google/DriveFS", "com.spotify.Client", "com.spotify.Client/storage"] {
+        let path = root.join(path);
+        assert!(matches!(evaluate_for_rule(&ctx, &path, &rule, id(&path)), Decision::Refused(_)));
+    }
+    for path in ["Google/Chrome", "com.spotify.Client/Browser/GPUCache"] {
+        let path = root.join(path);
+        assert_eq!(evaluate_for_rule(&ctx, &path, &rule, id(&path)), Decision::Allowed);
+    }
+}
+
+#[test]
+fn vscode_startup_cache_excludes_neighboring_editor_data() {
+    let (_tmp, base) = base();
+    let scope = base.join("Library/Application Support/Code");
+    let cache = scope.join("CachedData");
+    let rule = shipped("caches/vscode-compiled.toml");
+    assert_eq!(rule.root, "~/Library/Application Support/Code/CachedData");
+    let rule = shipped_at("caches/vscode-compiled.toml", &cache);
+    let ctx = SafetyContext::new([base.join("Docs")]);
+    write(&cache.join("version/main.code"));
+    assert_eq!(names(&rule), vec!["version"]);
+    assert_eq!(evaluate_for_rule(&ctx, &cache.join("version"), &rule, id(&cache.join("version"))), Decision::Allowed);
+    for folder in ["User", "Backups", "CachedExtensionVSIXs"] {
+        let path = scope.join(folder);
+        write(&path.join("keep"));
+        assert!(matches!(evaluate_for_rule(&ctx, &path, &rule, id(&path)), Decision::Refused(_)));
+    }
+}
