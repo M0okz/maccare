@@ -137,9 +137,11 @@ le nettoyage. Dans la règle générique, le moteur restreint le dossier partag�
 Google au sous-dossier Chrome, et le cache Spotify à des sous-dossiers
 graphiques identifiés. Le moteur vérifie ces limites à nouveau avant le retrait.
 Le Smart Scan écarte également les caches sandbox attribués à Spotify qui ne
-permettent pas de distinguer les titres hors ligne.
+permettent pas de distinguer les titres hors ligne. Une règle dédiée reconnaît
+le cache de démarrage de VS Code dans `Application Support/Code/CachedData`.
+Les profils, sauvegardes et extensions de l’éditeur restent hors de sa racine.
 
-Branche locale `codex/smart-scan-applications`, version DEV 0.2.46 (51).
+Branche locale `codex/smart-scan-applications`, version DEV 0.2.46 (52).
 Sur des dossiers de test, le parcours natif couvre les dix fiches, les autres
 résultats, le retour par Échap et une case partagée entre les deux vues.
 Un test de nettoyage sur fichiers temporaires vérifie que les choix des autres

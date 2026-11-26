@@ -35,6 +35,10 @@ final class SmartScanApplicationsTests: XCTestCase {
         XCTAssertEqual(Set(result.flatMap(\.items).map(\.id)), Set(groups.flatMap(\.items).map(\.id)))
         XCTAssertEqual(result.reduce(0) { $0 + $1.bytes }, groups.reduce(0) { $0 + $1.size })
         XCTAssertEqual(result.first { $0.profile.name == "Xcode" }?.sections.first?.category.risk, .review)
+        let compiled = try category("cache.vscode-compiled", type: "vscode-compiled-cache", root: root)
+        let versionCache = item("0ac84e", compiled)
+        XCTAssertEqual(SmartScanAppProfile.identifier(for: versionCache, containerOwners: [:]), "com.microsoft.VSCode")
+        XCTAssertTrue(RunningCacheApplications.isApplicationCache(compiled.category))
         let uuid = UUID().uuidString
         let sandbox = try category("cache.containers", type: "container-cache", root: root)
         let wrapped = item("Data/Library/Caches", sandbox, owner: uuid)

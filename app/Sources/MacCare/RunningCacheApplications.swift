@@ -47,7 +47,7 @@ struct RunningCacheApplications {
     }
 
     static func isApplicationCache(_ category: String) -> Bool {
-        ["user-cache", "container-cache", "group-container-cache", "electron-cache", "xcode-documentation-cache"].contains(category)
+        ["user-cache", "container-cache", "group-container-cache", "electron-cache", "vscode-compiled-cache", "xcode-documentation-cache"].contains(category)
     }
 
     static func containerIdentifier(_ folder: String, root: String) -> String? {
@@ -61,8 +61,7 @@ struct RunningCacheApplications {
 
     mutating func blockingNames(for item: ScanItem, root: String) -> [String] {
         let folder = item.owner ?? item.url.lastPathComponent
-        var key = folder.lowercased()
-        if item.category == "xcode-documentation-cache" { key = "com.apple.dt.xcode" }
+        var key = (SmartScanAppProfile.dedicatedOwner(for: item) ?? folder).lowercased()
         if ["container-cache", "group-container-cache"].contains(item.category),
            let identifier = Self.containerIdentifier(folder, root: root) { key = identifier.lowercased() }
         let profile = SmartScanAppProfile.knownOwner(key)

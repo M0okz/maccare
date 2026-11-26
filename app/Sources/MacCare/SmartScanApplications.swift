@@ -58,8 +58,14 @@ struct SmartScanAppProfile: Identifiable {
         return knownOwner(containerOwners[owner] ?? owner) != "com.spotify.client"
     }
 
-    static func identifier(for item: ScanItem, containerOwners: [String: String]) -> String {
+    static func dedicatedOwner(for item: ScanItem) -> String? {
         if item.reason.hasPrefix("xcode."), item.category.hasPrefix("xcode-") { return "com.apple.dt.Xcode" }
+        if item.reason == "cache.vscode-compiled", item.category == "vscode-compiled-cache" { return "com.microsoft.VSCode" }
+        return nil
+    }
+
+    static func identifier(for item: ScanItem, containerOwners: [String: String]) -> String {
+        if let owner = dedicatedOwner(for: item) { return owner }
         if item.category == "user-cache", item.owner?.lowercased() == "google", item.url.lastPathComponent == "Chrome" {
             return "com.google.Chrome"
         }

@@ -203,3 +203,22 @@ fn app_profiles_preserve_shared_google_and_offline_spotify_storage() {
         assert_eq!(evaluate_for_rule(&ctx, &path, &rule, id(&path)), Decision::Allowed);
     }
 }
+
+#[test]
+fn vscode_startup_cache_excludes_neighboring_editor_data() {
+    let (_tmp, base) = base();
+    let scope = base.join("Library/Application Support/Code");
+    let cache = scope.join("CachedData");
+    let rule = shipped("caches/vscode-compiled.toml");
+    assert_eq!(rule.root, "~/Library/Application Support/Code/CachedData");
+    let rule = shipped_at("caches/vscode-compiled.toml", &cache);
+    let ctx = SafetyContext::new([base.join("Docs")]);
+    write(&cache.join("version/main.code"));
+    assert_eq!(names(&rule), vec!["version"]);
+    assert_eq!(evaluate_for_rule(&ctx, &cache.join("version"), &rule, id(&cache.join("version"))), Decision::Allowed);
+    for folder in ["User", "Backups", "CachedExtensionVSIXs"] {
+        let path = scope.join(folder);
+        write(&path.join("keep"));
+        assert!(matches!(evaluate_for_rule(&ctx, &path, &rule, id(&path)), Decision::Refused(_)));
+    }
+}

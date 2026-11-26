@@ -1,0 +1,15 @@
+# Cache de démarrage V8, séparé des profils, des sauvegardes et des extensions de VS Code.
+id = "cache.vscode-compiled"
+category = "vscode-compiled-cache"
+version = 1
+root = "~/Library/Application Support/Code/CachedData"
+depth = "per-app"
+autoselect = false
+title = "Cache de démarrage de Visual Studio Code"
+description = "Code compilé que VS Code recrée à son prochain démarrage."
+risk = "safe"
+icon = "chevron.left.forwardslash.chevron.right"
+
+[[exclude]]
+kind = "name"
+equals = ".DS_Store"
